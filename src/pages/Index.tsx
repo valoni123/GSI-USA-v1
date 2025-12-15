@@ -3,8 +3,7 @@ import LoginForm from "@/components/LoginForm";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
-import { createClient } from "@supabase/supabase-js";
-import supabaseClient from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [lang, setLang] = useState<LanguageKey>(() => {
@@ -25,7 +24,7 @@ const Index = () => {
       return;
     }
     const id = showLoading(trans.signingIn);
-    const { data, error } = await supabaseClient.functions.invoke("verify-gsi-login", {
+    const { data, error } = await supabase.functions.invoke("verify-gsi-login", {
       body: { username, password },
     });
     dismissToast(id as unknown as string);
