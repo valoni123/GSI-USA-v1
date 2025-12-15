@@ -34,7 +34,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 pb-24">
       <div className="w-full flex flex-col items-center">
         <h1 className="sr-only">{trans.title}</h1>
-        <LoginForm lang={lang} onSubmit={handleLogin} />
+        <LoginForm lang={lang} onSubmit={handleLogin} logoSrc="/white_logo_black_background.png" />
       </div>
 
       <LanguageSwitcher value={lang} onChange={setLang} />
