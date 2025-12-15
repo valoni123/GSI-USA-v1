@@ -15,7 +15,8 @@ type TranslationKeys =
   | "language"
   | "signingIn"
   | "signedIn"
-  | "emptyFields";
+  | "emptyFields"
+  | "invalidCredentials";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -29,6 +30,7 @@ const translations: Translations = {
     signingIn: "Signing in…",
     signedIn: "Signed in",
     emptyFields: "Please enter user and password.",
+    invalidCredentials: "Invalid username or password.",
   },
   de: {
     title: "Anmelden",
@@ -39,6 +41,7 @@ const translations: Translations = {
     signingIn: "Wird angemeldet…",
     signedIn: "Angemeldet",
     emptyFields: "Bitte Benutzer und Passwort eingeben.",
+    invalidCredentials: "Ungültiger Benutzer oder Passwort.",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -49,6 +52,7 @@ const translations: Translations = {
     signingIn: "Iniciando sesión…",
     signedIn: "Sesión iniciada",
     emptyFields: "Ingrese usuario y contraseña.",
+    invalidCredentials: "Usuario o contraseña inválidos.",
   },
   "pt-BR": {
     title: "Entrar",
@@ -59,6 +63,7 @@ const translations: Translations = {
     signingIn: "Entrando…",
     signedIn: "Conectado",
     emptyFields: "Informe usuário e senha.",
+    invalidCredentials: "Usuário ou senha inválidos.",
   },
 };
 
