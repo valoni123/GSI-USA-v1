@@ -21,7 +21,7 @@ const LanguageSwitcher = ({ value, onChange, mode = "fixed" }: Props) => {
   const containerClasses =
     mode === "fixed"
       ? "fixed inset-x-0 bottom-4 flex items-center justify-center pointer-events-none"
-      : "absolute -bottom-6 left-1/2 -translate-x-1/2 pointer-events-none";
+      : "absolute -bottom-10 left-1/2 -translate-x-1/2 pointer-events-none";
   
   return (
     <div className={containerClasses}>
