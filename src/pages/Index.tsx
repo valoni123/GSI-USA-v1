@@ -1,17 +1,43 @@
-// Update this page (the content is just a fallback if you fail to update the page)
-
-import { MadeWithDyad } from "@/components/made-with-dyad";
+import { useEffect, useMemo, useState } from "react";
+import LoginForm from "@/components/LoginForm";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { type LanguageKey, t } from "@/lib/i18n";
+import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 
 const Index = () => {
+  const [lang, setLang] = useState<LanguageKey>(() => {
+    const saved = localStorage.getItem("app.lang") as LanguageKey | null;
+    return saved || "en";
+  });
+
+  const trans = useMemo(() => t(lang), [lang]);
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    localStorage.setItem("app.lang", lang);
+  }, [lang]);
+
+  const handleLogin = ({ username, password }: { username: string; password: string }) => {
+    if (!username || !password) {
+      showError(trans.emptyFields);
+      return;
+    }
+    const id = showLoading(trans.signingIn);
+    // Simulate a short processing delay; replace with real auth later
+    setTimeout(() => {
+      dismissToast(id as unknown as string);
+      showSuccess(trans.signedIn);
+    }, 800);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">
-          Start building your amazing project here!
-        </p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 pb-24">
+      <div className="w-full flex flex-col items-center">
+        <h1 className="sr-only">{trans.title}</h1>
+        <LoginForm lang={lang} onSubmit={handleLogin} />
       </div>
-      <MadeWithDyad />
+
+      <LanguageSwitcher value={lang} onChange={setLang} />
     </div>
   );
 };
