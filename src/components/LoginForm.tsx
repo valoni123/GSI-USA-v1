@@ -23,14 +23,14 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
   };
 
   return (
-    <div className="w-full max-w-sm">
-      <Card className="border-none shadow-none bg-transparent">
-        <CardContent className="p-0">
+    <div className="w-full max-w-md">
+      <Card className="rounded-none border border-black/80 bg-white shadow-sm">
+        <CardContent className="p-6">
           <div className="w-full flex flex-col items-center mb-6">
             <img
               src={logoSrc}
               alt="App logo"
-              className="h-20 sm:h-24 object-contain"
+              className="h-24 sm:h-28 md:h-32 object-contain"
               onError={(e) => {
                 // If no logo exists, hide the broken image icon gracefully
                 (e.currentTarget as HTMLImageElement).style.display = "none";
@@ -67,7 +67,7 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               />
             </div>
 
-            <Button type="submit" className="w-full h-12 text-base">
+            <Button type="submit" className="w-full h-12 text-base bg-slate-900 hover:bg-slate-900/90 text-white">
               {trans.signIn}
             </Button>
           </form>

@@ -31,13 +31,16 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 pb-24">
-      <div className="w-full flex flex-col items-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 pb-12">
+      <div className="relative w-full max-w-md flex flex-col items-center">
         <h1 className="sr-only">{trans.title}</h1>
-        <LoginForm lang={lang} onSubmit={handleLogin} logoSrc="/white_logo_black_background.png" />
+        <LoginForm
+          lang={lang}
+          onSubmit={handleLogin}
+          logoSrc="/black_logo_transparent_background.png"
+        />
+        <LanguageSwitcher value={lang} onChange={setLang} mode="overlap" />
       </div>
-
-      <LanguageSwitcher value={lang} onChange={setLang} />
     </div>
   );
 };
