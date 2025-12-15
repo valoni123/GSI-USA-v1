@@ -30,7 +30,7 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
             <img
               src={logoSrc}
               alt="App logo"
-              className="h-24 sm:h-28 md:h-32 object-contain"
+              className="h-32 sm:h-40 md:h-48 object-contain"
               onError={(e) => {
                 // If no logo exists, hide the broken image icon gracefully
                 (e.currentTarget as HTMLImageElement).style.display = "none";
