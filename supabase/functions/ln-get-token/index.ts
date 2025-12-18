@@ -29,6 +29,15 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
+    // Identify the GSI user row to update (passed from client after login)
+    let body: { gsi_id?: string } = {};
+    try {
+      body = await req.json();
+    } catch {
+      // ignore; token retrieval does not require a body except for gsi_id storage
+    }
+    const gsiId = body?.gsi_id;
+
     // Supabase admin client (service role) to read config and decrypt
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -94,7 +103,21 @@ serve(async (req) => {
       return json({ ok: false, error: "token_error", details: responseBody }, tokenRes.status);
     }
 
-    return json({ ok: true, token: responseBody }, 200);
+    // Persist the encrypted token to the user's gsi_users row if provided
+    if (gsiId) {
+      const tokenText = typeof responseBody === "string" ? responseBody : JSON.stringify(responseBody);
+      const { error: setErr } = await supabase.rpc("set_current_ln_token", {
+        p_id: gsiId,
+        p_token: tokenText,
+      });
+      if (setErr) {
+        console.error("Failed to store current_ln_token:", setErr);
+        // Still return ok with token, but indicate storage error
+        return json({ ok: true, token: responseBody, stored: false }, 200);
+      }
+    }
+
+    return json({ ok: true, token: responseBody, stored: !!gsiId }, 200);
   } catch (e) {
     console.error("Unhandled error:", e);
     return json({ ok: false, error: "unhandled" }, 500);

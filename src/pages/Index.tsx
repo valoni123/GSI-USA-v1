@@ -37,11 +37,12 @@ const Index = () => {
       return;
     }
     showSuccess(trans.signedIn);
+    const gsiId = data.user?.id;
 
     // Retrieve INFOR LN OAuth2 token based on active ionapi_oauth2 row
     const tid = showLoading(trans.retrievingToken);
     const { data: tokenData, error: tokenErr } = await supabase.functions.invoke("ln-get-token", {
-      body: {},
+      body: { gsi_id: gsiId },
     });
     dismissToast(tid as unknown as string);
     if (tokenErr || !tokenData || !tokenData.ok) {
