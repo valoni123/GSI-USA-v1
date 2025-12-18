@@ -16,7 +16,10 @@ type TranslationKeys =
   | "signingIn"
   | "signedIn"
   | "emptyFields"
-  | "invalidCredentials";
+  | "invalidCredentials"
+  | "retrievingToken"
+  | "tokenReceived"
+  | "tokenFailed";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -31,6 +34,9 @@ const translations: Translations = {
     signedIn: "Signed in",
     emptyFields: "Please enter user and password.",
     invalidCredentials: "Invalid username or password.",
+    retrievingToken: "Requesting access token…",
+    tokenReceived: "Access token received.",
+    tokenFailed: "Failed to retrieve access token.",
   },
   de: {
     title: "Anmelden",
@@ -42,6 +48,9 @@ const translations: Translations = {
     signedIn: "Angemeldet",
     emptyFields: "Bitte Benutzer und Passwort eingeben.",
     invalidCredentials: "Ungültiger Benutzer oder Passwort.",
+    retrievingToken: "Fordere Zugriffstoken an…",
+    tokenReceived: "Zugriffstoken erhalten.",
+    tokenFailed: "Zugriffstoken konnte nicht abgerufen werden.",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -53,6 +62,9 @@ const translations: Translations = {
     signedIn: "Sesión iniciada",
     emptyFields: "Ingrese usuario y contraseña.",
     invalidCredentials: "Usuario o contraseña inválidos.",
+    retrievingToken: "Solicitando token de acceso…",
+    tokenReceived: "Token de acceso recibido.",
+    tokenFailed: "No se pudo obtener el token de acceso.",
   },
   "pt-BR": {
     title: "Entrar",
@@ -64,6 +76,9 @@ const translations: Translations = {
     signedIn: "Conectado",
     emptyFields: "Informe usuário e senha.",
     invalidCredentials: "Usuário ou senha inválidos.",
+    retrievingToken: "Solicitando token de acesso…",
+    tokenReceived: "Token de acesso recebido.",
+    tokenFailed: "Falha ao obter token de acesso.",
   },
 };
 

@@ -37,6 +37,24 @@ const Index = () => {
       return;
     }
     showSuccess(trans.signedIn);
+
+    // Retrieve INFOR LN OAuth2 token based on active ionapi_oauth2 row
+    const tid = showLoading(trans.retrievingToken);
+    const { data: tokenData, error: tokenErr } = await supabase.functions.invoke("ln-get-token", {
+      body: {},
+    });
+    dismissToast(tid as unknown as string);
+    if (tokenErr || !tokenData || !tokenData.ok) {
+      showError(trans.tokenFailed);
+      return;
+    }
+    showSuccess(trans.tokenReceived);
+    // Optionally store the token locally
+    try {
+      localStorage.setItem("ln.token", JSON.stringify(tokenData.token));
+    } catch {
+      // ignore storage errors
+    }
   };
 
   return (
