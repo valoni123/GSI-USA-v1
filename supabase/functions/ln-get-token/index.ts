@@ -65,7 +65,8 @@ serve(async (req) => {
 
     // Prepare x-www-form-urlencoded body
     const params = new URLSearchParams();
-    params.set("grant_type", grant_type);
+    const grantType = grant_type === "password_credentials" ? "password" : grant_type;
+    params.set("grant_type", grantType);
     params.set("username", saak);
     params.set("password", sask);
 
