@@ -38,8 +38,9 @@ serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  const uname = String(username).trim();
   const { data, error } = await supabase.rpc("verify_gsi_user", {
-    p_username: username,
+    p_username: uname,
     p_password: password,
   });
 
@@ -51,14 +52,15 @@ serve(async (req) => {
     });
   }
 
-  if (!data || data.length === 0) {
+  const rows = Array.isArray(data) ? data : data ? [data] : [];
+  if (rows.length === 0) {
     return new Response(JSON.stringify({ ok: false }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  return new Response(JSON.stringify({ ok: true, user: data[0] }), {
+  return new Response(JSON.stringify({ ok: true, user: rows[0] }), {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
