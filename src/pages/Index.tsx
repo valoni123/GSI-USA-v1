@@ -4,6 +4,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [lang, setLang] = useState<LanguageKey>(() => {
@@ -17,6 +18,8 @@ const Index = () => {
     document.documentElement.lang = lang;
     localStorage.setItem("app.lang", lang);
   }, [lang]);
+
+  const navigate = useNavigate();
 
   const handleLogin = async ({ username, password }: { username: string; password: string }) => {
     if (!username || !password) {
@@ -37,7 +40,12 @@ const Index = () => {
       return;
     }
     showSuccess(trans.signedIn);
-    const gsiId = data.user?.id;
+    const gsiId = data.user?.id as string | undefined;
+    const fullName = data.user?.full_name as string | undefined;
+    try {
+      if (gsiId) localStorage.setItem("gsi.id", gsiId);
+      if (fullName) localStorage.setItem("gsi.full_name", fullName);
+    } catch {}
 
     // Retrieve INFOR LN OAuth2 token based on active ionapi_oauth2 row
     const tid = showLoading(trans.retrievingToken);
@@ -56,6 +64,8 @@ const Index = () => {
     } catch {
       // ignore storage errors
     }
+    // Go to the Menu screen
+    navigate("/menu");
   };
 
   return (

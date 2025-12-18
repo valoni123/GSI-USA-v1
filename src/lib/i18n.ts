@@ -19,7 +19,20 @@ type TranslationKeys =
   | "invalidCredentials"
   | "retrievingToken"
   | "tokenReceived"
-  | "tokenFailed";
+  | "tokenFailed"
+  | "menu"
+  | "signOut"
+  | "signOutTitle"
+  | "signOutQuestion"
+  | "yes"
+  | "no"
+  | "signedOut"
+  | "appIncoming"
+  | "appOutgoing"
+  | "appInfoStock"
+  | "appContainers"
+  | "appTransport"
+  | "appSettings";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -37,6 +50,19 @@ const translations: Translations = {
     retrievingToken: "Requesting access token…",
     tokenReceived: "Access token received.",
     tokenFailed: "Failed to retrieve access token.",
+    menu: "MENU",
+    signOut: "Sign out",
+    signOutTitle: "Sign out",
+    signOutQuestion: "Do you want to sign out?",
+    yes: "Yes",
+    no: "No",
+    signedOut: "Signed out",
+    appIncoming: "Incoming",
+    appOutgoing: "Outgoing",
+    appInfoStock: "Info / Stock",
+    appContainers: "Containers",
+    appTransport: "Transport",
+    appSettings: "Settings",
   },
   de: {
     title: "Anmelden",
@@ -51,6 +77,19 @@ const translations: Translations = {
     retrievingToken: "Fordere Zugriffstoken an…",
     tokenReceived: "Zugriffstoken erhalten.",
     tokenFailed: "Zugriffstoken konnte nicht abgerufen werden.",
+    menu: "MENÜ",
+    signOut: "Abmelden",
+    signOutTitle: "Abmeldung",
+    signOutQuestion: "Möchten Sie sich wirklich abmelden?",
+    yes: "Ja",
+    no: "Nein",
+    signedOut: "Abgemeldet",
+    appIncoming: "Eingang",
+    appOutgoing: "Ausgang",
+    appInfoStock: "Info / Bestand",
+    appContainers: "Behälter",
+    appTransport: "Transport",
+    appSettings: "Einstellungen",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -65,6 +104,19 @@ const translations: Translations = {
     retrievingToken: "Solicitando token de acceso…",
     tokenReceived: "Token de acceso recibido.",
     tokenFailed: "No se pudo obtener el token de acceso.",
+    menu: "MENÚ",
+    signOut: "Cerrar sesión",
+    signOutTitle: "Cerrar sesión",
+    signOutQuestion: "¿Desea cerrar sesión?",
+    yes: "Sí",
+    no: "No",
+    signedOut: "Sesión cerrada",
+    appIncoming: "Entrada",
+    appOutgoing: "Salida",
+    appInfoStock: "Info / Inventario",
+    appContainers: "Contenedores",
+    appTransport: "Transporte",
+    appSettings: "Configuración",
   },
   "pt-BR": {
     title: "Entrar",
@@ -79,6 +131,19 @@ const translations: Translations = {
     retrievingToken: "Solicitando token de acesso…",
     tokenReceived: "Token de acesso recebido.",
     tokenFailed: "Falha ao obter token de acesso.",
+    menu: "MENU",
+    signOut: "Sair",
+    signOutTitle: "Sair",
+    signOutQuestion: "Deseja sair?",
+    yes: "Sim",
+    no: "Não",
+    signedOut: "Desconectado",
+    appIncoming: "Entrada",
+    appOutgoing: "Saída",
+    appInfoStock: "Info / Estoque",
+    appContainers: "Contêineres",
+    appTransport: "Transporte",
+    appSettings: "Configurações",
   },
 };
 
