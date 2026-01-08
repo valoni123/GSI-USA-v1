@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Box, Info, Eraser, ArrowLeftRight, ClipboardList, ListChecks, User } from "lucide-react";
+import { ArrowLeft, Box, Info, Eraser, ArrowLeftRight, ClipboardList, ListChecks, User, LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
+import { showSuccess } from "@/utils/toast";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
@@ -21,6 +23,18 @@ const InfoStockMenu = () => {
     const name = localStorage.getItem("gsi.full_name");
     if (name) setFullName(name);
   }, []);
+
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const onConfirmSignOut = () => {
+    try {
+      localStorage.removeItem("ln.token");
+      localStorage.removeItem("gsi.id");
+      localStorage.removeItem("gsi.full_name");
+    } catch {}
+    showSuccess(trans.signedOut);
+    setSignOutOpen(false);
+    navigate("/");
+  };
 
   const tiles: Tile[] = [
     { key: "article", label: trans.infoStockArticle, icon: <Box className="h-10 w-10 text-red-700" /> },
@@ -55,8 +69,15 @@ const InfoStockMenu = () => {
             </div>
           </div>
 
-          {/* Right side empty to balance layout */}
-          <div className="w-10" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-red-500 hover:text-red-600 hover:bg-white/10"
+            aria-label={trans.signOut}
+            onClick={() => setSignOutOpen(true)}
+          >
+            <LogOut className="h-6 w-6" />
+          </Button>
         </div>
       </div>
 
@@ -75,6 +96,17 @@ const InfoStockMenu = () => {
           </Card>
         ))}
       </div>
+
+      {/* Sign-out confirmation dialog */}
+      <SignOutConfirm
+        open={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        title={trans.signOutTitle}
+        question={trans.signOutQuestion}
+        yesLabel={trans.yes}
+        noLabel={trans.no}
+        onConfirm={onConfirmSignOut}
+      />
     </div>
   );
 };
