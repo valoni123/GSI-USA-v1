@@ -50,6 +50,7 @@ type TranslationKeys =
   | "itemLabel"
   | "locationFromLabel"
   | "locationToLabel"
+  | "warehouseLabel"
   | "loadAction";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
@@ -98,6 +99,7 @@ const translations: Translations = {
     itemLabel: "Item",
     locationFromLabel: "Location From",
     locationToLabel: "Location To",
+    warehouseLabel: "Warehouse",
     loadAction: "Load",
   },
   de: {
@@ -143,6 +145,7 @@ const translations: Translations = {
     itemLabel: "Artikel",
     locationFromLabel: "Ort Von",
     locationToLabel: "Ort Nach",
+    warehouseLabel: "Lager",
     loadAction: "LADEN",
   },
   "es-MX": {
@@ -188,6 +191,7 @@ const translations: Translations = {
     itemLabel: "Artículo",
     locationFromLabel: "Ubicación desde",
     locationToLabel: "Ubicación hasta",
+    warehouseLabel: "Almacén",
     loadAction: "Cargar",
   },
   "pt-BR": {
@@ -233,6 +237,7 @@ const translations: Translations = {
     itemLabel: "Item",
     locationFromLabel: "Local de origem",
     locationToLabel: "Local de destino",
+    warehouseLabel: "Armazém",
     loadAction: "Carregar",
   },
 };

@@ -152,6 +152,7 @@ serve(async (req) => {
       first: first
         ? {
             Item: first.Item,
+            Warehouse: first.Warehouse,
             LocationFrom: first.LocationFrom,
             LocationTo: first.LocationTo,
           }
