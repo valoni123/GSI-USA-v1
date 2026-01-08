@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { dismissToast, showLoading } from "@/utils/toast";
+import { dismissToast, showLoading, showSuccess } from "@/utils/toast";
+import { type LanguageKey, t } from "@/lib/i18n";
 
 const TransportLoad = () => {
   const navigate = useNavigate();
