@@ -42,7 +42,9 @@ type TranslationKeys =
   | "infoStockInventory"
   | "infoStockPersonalInventory"
   | "transportLoad"
-  | "transportUnload";
+  | "transportUnload"
+  | "loadHandlingUnit"
+  | "loadVehicleId";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -83,6 +85,8 @@ const translations: Translations = {
     infoStockPersonalInventory: "Personal Inventory",
     transportLoad: "Load",
     transportUnload: "Unload",
+    loadHandlingUnit: "Handling Unit",
+    loadVehicleId: "Vehicle ID",
   },
   de: {
     title: "Anmelden",
@@ -120,6 +124,8 @@ const translations: Translations = {
     infoStockPersonalInventory: "Pers. Inventur",
     transportLoad: "Laden",
     transportUnload: "Entladen",
+    loadHandlingUnit: "Ladeeinheit",
+    loadVehicleId: "Fahrzeug ID",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -157,6 +163,8 @@ const translations: Translations = {
     infoStockPersonalInventory: "Inventario personal",
     transportLoad: "Cargar",
     transportUnload: "Descargar",
+    loadHandlingUnit: "Unidad de manejo",
+    loadVehicleId: "ID del vehículo",
   },
   "pt-BR": {
     title: "Entrar",
@@ -194,6 +202,8 @@ const translations: Translations = {
     infoStockPersonalInventory: "Inventário pessoal",
     transportLoad: "Carregar",
     transportUnload: "Descarregar",
+    loadHandlingUnit: "Unidade de manuseio",
+    loadVehicleId: "ID do veículo",
   },
 };
 

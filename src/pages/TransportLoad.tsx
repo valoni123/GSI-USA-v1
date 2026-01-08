@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Box, User, LogOut, ArrowRight } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { ArrowLeft, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
 
-type Tile = { key: string; label: string; icon: React.ReactNode };
-
-const TransportMenu = () => {
+const TransportLoad = () => {
   const navigate = useNavigate();
 
   const [lang] = useState<LanguageKey>(() => {
@@ -36,28 +36,11 @@ const TransportMenu = () => {
     navigate("/");
   };
 
-  const tiles: Tile[] = [
-    {
-      key: "load",
-      label: trans.transportLoad,
-      icon: (
-        <div className="relative flex items-center justify-center">
-          <Box className="h-10 w-10 text-red-700" />
-          <ArrowLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-700" />
-        </div>
-      ),
-    },
-    {
-      key: "unload",
-      label: trans.transportUnload,
-      icon: (
-        <div className="relative flex items-center justify-center">
-          <Box className="h-10 w-10 text-red-700" />
-          <ArrowRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-700" />
-        </div>
-      ),
-    },
-  ];
+  const huRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    // Focus the first field on mount
+    huRef.current?.focus();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -69,13 +52,13 @@ const TransportMenu = () => {
             size="icon"
             className="text-white hover:bg-white/10"
             aria-label={trans.back}
-            onClick={() => navigate("/menu")}
+            onClick={() => navigate("/menu/transport")}
           >
             <ArrowLeft className="h-6 w-6" />
           </Button>
 
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center">{trans.appTransport}</div>
+            <div className="font-bold text-lg tracking-wide text-center">{trans.transportLoad}</div>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
               <User className="h-4 w-4" />
               <span className="line-clamp-1">{fullName || ""}</span>
@@ -94,23 +77,28 @@ const TransportMenu = () => {
         </div>
       </div>
 
-      {/* Grid of Transport tiles */}
-      <div className="mx-auto max-w-md px-4 py-6 grid grid-cols-2 gap-4">
-        {tiles.map((tile) => (
-          <Card
-            key={tile.key}
-            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
-            onClick={() => {
-              // Placeholder: route to specific transport functions later
-              if (tile.key === "load") {
-                navigate("/menu/transport/load");
-              }
-            }}
-          >
-            {tile.icon}
-            <div className="text-sm font-medium text-gray-700 text-center">{tile.label}</div>
-          </Card>
-        ))}
+      {/* Form area */}
+      <div className="mx-auto max-w-md px-4 py-6">
+        <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="handlingUnit">{trans.loadHandlingUnit}</Label>
+            <Input
+              id="handlingUnit"
+              ref={huRef}
+              placeholder={trans.loadHandlingUnit}
+              className="h-12 text-base"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="vehicleId">{trans.loadVehicleId}</Label>
+            <Input
+              id="vehicleId"
+              placeholder={trans.loadVehicleId}
+              className="h-12 text-base"
+              disabled
+            />
+          </div>
+        </Card>
       </div>
 
       {/* Sign-out confirmation dialog */}
@@ -127,4 +115,4 @@ const TransportMenu = () => {
   );
 };
 
-export default TransportMenu;
+export default TransportLoad;

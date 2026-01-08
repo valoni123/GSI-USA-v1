@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Menu from "./pages/Menu";
 import InfoStockMenu from "./pages/InfoStockMenu";
 import TransportMenu from "./pages/TransportMenu";
+import TransportLoad from "./pages/TransportLoad";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/menu" element={<Menu />} />
           <Route path="/menu/info-stock" element={<InfoStockMenu />} />
           <Route path="/menu/transport" element={<TransportMenu />} />
+          <Route path="/menu/transport/load" element={<TransportLoad />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
