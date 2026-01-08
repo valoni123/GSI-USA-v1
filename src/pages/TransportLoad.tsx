@@ -97,6 +97,8 @@ const TransportLoad = () => {
     setTimeout(() => huRef.current?.focus(), 50);
   };
 
+  const canLoad = vehicleEnabled && vehicleId.trim().length > 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
@@ -206,8 +208,12 @@ const TransportLoad = () => {
       <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
         <div className="mx-auto max-w-md px-4 py-3">
           <Button
-            className="w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100"
-            disabled
+            className={
+              canLoad
+                ? "w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white"
+                : "w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100"
+            }
+            disabled={!canLoad}
           >
             {trans.loadAction}
           </Button>
