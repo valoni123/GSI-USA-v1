@@ -36,16 +36,15 @@ const FloatingLabelInput: React.FC<Props> = ({
       <label
         htmlFor={id}
         className="
-          pointer-events-none absolute left-3 
-          bg-white dark:bg-background px-1
-          text-gray-400 
+          pointer-events-none absolute left-3
+          bg-white dark:bg-background px-1 rounded-sm
+          text-gray-400
           transition-all duration-200
           // Centered inside when empty
           peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm
-          // Float up on focus
-          peer-focus:top-1 peer-focus:-translate-y-0 peer-focus:text-xs peer-focus:text-gray-700
-          // Float up when value is present (not placeholder-shown)
-          peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:-translate-y-0 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-700
+          // Float up OUTSIDE the input on focus/value
+          peer-focus:-top-3 peer-focus:-translate-y-0 peer-focus:text-xs peer-focus:text-gray-700
+          peer-[:not(:placeholder-shown)]:-top-3 peer-[:not(:placeholder-shown)]:-translate-y-0 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-700
           // Disabled styling
           peer-disabled:text-gray-400
         "
