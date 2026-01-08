@@ -7,7 +7,7 @@ import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { dismissToast, showLoading, showSuccess } from "@/utils/toast";
+import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
 
 const TransportLoad = () => {
@@ -98,6 +98,32 @@ const TransportLoad = () => {
   };
 
   const canLoad = vehicleEnabled && vehicleId.trim().length > 0;
+
+  const onLoadClick = async () => {
+    if (!canLoad || !result) return;
+    const payload = {
+      handlingUnit: handlingUnit.trim(),
+      fromWarehouse: (result.Warehouse || "").trim(),
+      fromLocation: (result.LocationFrom || "").trim(),
+      toWarehouse: (result.Warehouse || "").trim(),
+      toLocation: vehicleId.trim(),
+      employee: (localStorage.getItem("gsi.username") || "").trim(),
+      language: locale,
+      company: "1000",
+    };
+    const tid = showLoading("Bewegung wird ausgeführt…");
+    const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
+    dismissToast(tid as unknown as string);
+    if (error || !data || !data.ok) {
+      const err = (data && data.error) || error;
+      const top = err?.message || "Unbekannter Fehler";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      return;
+    }
+    showSuccess("Erfolgreich auf Fahrzeug geladen");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -214,6 +240,7 @@ const TransportLoad = () => {
                 : "w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100"
             }
             disabled={!canLoad}
+            onClick={onLoadClick}
           >
             {trans.loadAction}
           </Button>

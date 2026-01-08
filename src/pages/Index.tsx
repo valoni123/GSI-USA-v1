@@ -42,9 +42,11 @@ const Index = () => {
     showSuccess(trans.signedIn);
     const gsiId = data.user?.id as string | undefined;
     const fullName = data.user?.full_name as string | undefined;
+    const username = data.user?.username as string | undefined;
     try {
       if (gsiId) localStorage.setItem("gsi.id", gsiId);
       if (fullName) localStorage.setItem("gsi.full_name", fullName);
+      if (username) localStorage.setItem("gsi.username", username);
     } catch {}
 
     // Retrieve INFOR LN OAuth2 token based on active ionapi_oauth2 row
