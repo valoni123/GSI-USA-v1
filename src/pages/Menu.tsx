@@ -85,6 +85,10 @@ function Menu() {
                 navigate("/menu/info-stock");
               }
               if (app.key === "transport") {
+                // Mark that we're entering Transport from the main menu and force dialog to open
+                sessionStorage.setItem("transport.fromMain", "1");
+                // Clear previous in-transport selection so user confirms Vehicle-ID again
+                sessionStorage.removeItem("transport.selected");
                 navigate("/menu/transport");
               }
             }}

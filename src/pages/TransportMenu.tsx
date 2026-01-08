@@ -62,9 +62,9 @@ const TransportMenu = () => {
     },
   ];
   const [loadedCount, setLoadedCount] = useState<number>(0);
-  // Vehicle selection state and dialog visibility (only open if no stored vehicle)
-  const [vehicleId, setVehicleId] = useState<string>(() => (localStorage.getItem("vehicle.id") || "").trim());
-  const [vehicleDialogOpen, setVehicleDialogOpen] = useState<boolean>(() => !((localStorage.getItem("vehicle.id") || "").trim()));
+  // Vehicle selection
+  const [vehicleId, setVehicleId] = useState<string>("");
+  const [vehicleDialogOpen, setVehicleDialogOpen] = useState<boolean>(true);
 
   // Helper to fetch count for a given vehicle
   const fetchCount = async (vid: string) => {
@@ -74,14 +74,38 @@ const TransportMenu = () => {
     setLoadedCount(data && data.ok ? Number(data.count || 0) : 0);
   };
 
-  // On mount: if there is a stored vehicle ID, fetch the count immediately; otherwise leave dialog open
+  // On mount: decide dialog visibility and prefill; from main → open dialog; inside transport → only open if not selected
   useEffect(() => {
-    const stored = (localStorage.getItem("vehicle.id") || "").trim();
-    if (stored) {
-      setVehicleId(stored);
-      setVehicleDialogOpen(false);
-      fetchCount(stored);
-    }
+    (async () => {
+      // Prefill from gsi_users if available
+      const gsiId = localStorage.getItem("gsi.id") || undefined;
+      const username = localStorage.getItem("gsi.username") || undefined;
+      const { data } = await supabase.functions.invoke("gsi-get-vehicle-id", {
+        body: { gsi_id: gsiId, username },
+      });
+      if (data && data.ok && typeof data.vehicleId === "string" && data.vehicleId) {
+        setVehicleId(data.vehicleId);
+      } else {
+        // If not in DB, also prefill from any previous local selection (for convenience)
+        const stored = (localStorage.getItem("vehicle.id") || "").trim();
+        if (stored) setVehicleId(stored);
+      }
+
+      // Control dialog visibility
+      const fromMain = sessionStorage.getItem("transport.fromMain") === "1";
+      const alreadySelected = sessionStorage.getItem("transport.selected") === "1";
+      if (fromMain) {
+        setVehicleDialogOpen(true);
+        sessionStorage.removeItem("transport.fromMain");
+      } else {
+        setVehicleDialogOpen(!alreadySelected);
+        // If already selected and we have a stored vehicle id, refresh count
+        const stored = (localStorage.getItem("vehicle.id") || "").trim();
+        if (alreadySelected && stored) {
+          await fetchCount(stored);
+        }
+      }
+    })();
   }, []);
 
   return (
@@ -153,6 +177,7 @@ const TransportMenu = () => {
             const vid = (vehicleId || "").trim();
             // If closed without a selected vehicle, go back to main menu
             if (!stored && !vid) {
+              sessionStorage.removeItem("transport.selected");
               navigate("/menu");
             }
           }
@@ -179,6 +204,8 @@ const TransportMenu = () => {
                 const vid = vehicleId.trim();
                 if (!vid) return;
                 localStorage.setItem("vehicle.id", vid);
+                // Mark selection within this Transport session so dialog won't reappear until user returns to main menu
+                sessionStorage.setItem("transport.selected", "1");
                 setVehicleDialogOpen(false);
                 await fetchCount(vid);
               }}
