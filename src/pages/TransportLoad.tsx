@@ -166,10 +166,15 @@ const TransportLoad = () => {
           {/* Red result area */}
           <div className="mt-2 rounded-md min-h-28 p-3">
             {result ? (
-              <div className="space-y-1 text-sm">
-                <div><span className="font-semibold">{trans.itemLabel}:</span> <span className="break-all">{result.Item ?? "-"}</span></div>
-                <div><span className="font-semibold">{trans.locationFromLabel}:</span> <span className="break-all">{result.LocationFrom ?? "-"}</span></div>
-                <div><span className="font-semibold">{trans.locationToLabel}:</span> <span className="break-all">{result.LocationTo ?? "-"}</span></div>
+              <div className="text-sm">
+                <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-1 items-start">
+                  <div className="font-semibold text-gray-700">{trans.itemLabel}:</div>
+                  <div className="break-all text-gray-900">{result.Item ?? "-"}</div>
+                  <div className="font-semibold text-gray-700">{trans.locationFromLabel}:</div>
+                  <div className="break-all text-gray-900">{result.LocationFrom ?? "-"}</div>
+                  <div className="font-semibold text-gray-700">{trans.locationToLabel}:</div>
+                  <div className="break-all text-gray-900">{result.LocationTo ?? "-"}</div>
+                </div>
               </div>
             ) : (
               <div className="text-muted-foreground text-sm"> </div>
