@@ -42,7 +42,7 @@ const TransportLoad = () => {
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
-  const [result, setResult] = useState<{ TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string } | null>(null);
+  const [result, setResult] = useState<{ TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null>(null);
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const locale = useMemo(() => {
@@ -78,7 +78,7 @@ const TransportLoad = () => {
       setErrorOpen(true);
       return;
     }
-    const first = data.first as { TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string } | null;
+    const first = data.first as { TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
     setResult(first || null);
     setVehicleEnabled(true);
     setLastFetchedHu(hu);
@@ -129,6 +129,35 @@ const TransportLoad = () => {
       return;
     }
     showSuccess("Erfolgreich auf Fahrzeug geladen");
+
+    // PATCH Transport order to set VehicleID and LocationDevice = Fahrzeug-ID
+    const patchTid = showLoading("Transportauftrag wird aktualisiert…");
+    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
+      body: {
+        transportId: (result.TransportID || "").trim(),
+        etag: (result.ETag || "").trim(),
+        vehicleId: vehicleId.trim(),
+        language: locale,
+        company: "1000",
+      },
+    });
+    dismissToast(patchTid as unknown as string);
+    if (patchErr || !patchData || !patchData.ok) {
+      const err = (patchData && patchData.error) || patchErr;
+      const top = err?.message || "Unbekannter Fehler";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      return;
+    }
+
+    // Clear form and reset after successful PATCH
+    setHandlingUnit("");
+    setVehicleId("");
+    setResult(null);
+    setVehicleEnabled(false);
+    setLastFetchedHu(null);
+    setTimeout(() => huRef.current?.focus(), 50);
   };
 
   return (

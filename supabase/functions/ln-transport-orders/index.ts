@@ -151,11 +151,12 @@ serve(async (req) => {
       count,
       first: first
         ? {
-           TransportID: first.TransportID,
+            TransportID: first.TransportID,
             Item: first.Item,
             Warehouse: first.Warehouse,
             LocationFrom: first.LocationFrom,
             LocationTo: first.LocationTo,
+            ETag: first["@odata.etag"],
           }
         : null,
       raw: odataJson,
