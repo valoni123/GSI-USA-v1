@@ -163,7 +163,7 @@ const TransportLoad = () => {
       <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
         <div className="mx-auto max-w-md px-4 py-3">
           <Button
-            className="w-full h-12 text-base bg-gray-500 text-white !opacity-100 disabled:!opacity-100"
+            className="w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100"
             disabled
           >
             {trans.loadAction}

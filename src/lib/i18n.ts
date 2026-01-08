@@ -49,7 +49,8 @@ type TranslationKeys =
   | "huNotFound"
   | "itemLabel"
   | "locationFromLabel"
-  | "locationToLabel";
+  | "locationToLabel"
+  | "loadAction";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -97,6 +98,7 @@ const translations: Translations = {
     itemLabel: "Item",
     locationFromLabel: "Location From",
     locationToLabel: "Location To",
+    loadAction: "Load",
   },
   de: {
     title: "Anmelden",
@@ -141,6 +143,7 @@ const translations: Translations = {
     itemLabel: "Artikel",
     locationFromLabel: "Ort Von",
     locationToLabel: "Ort Nach",
+    loadAction: "LADEN",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -185,6 +188,7 @@ const translations: Translations = {
     itemLabel: "Artículo",
     locationFromLabel: "Ubicación desde",
     locationToLabel: "Ubicación hasta",
+    loadAction: "Cargar",
   },
   "pt-BR": {
     title: "Entrar",
@@ -229,6 +233,7 @@ const translations: Translations = {
     itemLabel: "Item",
     locationFromLabel: "Local de origem",
     locationToLabel: "Local de destino",
+    loadAction: "Carregar",
   },
 };
 
