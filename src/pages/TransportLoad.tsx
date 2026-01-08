@@ -145,7 +145,7 @@ const TransportLoad = () => {
             disabled={!vehicleEnabled}
           />
           {/* Red result area */}
-          <div className="mt-2 border-2 border-red-500 rounded-md min-h-28 p-3">
+          <div className="mt-2 rounded-md min-h-28 p-3">
             {result ? (
               <div className="space-y-1 text-sm">
                 <div><span className="font-semibold">{trans.itemLabel}:</span> <span className="break-all">{result.Item ?? "-"}</span></div>
@@ -163,7 +163,7 @@ const TransportLoad = () => {
       <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
         <div className="mx-auto max-w-md px-4 py-3">
           <Button
-            className="w-full h-12 text-base bg-slate-900 hover:bg-slate-900/90 text-white"
+            className="w-full h-12 text-base bg-gray-500 text-white !opacity-100 disabled:!opacity-100"
             disabled
           >
             {trans.loadAction}
