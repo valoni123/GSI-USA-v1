@@ -63,8 +63,10 @@ const TransportMenu = () => {
   ];
   const [loadedCount, setLoadedCount] = useState<number>(0);
   // Vehicle selection
+  const initialSelected = sessionStorage.getItem("transport.selected") === "1";
+  const initialFromMain = sessionStorage.getItem("transport.fromMain") === "1";
   const [vehicleId, setVehicleId] = useState<string>("");
-  const [vehicleDialogOpen, setVehicleDialogOpen] = useState<boolean>(true);
+  const [vehicleDialogOpen, setVehicleDialogOpen] = useState<boolean>(initialFromMain ? true : !initialSelected);
 
   // Helper to fetch count for a given vehicle
   const fetchCount = async (vid: string) => {
@@ -98,7 +100,6 @@ const TransportMenu = () => {
         setVehicleDialogOpen(true);
         sessionStorage.removeItem("transport.fromMain");
       } else {
-        setVehicleDialogOpen(!alreadySelected);
         // If already selected and we have a stored vehicle id, refresh count
         const stored = (localStorage.getItem("vehicle.id") || "").trim();
         if (alreadySelected && stored) {
@@ -118,7 +119,10 @@ const TransportMenu = () => {
             size="icon"
             className="text-white hover:bg-white/10"
             aria-label={trans.back}
-            onClick={() => navigate("/menu")}
+            onClick={() => {
+              sessionStorage.removeItem("transport.selected");
+              navigate("/menu");
+            }}
           >
             <ArrowLeft className="h-6 w-6" />
           </Button>
