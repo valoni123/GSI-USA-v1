@@ -42,7 +42,7 @@ const TransportLoad = () => {
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
-  const [result, setResult] = useState<{ Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string } | null>(null);
+  const [result, setResult] = useState<{ TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string } | null>(null);
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const locale = useMemo(() => {
@@ -78,7 +78,7 @@ const TransportLoad = () => {
       setErrorOpen(true);
       return;
     }
-    const first = data.first as { Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string } | null;
+    const first = data.first as { TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string } | null;
     setResult(first || null);
     setVehicleEnabled(true);
     setLastFetchedHu(hu);
@@ -183,6 +183,8 @@ const TransportLoad = () => {
             {result ? (
               <div className="text-sm">
                 <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-1 items-start">
+                  <div className="font-semibold text-gray-700">{trans.transportIdLabel}:</div>
+                  <div className="break-all text-gray-900">{result.TransportID ?? "-"}</div>
                   <div className="font-semibold text-gray-700">{trans.itemLabel}:</div>
                   <div className="break-all text-gray-900">{result.Item ?? "-"}</div>
                   <div className="font-semibold text-gray-700">{trans.warehouseLabel}:</div>

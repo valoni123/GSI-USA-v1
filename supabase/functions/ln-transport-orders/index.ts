@@ -151,6 +151,7 @@ serve(async (req) => {
       count,
       first: first
         ? {
+           TransportID: first.TransportID,
             Item: first.Item,
             Warehouse: first.Warehouse,
             LocationFrom: first.LocationFrom,
