@@ -40,7 +40,9 @@ type TranslationKeys =
   | "infoStockTransfer"
   | "infoStockInventoryPos"
   | "infoStockInventory"
-  | "infoStockPersonalInventory";
+  | "infoStockPersonalInventory"
+  | "transportLoad"
+  | "transportUnload";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -79,6 +81,8 @@ const translations: Translations = {
     infoStockInventoryPos: "Inventory (Pos.)",
     infoStockInventory: "Inventory",
     infoStockPersonalInventory: "Personal Inventory",
+    transportLoad: "Load",
+    transportUnload: "Unload",
   },
   de: {
     title: "Anmelden",
@@ -114,6 +118,8 @@ const translations: Translations = {
     infoStockInventoryPos: "Inventur (Pos.)",
     infoStockInventory: "Inventur",
     infoStockPersonalInventory: "Pers. Inventur",
+    transportLoad: "Laden",
+    transportUnload: "Entladen",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -149,6 +155,8 @@ const translations: Translations = {
     infoStockInventoryPos: "Inventario (Pos.)",
     infoStockInventory: "Inventario",
     infoStockPersonalInventory: "Inventario personal",
+    transportLoad: "Cargar",
+    transportUnload: "Descargar",
   },
   "pt-BR": {
     title: "Entrar",
@@ -184,6 +192,8 @@ const translations: Translations = {
     infoStockInventoryPos: "Inventário (Pos.)",
     infoStockInventory: "Inventário",
     infoStockPersonalInventory: "Inventário pessoal",
+    transportLoad: "Carregar",
+    transportUnload: "Descarregar",
   },
 };
 
