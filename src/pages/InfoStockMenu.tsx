@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Cube, Info, Eraser, ArrowLeftRight, ClipboardList, ListChecks, User } from "lucide-react";
+import { ArrowLeft, Box, Info, Eraser, ArrowLeftRight, ClipboardList, ListChecks, User } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { type LanguageKey, t } from "@/lib/i18n";
@@ -23,7 +23,7 @@ const InfoStockMenu = () => {
   }, []);
 
   const tiles: Tile[] = [
-    { key: "article", label: trans.infoStockArticle, icon: <Cube className="h-10 w-10 text-red-700" /> },
+    { key: "article", label: trans.infoStockArticle, icon: <Box className="h-10 w-10 text-red-700" /> },
     { key: "leInfo", label: trans.infoStockLEInfo, icon: <Info className="h-10 w-10 text-red-700" /> },
     { key: "correction", label: trans.infoStockCorrection, icon: <Eraser className="h-10 w-10 text-red-700" /> },
     { key: "transfer", label: trans.infoStockTransfer, icon: <ArrowLeftRight className="h-10 w-10 text-red-700" /> },
@@ -67,7 +67,7 @@ const InfoStockMenu = () => {
             key={tile.key}
             className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
             onClick={() => {
-              // Placeholder: later we’ll route to each app
+              // Placeholder: later we'll route to each app
             }}
           >
             {tile.icon}
