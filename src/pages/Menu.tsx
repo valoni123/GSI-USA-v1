@@ -79,7 +79,12 @@ function Menu() {
         {apps.map((app) => (
           <Card
             key={app.key}
-            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm active:scale-[0.99]"
+            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+            onClick={() => {
+              if (app.key === "infoStock") {
+                navigate("/menu/info-stock");
+              }
+            }}
           >
             {app.icon}
             <div className="text-sm font-medium text-gray-700 text-center">{app.label}</div>

@@ -32,7 +32,15 @@ type TranslationKeys =
   | "appInfoStock"
   | "appContainers"
   | "appTransport"
-  | "appSettings";
+  | "appSettings"
+  | "back"
+  | "infoStockArticle"
+  | "infoStockLEInfo"
+  | "infoStockCorrection"
+  | "infoStockTransfer"
+  | "infoStockInventoryPos"
+  | "infoStockInventory"
+  | "infoStockPersonalInventory";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -63,6 +71,14 @@ const translations: Translations = {
     appContainers: "Containers",
     appTransport: "Transport",
     appSettings: "Settings",
+    back: "Back",
+    infoStockArticle: "Article",
+    infoStockLEInfo: "LE Info",
+    infoStockCorrection: "Correction",
+    infoStockTransfer: "Transfer",
+    infoStockInventoryPos: "Inventory (Pos.)",
+    infoStockInventory: "Inventory",
+    infoStockPersonalInventory: "Personal Inventory",
   },
   de: {
     title: "Anmelden",
@@ -90,6 +106,14 @@ const translations: Translations = {
     appContainers: "Behälter",
     appTransport: "Transport",
     appSettings: "Einstellungen",
+    back: "Zurück",
+    infoStockArticle: "Artikel",
+    infoStockLEInfo: "LE-Info",
+    infoStockCorrection: "Korrektur",
+    infoStockTransfer: "Transfer",
+    infoStockInventoryPos: "Inventur (Pos.)",
+    infoStockInventory: "Inventur",
+    infoStockPersonalInventory: "Pers. Inventur",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -117,6 +141,14 @@ const translations: Translations = {
     appContainers: "Contenedores",
     appTransport: "Transporte",
     appSettings: "Configuración",
+    back: "Atrás",
+    infoStockArticle: "Artículo",
+    infoStockLEInfo: "Info LE",
+    infoStockCorrection: "Corrección",
+    infoStockTransfer: "Transferencia",
+    infoStockInventoryPos: "Inventario (Pos.)",
+    infoStockInventory: "Inventario",
+    infoStockPersonalInventory: "Inventario personal",
   },
   "pt-BR": {
     title: "Entrar",
@@ -144,6 +176,14 @@ const translations: Translations = {
     appContainers: "Contêineres",
     appTransport: "Transporte",
     appSettings: "Configurações",
+    back: "Voltar",
+    infoStockArticle: "Artigo",
+    infoStockLEInfo: "Info LE",
+    infoStockCorrection: "Correção",
+    infoStockTransfer: "Transferência",
+    infoStockInventoryPos: "Inventário (Pos.)",
+    infoStockInventory: "Inventário",
+    infoStockPersonalInventory: "Inventário pessoal",
   },
 };
 
