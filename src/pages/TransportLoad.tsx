@@ -46,6 +46,7 @@ const TransportLoad = () => {
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [etag, setEtag] = useState<string>("");
+  const [loadedCount, setLoadedCount] = useState<number>(0);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -57,6 +58,24 @@ const TransportLoad = () => {
     // Focus the first field on mount
     huRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase.functions.invoke("ln-transport-count", {
+        body: { vehicleId: "E-BC", language: locale, company: "1000" },
+      });
+      if (!active) return;
+      if (error || !data || !data.ok) {
+        setLoadedCount(0);
+        return;
+      }
+      setLoadedCount(Number(data.count || 0));
+    })();
+    return () => {
+      active = false;
+    };
+  }, [locale]);
 
   const onHUBlur = async () => {
     const hu = handlingUnit.trim();
@@ -187,7 +206,12 @@ const TransportLoad = () => {
           </Button>
 
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center">{trans.transportLoad}</div>
+            <div className="font-bold text-lg tracking-wide text-center flex items-center gap-2">
+              <span>{trans.transportLoad}</span>
+              <span className="bg-red-600 text-white rounded-full min-w-5 h-5 px-2 flex items-center justify-center text-xs font-bold">
+                {loadedCount}
+              </span>
+            </div>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
               <User className="h-4 w-4" />
               <span className="line-clamp-1">{fullName || ""}</span>

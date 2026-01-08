@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Box, User, LogOut, ArrowRight } from "lucide-react";
+import { ArrowLeft, Box, User, LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
@@ -37,27 +38,27 @@ const TransportMenu = () => {
   };
 
   const tiles: Tile[] = [
-    {
-      key: "load",
-      label: trans.transportLoad,
-      icon: (
-        <div className="relative flex items-center justify-center">
-          <Box className="h-10 w-10 text-red-700" />
-          <ArrowLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-700" />
-        </div>
-      ),
-    },
-    {
-      key: "unload",
-      label: trans.transportUnload,
-      icon: (
-        <div className="relative flex items-center justify-center">
-          <Box className="h-10 w-10 text-red-700" />
-          <ArrowRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-700" />
-        </div>
-      ),
-    },
+    { key: "load", label: trans.transportLoad, icon: <Box className="h-10 w-10 text-red-700" /> },
+    { key: "unload", label: trans.transportUnload, icon: <Box className="h-10 w-10 text-red-700" /> },
   ];
+  const [loadedCount, setLoadedCount] = useState<number>(0);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase.functions.invoke("ln-transport-count", {
+        body: { vehicleId: "E-BC", language: "en-US", company: "1000" },
+      });
+      if (!active) return;
+      if (error || !data || !data.ok) {
+        setLoadedCount(0);
+        return;
+      }
+      setLoadedCount(Number(data.count || 0));
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -95,13 +96,12 @@ const TransportMenu = () => {
       </div>
 
       {/* Grid of Transport tiles */}
-      <div className="mx-auto max-w-md px-4 py-6 grid grid-cols-2 gap-4">
+      <div className="relative mx-auto max-w-md px-4 py-6 grid grid-cols-2 gap-4">
         {tiles.map((tile) => (
           <Card
             key={tile.key}
             className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
             onClick={() => {
-              // Placeholder: route to specific transport functions later
               if (tile.key === "load") {
                 navigate("/menu/transport/load");
               }
@@ -111,6 +111,12 @@ const TransportMenu = () => {
             <div className="text-sm font-medium text-gray-700 text-center">{tile.label}</div>
           </Card>
         ))}
+        {/* Center badge between tiles */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div className="bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shadow">
+            {loadedCount}
+          </div>
+        </div>
       </div>
 
       {/* Sign-out confirmation dialog */}
