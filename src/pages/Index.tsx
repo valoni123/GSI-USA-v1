@@ -47,6 +47,8 @@ const Index = () => {
       if (gsiId) localStorage.setItem("gsi.id", gsiId);
       if (fullName) localStorage.setItem("gsi.full_name", fullName);
       if (userUsername) localStorage.setItem("gsi.username", userUsername);
+      // Also cache the typed login username as a fallback for employee code
+      localStorage.setItem("gsi.login", username);
     } catch {}
 
     // Retrieve INFOR LN OAuth2 token based on active ionapi_oauth2 row

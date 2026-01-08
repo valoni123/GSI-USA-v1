@@ -101,13 +101,14 @@ const TransportLoad = () => {
 
   const onLoadClick = async () => {
     if (!canLoad || !result) return;
+    const employeeCode = ((localStorage.getItem("gsi.username") || localStorage.getItem("gsi.login") || "") as string).trim();
     const payload = {
       handlingUnit: handlingUnit.trim(),
       fromWarehouse: (result.Warehouse || "").trim(),
       fromLocation: (result.LocationFrom || "").trim(),
       toWarehouse: (result.Warehouse || "").trim(),
       toLocation: vehicleId.trim(),
-      employee: (localStorage.getItem("gsi.username") || "").trim(),
+      employee: employeeCode,
       language: locale,
       company: "1000",
     };
