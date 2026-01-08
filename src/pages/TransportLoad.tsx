@@ -133,7 +133,16 @@ const TransportLoad = () => {
             autoFocus
             ref={huRef}
             value={handlingUnit}
-            onChange={(e) => setHandlingUnit(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setHandlingUnit(v);
+              if (v.trim() === "") {
+                // When HU is cleared, reset the info area and disable Vehicle ID
+                setResult(null);
+                setVehicleEnabled(false);
+                setVehicleId("");
+              }
+            }}
             onBlur={onHUBlur}
             onFocus={(e) => {
               // Select the full value when focusing the field
