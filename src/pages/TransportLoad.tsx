@@ -62,15 +62,16 @@ const TransportLoad = () => {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data, error } = await supabase.functions.invoke("ln-transport-count", {
-        body: { vehicleId: "E-BC", language: locale, company: "1000" },
-      });
-      if (!active) return;
-      if (error || !data || !data.ok) {
+      const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+      if (!vehicleId) {
         setLoadedCount(0);
         return;
       }
-      setLoadedCount(Number(data.count || 0));
+      const { data } = await supabase.functions.invoke("ln-transport-count", {
+        body: { vehicleId, language: locale, company: "1000" },
+      });
+      if (!active) return;
+      setLoadedCount(data && data.ok ? Number(data.count || 0) : 0);
     })();
     return () => {
       active = false;

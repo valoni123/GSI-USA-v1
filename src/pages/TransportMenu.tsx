@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Box, User, LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
@@ -60,23 +62,44 @@ const TransportMenu = () => {
     },
   ];
   const [loadedCount, setLoadedCount] = useState<number>(0);
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const { data, error } = await supabase.functions.invoke("ln-transport-count", {
-        body: { vehicleId: "E-BC", language: "en-US", company: "1000" },
-      });
-      if (!active) return;
-      if (error || !data || !data.ok) {
-        setLoadedCount(0);
-        return;
-      }
+  const [vehicleId, setVehicleId] = useState<string>("");
+  const [vehicleDialogOpen, setVehicleDialogOpen] = useState<boolean>(true);
+
+  const fetchDefaultVehicleId = async () => {
+    const gsiId = localStorage.getItem("gsi.id") || undefined;
+    const username = localStorage.getItem("gsi.username") || undefined;
+    const { data } = await supabase.functions.invoke("gsi-get-vehicle-id", {
+      body: { gsi_id: gsiId, username },
+    });
+    if (data && data.ok && typeof data.vehicleId === "string" && data.vehicleId) {
+      setVehicleId(data.vehicleId);
+    }
+  };
+
+  const fetchCount = async (vid: string) => {
+    const { data } = await supabase.functions.invoke("ln-transport-count", {
+      body: { vehicleId: vid, language: "en-US", company: "1000" },
+    });
+    if (data && data.ok) {
       setLoadedCount(Number(data.count || 0));
-    })();
-    return () => {
-      active = false;
-    };
+    } else {
+      setLoadedCount(0);
+    }
+  };
+
+  useEffect(() => {
+    fetchDefaultVehicleId();
   }, []);
+
+  const onSelectVehicle = async () => {
+    const vid = vehicleId.trim();
+    if (!vid) return;
+    try {
+      localStorage.setItem("vehicle.id", vid);
+    } catch {}
+    setVehicleDialogOpen(false);
+    await fetchCount(vid);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -136,6 +159,33 @@ const TransportMenu = () => {
           </div>
         </div>
       </div>
+
+      {/* Fahrzeug-ID selection dialog */}
+      <Dialog open={vehicleDialogOpen} onOpenChange={setVehicleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{trans.loadVehicleId}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <FloatingLabelInput
+              id="transportVehicleId"
+              label={trans.loadVehicleId}
+              value={vehicleId}
+              onChange={(e) => setVehicleId(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+              disabled={!vehicleId.trim()}
+              onClick={onSelectVehicle}
+            >
+              {trans.selectLabel}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Sign-out confirmation dialog */}
       <SignOutConfirm

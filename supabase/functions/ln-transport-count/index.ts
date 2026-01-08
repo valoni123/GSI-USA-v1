@@ -35,7 +35,10 @@ serve(async (req) => {
       return json({ ok: false, error: "invalid_json" }, 200);
     }
 
-    const vehicleId = (body.vehicleId || "E-BC").trim();
+    const vehicleId = (body.vehicleId || "").trim();
+    if (!vehicleId) {
+      return json({ ok: false, error: "missing_vehicle" }, 200);
+    }
     const language = body.language || "en-US";
     const company = body.company || "1000";
 

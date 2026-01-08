@@ -52,6 +52,7 @@ type TranslationKeys =
   | "locationToLabel"
   | "warehouseLabel"
   | "transportIdLabel"
+  | "selectLabel"
   | "loadAction";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
@@ -102,6 +103,7 @@ const translations: Translations = {
     locationToLabel: "Location To",
     warehouseLabel: "Warehouse",
     transportIdLabel: "Transport-ID",
+    selectLabel: "Select",
     loadAction: "Load",
   },
   de: {
@@ -149,6 +151,7 @@ const translations: Translations = {
     locationToLabel: "Ort Nach",
     warehouseLabel: "Lager",
     transportIdLabel: "Transport-ID",
+    selectLabel: "Auswählen",
     loadAction: "LADEN",
   },
   "es-MX": {
@@ -196,6 +199,7 @@ const translations: Translations = {
     locationToLabel: "Ubicación hasta",
     warehouseLabel: "Almacén",
     transportIdLabel: "ID de transporte",
+    selectLabel: "Seleccionar",
     loadAction: "Cargar",
   },
   "pt-BR": {
@@ -243,6 +247,7 @@ const translations: Translations = {
     locationToLabel: "Local de destino",
     warehouseLabel: "Armazém",
     transportIdLabel: "ID de transporte",
+    selectLabel: "Selecionar",
     loadAction: "Carregar",
   },
 };
