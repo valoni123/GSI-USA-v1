@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
@@ -80,24 +79,8 @@ const TransportLoad = () => {
       {/* Form area */}
       <div className="mx-auto max-w-md px-4 py-6">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="handlingUnit">{trans.loadHandlingUnit}</Label>
-            <Input
-              id="handlingUnit"
-              ref={huRef}
-              placeholder={trans.loadHandlingUnit}
-              className="h-12 text-base"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="vehicleId">{trans.loadVehicleId}</Label>
-            <Input
-              id="vehicleId"
-              placeholder={trans.loadVehicleId}
-              className="h-12 text-base"
-              disabled
-            />
-          </div>
+          <FloatingLabelInput id="handlingUnit" label={trans.loadHandlingUnit} autoFocus />
+          <FloatingLabelInput id="vehicleId" label={trans.loadVehicleId} disabled />
         </Card>
       </div>
 
