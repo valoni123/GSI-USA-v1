@@ -45,7 +45,11 @@ type TranslationKeys =
   | "transportUnload"
   | "loadHandlingUnit"
   | "loadVehicleId"
-  | "loadAction";
+  | "checkingHandlingUnit"
+  | "huNotFound"
+  | "itemLabel"
+  | "locationFromLabel"
+  | "locationToLabel";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -88,7 +92,11 @@ const translations: Translations = {
     transportUnload: "Unload",
     loadHandlingUnit: "Handling Unit",
     loadVehicleId: "Vehicle ID",
-    loadAction: "Load",
+    checkingHandlingUnit: "Checking handling unit…",
+    huNotFound: "Handling Unit not found in any Transport Order.",
+    itemLabel: "Item",
+    locationFromLabel: "Location From",
+    locationToLabel: "Location To",
   },
   de: {
     title: "Anmelden",
@@ -128,7 +136,11 @@ const translations: Translations = {
     transportUnload: "Entladen",
     loadHandlingUnit: "Ladeeinheit",
     loadVehicleId: "Fahrzeug ID",
-    loadAction: "LADEN",
+    checkingHandlingUnit: "Ladeeinheit wird geprüft…",
+    huNotFound: "Ladeeinheit in keinem Transportauftrag gefunden.",
+    itemLabel: "Artikel",
+    locationFromLabel: "Ort Von",
+    locationToLabel: "Ort Nach",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -168,7 +180,11 @@ const translations: Translations = {
     transportUnload: "Descargar",
     loadHandlingUnit: "Unidad de manejo",
     loadVehicleId: "ID del vehículo",
-    loadAction: "Cargar",
+    checkingHandlingUnit: "Verificando unidad de manejo…",
+    huNotFound: "Unidad de manejo no encontrada en ninguna orden de transporte.",
+    itemLabel: "Artículo",
+    locationFromLabel: "Ubicación desde",
+    locationToLabel: "Ubicación hasta",
   },
   "pt-BR": {
     title: "Entrar",
@@ -208,7 +224,11 @@ const translations: Translations = {
     transportUnload: "Descarregar",
     loadHandlingUnit: "Unidade de manuseio",
     loadVehicleId: "ID do veículo",
-    loadAction: "Carregar",
+    checkingHandlingUnit: "Verificando unidade de manuseio…",
+    huNotFound: "Unidade de manuseio não encontrada em nenhuma ordem de transporte.",
+    itemLabel: "Item",
+    locationFromLabel: "Local de origem",
+    locationToLabel: "Local de destino",
   },
 };
 

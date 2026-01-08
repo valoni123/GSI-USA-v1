@@ -4,9 +4,9 @@ import { ArrowLeft, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
-import SignOutConfirm from "@/components/SignOutConfirm";
-import { type LanguageKey, t } from "@/lib/i18n";
-import { showSuccess } from "@/utils/toast";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { dismissToast, showLoading } from "@/utils/toast";
 
 const TransportLoad = () => {
   const navigate = useNavigate();
@@ -36,10 +36,56 @@ const TransportLoad = () => {
   };
 
   const huRef = useRef<HTMLInputElement | null>(null);
+  const vehicleRef = useRef<HTMLInputElement | null>(null);
+  const [handlingUnit, setHandlingUnit] = useState<string>("");
+  const [vehicleId, setVehicleId] = useState<string>("");
+  const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
+  const [result, setResult] = useState<{ Item?: string; LocationFrom?: string; LocationTo?: string } | null>(null);
+  const [errorOpen, setErrorOpen] = useState<boolean>(false);
+  const locale = useMemo(() => {
+    if (lang === "de") return "de-DE";
+    if (lang === "es-MX") return "es-MX";
+    if (lang === "pt-BR") return "pt-BR";
+    return "en-US";
+  }, [lang]);
+
   useEffect(() => {
     // Focus the first field on mount
     huRef.current?.focus();
   }, []);
+
+  const onHUBlur = async () => {
+    const hu = handlingUnit.trim();
+    if (!hu) return;
+    const tid = showLoading(trans.checkingHandlingUnit);
+    const { data, error } = await supabase.functions.invoke("ln-transport-orders", {
+      body: { handlingUnit: hu, language: locale, company: "1000" },
+    });
+    dismissToast(tid as unknown as string);
+    if (error || !data || !data.ok) {
+      setErrorOpen(true);
+      return;
+    }
+    if ((data.count ?? 0) === 0) {
+      setErrorOpen(true);
+      return;
+    }
+    const first = data.first as { Item?: string; LocationFrom?: string; LocationTo?: string } | null;
+    setResult(first || null);
+    setVehicleEnabled(true);
+    // Focus vehicle input
+    setTimeout(() => vehicleRef.current?.focus(), 50);
+  };
+
+  const onErrorConfirm = () => {
+    setErrorOpen(false);
+    setResult(null);
+    setVehicleEnabled(false);
+    setHandlingUnit("");
+    setVehicleId("");
+    // Refocus HU
+    setTimeout(() => huRef.current?.focus(), 50);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -79,8 +125,35 @@ const TransportLoad = () => {
       {/* Form area */}
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
-          <FloatingLabelInput id="handlingUnit" label={trans.loadHandlingUnit} autoFocus />
-          <FloatingLabelInput id="vehicleId" label={trans.loadVehicleId} disabled />
+          <FloatingLabelInput
+            id="handlingUnit"
+            label={trans.loadHandlingUnit}
+            autoFocus
+            ref={huRef}
+            value={handlingUnit}
+            onChange={(e) => setHandlingUnit(e.target.value)}
+            onBlur={onHUBlur}
+          />
+          <FloatingLabelInput
+            id="vehicleId"
+            label={trans.loadVehicleId}
+            ref={vehicleRef}
+            value={vehicleId}
+            onChange={(e) => setVehicleId(e.target.value)}
+            disabled={!vehicleEnabled}
+          />
+          {/* Red result area */}
+          <div className="mt-2 border-2 border-red-500 rounded-md min-h-28 p-3">
+            {result ? (
+              <div className="space-y-1 text-sm">
+                <div><span className="font-semibold">{trans.itemLabel}:</span> <span className="break-all">{result.Item ?? "-"}</span></div>
+                <div><span className="font-semibold">{trans.locationFromLabel}:</span> <span className="break-all">{result.LocationFrom ?? "-"}</span></div>
+                <div><span className="font-semibold">{trans.locationToLabel}:</span> <span className="break-all">{result.LocationTo ?? "-"}</span></div>
+              </div>
+            ) : (
+              <div className="text-muted-foreground text-sm"> </div>
+            )}
+          </div>
         </Card>
       </div>
 
@@ -95,6 +168,18 @@ const TransportLoad = () => {
           </Button>
         </div>
       </div>
+
+      {/* Error dialog: HU not found */}
+      <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{trans.huNotFound}</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={onErrorConfirm}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Sign-out confirmation dialog */}
       <SignOutConfirm

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, forwardRef } from "react";
 import { Input } from "@/components/ui/input";
 
 type Props = {
@@ -9,29 +9,45 @@ type Props = {
   disabled?: boolean;
   autoFocus?: boolean;
   type?: React.ComponentProps<"input">["type"];
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  className?: string;
 };
 
-const FloatingLabelInput: React.FC<Props> = ({
-  id,
-  label,
-  disabled = false,
-  autoFocus = false,
-  type = "text",
-}) => {
-  const [value, setValue] = useState("");
+const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function FloatingLabelInput(
+  {
+    id,
+    label,
+    disabled = false,
+    autoFocus = false,
+    type = "text",
+    value,
+    onChange,
+    onBlur,
+    className,
+  },
+  ref
+) {
+  const [internal, setInternal] = useState("");
+  const val = value ?? internal;
 
   return (
     <div className="relative">
       <Input
         id={id}
+        ref={ref}
         type={type}
         autoFocus={autoFocus}
         disabled={disabled}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        // Use a single-space placeholder to enable :placeholder-shown behavior
+        value={val}
+        onChange={(e) => {
+          setInternal(e.target.value);
+          onChange?.(e);
+        }}
+        onBlur={onBlur}
         placeholder=" "
-        className="peer h-12 text-base"
+        className={`peer h-12 text-base ${className ?? ""}`}
       />
       <label
         htmlFor={id}
@@ -40,12 +56,9 @@ const FloatingLabelInput: React.FC<Props> = ({
           bg-white dark:bg-background px-1 rounded-sm
           text-gray-400
           transition-all duration-200
-          // Centered inside when empty
           peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm
-          // Float up OUTSIDE the input on focus/value
           peer-focus:-top-3 peer-focus:-translate-y-0 peer-focus:text-xs peer-focus:text-gray-700
           peer-[:not(:placeholder-shown)]:-top-3 peer-[:not(:placeholder-shown)]:-translate-y-0 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-700
-          // Disabled styling
           peer-disabled:text-gray-400
         "
       >
@@ -53,6 +66,6 @@ const FloatingLabelInput: React.FC<Props> = ({
       </label>
     </div>
   );
-};
+});
 
 export default FloatingLabelInput;
