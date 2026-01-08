@@ -161,7 +161,19 @@ const TransportMenu = () => {
       </div>
 
       {/* Fahrzeug-ID selection dialog */}
-      <Dialog open={vehicleDialogOpen} onOpenChange={setVehicleDialogOpen}>
+      <Dialog
+        open={vehicleDialogOpen}
+        onOpenChange={(open) => {
+          setVehicleDialogOpen(open);
+          if (!open) {
+            const stored = (localStorage.getItem("vehicle.id") || "").trim();
+            const vid = (vehicleId || "").trim();
+            if (!stored && !vid) {
+              navigate("/menu");
+            }
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{trans.loadVehicleId}</DialogTitle>
