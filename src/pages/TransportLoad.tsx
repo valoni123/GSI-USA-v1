@@ -101,7 +101,12 @@ const TransportLoad = () => {
 
   const onLoadClick = async () => {
     if (!canLoad || !result) return;
-    const employeeCode = ((localStorage.getItem("gsi.username") || localStorage.getItem("gsi.login") || "") as string).trim();
+    const employeeCode = (
+      (localStorage.getItem("gsi.employee") ||
+        localStorage.getItem("gsi.username") ||
+        localStorage.getItem("gsi.login") ||
+        "") as string
+    ).trim();
     const payload = {
       handlingUnit: handlingUnit.trim(),
       fromWarehouse: (result.Warehouse || "").trim(),

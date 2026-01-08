@@ -47,7 +47,8 @@ const Index = () => {
       if (gsiId) localStorage.setItem("gsi.id", gsiId);
       if (fullName) localStorage.setItem("gsi.full_name", fullName);
       if (userUsername) localStorage.setItem("gsi.username", userUsername);
-      // Also cache the typed login username as a fallback for employee code
+      // Also cache the typed login username as the employee code
+      localStorage.setItem("gsi.employee", username);
       localStorage.setItem("gsi.login", username);
     } catch {}
 
