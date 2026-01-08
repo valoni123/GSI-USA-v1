@@ -168,9 +168,19 @@ serve(async (req) => {
 
     const resJson = await moveRes.json().catch(() => null) as any;
     if (!moveRes.ok) {
-      // Try to map common error shape { error: { message, details: [{message}, ...] } }
-      const err = resJson?.error || resJson;
-      return json({ ok: false, error: err }, moveRes.status || 500);
+      // Normalize REST error and always return 200 so client gets error.message
+      const errObj = resJson?.error || resJson || {};
+      const topMessage =
+        typeof errObj?.message === "string"
+          ? errObj.message
+          : typeof resJson === "string"
+            ? resJson
+            : "Unbekannter Fehler";
+      const details =
+        Array.isArray(errObj?.details)
+          ? errObj.details
+          : [];
+      return json({ ok: false, error: { message: topMessage, details } }, 200);
     }
 
     return json({ ok: true, data: resJson }, 200);
