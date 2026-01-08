@@ -44,7 +44,8 @@ type TranslationKeys =
   | "transportLoad"
   | "transportUnload"
   | "loadHandlingUnit"
-  | "loadVehicleId";
+  | "loadVehicleId"
+  | "loadAction";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -87,6 +88,7 @@ const translations: Translations = {
     transportUnload: "Unload",
     loadHandlingUnit: "Handling Unit",
     loadVehicleId: "Vehicle ID",
+    loadAction: "Load",
   },
   de: {
     title: "Anmelden",
@@ -126,6 +128,7 @@ const translations: Translations = {
     transportUnload: "Entladen",
     loadHandlingUnit: "Ladeeinheit",
     loadVehicleId: "Fahrzeug ID",
+    loadAction: "LADEN",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -165,6 +168,7 @@ const translations: Translations = {
     transportUnload: "Descargar",
     loadHandlingUnit: "Unidad de manejo",
     loadVehicleId: "ID del vehículo",
+    loadAction: "Cargar",
   },
   "pt-BR": {
     title: "Entrar",
@@ -204,6 +208,7 @@ const translations: Translations = {
     transportUnload: "Descarregar",
     loadHandlingUnit: "Unidade de manuseio",
     loadVehicleId: "ID do veículo",
+    loadAction: "Carregar",
   },
 };
 

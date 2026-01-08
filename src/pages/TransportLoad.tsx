@@ -77,11 +77,23 @@ const TransportLoad = () => {
       </div>
 
       {/* Form area */}
-      <div className="mx-auto max-w-md px-4 py-6">
+      <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
           <FloatingLabelInput id="handlingUnit" label={trans.loadHandlingUnit} autoFocus />
           <FloatingLabelInput id="vehicleId" label={trans.loadVehicleId} disabled />
         </Card>
+      </div>
+
+      {/* Bottom action bar */}
+      <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
+        <div className="mx-auto max-w-md px-4 py-3">
+          <Button
+            className="w-full h-12 text-base bg-slate-900 hover:bg-slate-900/90 text-white"
+            disabled
+          >
+            {trans.loadAction}
+          </Button>
+        </div>
       </div>
 
       {/* Sign-out confirmation dialog */}
