@@ -4,6 +4,7 @@ import { ArrowLeft, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
+import SignOutConfirm from "@/components/SignOutConfirm";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showLoading, showSuccess } from "@/utils/toast";
