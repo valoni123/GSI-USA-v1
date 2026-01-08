@@ -162,6 +162,12 @@ const TransportLoad = () => {
             value={vehicleId}
             onChange={(e) => setVehicleId(e.target.value)}
             disabled={!vehicleEnabled}
+            onFocus={(e) => {
+              if (e.currentTarget.value.length > 0) e.currentTarget.select();
+            }}
+            onClick={(e) => {
+              if (e.currentTarget.value.length > 0) e.currentTarget.select();
+            }}
           />
           {/* Red result area */}
           <div className="mt-2 rounded-md min-h-28 p-3">
