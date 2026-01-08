@@ -62,44 +62,27 @@ const TransportMenu = () => {
     },
   ];
   const [loadedCount, setLoadedCount] = useState<number>(0);
-  const [vehicleId, setVehicleId] = useState<string>("");
-  const [vehicleDialogOpen, setVehicleDialogOpen] = useState<boolean>(true);
+  // Vehicle selection state and dialog visibility (only open if no stored vehicle)
+  const [vehicleId, setVehicleId] = useState<string>(() => (localStorage.getItem("vehicle.id") || "").trim());
+  const [vehicleDialogOpen, setVehicleDialogOpen] = useState<boolean>(() => !((localStorage.getItem("vehicle.id") || "").trim()));
 
-  const fetchDefaultVehicleId = async () => {
-    const gsiId = localStorage.getItem("gsi.id") || undefined;
-    const username = localStorage.getItem("gsi.username") || undefined;
-    const { data } = await supabase.functions.invoke("gsi-get-vehicle-id", {
-      body: { gsi_id: gsiId, username },
-    });
-    if (data && data.ok && typeof data.vehicleId === "string" && data.vehicleId) {
-      setVehicleId(data.vehicleId);
-    }
-  };
-
+  // Helper to fetch count for a given vehicle
   const fetchCount = async (vid: string) => {
     const { data } = await supabase.functions.invoke("ln-transport-count", {
       body: { vehicleId: vid, language: "en-US", company: "1000" },
     });
-    if (data && data.ok) {
-      setLoadedCount(Number(data.count || 0));
-    } else {
-      setLoadedCount(0);
-    }
+    setLoadedCount(data && data.ok ? Number(data.count || 0) : 0);
   };
 
+  // On mount: if there is a stored vehicle ID, fetch the count immediately; otherwise leave dialog open
   useEffect(() => {
-    fetchDefaultVehicleId();
+    const stored = (localStorage.getItem("vehicle.id") || "").trim();
+    if (stored) {
+      setVehicleId(stored);
+      setVehicleDialogOpen(false);
+      fetchCount(stored);
+    }
   }, []);
-
-  const onSelectVehicle = async () => {
-    const vid = vehicleId.trim();
-    if (!vid) return;
-    try {
-      localStorage.setItem("vehicle.id", vid);
-    } catch {}
-    setVehicleDialogOpen(false);
-    await fetchCount(vid);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -168,6 +151,7 @@ const TransportMenu = () => {
           if (!open) {
             const stored = (localStorage.getItem("vehicle.id") || "").trim();
             const vid = (vehicleId || "").trim();
+            // If closed without a selected vehicle, go back to main menu
             if (!stored && !vid) {
               navigate("/menu");
             }
@@ -191,7 +175,13 @@ const TransportMenu = () => {
             <Button
               className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
               disabled={!vehicleId.trim()}
-              onClick={onSelectVehicle}
+              onClick={async () => {
+                const vid = vehicleId.trim();
+                if (!vid) return;
+                localStorage.setItem("vehicle.id", vid);
+                setVehicleDialogOpen(false);
+                await fetchCount(vid);
+              }}
             >
               {trans.selectLabel}
             </Button>
