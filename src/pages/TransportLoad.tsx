@@ -45,6 +45,7 @@ const TransportLoad = () => {
   const [result, setResult] = useState<{ TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null>(null);
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
+  const [etag, setEtag] = useState<string>("");
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -80,6 +81,14 @@ const TransportLoad = () => {
     }
     const first = data.first as { TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
     setResult(first || null);
+    // Capture ETag from the response (prefer normalized field; fallback to raw)
+    const raw = (data.raw as any) || {};
+    const rawFirst = Array.isArray(raw.value) && raw.value.length > 0 ? raw.value[0] : null;
+    const etagValue =
+      (first && typeof first.ETag === "string" && first.ETag) ||
+      (rawFirst && typeof rawFirst?.["@odata.etag"] === "string" && rawFirst["@odata.etag"]) ||
+      "";
+    setEtag(etagValue);
     setVehicleEnabled(true);
     setLastFetchedHu(hu);
     // Focus vehicle input
@@ -93,6 +102,7 @@ const TransportLoad = () => {
     setHandlingUnit("");
     setVehicleId("");
     setLastFetchedHu(null);
+    setEtag("");
     // Refocus HU
     setTimeout(() => huRef.current?.focus(), 50);
   };
@@ -135,7 +145,7 @@ const TransportLoad = () => {
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: (result.TransportID || "").trim(),
-        etag: (result.ETag || "").trim(),
+        etag: etag.trim(),
         vehicleId: vehicleId.trim(),
         language: locale,
         company: "1000",
@@ -157,6 +167,7 @@ const TransportLoad = () => {
     setResult(null);
     setVehicleEnabled(false);
     setLastFetchedHu(null);
+    setEtag("");
     setTimeout(() => huRef.current?.focus(), 50);
   };
 
@@ -213,6 +224,7 @@ const TransportLoad = () => {
                 setVehicleEnabled(false);
                 setVehicleId("");
                 setLastFetchedHu(null);
+                setEtag("");
               }
             }}
             onBlur={onHUBlur}
