@@ -13,6 +13,8 @@ type Props = {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   className?: string;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLInputElement>) => void;
 };
 
 const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function FloatingLabelInput(
@@ -26,6 +28,8 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
     onChange,
     onBlur,
     className,
+    onFocus,
+    onClick,
   },
   ref
 ) {
@@ -46,6 +50,8 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
           onChange?.(e);
         }}
         onBlur={onBlur}
+        onFocus={onFocus}
+        onClick={onClick}
         placeholder=" "
         className={`peer h-12 text-base ${className ?? ""}`}
       />

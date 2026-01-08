@@ -135,6 +135,16 @@ const TransportLoad = () => {
             value={handlingUnit}
             onChange={(e) => setHandlingUnit(e.target.value)}
             onBlur={onHUBlur}
+            onFocus={(e) => {
+              // Select the full value when focusing the field
+              if (e.currentTarget.value.length > 0) e.currentTarget.select();
+            }}
+            onClick={(e) => {
+              // If user clicks while focused, keep the full selection
+              if (e.currentTarget.value.length > 0) {
+                e.currentTarget.select();
+              }
+            }}
           />
           <FloatingLabelInput
             id="vehicleId"
