@@ -44,6 +44,7 @@ const TransportLoad = () => {
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
   const [result, setResult] = useState<{ Item?: string; LocationFrom?: string; LocationTo?: string } | null>(null);
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
+  const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -59,6 +60,11 @@ const TransportLoad = () => {
   const onHUBlur = async () => {
     const hu = handlingUnit.trim();
     if (!hu) return;
+    
+    // Only check if details are empty (first time) or the HU value changed
+    const shouldCheck = result === null || lastFetchedHu !== hu;
+    if (!shouldCheck) return;
+    
     const tid = showLoading(trans.checkingHandlingUnit);
     const { data, error } = await supabase.functions.invoke("ln-transport-orders", {
       body: { handlingUnit: hu, language: locale, company: "1000" },
@@ -75,6 +81,7 @@ const TransportLoad = () => {
     const first = data.first as { Item?: string; LocationFrom?: string; LocationTo?: string } | null;
     setResult(first || null);
     setVehicleEnabled(true);
+    setLastFetchedHu(hu);
     // Focus vehicle input
     setTimeout(() => vehicleRef.current?.focus(), 50);
   };
@@ -85,6 +92,7 @@ const TransportLoad = () => {
     setVehicleEnabled(false);
     setHandlingUnit("");
     setVehicleId("");
+    setLastFetchedHu(null);
     // Refocus HU
     setTimeout(() => huRef.current?.focus(), 50);
   };
@@ -141,6 +149,7 @@ const TransportLoad = () => {
                 setResult(null);
                 setVehicleEnabled(false);
                 setVehicleId("");
+                setLastFetchedHu(null);
               }
             }}
             onBlur={onHUBlur}
