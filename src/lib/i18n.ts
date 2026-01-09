@@ -53,6 +53,8 @@ type TranslationKeys =
   | "warehouseLabel"
   | "transportIdLabel"
   | "huAlreadyLoaded"
+  | "transportScreen"
+  | "planningGroupTransport"
   | "selectLabel"
   | "loadAction";
 
@@ -105,6 +107,8 @@ const translations: Translations = {
     warehouseLabel: "Warehouse",
     transportIdLabel: "Transport-ID",
     huAlreadyLoaded: "Handling Unit already loaded.",
+    transportScreen: "Transportscreen",
+    planningGroupTransport: "Planning Group Transport",
     selectLabel: "Select",
     loadAction: "Load",
   },
@@ -154,6 +158,8 @@ const translations: Translations = {
     warehouseLabel: "Lager",
     transportIdLabel: "Transport-ID",
     huAlreadyLoaded: "Ladeeinheit bereits geladen.",
+    transportScreen: "Transport-Übersicht",
+    planningGroupTransport: "Planungsgruppe Transport",
     selectLabel: "Auswählen",
     loadAction: "LADEN",
   },
@@ -203,6 +209,8 @@ const translations: Translations = {
     warehouseLabel: "Almacén",
     transportIdLabel: "ID de transporte",
     huAlreadyLoaded: "Unidad de manejo ya cargada.",
+    transportScreen: "Pantalla de transporte",
+    planningGroupTransport: "Grupo de planificación de transporte",
     selectLabel: "Seleccionar",
     loadAction: "Cargar",
   },
@@ -252,6 +260,8 @@ const translations: Translations = {
     warehouseLabel: "Armazém",
     transportIdLabel: "ID de transporte",
     huAlreadyLoaded: "Unidade de manuseio já carregada.",
+    transportScreen: "Tela de transporte",
+    planningGroupTransport: "Grupo de planejamento de transporte",
     selectLabel: "Selecionar",
     loadAction: "Carregar",
   },

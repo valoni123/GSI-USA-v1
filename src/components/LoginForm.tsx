@@ -5,10 +5,11 @@ import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Props = {
   lang: LanguageKey;
-  onSubmit: (payload: { username: string; password: string }) => void;
+  onSubmit: (payload: { username: string; password: string; transportscreen?: boolean }) => void;
   logoSrc?: string;
 };
 
@@ -16,11 +17,12 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
   const [username, setUsername] = useState("");
   const [usernameDisplay, setUsernameDisplay] = useState("");
   const [password, setPassword] = useState("");
+  const [transportScreen, setTransportScreen] = useState(false);
   const trans = t(lang);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ username, password });
+    onSubmit({ username, password, transportscreen: transportScreen });
   };
 
   return (
@@ -33,7 +35,6 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               alt="App logo"
               className="h-32 sm:h-40 md:h-48 object-contain"
               onError={(e) => {
-                // If no logo exists, hide the broken image icon gracefully
                 (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
             />
@@ -59,7 +60,6 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               onFocus={async () => {
                 const raw = username.trim();
                 if (!raw) return;
-                // Avoid duplicate appending if already enriched
                 if (usernameDisplay.includes(" - ")) return;
                 const { data } = await supabase.functions.invoke("gsi-get-user-name", {
                   body: { username: raw },
@@ -70,6 +70,18 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
                 }
               }}
             />
+
+            <div className="flex items-center justify-center gap-2 py-2">
+              <Checkbox
+                id="transportScreen"
+                checked={transportScreen}
+                onCheckedChange={(v) => setTransportScreen(!!v)}
+              />
+              <label htmlFor="transportScreen" className="text-sm select-none">
+                {trans.transportScreen}
+              </label>
+            </div>
+
             <Button type="submit" className="w-full h-12 text-base bg-slate-900 hover:bg-slate-900/90 text-white">
               {trans.signIn}
             </Button>

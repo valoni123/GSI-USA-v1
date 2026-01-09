@@ -21,7 +21,7 @@ const Index = () => {
 
   const navigate = useNavigate();
 
-  const handleLogin = async ({ username, password }: { username: string; password: string }) => {
+  const handleLogin = async ({ username, password, transportscreen }: { username: string; password: string; transportscreen?: boolean }) => {
     if (!username || !password) {
       showError(trans.emptyFields);
       return;
@@ -31,11 +31,7 @@ const Index = () => {
       body: { username, password },
     });
     dismissToast(id as unknown as string);
-    if (error) {
-      showError(trans.invalidCredentials);
-      return;
-    }
-    if (!data || !data.ok) {
+    if (error || !data || !data.ok) {
       showError(trans.invalidCredentials);
       return;
     }
@@ -47,12 +43,11 @@ const Index = () => {
       if (gsiId) localStorage.setItem("gsi.id", gsiId);
       if (fullName) localStorage.setItem("gsi.full_name", fullName);
       if (userUsername) localStorage.setItem("gsi.username", userUsername);
-      // Also cache the typed login username as the employee code
       localStorage.setItem("gsi.employee", username);
       localStorage.setItem("gsi.login", username);
     } catch {}
 
-    // Retrieve INFOR LN OAuth2 token based on active ionapi_oauth2 row
+    // Retrieve INFOR LN OAuth2 token
     const tid = showLoading(trans.retrievingToken);
     const { data: tokenData, error: tokenErr } = await supabase.functions.invoke("ln-get-token", {
       body: { gsi_id: gsiId },
@@ -63,14 +58,16 @@ const Index = () => {
       return;
     }
     showSuccess(trans.tokenReceived);
-    // Optionally store the token locally
     try {
       localStorage.setItem("ln.token", JSON.stringify(tokenData.token));
-    } catch {
-      // ignore storage errors
+    } catch {}
+
+    // Decide destination based on Transportscreen checkbox
+    if (transportscreen) {
+      navigate("/transport/select");
+    } else {
+      navigate("/menu");
     }
-    // Go to the Menu screen
-    navigate("/menu");
   };
 
   return (
