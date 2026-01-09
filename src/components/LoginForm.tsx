@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Button } from "@/components/ui/button";
 import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
@@ -39,35 +38,21 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="username">{trans.username}</Label>
-              <Input
-                id="username"
-                name="username"
-                inputMode="text"
-                autoComplete="username"
-                placeholder={trans.username}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="h-12 text-base"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="password">{trans.password}</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-12 text-base"
-              />
-            </div>
-
-            <Button type="submit" className="w-full h-12 text-base bg-slate-900 hover:bg-slate-900/90 text-white">
+            <FloatingLabelInput
+              id="username"
+              label={trans.username}
+              autoFocus
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <FloatingLabelInput
+              id="password"
+              label={trans.password}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button type="submit" className="w-full h-12 text-base">
               {trans.signIn}
             </Button>
           </form>
