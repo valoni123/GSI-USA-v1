@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Button } from "@/components/ui/button";
 import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
+import { supabase } from "@/integrations/supabase/client";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 
 type Props = {
   lang: LanguageKey;
@@ -13,6 +14,7 @@ type Props = {
 
 const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
   const [username, setUsername] = useState("");
+  const [usernameDisplay, setUsernameDisplay] = useState("");
   const [password, setPassword] = useState("");
   const trans = t(lang);
 
@@ -42,8 +44,11 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               id="username"
               label={trans.username}
               autoFocus
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={usernameDisplay}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setUsernameDisplay(e.target.value);
+              }}
             />
             <FloatingLabelInput
               id="password"
@@ -51,8 +56,21 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onFocus={async () => {
+                const raw = username.trim();
+                if (!raw) return;
+                // Avoid duplicate appending if already enriched
+                if (usernameDisplay.includes(" - ")) return;
+                const { data } = await supabase.functions.invoke("gsi-get-user-name", {
+                  body: { username: raw },
+                });
+                const full = data && data.ok ? data.full_name : null;
+                if (typeof full === "string" && full.trim().length > 0) {
+                  setUsernameDisplay(`${raw} - ${full.trim()}`);
+                }
+              }}
             />
-            <Button type="submit" className="w-full h-12 text-base">
+            <Button type="submit" className="w-full h-12 text-base bg-slate-900 hover:bg-slate-900/90 text-white">
               {trans.signIn}
             </Button>
           </form>
