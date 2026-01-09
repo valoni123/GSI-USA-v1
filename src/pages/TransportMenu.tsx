@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
