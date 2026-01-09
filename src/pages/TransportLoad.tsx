@@ -55,6 +55,8 @@ const TransportLoad = () => {
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [etag, setEtag] = useState<string>("");
   const [loadedCount, setLoadedCount] = useState<number>(0);
+  const [listOpen, setListOpen] = useState<boolean>(false);
+  const [listItems, setListItems] = useState<Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>>([]);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -85,6 +87,17 @@ const TransportLoad = () => {
       active = false;
     };
   }, [locale]);
+
+  const fetchList = async (vid: string) => {
+    const { data } = await supabase.functions.invoke("ln-transport-list", {
+      body: { vehicleId: vid, language: locale, company: "1000" },
+    });
+    if (data && data.ok) {
+      setListItems((data.items || []) as Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>);
+    } else {
+      setListItems([]);
+    }
+  };
 
   const onHUBlur = async () => {
     const hu = handlingUnit.trim();
@@ -237,11 +250,40 @@ const TransportLoad = () => {
           </Button>
 
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center flex items-center gap-2">
+            <div className="font-bold text-lg tracking-wide text-center flex items-center gap-2 relative">
               <span>{trans.transportLoad}</span>
-              <span className="bg-red-600 text-white rounded-full min-w-5 h-5 px-2 flex items-center justify-center text-xs font-bold">
+              <button
+                type="button"
+                className="bg-red-600 text-white rounded-full min-w-5 h-5 px-2 flex items-center justify-center text-xs font-bold focus:outline-none"
+                onClick={async () => {
+                  const vid = (localStorage.getItem("vehicle.id") || "").trim();
+                  if (!vid) return;
+                  const willOpen = !listOpen;
+                  setListOpen(willOpen);
+                  if (willOpen) {
+                    await fetchList(vid);
+                  }
+                }}
+              >
                 {loadedCount}
-              </span>
+              </button>
+              {listOpen && (
+                <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-white border rounded-md shadow p-2 w-64">
+                  <div className="max-h-64 overflow-auto space-y-2">
+                    {listItems.length === 0 ? (
+                      <div className="text-xs text-muted-foreground">No entries</div>
+                    ) : (
+                      listItems.map((it, idx) => (
+                        <div key={idx} className="grid grid-cols-[1fr_1fr_1fr] gap-2 text-xs">
+                          <div className="font-medium break-all">{it.HandlingUnit}</div>
+                          <div className="break-all">{it.LocationFrom}</div>
+                          <div className="break-all">{it.LocationTo}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
               <User className="h-4 w-4" />

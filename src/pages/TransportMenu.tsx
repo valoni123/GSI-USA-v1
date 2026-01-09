@@ -62,6 +62,9 @@ const TransportMenu = () => {
     },
   ];
   const [loadedCount, setLoadedCount] = useState<number>(0);
+  const [listOpen, setListOpen] = useState<boolean>(false);
+  const [listItems, setListItems] = useState<Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>>([]);
+
   // Vehicle selection
   const initialSelected = sessionStorage.getItem("transport.selected") === "1";
   const initialFromMain = sessionStorage.getItem("transport.fromMain") === "1";
@@ -74,6 +77,17 @@ const TransportMenu = () => {
       body: { vehicleId: vid, language: "en-US", company: "1000" },
     });
     setLoadedCount(data && data.ok ? Number(data.count || 0) : 0);
+  };
+
+  const fetchList = async (vid: string) => {
+    const { data } = await supabase.functions.invoke("ln-transport-list", {
+      body: { vehicleId: vid, language: "en-US", company: "1000" },
+    });
+    if (data && data.ok) {
+      setListItems((data.items || []) as Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>);
+    } else {
+      setListItems([]);
+    }
   };
 
   // On mount: decide dialog visibility and prefill; from main → open dialog; inside transport → only open if not selected
@@ -165,9 +179,40 @@ const TransportMenu = () => {
         ))}
         {/* Center badge between tiles */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shadow">
+          <button
+            type="button"
+            className="bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shadow focus:outline-none"
+            onClick={async () => {
+              const vid = (localStorage.getItem("vehicle.id") || "").trim();
+              if (!vid) return;
+              const willOpen = !listOpen;
+              setListOpen(willOpen);
+              if (willOpen) {
+                await fetchList(vid);
+              }
+            }}
+          >
             {loadedCount}
-          </div>
+          </button>
+          {listOpen && (
+            <div className="mt-3 w-[90vw] max-w-md -ml-[45vw] left-1/2 translate-x-1/2 relative">
+              <div className="absolute left-1/2 -translate-x-1/2 top-2 z-10 bg-white border rounded-md shadow p-2 w-64">
+                <div className="max-h-64 overflow-auto space-y-2">
+                  {listItems.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">No entries</div>
+                  ) : (
+                    listItems.map((it, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_1fr_1fr] gap-2 text-xs">
+                        <div className="font-medium break-all">{it.HandlingUnit}</div>
+                        <div className="break-all">{it.LocationFrom}</div>
+                        <div className="break-all">{it.LocationTo}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
