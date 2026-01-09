@@ -264,13 +264,13 @@ const TransportMenu = () => {
               value={vehicleId}
               onChange={(e) => setVehicleId(e.target.value)}
               autoFocus
-              className="pr-10"
+              className="pr-12"
             />
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-2 text-gray-700 hover:text-gray-900"
+              className="absolute right-2 top-1 text-gray-700 hover:text-gray-900 h-8 w-8 flex items-center justify-center"
               aria-label="Search vehicles"
               onClick={async () => {
                 const { data } = await supabase.functions.invoke("ln-vehicles-list", { body: {} });
@@ -283,7 +283,7 @@ const TransportMenu = () => {
                 setVehicleDropdownOpen((o) => !o);
               }}
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-6 w-6" />
             </Button>
 
             {vehicleDropdownOpen && (
