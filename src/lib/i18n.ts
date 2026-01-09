@@ -52,6 +52,7 @@ type TranslationKeys =
   | "locationToLabel"
   | "warehouseLabel"
   | "transportIdLabel"
+  | "huAlreadyLoaded"
   | "selectLabel"
   | "loadAction";
 
@@ -103,6 +104,7 @@ const translations: Translations = {
     locationToLabel: "Location To",
     warehouseLabel: "Warehouse",
     transportIdLabel: "Transport-ID",
+    huAlreadyLoaded: "Handling Unit already loaded.",
     selectLabel: "Select",
     loadAction: "Load",
   },
@@ -151,6 +153,7 @@ const translations: Translations = {
     locationToLabel: "Ort Nach",
     warehouseLabel: "Lager",
     transportIdLabel: "Transport-ID",
+    huAlreadyLoaded: "Ladeeinheit bereits geladen.",
     selectLabel: "Auswählen",
     loadAction: "LADEN",
   },
@@ -199,6 +202,7 @@ const translations: Translations = {
     locationToLabel: "Ubicación hasta",
     warehouseLabel: "Almacén",
     transportIdLabel: "ID de transporte",
+    huAlreadyLoaded: "Unidad de manejo ya cargada.",
     selectLabel: "Seleccionar",
     loadAction: "Cargar",
   },
@@ -247,6 +251,7 @@ const translations: Translations = {
     locationToLabel: "Local de destino",
     warehouseLabel: "Armazém",
     transportIdLabel: "ID de transporte",
+    huAlreadyLoaded: "Unidade de manuseio já carregada.",
     selectLabel: "Selecionar",
     loadAction: "Carregar",
   },

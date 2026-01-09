@@ -1,3 +1,4 @@
+0">
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogOut, User } from "lucide-react";
@@ -44,6 +45,7 @@ const TransportLoad = () => {
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
   const [result, setResult] = useState<{ TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null>(null);
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
+  const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [etag, setEtag] = useState<string>("");
   const [loadedCount, setLoadedCount] = useState<number>(0);
@@ -82,6 +84,28 @@ const TransportLoad = () => {
     const hu = handlingUnit.trim();
     if (!hu) return;
     
+    // First: check if this HU is already loaded to the selected vehicle
+    const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+    if (selectedVehicle) {
+      const preTid = showLoading(trans.checkingHandlingUnit);
+      const { data: loadedData, error: loadedErr } = await supabase.functions.invoke("ln-transport-loaded-check", {
+        body: { handlingUnit: hu, vehicleId: selectedVehicle, language: locale, company: "1000" },
+      });
+      dismissToast(preTid as unknown as string);
+      if (!loadedErr && loadedData && loadedData.ok && Number(loadedData.count || 0) > 0) {
+        setLoadedErrorOpen(true);
+        // Clear and reset
+        setResult(null);
+        setVehicleEnabled(false);
+        setHandlingUnit("");
+        setVehicleId("");
+        setLastFetchedHu(null);
+        setEtag("");
+        setTimeout(() => huRef.current?.focus(), 50);
+        return;
+      }
+    }
+    
     // Only check if details are empty (first time) or the HU value changed
     const shouldCheck = result === null || lastFetchedHu !== hu;
     if (!shouldCheck) return;
@@ -101,7 +125,7 @@ const TransportLoad = () => {
     }
     const first = data.first as { TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
     setResult(first || null);
-    // Capture ETag from the response (prefer normalized field; fallback to raw)
+    // Capture ETag
     const raw = (data.raw as any) || {};
     const rawFirst = Array.isArray(raw.value) && raw.value.length > 0 ? raw.value[0] : null;
     const etagValue =
@@ -327,6 +351,26 @@ const TransportLoad = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={onErrorConfirm}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Error dialog: HU already loaded */}
+      <AlertDialog open={loadedErrorOpen} onOpenChange={setLoadedErrorOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{trans.huAlreadyLoaded}</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => {
+                setLoadedErrorOpen(false);
+                // Everything is already cleared in the blur handler; ensure focus on HU
+                setTimeout(() => huRef.current?.focus(), 50);
+              }}
+            >
+              OK
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
