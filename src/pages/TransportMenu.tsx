@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Box, User, LogOut } from "lucide-react";
+import { ArrowLeft, ArrowRight, Box, User, LogOut, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
@@ -70,6 +71,16 @@ const TransportMenu = () => {
   const initialFromMain = sessionStorage.getItem("transport.fromMain") === "1";
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState<boolean>(initialFromMain ? true : !initialSelected);
+  const [vehicleList, setVehicleList] = useState<Array<{ VehicleID: string; Description: string }>>([]);
+  const [vehicleQuery, setVehicleQuery] = useState<string>("");
+  const filteredVehicles = vehicleList.filter((v) => {
+    const q = vehicleQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      v.VehicleID.toLowerCase().includes(q) ||
+      (v.Description || "").toLowerCase().includes(q)
+    );
+  });
 
   // Helper to fetch count for a given vehicle
   const fetchCount = async (vid: string) => {
@@ -245,14 +256,66 @@ const TransportMenu = () => {
           <DialogHeader>
             <DialogTitle>{trans.loadVehicleId}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-2">
+          <div className="space-y-4 pt-2 relative">
             <FloatingLabelInput
               id="transportVehicleId"
               label={trans.loadVehicleId}
               value={vehicleId}
               onChange={(e) => setVehicleId(e.target.value)}
               autoFocus
+              className="pr-10"
             />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-700 hover:text-gray-900"
+                  aria-label="Search vehicles"
+                  onClick={async () => {
+                    const { data } = await supabase.functions.invoke("ln-vehicles-list", { body: {} });
+                    if (data && data.ok) {
+                      setVehicleList(data.items || []);
+                      setVehicleQuery("");
+                    } else {
+                      setVehicleList([]);
+                    }
+                  }}
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-2">
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Search vehicle…"
+                    value={vehicleQuery}
+                    onChange={(e) => setVehicleQuery(e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                  <div className="max-h-56 overflow-auto space-y-1">
+                    {filteredVehicles.length === 0 ? (
+                      <div className="text-xs text-muted-foreground px-1">No vehicles</div>
+                    ) : (
+                      filteredVehicles.map((v, idx) => (
+                        <button
+                          key={`${v.VehicleID}-${idx}`}
+                          type="button"
+                          className="w-full text-left px-2 py-1 rounded hover:bg-gray-100"
+                          onClick={() => {
+                            setVehicleId(v.VehicleID);
+                          }}
+                        >
+                          <div className="text-sm font-medium">{v.VehicleID}</div>
+                          <div className="text-xs text-gray-600">{v.Description}</div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           <DialogFooter>
             <Button
