@@ -56,16 +56,7 @@ const TransportGroup = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="sticky top-0 z-10 bg-black text-white">
-        <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg-white/10"
-            aria-label={trans.back}
-            onClick={() => navigate("/menu")}
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
+        <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center">
           <div className="font-bold text-lg">{trans.planningGroupTransport}: {group}</div>
         </div>
       </div>
