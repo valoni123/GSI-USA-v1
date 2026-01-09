@@ -56,7 +56,7 @@ const TransportGroup = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="sticky top-0 z-10 bg-black text-white">
-        <div className="mx-auto max-w-4xl px-4 py-3 flex items-center gap-3">
+        <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -70,26 +70,20 @@ const TransportGroup = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-4xl px-4 py-6">
+      <div className="mx-auto max-w-screen-2xl px-4 py-6">
         <div className="rounded-md border bg-white overflow-hidden">
-          <div className="px-4 py-3 border-b bg-gray-100">
-            <div className="text-sm font-medium">
-              {loading ? "Loading…" : `${items.length} ${items.length === 1 ? "entry" : "entries"}`}
-            </div>
-            {error && <div className="text-sm text-red-600 mt-1">{error}</div>}
-          </div>
           <div className="w-full overflow-x-auto">
-            <div className="min-w-[880px]">
+            <div className="min-w-[1100px]">
               {/* Header row */}
               <div className="grid grid-cols-8 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
-                <div>{trans.transportIdLabel}</div>
-                <div>{trans.itemLabel}</div>
-                <div>{trans.loadHandlingUnit}</div>
-                <div>{trans.warehouseLabel}</div>
-                <div>{trans.locationFromLabel}</div>
-                <div>{trans.locationToLabel}</div>
-                <div>{trans.loadVehicleId}</div>
-                <div>{trans.plannedDateLabel}</div>
+                <div className="whitespace-nowrap">{trans.transportIdLabel}</div>
+                <div className="whitespace-nowrap">{trans.itemLabel}</div>
+                <div className="whitespace-nowrap">{trans.loadHandlingUnit}</div>
+                <div className="whitespace-nowrap">{trans.warehouseLabel}</div>
+                <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
+                <div className="whitespace-nowrap">{trans.locationToLabel}</div>
+                <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
+                <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
               </div>
               {/* Rows */}
               {loading ? (
@@ -102,14 +96,14 @@ const TransportGroup = () => {
                     key={`${it.TransportID}-${idx}`}
                     className="grid grid-cols-8 gap-3 px-4 py-2 border-b text-sm"
                   >
-                    <div className="break-all">{it.TransportID || "-"}</div>
-                    <div className="break-all">{it.Item || "-"}</div>
-                    <div className="break-all">{it.HandlingUnit || "-"}</div>
-                    <div className="break-all">{it.Warehouse || "-"}</div>
-                    <div className="break-all">{it.LocationFrom || "-"}</div>
-                    <div className="break-all">{it.LocationTo || "-"}</div>
-                    <div className="break-all">{it.VehicleID || "-"}</div>
-                    <div className="break-all">
+                    <div className="break-all whitespace-nowrap">{it.TransportID || "-"}</div>
+                    <div className="break-all whitespace-nowrap">{it.Item || "-"}</div>
+                    <div className="break-all whitespace-nowrap">{it.HandlingUnit || "-"}</div>
+                    <div className="break-all whitespace-nowrap">{it.Warehouse || "-"}</div>
+                    <div className="break-all whitespace-nowrap">{it.LocationFrom || "-"}</div>
+                    <div className="break-all whitespace-nowrap">{it.LocationTo || "-"}</div>
+                    <div className="break-all whitespace-nowrap">{it.VehicleID || "-"}</div>
+                    <div className="break-all whitespace-nowrap">
                       {it.PlannedDeliveryDate ? new Date(it.PlannedDeliveryDate).toLocaleString() : "-"}
                     </div>
                   </div>
