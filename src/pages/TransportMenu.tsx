@@ -194,26 +194,32 @@ const TransportMenu = () => {
           >
             {loadedCount}
           </button>
-          {listOpen && (
-            <div className="mt-3 w-[90vw] max-w-md -ml-[45vw] left-1/2 translate-x-1/2 relative">
-              <div className="absolute left-1/2 -translate-x-1/2 top-2 z-10 bg-white border rounded-md shadow p-2 w-64">
-                <div className="max-h-64 overflow-auto space-y-2">
-                  {listItems.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">No entries</div>
-                  ) : (
-                    listItems.map((it, idx) => (
-                      <div key={idx} className="grid grid-cols-[1fr_1fr_1fr] gap-2 text-xs">
-                        <div className="font-medium break-all">{it.HandlingUnit}</div>
-                        <div className="break-all">{it.LocationFrom}</div>
-                        <div className="break-all">{it.LocationTo}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
+        </div>
+        {/* Overlay list dialog */}
+        <Dialog open={listOpen} onOpenChange={setListOpen}>
+          <DialogContent className="max-w-md">
+            <div className="text-sm">
+              <div className="grid grid-cols-[1fr_1fr_1fr] gap-2 px-2 pb-2 border-b">
+                <div className="font-semibold">{trans.loadHandlingUnit}</div>
+                <div className="font-semibold">{trans.locationFromLabel}</div>
+                <div className="font-semibold">{trans.locationToLabel}</div>
+              </div>
+              <div className="max-h-64 overflow-auto mt-2 space-y-2 px-2">
+                {listItems.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">No entries</div>
+                ) : (
+                  listItems.map((it, idx) => (
+                    <div key={idx} className="grid grid-cols-[1fr_1fr_1fr] gap-2 text-xs">
+                      <div className="break-all">{it.HandlingUnit}</div>
+                      <div className="break-all">{it.LocationFrom}</div>
+                      <div className="break-all">{it.LocationTo}</div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
-          )}
-        </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Fahrzeug-ID selection dialog */}
