@@ -7,7 +7,6 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -82,6 +81,7 @@ const TransportMenu = () => {
       (v.Description || "").toLowerCase().includes(q)
     );
   });
+  const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState<boolean>(false);
 
   // Helper to fetch count for a given vehicle
   const fetchCount = async (vid: string) => {
@@ -266,28 +266,28 @@ const TransportMenu = () => {
               autoFocus
               className="pr-10"
             />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-700 hover:text-gray-900"
-                  aria-label="Search vehicles"
-                  onClick={async () => {
-                    const { data } = await supabase.functions.invoke("ln-vehicles-list", { body: {} });
-                    if (data && data.ok) {
-                      setVehicleList(data.items || []);
-                      setVehicleQuery("");
-                    } else {
-                      setVehicleList([]);
-                    }
-                  }}
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 p-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-2 text-gray-700 hover:text-gray-900"
+              aria-label="Search vehicles"
+              onClick={async () => {
+                const { data } = await supabase.functions.invoke("ln-vehicles-list", { body: {} });
+                if (data && data.ok) {
+                  setVehicleList(data.items || []);
+                  setVehicleQuery("");
+                } else {
+                  setVehicleList([]);
+                }
+                setVehicleDropdownOpen((o) => !o);
+              }}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+
+            {vehicleDropdownOpen && (
+              <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-2">
                 <div className="space-y-2">
                   <Input
                     placeholder="Search vehicle…"
@@ -306,6 +306,7 @@ const TransportMenu = () => {
                           className="w-full text-left px-2 py-1 rounded hover:bg-gray-100"
                           onClick={() => {
                             setVehicleId(v.VehicleID);
+                            setVehicleDropdownOpen(false);
                           }}
                         >
                           <div className="text-sm font-medium">{v.VehicleID}</div>
@@ -315,8 +316,8 @@ const TransportMenu = () => {
                     )}
                   </div>
                 </div>
-              </PopoverContent>
-            </Popover>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button
