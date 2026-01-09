@@ -197,7 +197,7 @@ const TransportMenu = () => {
         </div>
         {/* Overlay list dialog */}
         <Dialog open={listOpen} onOpenChange={setListOpen}>
-          <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg">
+          <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">
             <div className="text-sm">
               <div className="grid grid-cols-[1fr_1fr_1fr] gap-2 px-3 py-2 border-b rounded-t-lg bg-gray-100">
                 <div className="font-semibold">{trans.loadHandlingUnit}</div>
