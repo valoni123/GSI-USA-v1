@@ -36,6 +36,25 @@ const TransportGroup = () => {
     return "en-US";
   }, [lang]);
 
+  // Helper to load plannings once or silently
+  const loadPlannings = async (silent: boolean) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
+    const pg = (group || "").toString();
+    const { data } = await supabase.functions.invoke("ln-transport-planning-list", {
+      body: { planningGroup: pg, language: locale, company: "1000" },
+    });
+    if (data && data.ok) {
+      setItems(data.items || []);
+      if (!silent) setError(null);
+    } else {
+      if (!silent) setError((data && (data.error?.message || data.error)) || "Failed to load");
+    }
+    if (!silent) setLoading(false);
+  };
+
   // Sign out dialog
   const [signOutOpen, setSignOutOpen] = useState(false);
   const onConfirmSignOut = () => {
@@ -84,25 +103,13 @@ const TransportGroup = () => {
   };
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      const pg = (group || "").toString();
-      const { data } = await supabase.functions.invoke("ln-transport-planning-list", {
-        body: { planningGroup: pg, language: locale, company: "1000" },
-      });
-      if (!active) return;
-      if (data && data.ok) {
-        setItems(data.items || []);
-      } else {
-        setError((data && (data.error?.message || data.error)) || "Failed to load");
-      }
-      setLoading(false);
-    })();
-    return () => {
-      active = false;
-    };
+    // Initial load (shows loading state once)
+    loadPlannings(false);
+    // Silent refresh every 30 seconds
+    const intervalId = setInterval(() => {
+      loadPlannings(true);
+    }, 30000);
+    return () => clearInterval(intervalId);
   }, [group, locale]);
 
   return (
