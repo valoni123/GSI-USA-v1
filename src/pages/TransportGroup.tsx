@@ -177,7 +177,15 @@ const TransportGroup = () => {
                     <div className="break-all whitespace-nowrap">{it.Warehouse || "-"}</div>
                     <div className="break-all whitespace-nowrap">{it.LocationFrom || "-"}</div>
                     <div className="break-all whitespace-nowrap">{it.LocationTo || "-"}</div>
-                    <div className="break-all whitespace-nowrap">{it.VehicleID || "-"}</div>
+                    <div className="break-all whitespace-nowrap">
+                      {it.VehicleID ? (
+                        <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-medium">
+                          {it.VehicleID}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </div>
                     <div className="break-all whitespace-nowrap">
                       {it.PlannedDeliveryDate ? new Date(it.PlannedDeliveryDate).toLocaleString() : "-"}
                     </div>
