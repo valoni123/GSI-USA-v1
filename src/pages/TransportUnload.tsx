@@ -210,13 +210,16 @@ const TransportUnload = () => {
             ) : items.length === 0 ? (
               <div className="p-3 text-sm text-muted-foreground">No entries</div>
             ) : (
-              <Table className="text-xs w-full min-w-[860px]">
+              <Table className="text-[11px] sm:text-xs w-full">
                 <TableHeader className="sticky top-0 bg-black text-white z-[1] shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[35%] whitespace-nowrap">{trans.loadHandlingUnit}</TableHead>
+                    <TableHead className="w-[36%] whitespace-nowrap">{trans.loadHandlingUnit}</TableHead>
                     <TableHead className="w-[20%] whitespace-nowrap">{trans.itemLabel}</TableHead>
-                    <TableHead className="w-[25%] whitespace-nowrap">From</TableHead>
-                    <TableHead className="w-[25%] whitespace-nowrap">To</TableHead>
+                    {/* Mobile: show combined From → To */}
+                    <TableHead className="sm:hidden w-[40%] whitespace-nowrap">From → To</TableHead>
+                    {/* Desktop/tablet: show separate From and To */}
+                    <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap">From</TableHead>
+                    <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap">To</TableHead>
                     {!allSameLocationTo && <TableHead className="w-[44px] text-right"></TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -235,15 +238,23 @@ const TransportUnload = () => {
                       >
                         {it.Item || "-"}
                       </TableCell>
+                      {/* Mobile: combined From → To */}
+                      <TableCell
+                        title={`${it.LocationFrom || "-"} → ${it.LocationTo || "-"}`}
+                        className="sm:hidden whitespace-nowrap"
+                      >
+                        {(it.LocationFrom || "-") + " → " + (it.LocationTo || "-")}
+                      </TableCell>
+                      {/* Desktop/tablet: separate From and To */}
                       <TableCell
                         title={it.LocationFrom || "-"}
-                        className="whitespace-nowrap"
+                        className="hidden sm:table-cell whitespace-nowrap"
                       >
                         {it.LocationFrom || "-"}
                       </TableCell>
                       <TableCell
                         title={it.LocationTo || "-"}
-                        className="whitespace-nowrap"
+                        className="hidden sm:table-cell whitespace-nowrap"
                       >
                         {it.LocationTo || "-"}
                       </TableCell>
