@@ -204,19 +204,19 @@ const TransportUnload = () => {
       {/* List area */}
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-0">
-          <div className="max-h-[50vh] overflow-auto rounded-md">
+          <div className="max-h-[50vh] overflow-x-auto overflow-y-auto rounded-md">
             {loading ? (
               <div className="p-3 text-sm text-muted-foreground">Loading…</div>
             ) : items.length === 0 ? (
               <div className="p-3 text-sm text-muted-foreground">No entries</div>
             ) : (
-              <Table className="text-xs table-fixed w-full">
-                <TableHeader className="sticky top-0 bg-gray-100 z-[1] shadow-sm">
+              <Table className="text-xs w-full min-w-[860px]">
+                <TableHeader className="sticky top-0 bg-black text-white z-[1] shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[35%] text-gray-700 whitespace-nowrap">{trans.loadHandlingUnit}</TableHead>
-                    <TableHead className="w-[20%] text-gray-700 whitespace-nowrap">{trans.itemLabel}</TableHead>
-                    <TableHead className="w-[25%] text-gray-700 whitespace-nowrap">{trans.locationFromLabel}</TableHead>
-                    <TableHead className="w-[25%] text-gray-700 whitespace-nowrap">{trans.locationToLabel}</TableHead>
+                    <TableHead className="w-[35%] whitespace-nowrap">{trans.loadHandlingUnit}</TableHead>
+                    <TableHead className="w-[20%] whitespace-nowrap">{trans.itemLabel}</TableHead>
+                    <TableHead className="w-[25%] whitespace-nowrap">From</TableHead>
+                    <TableHead className="w-[25%] whitespace-nowrap">To</TableHead>
                     {!allSameLocationTo && <TableHead className="w-[44px] text-right"></TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -225,25 +225,25 @@ const TransportUnload = () => {
                     <TableRow key={`${it.HandlingUnit}-${idx}`} className="odd:bg-white even:bg-gray-50">
                       <TableCell
                         title={it.HandlingUnit || "-"}
-                        className="font-mono whitespace-nowrap truncate"
+                        className="font-mono whitespace-nowrap"
                       >
                         {it.HandlingUnit || "-"}
                       </TableCell>
                       <TableCell
                         title={it.Item || "-"}
-                        className="whitespace-nowrap truncate"
+                        className="whitespace-nowrap"
                       >
                         {it.Item || "-"}
                       </TableCell>
                       <TableCell
                         title={it.LocationFrom || "-"}
-                        className="whitespace-nowrap truncate"
+                        className="whitespace-nowrap"
                       >
                         {it.LocationFrom || "-"}
                       </TableCell>
                       <TableCell
                         title={it.LocationTo || "-"}
-                        className="whitespace-nowrap truncate"
+                        className="whitespace-nowrap"
                       >
                         {it.LocationTo || "-"}
                       </TableCell>
