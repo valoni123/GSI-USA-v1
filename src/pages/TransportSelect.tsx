@@ -60,7 +60,11 @@ const TransportSelect = () => {
           if (!o) navigate("/menu");
         }}
       >
-        <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">
+        <DialogContent
+          className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden"
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{trans.planningGroupTransport}</DialogTitle>
           </DialogHeader>
@@ -121,13 +125,26 @@ const TransportSelect = () => {
             )}
           </div>
           <DialogFooter className="px-4 pb-4">
-            <Button
-              className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-              disabled={!group.trim()}
-              onClick={onConfirm}
-            >
-              OK
-            </Button>
+            <div className="w-full space-y-2">
+              <Button
+                className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                disabled={!group.trim()}
+                onClick={onConfirm}
+              >
+                Select
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-10"
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
