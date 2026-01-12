@@ -220,7 +220,7 @@ const TransportUnload = () => {
                     {/* Desktop/tablet: show separate From and To */}
                     <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap text-white px-2 py-1.5">From</TableHead>
                     <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap text-white px-2 py-1.5">To</TableHead>
-                    {!allSameLocationTo && <TableHead className="w-[36px] text-center text-white px-1 py-1.5"></TableHead>}
+                    {!allSameLocationTo && <TableHead className="w-[40px] text-center text-white px-1 py-1.5">Unload</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -259,14 +259,14 @@ const TransportUnload = () => {
                         {it.LocationTo || "-"}
                       </TableCell>
                       {!allSameLocationTo && (
-                        <TableCell className="text-center px-1 py-1">
+                        <TableCell className="text-center px-0 py-0">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0"
+                                  className="bg-red-600 hover:bg-red-700 text-white h-6 w-6 sm:h-7 sm:w-7 rounded-[3px] p-0 flex items-center justify-center shadow"
                                   aria-label="Unload"
                                   onClick={async () => {
                                     const ok = await unloadSingle(it);
@@ -277,7 +277,7 @@ const TransportUnload = () => {
                                     }
                                   }}
                                 >
-                                  <ArrowRight className="h-4 w-4" />
+                                  <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Unload</TooltipContent>
