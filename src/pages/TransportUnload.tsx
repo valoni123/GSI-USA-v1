@@ -210,23 +210,43 @@ const TransportUnload = () => {
             ) : items.length === 0 ? (
               <div className="p-3 text-sm text-muted-foreground">No entries</div>
             ) : (
-              <Table className="text-xs">
+              <Table className="text-xs table-fixed w-full">
                 <TableHeader className="sticky top-0 bg-gray-100 z-[1] shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[35%] text-gray-700">{trans.loadHandlingUnit}</TableHead>
-                    <TableHead className="w-[20%] text-gray-700">{trans.itemLabel}</TableHead>
-                    <TableHead className="w-[25%] text-gray-700">{trans.locationFromLabel}</TableHead>
-                    <TableHead className="w-[25%] text-gray-700">{trans.locationToLabel}</TableHead>
+                    <TableHead className="w-[35%] text-gray-700 whitespace-nowrap">{trans.loadHandlingUnit}</TableHead>
+                    <TableHead className="w-[20%] text-gray-700 whitespace-nowrap">{trans.itemLabel}</TableHead>
+                    <TableHead className="w-[25%] text-gray-700 whitespace-nowrap">{trans.locationFromLabel}</TableHead>
+                    <TableHead className="w-[25%] text-gray-700 whitespace-nowrap">{trans.locationToLabel}</TableHead>
                     {!allSameLocationTo && <TableHead className="w-[44px] text-right"></TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.map((it, idx) => (
                     <TableRow key={`${it.HandlingUnit}-${idx}`} className="odd:bg-white even:bg-gray-50">
-                      <TableCell className="font-mono break-all">{it.HandlingUnit || "-"}</TableCell>
-                      <TableCell className="break-all">{it.Item || "-"}</TableCell>
-                      <TableCell className="break-all">{it.LocationFrom || "-"}</TableCell>
-                      <TableCell className="break-all">{it.LocationTo || "-"}</TableCell>
+                      <TableCell
+                        title={it.HandlingUnit || "-"}
+                        className="font-mono whitespace-nowrap truncate"
+                      >
+                        {it.HandlingUnit || "-"}
+                      </TableCell>
+                      <TableCell
+                        title={it.Item || "-"}
+                        className="whitespace-nowrap truncate"
+                      >
+                        {it.Item || "-"}
+                      </TableCell>
+                      <TableCell
+                        title={it.LocationFrom || "-"}
+                        className="whitespace-nowrap truncate"
+                      >
+                        {it.LocationFrom || "-"}
+                      </TableCell>
+                      <TableCell
+                        title={it.LocationTo || "-"}
+                        className="whitespace-nowrap truncate"
+                      >
+                        {it.LocationTo || "-"}
+                      </TableCell>
                       {!allSameLocationTo && (
                         <TableCell className="text-right">
                           <TooltipProvider>
