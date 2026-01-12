@@ -243,10 +243,9 @@ const TransportMenu = () => {
         onOpenChange={(open) => {
           setVehicleDialogOpen(open);
           if (!open) {
-            const stored = (localStorage.getItem("vehicle.id") || "").trim();
-            const vid = (vehicleId || "").trim();
-            // If closed without a selected vehicle, go back to main menu
-            if (!stored && !vid) {
+            const selected = sessionStorage.getItem("transport.selected") === "1";
+            // Require explicit confirmation via Select; if not selected, return to main menu
+            if (!selected) {
               sessionStorage.removeItem("transport.selected");
               navigate("/menu");
             }
