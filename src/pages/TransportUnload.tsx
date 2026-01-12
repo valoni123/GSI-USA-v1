@@ -210,17 +210,17 @@ const TransportUnload = () => {
             ) : items.length === 0 ? (
               <div className="p-3 text-sm text-muted-foreground">No entries</div>
             ) : (
-              <Table className="text-[11px] sm:text-xs w-full">
+              <Table className="text-[11px] sm:text-xs w-full table-fixed">
                 <TableHeader className="sticky top-0 bg-black text-white z-[1] shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[36%] whitespace-nowrap">{trans.loadHandlingUnit}</TableHead>
-                    <TableHead className="w-[20%] whitespace-nowrap">{trans.itemLabel}</TableHead>
+                    <TableHead className="w-[36%] whitespace-nowrap text-white px-2 py-1.5">{trans.loadHandlingUnit}</TableHead>
+                    <TableHead className="w-[20%] whitespace-nowrap text-white px-2 py-1.5">{trans.itemLabel}</TableHead>
                     {/* Mobile: show combined From → To */}
-                    <TableHead className="sm:hidden w-[40%] whitespace-nowrap">From → To</TableHead>
+                    <TableHead className="sm:hidden w-[40%] whitespace-nowrap text-white px-2 py-1.5">From → To</TableHead>
                     {/* Desktop/tablet: show separate From and To */}
-                    <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap">From</TableHead>
-                    <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap">To</TableHead>
-                    {!allSameLocationTo && <TableHead className="w-[44px] text-right"></TableHead>}
+                    <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap text-white px-2 py-1.5">From</TableHead>
+                    <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap text-white px-2 py-1.5">To</TableHead>
+                    {!allSameLocationTo && <TableHead className="w-[36px] text-center text-white px-1 py-1.5"></TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -228,45 +228,45 @@ const TransportUnload = () => {
                     <TableRow key={`${it.HandlingUnit}-${idx}`} className="odd:bg-white even:bg-gray-50">
                       <TableCell
                         title={it.HandlingUnit || "-"}
-                        className="font-mono whitespace-nowrap"
+                        className="font-mono whitespace-nowrap px-2 py-1.5"
                       >
                         {it.HandlingUnit || "-"}
                       </TableCell>
                       <TableCell
                         title={it.Item || "-"}
-                        className="whitespace-nowrap"
+                        className="whitespace-nowrap px-2 py-1.5"
                       >
                         {it.Item || "-"}
                       </TableCell>
                       {/* Mobile: combined From → To */}
                       <TableCell
                         title={`${it.LocationFrom || "-"} → ${it.LocationTo || "-"}`}
-                        className="sm:hidden whitespace-nowrap"
+                        className="sm:hidden whitespace-nowrap px-2 py-1.5"
                       >
                         {(it.LocationFrom || "-") + " → " + (it.LocationTo || "-")}
                       </TableCell>
                       {/* Desktop/tablet: separate From and To */}
                       <TableCell
                         title={it.LocationFrom || "-"}
-                        className="hidden sm:table-cell whitespace-nowrap"
+                        className="hidden sm:table-cell whitespace-nowrap px-2 py-1.5"
                       >
                         {it.LocationFrom || "-"}
                       </TableCell>
                       <TableCell
                         title={it.LocationTo || "-"}
-                        className="hidden sm:table-cell whitespace-nowrap"
+                        className="hidden sm:table-cell whitespace-nowrap px-2 py-1.5"
                       >
                         {it.LocationTo || "-"}
                       </TableCell>
                       {!allSameLocationTo && (
-                        <TableCell className="text-right">
+                        <TableCell className="text-center px-1 py-1">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0"
                                   aria-label="Unload"
                                   onClick={async () => {
                                     const ok = await unloadSingle(it);
