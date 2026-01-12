@@ -20,6 +20,7 @@ const TransportSelect = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [query, setQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownLoading, setDropdownLoading] = useState(false);
 
   useEffect(() => {
     // ensure dialog opens on entry
@@ -84,8 +85,13 @@ const TransportSelect = () => {
               className="absolute right-6 top-2 text-gray-700 hover:text-gray-900 h-8 w-8 flex items-center justify-center"
               aria-label="Search groups"
               onClick={async () => {
-                await fetchGroups();
-                setDropdownOpen((o) => !o);
+                if (!dropdownOpen) {
+                  setDropdownOpen(true);
+                  setDropdownLoading(true);
+                  fetchGroups().finally(() => setDropdownLoading(false));
+                } else {
+                  setDropdownOpen(false);
+                }
               }}
             >
               <Search className="h-6 w-6" />
@@ -101,7 +107,9 @@ const TransportSelect = () => {
                     className="h-9 text-sm"
                   />
                   <div className="max-h-56 overflow-auto space-y-1">
-                    {filtered.length === 0 ? (
+                    {dropdownLoading ? (
+                      <div className="text-xs text-muted-foreground px-1">Loading…</div>
+                    ) : filtered.length === 0 ? (
                       <div className="text-xs text-muted-foreground px-1">No groups</div>
                     ) : (
                       filtered.map((v, idx) => (

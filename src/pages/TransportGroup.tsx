@@ -78,6 +78,7 @@ const TransportGroup = () => {
   const [groupsList, setGroupsList] = useState<Array<{ PlanningGroupTransport: string; Description: string }>>([]);
   const [groupsQuery, setGroupsQuery] = useState("");
   const [groupsDropdownOpen, setGroupsDropdownOpen] = useState(false);
+  const [groupsDropdownLoading, setGroupsDropdownLoading] = useState(false);
   const filteredGroups = groupsList.filter((g) => {
     const q = groupsQuery.trim().toLowerCase();
     if (!q) return true;
@@ -230,8 +231,13 @@ const TransportGroup = () => {
               className="absolute right-6 top-2 text-gray-700 hover:text-gray-900 h-8 w-8 flex items-center justify-center"
               aria-label="Search groups"
               onClick={async () => {
-                await fetchGroups();
-                setGroupsDropdownOpen((o) => !o);
+                if (!groupsDropdownOpen) {
+                  setGroupsDropdownOpen(true);
+                  setGroupsDropdownLoading(true);
+                  fetchGroups().finally(() => setGroupsDropdownLoading(false));
+                } else {
+                  setGroupsDropdownOpen(false);
+                }
               }}
             >
               <Search className="h-6 w-6" />
@@ -246,7 +252,9 @@ const TransportGroup = () => {
                     className="h-9 text-sm"
                   />
                   <div className="max-h-56 overflow-auto space-y-1">
-                    {filteredGroups.length === 0 ? (
+                    {groupsDropdownLoading ? (
+                      <div className="text-xs text-muted-foreground px-1">Loading…</div>
+                    ) : filteredGroups.length === 0 ? (
                       <div className="text-xs text-muted-foreground px-1">No groups</div>
                     ) : (
                       filteredGroups.map((v, idx) => (
