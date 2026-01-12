@@ -220,7 +220,8 @@ const TransportUnload = () => {
                     {/* Desktop/tablet: show separate From and To */}
                     <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap text-white px-2 py-1.5">From</TableHead>
                     <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap text-white px-2 py-1.5">To</TableHead>
-                    {!allSameLocationTo && <TableHead className="w-[40px] text-center text-white px-1 py-1.5">Unload</TableHead>}
+                    {/* Action column: no label */}
+                    {!allSameLocationTo && <TableHead className="w-[40px] px-1 py-1.5"></TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -259,14 +260,14 @@ const TransportUnload = () => {
                         {it.LocationTo || "-"}
                       </TableCell>
                       {!allSameLocationTo && (
-                        <TableCell className="text-center px-0 py-0">
+                        <TableCell className="text-right px-2 py-0">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="bg-red-600 hover:bg-red-700 text-white h-6 w-6 sm:h-7 sm:w-7 rounded-[3px] p-0 flex items-center justify-center shadow"
+                                  className="bg-red-600 hover:bg-red-700 text-white h-6 w-6 sm:h-7 sm:w-7 rounded-[3px] p-0 shadow"
                                   aria-label="Unload"
                                   onClick={async () => {
                                     const ok = await unloadSingle(it);
