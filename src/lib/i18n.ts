@@ -57,7 +57,8 @@ type TranslationKeys =
   | "transportScreen"
   | "planningGroupTransport"
   | "selectLabel"
-  | "loadAction";
+  | "loadAction"
+  | "unloadAction";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -113,6 +114,7 @@ const translations: Translations = {
     planningGroupTransport: "Planning Group Transport",
     selectLabel: "Select",
     loadAction: "Load",
+    unloadAction: "Unload",
   },
   de: {
     title: "Anmelden",
@@ -165,6 +167,7 @@ const translations: Translations = {
     planningGroupTransport: "Planungsgruppe Transport",
     selectLabel: "Auswählen",
     loadAction: "LADEN",
+    unloadAction: "ENTLADEN",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -217,6 +220,7 @@ const translations: Translations = {
     planningGroupTransport: "Grupo de planificación de transporte",
     selectLabel: "Seleccionar",
     loadAction: "Cargar",
+    unloadAction: "Descargar",
   },
   "pt-BR": {
     title: "Entrar",
@@ -269,6 +273,7 @@ const translations: Translations = {
     planningGroupTransport: "Grupo de planejamento de transporte",
     selectLabel: "Selecionar",
     loadAction: "Carregar",
+    unloadAction: "Descarregar",
   },
 };
 

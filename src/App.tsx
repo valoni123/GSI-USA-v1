@@ -9,6 +9,7 @@ import Menu from "./pages/Menu";
 import InfoStockMenu from "./pages/InfoStockMenu";
 import TransportMenu from "./pages/TransportMenu";
 import TransportLoad from "./pages/TransportLoad";
+import TransportUnload from "./pages/TransportUnload";
 import TransportSelect from "./pages/TransportSelect";
 import TransportGroup from "./pages/TransportGroup";
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/menu/info-stock" element={<InfoStockMenu />} />
           <Route path="/menu/transport" element={<TransportMenu />} />
           <Route path="/menu/transport/load" element={<TransportLoad />} />
+          <Route path="/menu/transport/unload" element={<TransportUnload />} />
           <Route path="/transport/select" element={<TransportSelect />} />
           <Route path="/transportgroup/:group" element={<TransportGroup />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

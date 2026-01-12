@@ -183,6 +183,9 @@ const TransportMenu = () => {
               if (tile.key === "load") {
                 navigate("/menu/transport/load");
               }
+              if (tile.key === "unload") {
+                navigate("/menu/transport/unload");
+              }
             }}
           >
             {tile.icon}
