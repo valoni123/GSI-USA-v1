@@ -100,6 +100,15 @@ const TransportLoad = () => {
     }
   };
 
+  const fetchCount = async (vid: string) => {
+    const { data } = await supabase.functions.invoke("ln-transport-count", {
+      body: { vehicleId: vid, language: locale, company: "1000" },
+    });
+    if (data && data.ok) {
+      setLoadedCount(Number(data.count || 0));
+    }
+  };
+
   const onHUBlur = async () => {
     const hu = handlingUnit.trim();
     if (!hu) return;
@@ -233,6 +242,12 @@ const TransportLoad = () => {
     setLastFetchedHu(null);
     setEtag("");
     setTimeout(() => huRef.current?.focus(), 50);
+
+    // Refresh the loaded count badge
+    const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+    if (selectedVehicle) {
+      await fetchCount(selectedVehicle);
+    }
   };
 
   return (
