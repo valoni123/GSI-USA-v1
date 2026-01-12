@@ -47,6 +47,7 @@ const TransportUnload = () => {
 
   const [items, setItems] = useState<LoadedItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadedCount, setLoadedCount] = useState<number>(0);
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -75,8 +76,25 @@ const TransportUnload = () => {
     setLoading(false);
   };
 
+  const fetchCount = async () => {
+    const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+    if (!vehicleId) {
+      setLoadedCount(0);
+      return;
+    }
+    const { data } = await supabase.functions.invoke("ln-transport-count", {
+      body: { vehicleId, language: locale, company: "1000" },
+    });
+    if (data && data.ok) {
+      setLoadedCount(Number(data.count || 0));
+    } else {
+      setLoadedCount(0);
+    }
+  };
+
   useEffect(() => {
     fetchLoaded();
+    fetchCount();
   }, [locale]);
 
   return (
@@ -95,7 +113,12 @@ const TransportUnload = () => {
           </Button>
 
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center">{trans.transportUnload}</div>
+            <div className="font-bold text-lg tracking-wide text-center flex items-center gap-2">
+              <span>{trans.transportUnload}</span>
+              <span className="bg-red-600 text-white rounded-full min-w-5 h-5 px-2 flex items-center justify-center text-xs font-bold">
+                {loadedCount}
+              </span>
+            </div>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
               <User className="h-4 w-4" />
               <span className="line-clamp-1">{fullName || ""}</span>
