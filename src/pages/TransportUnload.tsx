@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User } from "lucide-react";
+import { ArrowLeft, LogOut, User, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { supabase } from "@/integrations/supabase/client";
-import { dismissToast, showLoading, showSuccess } from "@/utils/toast";
+import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type LoadedItem = {
   HandlingUnit: string;
   Item: string;
   LocationFrom: string;
   LocationTo: string;
+  Warehouse?: string;
 };
 
 const TransportUnload = () => {
@@ -97,6 +99,67 @@ const TransportUnload = () => {
     fetchCount();
   }, [locale]);
 
+  // Determine if all LocationTo values are identical and non-empty
+  const allSameLocationTo = useMemo(() => {
+    if (items.length === 0) return false;
+    const first = (items[0]?.LocationTo || "").trim();
+    if (!first) return false;
+    return items.every((it) => (it.LocationTo || "").trim() === first);
+  }, [items]);
+
+  const getEmployeeCode = () => {
+    return (
+      (localStorage.getItem("gsi.employee") ||
+        localStorage.getItem("gsi.username") ||
+        localStorage.getItem("gsi.login") ||
+        "") as string
+    ).trim();
+  };
+
+  const unloadSingle = async (it: LoadedItem) => {
+    const employeeCode = getEmployeeCode();
+    const payload = {
+      handlingUnit: (it.HandlingUnit || "").trim(),
+      fromWarehouse: (it.Warehouse || "").trim(),
+      fromLocation: (it.LocationFrom || "").trim(),
+      toWarehouse: (it.Warehouse || "").trim(),
+      toLocation: (it.LocationTo || "").trim(),
+      employee: employeeCode,
+      language: locale,
+      company: "1000",
+    };
+    const tid = showLoading("Bewegung wird ausgeführt…");
+    const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
+    dismissToast(tid as unknown as string);
+    if (error || !data || !data.ok) {
+      const err = (data && data.error) || error;
+      const top = err?.message || "Unbekannter Fehler";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      return false;
+    }
+    return true;
+  };
+
+  const unloadAll = async () => {
+    if (!allSameLocationTo || items.length === 0) return;
+    let successCount = 0;
+    for (const it of items) {
+      const ok = await unloadSingle(it);
+      if (!ok) {
+        // Stop on first error
+        break;
+      }
+      successCount += 1;
+    }
+    if (successCount > 0) {
+      showSuccess(`Erfolgreich entladen (${successCount})`);
+      await fetchLoaded();
+      await fetchCount();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
@@ -141,11 +204,12 @@ const TransportUnload = () => {
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-3">
           {/* Header row */}
-          <div className="grid grid-cols-4 gap-2 px-2 py-2 border-b rounded-t-md bg-gray-100 text-xs font-semibold text-gray-700">
+          <div className={`${allSameLocationTo ? "grid grid-cols-4" : "grid grid-cols-[1fr_1fr_1fr_1fr_auto]"} gap-2 px-2 py-2 border-b rounded-t-md bg-gray-100 text-xs font-semibold text-gray-700`}>
             <div className="whitespace-nowrap">{trans.loadHandlingUnit}</div>
             <div className="whitespace-nowrap">{trans.itemLabel}</div>
             <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
             <div className="whitespace-nowrap">{trans.locationToLabel}</div>
+            {!allSameLocationTo && <div className="whitespace-nowrap text-right"> </div>}
           </div>
           {/* Rows */}
           <div className="max-h-[50vh] overflow-auto">
@@ -157,12 +221,39 @@ const TransportUnload = () => {
               items.map((it, idx) => (
                 <div
                   key={`${it.HandlingUnit}-${idx}`}
-                  className="grid grid-cols-4 gap-2 px-2 py-2 border-b text-xs"
+                  className={`${allSameLocationTo ? "grid grid-cols-4" : "grid grid-cols-[1fr_1fr_1fr_1fr_auto]"} gap-2 px-2 py-2 border-b text-xs`}
                 >
                   <div className="break-all">{it.HandlingUnit || "-"}</div>
                   <div className="break-all">{it.Item || "-"}</div>
                   <div className="break-all">{it.LocationFrom || "-"}</div>
                   <div className="break-all">{it.LocationTo || "-"}</div>
+                  {!allSameLocationTo && (
+                    <div className="flex items-center justify-end">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              aria-label="Unload"
+                              onClick={async () => {
+                                const ok = await unloadSingle(it);
+                                if (ok) {
+                                  showSuccess("Erfolgreich entladen");
+                                  await fetchLoaded();
+                                  await fetchCount();
+                                }
+                              }}
+                            >
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Unload</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -174,8 +265,13 @@ const TransportUnload = () => {
       <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
         <div className="mx-auto max-w-md px-4 py-3">
           <Button
-            className="w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100 rounded-lg"
-            disabled
+            className={
+              allSameLocationTo && items.length > 0
+                ? "w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white"
+                : "w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100"
+            }
+            disabled={!allSameLocationTo || items.length === 0}
+            onClick={unloadAll}
           >
             {trans.unloadAction} ({loadedCount})
           </Button>
