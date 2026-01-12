@@ -28,7 +28,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { transportId?: string; etag?: string; vehicleId?: string; language?: string; company?: string } = {};
+    let body: { transportId?: string; etag?: string; vehicleId?: string; completed?: string; language?: string; company?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -38,10 +38,11 @@ serve(async (req) => {
     const transportId = (body.transportId || "").trim();
     const etag = (body.etag || "").trim();
     const vehicleId = (body.vehicleId || "").trim();
+    const completed = (body.completed || "").trim();
     const language = body.language || "de-DE";
     const company = body.company || "1000";
 
-    if (!transportId || !etag || !vehicleId) {
+    if (!transportId || !etag) {
       return json({ ok: false, error: { message: "missing_fields" } }, 200);
     }
 
@@ -117,11 +118,19 @@ serve(async (req) => {
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders(TransportID='${encodedId}')?$select=*`;
     const url = `${base}${path}`;
 
-    // Payload: set both fields to vehicleId
-    const patchBody = {
-      VehicleID: vehicleId,
-      LocationDevice: vehicleId,
-    };
+    // Payload: set fields depending on inputs
+    const patchBody: Record<string, unknown> = {};
+    if (completed.toLowerCase() === "yes") {
+      patchBody["Completed"] = "Yes";
+    }
+    if (vehicleId) {
+      patchBody["VehicleID"] = vehicleId;
+      patchBody["LocationDevice"] = vehicleId;
+    } else {
+      // Clear assignment when vehicleId is empty string
+      patchBody["VehicleID"] = "";
+      patchBody["LocationDevice"] = "";
+    }
 
     const patchRes = await fetch(url, {
       method: "PATCH",

@@ -11,11 +11,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
 type LoadedItem = {
+  TransportID?: string;
   HandlingUnit: string;
   Item: string;
   LocationFrom: string;
   LocationTo: string;
   Warehouse?: string;
+  ETag?: string;
 };
 
 const TransportUnload = () => {
@@ -140,6 +142,29 @@ const TransportUnload = () => {
       showError(message);
       return false;
     }
+
+    // After successful move, PATCH the TransportOrder: Completed='Yes', clear VehicleID & LocationDevice
+    const patchTid = showLoading("Transportauftrag wird aktualisiert…");
+    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
+      body: {
+        transportId: (it.TransportID || "").trim(),
+        etag: (it.ETag || "").trim(),
+        vehicleId: "",            // clear VehicleID & LocationDevice
+        completed: "Yes",         // mark as completed
+        language: locale,
+        company: "1000",
+      },
+    });
+    dismissToast(patchTid as unknown as string);
+    if (patchErr || !patchData || !patchData.ok) {
+      const err = (patchData && patchData.error) || patchErr;
+      const top = err?.message || "Unbekannter Fehler";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      return false;
+    }
+
     return true;
   };
 
