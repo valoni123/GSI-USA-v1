@@ -163,6 +163,13 @@ const TransportLoad = () => {
       "";
     setEtag(etagValue);
     setVehicleEnabled(true);
+
+    // NEW: Prefill Vehicle ID with previously selected vehicle and focus the field
+    const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+    if (storedVehicle) {
+      setVehicleId(storedVehicle);
+    }
+
     setLastFetchedHu(hu);
     // Focus vehicle input
     setTimeout(() => vehicleRef.current?.focus(), 50);
