@@ -238,8 +238,8 @@ const TransportUnload = () => {
               <Table className="text-[11px] sm:text-xs w-full table-fixed">
                 <TableHeader className="sticky top-0 bg-black text-white z-[1] shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[36%] whitespace-nowrap text-white px-2 py-1.5">{trans.loadHandlingUnit}</TableHead>
-                    <TableHead className="w-[20%] whitespace-nowrap text-white px-2 py-1.5">{trans.itemLabel}</TableHead>
+                    <TableHead className="w-[34%] whitespace-nowrap text-white pl-2 pr-1 py-1.5">{trans.loadHandlingUnit}</TableHead>
+                    <TableHead className="w-[26%] whitespace-nowrap text-white pl-1 pr-2 py-1.5">{trans.itemLabel}</TableHead>
                     <TableHead className="sm:hidden w-[40%] whitespace-nowrap text-white px-2 py-1.5">From → To</TableHead>
                     <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap text-white px-2 py-1.5">From</TableHead>
                     <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap text-white px-2 py-1.5">To</TableHead>
@@ -251,13 +251,13 @@ const TransportUnload = () => {
                     <TableRow key={`${it.HandlingUnit}-${idx}`} className="odd:bg-white even:bg-gray-50">
                       <TableCell
                         title={it.HandlingUnit || "-"}
-                        className="font-mono whitespace-nowrap px-2 py-3"
+                        className="font-mono whitespace-nowrap pl-2 pr-1 py-3"
                       >
                         {it.HandlingUnit || "-"}
                       </TableCell>
                       <TableCell
                         title={it.Item || "-"}
-                        className="whitespace-nowrap px-2 py-3"
+                        className="whitespace-nowrap pl-1 pr-2 py-3"
                       >
                         {it.Item || "-"}
                       </TableCell>
