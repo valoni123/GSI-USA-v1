@@ -251,39 +251,39 @@ const TransportUnload = () => {
                     <TableRow key={`${it.HandlingUnit}-${idx}`} className="odd:bg-white even:bg-gray-50">
                       <TableCell
                         title={it.HandlingUnit || "-"}
-                        className="font-mono whitespace-nowrap px-2 py-1.5"
+                        className="font-mono whitespace-nowrap px-2 py-3"
                       >
                         {it.HandlingUnit || "-"}
                       </TableCell>
                       <TableCell
                         title={it.Item || "-"}
-                        className="whitespace-nowrap px-2 py-1.5"
+                        className="whitespace-nowrap px-2 py-3"
                       >
                         {it.Item || "-"}
                       </TableCell>
                       {/* Mobile: combined From → To */}
                       <TableCell
                         title={`${it.LocationFrom || "-"} → ${it.LocationTo || "-"}`}
-                        className="sm:hidden whitespace-nowrap px-2 py-1.5"
+                        className="sm:hidden whitespace-nowrap px-2 py-3"
                       >
                         {(it.LocationFrom || "-") + " → " + (it.LocationTo || "-")}
                       </TableCell>
                       {/* Desktop/tablet: separate From and To */}
                       <TableCell
                         title={it.LocationFrom || "-"}
-                        className="hidden sm:table-cell whitespace-nowrap px-2 py-1.5"
+                        className="hidden sm:table-cell whitespace-nowrap px-2 py-3"
                       >
                         {it.LocationFrom || "-"}
                       </TableCell>
                       <TableCell
                         title={it.LocationTo || "-"}
-                        className="hidden sm:table-cell whitespace-nowrap px-2 py-1.5"
+                        className="hidden sm:table-cell whitespace-nowrap px-2 py-3"
                       >
                         {it.LocationTo || "-"}
                       </TableCell>
                       {!allSameLocationTo && (
-                        <TableCell className="text-right px-2 py-0 pl-3">
-                          <div className="flex justify-end">
+                        <TableCell className="text-right px-2 py-3 pl-3">
+                          <div className="flex justify-end items-center">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
