@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
 type LoadedItem = {
   TransportID?: string;
@@ -229,91 +228,74 @@ const TransportUnload = () => {
       {/* List area */}
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-0">
-          <div className="max-h-[50vh] overflow-x-auto overflow-y-auto rounded-md">
+          <div className="max-h-[50vh] overflow-x-hidden overflow-y-auto rounded-md">
             {loading ? (
               <div className="p-3 text-sm text-muted-foreground">Loading…</div>
             ) : items.length === 0 ? (
               <div className="p-3 text-sm text-muted-foreground">No entries</div>
             ) : (
-              <Table className="text-[11px] sm:text-xs w-full table-fixed">
-                <TableHeader className="sticky top-0 bg-black text-white z-[1] shadow-sm">
-                  <TableRow>
-                    <TableHead className="w-[34%] whitespace-nowrap text-white pl-2 pr-1 py-1.5">{trans.loadHandlingUnit}</TableHead>
-                    <TableHead className="w-[26%] whitespace-nowrap text-white pl-1 pr-2 py-1.5">{trans.itemLabel}</TableHead>
-                    <TableHead className="sm:hidden w-[40%] whitespace-nowrap text-white px-2 py-1.5">From → To</TableHead>
-                    <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap text-white px-2 py-1.5">From</TableHead>
-                    <TableHead className="hidden sm:table-cell w-[22%] whitespace-nowrap text-white px-2 py-1.5">To</TableHead>
-                    {!allSameLocationTo && <TableHead className="w-[52px] px-2 py-1.5"></TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <div className="w-full">
+                {/* Black header row */}
+                <div className="bg-black text-white rounded-t-md px-3 py-2 text-[11px] sm:text-xs font-semibold grid grid-cols-2">
+                  <div className="whitespace-nowrap">{trans.loadHandlingUnit}</div>
+                  <div className="whitespace-nowrap">{trans.itemLabel}</div>
+                </div>
+
+                {/* Card list */}
+                <div className="p-2 space-y-3">
                   {items.map((it, idx) => (
-                    <TableRow key={`${it.HandlingUnit}-${idx}`} className="odd:bg-white even:bg-gray-50">
-                      <TableCell
-                        title={it.HandlingUnit || "-"}
-                        className="font-mono whitespace-nowrap pl-2 pr-1 py-3"
-                      >
-                        {it.HandlingUnit || "-"}
-                      </TableCell>
-                      <TableCell
-                        title={it.Item || "-"}
-                        className="whitespace-nowrap pl-1 pr-2 py-3"
-                      >
-                        {it.Item || "-"}
-                      </TableCell>
-                      {/* Mobile: combined From → To */}
-                      <TableCell
-                        title={`${it.LocationFrom || "-"} → ${it.LocationTo || "-"}`}
-                        className="sm:hidden whitespace-nowrap px-2 py-3"
-                      >
-                        {(it.LocationFrom || "-") + " → " + (it.LocationTo || "-")}
-                      </TableCell>
-                      {/* Desktop/tablet: separate From and To */}
-                      <TableCell
-                        title={it.LocationFrom || "-"}
-                        className="hidden sm:table-cell whitespace-nowrap px-2 py-3"
-                      >
-                        {it.LocationFrom || "-"}
-                      </TableCell>
-                      <TableCell
-                        title={it.LocationTo || "-"}
-                        className="hidden sm:table-cell whitespace-nowrap px-2 py-3"
-                      >
-                        {it.LocationTo || "-"}
-                      </TableCell>
+                    <div
+                      key={`${it.HandlingUnit}-${idx}`}
+                      className="relative rounded-lg border bg-white shadow-sm px-3 py-2"
+                    >
+                      {/* Top line: HU (left), Item (left), reserve space for icon on right */}
+                      <div className="grid grid-cols-[1fr_1fr] items-center gap-2">
+                        <div className="font-mono text-[13px] sm:text-sm text-gray-900 whitespace-nowrap">
+                          {it.HandlingUnit || "-"}
+                        </div>
+                        <div className="text-[13px] sm:text-sm text-gray-900 whitespace-nowrap pr-9">
+                          {it.Item || "-"}
+                        </div>
+                      </div>
+
+                      {/* From --> To label and value */}
+                      <div className="mt-2">
+                        <div className="text-[11px] font-semibold text-gray-700">From --&gt; To</div>
+                        <div className="text-sm text-gray-900">{(it.LocationFrom || "-") + " \u2192 " + (it.LocationTo || "-")}</div>
+                      </div>
+
+                      {/* Per-row unload icon (only when locations differ) */}
                       {!allSameLocationTo && (
-                        <TableCell className="text-right px-2 py-3 pl-3">
-                          <div className="flex justify-end items-center">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="bg-red-600 hover:bg-red-700 text-white h-6 w-6 sm:h-7 sm:w-7 rounded-[3px] p-0 shadow"
-                                    aria-label="Unload"
-                                    onClick={async () => {
-                                      const ok = await unloadSingle(it);
-                                      if (ok) {
-                                        showSuccess("Erfolgreich entladen");
-                                        await fetchLoaded();
-                                        await fetchCount();
-                                      }
-                                    }}
-                                  >
-                                    <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Unload</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </TableCell>
+                        <div className="absolute right-2 top-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="bg-red-600 hover:bg-red-700 text-white h-6 w-6 sm:h-7 sm:w-7 rounded-[3px] p-0 shadow"
+                                  aria-label="Unload"
+                                  onClick={async () => {
+                                    const ok = await unloadSingle(it);
+                                    if (ok) {
+                                      showSuccess("Erfolgreich entladen");
+                                      await fetchLoaded();
+                                      await fetchCount();
+                                    }
+                                  }}
+                                >
+                                  <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Unload</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       )}
-                    </TableRow>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              </div>
             )}
           </div>
         </Card>
