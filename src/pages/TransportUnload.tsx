@@ -90,12 +90,17 @@ const TransportUnload = () => {
       try {
         localStorage.setItem("transport.count", String(nextCount));
       } catch {}
+      // Ensure quantities/units are loaded before showing the list
+      await fetchQuantities(list);
     } else {
       setItems([]);
       setLoadedCount(0);
       try {
         localStorage.setItem("transport.count", "0");
       } catch {}
+      // Clear quantities/units
+      setQuantities({});
+      setUnits({});
     }
     setLoading(false);
   };
@@ -155,10 +160,10 @@ const TransportUnload = () => {
     setLoadedCount(cached);
   }, [locale]);
 
-  // NEW: when items change, refresh quantities
-  useEffect(() => {
-    fetchQuantities(items);
-  }, [items, locale]);
+  // REMOVED: auto-refresh quantities when items change; we now await fetchQuantities inside fetchLoaded
+  // useEffect(() => {
+  //   fetchQuantities(items);
+  // }, [items, locale]);
 
   // Determine if all LocationTo values are identical and non-empty
   const allSameLocationTo = useMemo(() => {
