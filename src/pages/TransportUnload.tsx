@@ -52,6 +52,7 @@ const TransportUnload = () => {
   const [items, setItems] = useState<LoadedItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadedCount, setLoadedCount] = useState<number>(0);
+  const [processing, setProcessing] = useState<boolean>(false);
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -59,6 +60,9 @@ const TransportUnload = () => {
     if (lang === "pt-BR") return "pt-BR";
     return "en-US";
   }, [lang]);
+
+  // Simple sleep helper for pacing and retry waits
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const fetchLoaded = async () => {
     const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
@@ -118,7 +122,7 @@ const TransportUnload = () => {
     ).trim();
   };
 
-  const unloadSingle = async (it: LoadedItem) => {
+  const unloadSingle = async (it: LoadedItem, attempt = 1): Promise<boolean> => {
     const employeeCode = getEmployeeCode();
     const payload = {
       handlingUnit: (it.HandlingUnit || "").trim(),
@@ -133,11 +137,21 @@ const TransportUnload = () => {
     const tid = showLoading("Bewegung wird ausgeführt…");
     const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
     dismissToast(tid as unknown as string);
+
     if (error || !data || !data.ok) {
-      const err = (data && data.error) || error;
-      const top = err?.message || "Unbekannter Fehler";
-      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const errObj = (data && data.error) || error;
+      const top = errObj?.message || "Unbekannter Fehler";
+      const details = Array.isArray(errObj?.details) ? errObj.details.map((d: any) => d?.message).filter(Boolean) : [];
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+
+      // One-time retry for timing issue: "Quantity to issue > Handling Unit Quantity"
+      const lower = `${top}`.toLowerCase();
+      const isQtyTimingIssue = lower.includes("quantity to issue") && lower.includes("handling unit");
+      if (attempt === 1 && isQtyTimingIssue) {
+        await sleep(800);
+        return unloadSingle(it, 2);
+      }
+
       showError(message);
       return false;
     }
@@ -169,20 +183,23 @@ const TransportUnload = () => {
 
   const unloadAll = async () => {
     if (!allSameLocationTo || items.length === 0) return;
+    setProcessing(true);
     let successCount = 0;
     for (const it of items) {
       const ok = await unloadSingle(it);
       if (!ok) {
-        // Stop on first error
-        break;
+        break; // Stop on first error
       }
       successCount += 1;
+      // Small pacing delay to give LN time to commit the previous movement
+      await sleep(400);
     }
     if (successCount > 0) {
       showSuccess(`Erfolgreich entladen (${successCount})`);
       await fetchLoaded();
       await fetchCount();
     }
+    setProcessing(false);
   };
 
   return (
@@ -273,15 +290,18 @@ const TransportUnload = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="bg-red-600 hover:bg-red-700 text-white h-6 w-6 sm:h-7 sm:w-7 rounded-[3px] p-0 shadow"
+                                  className="bg-red-600 hover:bg-red-700 text-white h-6 w-6 sm:h-7 sm:w-7 rounded-[3px] p-0 shadow disabled:opacity-50 disabled:cursor-not-allowed"
                                   aria-label="Unload"
+                                  disabled={processing}
                                   onClick={async () => {
+                                    setProcessing(true);
                                     const ok = await unloadSingle(it);
                                     if (ok) {
                                       showSuccess("Erfolgreich entladen");
                                       await fetchLoaded();
                                       await fetchCount();
                                     }
+                                    setProcessing(false);
                                   }}
                                 >
                                   <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -306,11 +326,11 @@ const TransportUnload = () => {
         <div className="mx-auto max-w-md px-4 py-3">
           <Button
             className={
-              allSameLocationTo && items.length > 0
+              allSameLocationTo && items.length > 0 && !processing
                 ? "w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white"
                 : "w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100"
             }
-            disabled={!allSameLocationTo || items.length === 0}
+            disabled={!allSameLocationTo || items.length === 0 || processing}
             onClick={unloadAll}
           >
             {trans.unloadAction} ({loadedCount})
