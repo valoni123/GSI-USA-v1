@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowBigLeft, ArrowBigRight, Forklift, User, LogOut, Search } from "lucide-react";
+import { ArrowLeft, ArrowBigLeft, ArrowBigRight, Forklift, User, LogOut, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -175,7 +175,7 @@ const TransportMenu = () => {
               navigate("/menu");
             }}
           >
-            <ArrowBigLeft className="h-6 w-6" />
+            <ArrowLeft className="h-6 w-6" />
           </Button>
 
           <div className="flex flex-col items-center flex-1">
