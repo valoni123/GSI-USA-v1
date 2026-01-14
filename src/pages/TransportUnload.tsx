@@ -335,9 +335,19 @@ const TransportUnload = () => {
                         </div>
                       </div>
 
-                      {/* NEW: Quantity with Unit */}
+                      {/* ADD: From → To block (localized label, bold) */}
+                      <div className="mt-2">
+                        <div className="text-[11px] font-semibold text-gray-700">
+                          {fromToLabel}
+                        </div>
+                        <div className="text-sm text-gray-900">
+                          {(it.LocationFrom || "-") + " \u2192 " + (it.LocationTo || "-")}
+                        </div>
+                      </div>
+
+                      {/* Quantity with Unit */}
                       <div className="mt-1">
-                        <div className="text-[11px] font-semibold text-gray-700">Quantity</div>
+                        <div className="text-[11px] font-semibold text-gray-700">{trans.quantityLabel}</div>
                         <div className="text-sm text-gray-900">
                           {(() => {
                             const key = (it.HandlingUnit || "").trim();
@@ -370,7 +380,7 @@ const TransportUnload = () => {
                                     if (ok) {
                                       showSuccess("Erfolgreich entladen");
                                       await fetchLoaded();
-                                      await fetchCount(); // refresh via REST after UNLOAD
+                                      await fetchCount();
                                     }
                                     setProcessing(false);
                                   }}
