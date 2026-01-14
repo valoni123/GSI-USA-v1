@@ -51,6 +51,8 @@ const TransportLoad = () => {
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
   const [result, setResult] = useState<{ TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null>(null);
+  // NEW: Quantity for the scanned Handling Unit
+  const [huQuantity, setHuQuantity] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
   const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
@@ -170,8 +172,16 @@ const TransportLoad = () => {
       setVehicleId(storedVehicle);
     }
 
+    // NEW: Fetch Handling Unit quantity in background
+    (async () => {
+      const { data: qData } = await supabase.functions.invoke("ln-handling-unit-info", {
+        body: { handlingUnit: hu, language: locale, company: "1000" },
+      });
+      const qty = qData && qData.ok ? String(qData.quantity ?? "") : "";
+      setHuQuantity(qty);
+    })();
+
     setLastFetchedHu(hu);
-    // Focus vehicle input
     setTimeout(() => vehicleRef.current?.focus(), 50);
   };
 
@@ -371,6 +381,9 @@ const TransportLoad = () => {
                   <div className="break-all text-gray-900">{result.LocationFrom ?? "-"}</div>
                   <div className="font-semibold text-gray-700">{trans.locationToLabel}:</div>
                   <div className="break-all text-gray-900">{result.LocationTo ?? "-"}</div>
+                  {/* NEW: Quantity */}
+                  <div className="font-semibold text-gray-700">Quantity:</div>
+                  <div className="break-all text-gray-900">{huQuantity || "-"}</div>
                 </div>
               </div>
             ) : (

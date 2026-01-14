@@ -53,6 +53,8 @@ const TransportUnload = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [processing, setProcessing] = useState<boolean>(false);
+  // NEW: map HU → Quantity
+  const [quantities, setQuantities] = useState<Record<string, string>>({});
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -68,7 +70,6 @@ const TransportUnload = () => {
   const fetchLoaded = async () => {
     const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
     if (!vehicleId) {
-      // No vehicle selected; go back to transport menu to select one
       navigate("/menu/transport");
       return;
     }
@@ -85,26 +86,39 @@ const TransportUnload = () => {
     setLoading(false);
   };
 
-  const fetchCount = async () => {
-    const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
-    if (!vehicleId) {
-      setLoadedCount(0);
+  // NEW: fetch quantities for current items
+  const fetchQuantities = async (list: LoadedItem[]) => {
+    if (!list || list.length === 0) {
+      setQuantities({});
       return;
     }
-    const { data } = await supabase.functions.invoke("ln-transport-count", {
-      body: { vehicleId, language: locale, company: "1000" },
-    });
-    if (data && data.ok) {
-      setLoadedCount(Number(data.count || 0));
-    } else {
-      setLoadedCount(0);
+    const entries = await Promise.all(
+      list.map(async (it) => {
+        const hu = (it.HandlingUnit || "").trim();
+        if (!hu) return [hu, ""] as const;
+        const { data } = await supabase.functions.invoke("ln-handling-unit-info", {
+          body: { handlingUnit: hu, language: locale, company: "1000" },
+        });
+        const qty = data && data.ok ? String(data.quantity ?? "") : "";
+        return [hu, qty] as const;
+      })
+    );
+    const map: Record<string, string> = {};
+    for (const [hu, qty] of entries) {
+      if (hu) map[hu] = qty;
     }
+    setQuantities(map);
   };
 
   useEffect(() => {
     fetchLoaded();
     fetchCount();
   }, [locale]);
+
+  // NEW: when items change, refresh quantities
+  useEffect(() => {
+    fetchQuantities(items);
+  }, [items, locale]);
 
   // Determine if all LocationTo values are identical and non-empty
   const allSameLocationTo = useMemo(() => {
@@ -285,6 +299,12 @@ const TransportUnload = () => {
                       <div className="mt-2">
                         <div className="text-[11px] font-semibold text-gray-700">From --&gt; To</div>
                         <div className="text-sm text-gray-900">{(it.LocationFrom || "-") + " \u2192 " + (it.LocationTo || "-")}</div>
+                      </div>
+
+                      {/* NEW: Quantity */}
+                      <div className="mt-1">
+                        <div className="text-[11px] font-semibold text-gray-700">Quantity</div>
+                        <div className="text-sm text-gray-900">{quantities[(it.HandlingUnit || "").trim()] || "-"}</div>
                       </div>
 
                       {/* Per-row unload icon (only when locations differ) */}
