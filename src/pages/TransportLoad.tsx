@@ -408,7 +408,7 @@ const TransportLoad = () => {
                   <div className="break-all text-gray-900">{result.LocationFrom ?? "-"}</div>
                   <div className="font-semibold text-gray-700">{trans.locationToLabel}:</div>
                   <div className="break-all text-gray-900">{result.LocationTo ?? "-"}</div>
-                  <div className="font-semibold text-gray-700">Quantity:</div>
+                  <div className="font-semibold text-gray-700">{trans.quantityLabel}:</div>
                   <div className="break-all text-gray-900">
                     {huQuantity || "-"} {huUnit ? <span className="ml-2 text-gray-700">{huUnit}</span> : ""}
                   </div>

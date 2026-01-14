@@ -58,7 +58,8 @@ type TranslationKeys =
   | "planningGroupTransport"
   | "selectLabel"
   | "loadAction"
-  | "unloadAction";
+  | "unloadAction"
+  | "quantityLabel";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -115,6 +116,7 @@ const translations: Translations = {
     selectLabel: "Select",
     loadAction: "Load",
     unloadAction: "Unload",
+    quantityLabel: "Quantity",
   },
   de: {
     title: "Anmelden",
@@ -168,6 +170,7 @@ const translations: Translations = {
     selectLabel: "Auswählen",
     loadAction: "LADEN",
     unloadAction: "ENTLADEN",
+    quantityLabel: "Menge",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -221,6 +224,7 @@ const translations: Translations = {
     selectLabel: "Seleccionar",
     loadAction: "Cargar",
     unloadAction: "Descargar",
+    quantityLabel: "Cantidad",
   },
   "pt-BR": {
     title: "Entrar",
@@ -274,6 +278,7 @@ const translations: Translations = {
     selectLabel: "Selecionar",
     loadAction: "Carregar",
     unloadAction: "Descarregar",
+    quantityLabel: "Quantidade",
   },
 };
 
