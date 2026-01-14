@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import ScreenSpinner from "@/components/ScreenSpinner";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
@@ -65,6 +66,7 @@ const TransportMenu = () => {
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [listOpen, setListOpen] = useState<boolean>(false);
   const [listItems, setListItems] = useState<Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>>([]);
+  const [listLoading, setListLoading] = useState<boolean>(false);
 
   // Vehicle selection
   const initialSelected = sessionStorage.getItem("transport.selected") === "1";
@@ -218,7 +220,9 @@ const TransportMenu = () => {
               const willOpen = !listOpen;
               setListOpen(willOpen);
               if (willOpen) {
+                setListLoading(true);
                 await fetchList(vid);
+                setListLoading(false);
               }
             }}
           >
@@ -253,6 +257,8 @@ const TransportMenu = () => {
             </div>
           </DialogContent>
         </Dialog>
+        {/* Blocking spinner while list is loading */}
+        {listLoading && <ScreenSpinner message="Loading list…" />}
       </div>
 
       {/* Fahrzeug-ID selection dialog */}

@@ -62,6 +62,7 @@ const TransportLoad = () => {
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [listOpen, setListOpen] = useState<boolean>(false);
   const [listItems, setListItems] = useState<Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>>([]);
+  const [listLoading, setListLoading] = useState<boolean>(false);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -318,7 +319,9 @@ const TransportLoad = () => {
                   const willOpen = !listOpen;
                   setListOpen(willOpen);
                   if (willOpen) {
+                    setListLoading(true);
                     await fetchList(vid);
+                    setListLoading(false);
                   }
                 }}
               >
@@ -512,6 +515,9 @@ const TransportLoad = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Blocking spinner while list is loading */}
+      {listLoading && <ScreenSpinner message="Loading list…" />}
     </div>
   );
 };
