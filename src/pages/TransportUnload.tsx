@@ -318,36 +318,6 @@ const TransportUnload = () => {
                   <div className="whitespace-nowrap">{trans.itemLabel}</div>
                 </div>
 
-                {/* Thin divider under top row */}
-                <div className="mt-2 h-px bg-gray-200" />
-
-                {/* Two-column details block */}
-                <div className="mt-2 grid grid-cols-2 gap-4">
-                  {/* From → To */}
-                  <div>
-                    <div className="text-[11px] font-semibold text-gray-700">{fromToLabel}</div>
-                    <div className="text-sm text-gray-900">
-                      {(it.LocationFrom || "-") + " \u2192 " + (it.LocationTo || "-")}
-                    </div>
-                  </div>
-                  {/* Quantity */}
-                  <div>
-                    <div className="text-[11px] font-semibold text-gray-700">{trans.quantityLabel}</div>
-                    <div className="text-sm text-gray-900">
-                      {(() => {
-                        const key = (it.HandlingUnit || "").trim();
-                        const q = quantities[key] || "-";
-                        const u = units[key] || "";
-                        return (
-                          <>
-                            {q} {u ? <span className="ml-1 text-gray-700">{u}</span> : ""}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-
                 {/* Card list */}
                 <div className="p-2 space-y-3">
                   {items.map((it, idx) => (
