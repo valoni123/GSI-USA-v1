@@ -77,6 +77,8 @@ const TransportUnload = () => {
       navigate("/menu/transport");
       return;
     }
+    // Show overlay while loading
+    setLoading(true);
     const tid = showLoading("Lade Einträge…");
     const { data } = await supabase.functions.invoke("ln-transport-list", {
       body: { vehicleId, language: locale, company: "1000" },
@@ -437,7 +439,9 @@ const TransportUnload = () => {
       />
 
       {/* Global blocking spinner */}
-      {processing && <ScreenSpinner message="Please wait…" />}
+      {(processing || loading) && (
+        <ScreenSpinner message={loading ? "Loading…" : "Please wait…"} />
+      )}
     </div>
   );
 };
