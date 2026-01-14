@@ -114,7 +114,7 @@ const TransportLoad = () => {
   const onHUBlur = async () => {
     const hu = handlingUnit.trim();
     if (!hu) return;
-    
+
     // First: check if this HU is already loaded to the selected vehicle
     const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
     if (selectedVehicle) {
@@ -136,52 +136,58 @@ const TransportLoad = () => {
         return;
       }
     }
-    
-    // Only check if details are empty (first time) or the HU value changed
+
+    // Only proceed if result is empty (first time) or HU changed
     const shouldCheck = result === null || lastFetchedHu !== hu;
     if (!shouldCheck) return;
-    
+
+    // NEW: Fetch both TransportOrder and HU quantity together; only show after both resolve
     const tid = showLoading(trans.checkingHandlingUnit);
-    const { data, error } = await supabase.functions.invoke("ln-transport-orders", {
-      body: { handlingUnit: hu, language: locale, company: "1000" },
-    });
+    setDetailsLoading(true);
+    const [ordRes, qtyRes] = await Promise.all([
+      supabase.functions.invoke("ln-transport-orders", {
+        body: { handlingUnit: hu, language: locale, company: "1000" },
+      }),
+      supabase.functions.invoke("ln-handling-unit-info", {
+        body: { handlingUnit: hu, language: locale, company: "1000" },
+      }),
+    ]);
     dismissToast(tid as unknown as string);
-    if (error || !data || !data.ok) {
+
+    // Validate TransportOrder response
+    const ordData = ordRes.data;
+    if (ordRes.error || !ordData || !ordData.ok || (ordData.count ?? 0) === 0) {
+      setDetailsLoading(false);
       setErrorOpen(true);
       return;
     }
-    if ((data.count ?? 0) === 0) {
-      setErrorOpen(true);
-      return;
-    }
-    const first = data.first as { TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
+
+    const first = ordData.first as { TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
     setResult(first || null);
-    // Capture ETag
-    const raw = (data.raw as any) || {};
+
+    // Capture ETag from response
+    const raw = (ordData.raw as any) || {};
     const rawFirst = Array.isArray(raw.value) && raw.value.length > 0 ? raw.value[0] : null;
     const etagValue =
-      (first && typeof first.ETag === "string" && first.ETag) ||
+      (first && typeof first?.ETag === "string" && first.ETag) ||
       (rawFirst && typeof rawFirst?.["@odata.etag"] === "string" && rawFirst["@odata.etag"]) ||
       "";
     setEtag(etagValue);
-    setVehicleEnabled(true);
 
-    // NEW: Prefill Vehicle ID with previously selected vehicle and focus the field
+    // Quantity from HU info response
+    const qtyData = qtyRes.data;
+    const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+    setHuQuantity(qty);
+
+    // Enable and prefill Vehicle ID after both calls
+    setVehicleEnabled(true);
     const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
     if (storedVehicle) {
       setVehicleId(storedVehicle);
     }
 
-    // NEW: Fetch Handling Unit quantity in background
-    (async () => {
-      const { data: qData } = await supabase.functions.invoke("ln-handling-unit-info", {
-        body: { handlingUnit: hu, language: locale, company: "1000" },
-      });
-      const qty = qData && qData.ok ? String(qData.quantity ?? "") : "";
-      setHuQuantity(qty);
-    })();
-
     setLastFetchedHu(hu);
+    setDetailsLoading(false);
     setTimeout(() => vehicleRef.current?.focus(), 50);
   };
 
@@ -266,6 +272,8 @@ const TransportLoad = () => {
       await fetchCount(selectedVehicle);
     }
   };
+
+  const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -368,7 +376,9 @@ const TransportLoad = () => {
           />
           {/* Red result area */}
           <div className="mt-2 rounded-md min-h-28 p-3">
-            {result ? (
+            {detailsLoading ? (
+              <div className="text-muted-foreground text-sm">Loading details…</div>
+            ) : result ? (
               <div className="text-sm">
                 <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-1 items-start">
                   <div className="font-semibold text-gray-700">{trans.transportIdLabel}:</div>
@@ -381,7 +391,6 @@ const TransportLoad = () => {
                   <div className="break-all text-gray-900">{result.LocationFrom ?? "-"}</div>
                   <div className="font-semibold text-gray-700">{trans.locationToLabel}:</div>
                   <div className="break-all text-gray-900">{result.LocationTo ?? "-"}</div>
-                  {/* NEW: Quantity */}
                   <div className="font-semibold text-gray-700">Quantity:</div>
                   <div className="break-all text-gray-900">{huQuantity || "-"}</div>
                 </div>
