@@ -86,6 +86,18 @@ const TransportUnload = () => {
     setLoading(false);
   };
 
+  const fetchCount = async () => {
+    const vid = (localStorage.getItem("vehicle.id") || "").trim();
+    if (!vid) {
+      setLoadedCount(0);
+      return;
+    }
+    const { data } = await supabase.functions.invoke("ln-transport-count", {
+      body: { vehicleId: vid, language: locale, company: "1000" },
+    });
+    setLoadedCount(data && data.ok ? Number(data.count || 0) : 0);
+  };
+
   // NEW: fetch quantities for current items
   const fetchQuantities = async (list: LoadedItem[]) => {
     if (!list || list.length === 0) {
