@@ -92,12 +92,17 @@ const TransportUnload = () => {
     const vid = (localStorage.getItem("vehicle.id") || "").trim();
     if (!vid) {
       setLoadedCount(0);
+      try { localStorage.setItem("transport.count", "0"); } catch {}
       return;
     }
     const { data } = await supabase.functions.invoke("ln-transport-count", {
       body: { vehicleId: vid, language: locale, company: "1000" },
     });
-    setLoadedCount(data && data.ok ? Number(data.count || 0) : 0);
+    const next = data && data.ok ? Number(data.count || 0) : 0;
+    setLoadedCount(next);
+    try {
+      localStorage.setItem("transport.count", String(next));
+    } catch {}
   };
 
   // NEW: fetch quantities and units for current items
@@ -133,7 +138,9 @@ const TransportUnload = () => {
 
   useEffect(() => {
     fetchLoaded();
-    fetchCount();
+    // Initialize badge from localStorage, no REST call
+    const cached = Number(localStorage.getItem("transport.count") || "0");
+    setLoadedCount(cached);
   }, [locale]);
 
   // NEW: when items change, refresh quantities
@@ -238,7 +245,7 @@ const TransportUnload = () => {
     if (successCount > 0) {
       showSuccess(`Erfolgreich entladen (${successCount})`);
       await fetchLoaded();
-      await fetchCount();
+      await fetchCount(); // refresh via REST after UNLOAD
     }
     setProcessing(false);
   };
@@ -357,7 +364,7 @@ const TransportUnload = () => {
                                     if (ok) {
                                       showSuccess("Erfolgreich entladen");
                                       await fetchLoaded();
-                                      await fetchCount();
+                                      await fetchCount(); // refresh via REST after UNLOAD
                                     }
                                     setProcessing(false);
                                   }}

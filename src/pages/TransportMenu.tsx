@@ -88,7 +88,11 @@ const TransportMenu = () => {
     const { data } = await supabase.functions.invoke("ln-transport-count", {
       body: { vehicleId: vid, language: "en-US", company: "1000" },
     });
-    setLoadedCount(data && data.ok ? Number(data.count || 0) : 0);
+    const next = data && data.ok ? Number(data.count || 0) : 0;
+    setLoadedCount(next);
+    try {
+      localStorage.setItem("transport.count", String(next));
+    } catch {}
   };
 
   const fetchList = async (vid: string) => {
@@ -114,7 +118,6 @@ const TransportMenu = () => {
       if (data && data.ok && typeof data.vehicleId === "string" && data.vehicleId) {
         setVehicleId(data.vehicleId);
       } else {
-        // If not in DB, also prefill from any previous local selection (for convenience)
         const stored = (localStorage.getItem("vehicle.id") || "").trim();
         if (stored) setVehicleId(stored);
       }
@@ -126,11 +129,9 @@ const TransportMenu = () => {
         setVehicleDialogOpen(true);
         sessionStorage.removeItem("transport.fromMain");
       } else {
-        // If already selected and we have a stored vehicle id, refresh count
-        const stored = (localStorage.getItem("vehicle.id") || "").trim();
-        if (alreadySelected && stored) {
-          await fetchCount(stored);
-        }
+        // Do NOT call REST here; use cached count
+        const cached = Number(localStorage.getItem("transport.count") || "0");
+        setLoadedCount(cached);
       }
     })();
   }, []);
@@ -329,10 +330,11 @@ const TransportMenu = () => {
                 const vid = vehicleId.trim();
                 if (!vid) return;
                 localStorage.setItem("vehicle.id", vid);
-                // Mark selection within this Transport session so dialog won't reappear until user returns to main menu
                 sessionStorage.setItem("transport.selected", "1");
                 setVehicleDialogOpen(false);
-                await fetchCount(vid);
+                // Do NOT refresh count via REST here; use cached value
+                const cached = Number(localStorage.getItem("transport.count") || "0");
+                setLoadedCount(cached);
               }}
             >
               {trans.selectLabel}

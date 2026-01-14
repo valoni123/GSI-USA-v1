@@ -75,6 +75,12 @@ const TransportLoad = () => {
   }, []);
 
   useEffect(() => {
+    // Initialize badge from localStorage, no REST call
+    const cached = Number(localStorage.getItem("transport.count") || "0");
+    setLoadedCount(cached);
+  }, [locale]);
+
+  useEffect(() => {
     let active = true;
     (async () => {
       const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
@@ -108,9 +114,11 @@ const TransportLoad = () => {
     const { data } = await supabase.functions.invoke("ln-transport-count", {
       body: { vehicleId: vid, language: locale, company: "1000" },
     });
-    if (data && data.ok) {
-      setLoadedCount(Number(data.count || 0));
-    }
+    const next = data && data.ok ? Number(data.count || 0) : 0;
+    setLoadedCount(next);
+    try {
+      localStorage.setItem("transport.count", String(next));
+    } catch {}
   };
 
   const onHUBlur = async () => {
