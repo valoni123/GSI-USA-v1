@@ -211,7 +211,7 @@ const TransportMenu = () => {
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <button
             type="button"
-            className="bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shadow focus:outline-none"
+            className="bg-red-700 text-white rounded-md h-6 px-2 min-w-[24px] inline-flex items-center justify-center text-sm font-bold shadow focus:outline-none"
             onClick={async () => {
               const vid = (localStorage.getItem("vehicle.id") || "").trim();
               if (!vid) return;

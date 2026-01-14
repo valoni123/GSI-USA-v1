@@ -280,7 +280,7 @@ const TransportUnload = () => {
           <div className="flex flex-col items-center flex-1">
             <div className="font-bold text-lg tracking-wide text-center flex items-center gap-2">
               <span>{trans.transportUnload}</span>
-              <span className="bg-red-600 text-white rounded-full min-w-5 h-5 px-2 flex items-center justify-center text-xs font-bold">
+              <span className="bg-red-700 text-white rounded-md h-5 px-2 min-w-[20px] inline-flex items-center justify-center text-xs font-bold">
                 {loadedCount}
               </span>
             </div>

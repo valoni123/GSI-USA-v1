@@ -311,7 +311,7 @@ const TransportLoad = () => {
               <span>{trans.transportLoad}</span>
               <button
                 type="button"
-                className="bg-red-600 text-white rounded-full min-w-5 h-5 px-2 flex items-center justify-center text-xs font-bold focus:outline-none"
+                className="bg-red-700 text-white rounded-md h-5 px-2 min-w-[20px] inline-flex items-center justify-center text-xs font-bold focus:outline-none"
                 onClick={async () => {
                   const vid = (localStorage.getItem("vehicle.id") || "").trim();
                   if (!vid) return;
