@@ -63,6 +63,7 @@ const TransportUnload = () => {
 
   // Simple sleep helper for pacing and retry waits
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const MAX_UNLOAD_RETRY = 3;
 
   const fetchLoaded = async () => {
     const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
@@ -142,16 +143,21 @@ const TransportUnload = () => {
       const errObj = (data && data.error) || error;
       const top = errObj?.message || "Unbekannter Fehler";
       const details = Array.isArray(errObj?.details) ? errObj.details.map((d: any) => d?.message).filter(Boolean) : [];
-      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      const normalize = (s: any) => (s ? String(s).toLowerCase() : "");
+      const topLower = normalize(top);
+      const detailsLower = normalize(details.join(" "));
+      const isQtyTimingIssue =
+        topLower.includes("quantity to issue") ||
+        detailsLower.includes("quantity to issue") ||
+        topLower.includes("tibde0140.05");
 
-      // One-time retry for timing issue: "Quantity to issue > Handling Unit Quantity"
-      const lower = `${top}`.toLowerCase();
-      const isQtyTimingIssue = lower.includes("quantity to issue") && lower.includes("handling unit");
-      if (attempt === 1 && isQtyTimingIssue) {
-        await sleep(800);
-        return unloadSingle(it, 2);
+      if (attempt < MAX_UNLOAD_RETRY && isQtyTimingIssue) {
+        // Wait a moment to let LN commit the previous movement, then retry
+        await sleep(900);
+        return unloadSingle(it, attempt + 1);
       }
 
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
       showError(message);
       return false;
     }
@@ -191,8 +197,8 @@ const TransportUnload = () => {
         break; // Stop on first error
       }
       successCount += 1;
-      // Small pacing delay to give LN time to commit the previous movement
-      await sleep(400);
+      // Give LN more time to commit the previous movement
+      await sleep(900);
     }
     if (successCount > 0) {
       showSuccess(`Erfolgreich entladen (${successCount})`);
