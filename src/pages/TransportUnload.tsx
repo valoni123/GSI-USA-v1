@@ -28,8 +28,8 @@ const TransportUnload = () => {
     return saved || "en";
   });
   const trans = useMemo(() => t(lang), [lang]);
-  // Build localized label for "From → To"
-  const fromToLabel = `${trans.locationFromLabel} --> ${trans.locationToLabel}`;
+  // Build localized label for "From → To" without the word "Location"
+  const fromToLabel = `${trans.fromLabel} --> ${trans.toLabel}`;
 
   const [fullName, setFullName] = useState<string>("");
   useEffect(() => {
@@ -335,30 +335,31 @@ const TransportUnload = () => {
                         </div>
                       </div>
 
-                      {/* ADD: From → To block (localized label, bold) */}
-                      <div className="mt-2">
-                        <div className="text-[11px] font-semibold text-gray-700">
-                          {fromToLabel}
-                        </div>
-                        <div className="text-sm text-gray-900">
-                          {(it.LocationFrom || "-") + " \u2192 " + (it.LocationTo || "-")}
-                        </div>
-                      </div>
+                      {/* Divider */}
+                      <div className="mt-2 h-px bg-gray-200" />
 
-                      {/* Quantity with Unit */}
-                      <div className="mt-1">
-                        <div className="text-[11px] font-semibold text-gray-700">{trans.quantityLabel}</div>
-                        <div className="text-sm text-gray-900">
-                          {(() => {
-                            const key = (it.HandlingUnit || "").trim();
-                            const q = quantities[key] || "-";
-                            const u = units[key] || "";
-                            return (
-                              <>
-                                {q} {u ? <span className="ml-1 text-gray-700">{u}</span> : ""}
-                              </>
-                            );
-                          })()}
+                      {/* Details block: From → To (left) and Quantity (right) */}
+                      <div className="mt-2 grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-[11px] font-semibold text-gray-700">{fromToLabel}</div>
+                          <div className="text-sm text-gray-900">
+                            {(it.LocationFrom || "-") + " \u2192 " + (it.LocationTo || "-")}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-semibold text-gray-700">{trans.quantityLabel}</div>
+                          <div className="text-sm text-gray-900">
+                            {(() => {
+                              const key = (it.HandlingUnit || "").trim();
+                              const q = quantities[key] || "-";
+                              const u = units[key] || "";
+                              return (
+                                <>
+                                  {q} {u ? <span className="ml-1 text-gray-700">{u}</span> : ""}
+                                </>
+                              );
+                            })()}
+                          </div>
                         </div>
                       </div>
 

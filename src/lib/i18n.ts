@@ -59,7 +59,9 @@ type TranslationKeys =
   | "selectLabel"
   | "loadAction"
   | "unloadAction"
-  | "quantityLabel";
+  | "quantityLabel"
+  | "fromLabel"
+  | "toLabel";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -117,6 +119,8 @@ const translations: Translations = {
     loadAction: "Load",
     unloadAction: "Unload",
     quantityLabel: "Quantity",
+    fromLabel: "From",
+    toLabel: "To",
   },
   de: {
     title: "Anmelden",
@@ -171,6 +175,8 @@ const translations: Translations = {
     loadAction: "LADEN",
     unloadAction: "ENTLADEN",
     quantityLabel: "Menge",
+    fromLabel: "Von",
+    toLabel: "Nach",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -225,6 +231,8 @@ const translations: Translations = {
     loadAction: "Cargar",
     unloadAction: "Descargar",
     quantityLabel: "Cantidad",
+    fromLabel: "Desde",
+    toLabel: "Hasta",
   },
   "pt-BR": {
     title: "Entrar",
@@ -279,6 +287,8 @@ const translations: Translations = {
     loadAction: "Carregar",
     unloadAction: "Descarregar",
     quantityLabel: "Quantidade",
+    fromLabel: "De",
+    toLabel: "Para",
   },
 };
 
