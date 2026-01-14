@@ -81,9 +81,19 @@ const TransportUnload = () => {
     });
     dismissToast(tid as unknown as string);
     if (data && data.ok) {
-      setItems((data.items || []) as LoadedItem[]);
+      const list = (data.items || []) as LoadedItem[];
+      setItems(list);
+      const nextCount = Number(data.count ?? list.length ?? 0);
+      setLoadedCount(nextCount);
+      try {
+        localStorage.setItem("transport.count", String(nextCount));
+      } catch {}
     } else {
       setItems([]);
+      setLoadedCount(0);
+      try {
+        localStorage.setItem("transport.count", "0");
+      } catch {}
     }
     setLoading(false);
   };
