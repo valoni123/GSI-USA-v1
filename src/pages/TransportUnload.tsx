@@ -53,8 +53,9 @@ const TransportUnload = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [processing, setProcessing] = useState<boolean>(false);
-  // NEW: map HU → Quantity
+  // NEW: map HU → Quantity and Unit
   const [quantities, setQuantities] = useState<Record<string, string>>({});
+  const [units, setUnits] = useState<Record<string, string>>({});
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -98,28 +99,35 @@ const TransportUnload = () => {
     setLoadedCount(data && data.ok ? Number(data.count || 0) : 0);
   };
 
-  // NEW: fetch quantities for current items
+  // NEW: fetch quantities and units for current items
   const fetchQuantities = async (list: LoadedItem[]) => {
     if (!list || list.length === 0) {
       setQuantities({});
+      setUnits({});
       return;
     }
     const entries = await Promise.all(
       list.map(async (it) => {
         const hu = (it.HandlingUnit || "").trim();
-        if (!hu) return [hu, ""] as const;
+        if (!hu) return [hu, "", ""] as const;
         const { data } = await supabase.functions.invoke("ln-handling-unit-info", {
           body: { handlingUnit: hu, language: locale, company: "1000" },
         });
         const qty = data && data.ok ? String(data.quantity ?? "") : "";
-        return [hu, qty] as const;
+        const unit = data && data.ok ? String(data.unit ?? "") : "";
+        return [hu, qty, unit] as const;
       })
     );
-    const map: Record<string, string> = {};
-    for (const [hu, qty] of entries) {
-      if (hu) map[hu] = qty;
+    const qtyMap: Record<string, string> = {};
+    const unitMap: Record<string, string> = {};
+    for (const [hu, qty, unit] of entries) {
+      if (hu) {
+        qtyMap[hu] = qty;
+        unitMap[hu] = unit;
+      }
     }
-    setQuantities(map);
+    setQuantities(qtyMap);
+    setUnits(unitMap);
   };
 
   useEffect(() => {
@@ -313,10 +321,21 @@ const TransportUnload = () => {
                         <div className="text-sm text-gray-900">{(it.LocationFrom || "-") + " \u2192 " + (it.LocationTo || "-")}</div>
                       </div>
 
-                      {/* NEW: Quantity */}
+                      {/* NEW: Quantity with Unit */}
                       <div className="mt-1">
                         <div className="text-[11px] font-semibold text-gray-700">Quantity</div>
-                        <div className="text-sm text-gray-900">{quantities[(it.HandlingUnit || "").trim()] || "-"}</div>
+                        <div className="text-sm text-gray-900">
+                          {(() => {
+                            const key = (it.HandlingUnit || "").trim();
+                            const q = quantities[key] || "-";
+                            const u = units[key] || "";
+                            return (
+                              <>
+                                {q} {u ? <span className="ml-1 text-gray-700">{u}</span> : ""}
+                              </>
+                            );
+                          })()}
+                        </div>
                       </div>
 
                       {/* Per-row unload icon (only when locations differ) */}

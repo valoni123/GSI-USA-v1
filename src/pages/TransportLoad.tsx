@@ -51,8 +51,9 @@ const TransportLoad = () => {
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
   const [result, setResult] = useState<{ TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null>(null);
-  // NEW: Quantity for the scanned Handling Unit
+  // NEW: Quantity and Unit for the scanned Handling Unit
   const [huQuantity, setHuQuantity] = useState<string>("");
+  const [huUnit, setHuUnit] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
   const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
@@ -141,7 +142,6 @@ const TransportLoad = () => {
     const shouldCheck = result === null || lastFetchedHu !== hu;
     if (!shouldCheck) return;
 
-    // NEW: Fetch both TransportOrder and HU quantity together; only show after both resolve
     const tid = showLoading(trans.checkingHandlingUnit);
     setDetailsLoading(true);
     const [ordRes, qtyRes] = await Promise.all([
@@ -154,7 +154,6 @@ const TransportLoad = () => {
     ]);
     dismissToast(tid as unknown as string);
 
-    // Validate TransportOrder response
     const ordData = ordRes.data;
     if (ordRes.error || !ordData || !ordData.ok || (ordData.count ?? 0) === 0) {
       setDetailsLoading(false);
@@ -165,7 +164,6 @@ const TransportLoad = () => {
     const first = ordData.first as { TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
     setResult(first || null);
 
-    // Capture ETag from response
     const raw = (ordData.raw as any) || {};
     const rawFirst = Array.isArray(raw.value) && raw.value.length > 0 ? raw.value[0] : null;
     const etagValue =
@@ -174,10 +172,12 @@ const TransportLoad = () => {
       "";
     setEtag(etagValue);
 
-    // Quantity from HU info response
+    // Quantity and Unit from HU info response
     const qtyData = qtyRes.data;
     const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+    const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
     setHuQuantity(qty);
+    setHuUnit(unit);
 
     // Enable and prefill Vehicle ID after both calls
     setVehicleEnabled(true);
@@ -340,12 +340,13 @@ const TransportLoad = () => {
               const v = e.target.value;
               setHandlingUnit(v);
               if (v.trim() === "") {
-                // When HU is cleared, reset the info area and disable Vehicle ID
                 setResult(null);
                 setVehicleEnabled(false);
                 setVehicleId("");
                 setLastFetchedHu(null);
                 setEtag("");
+                setHuQuantity("");
+                setHuUnit("");
               }
             }}
             onBlur={onHUBlur}
@@ -392,7 +393,9 @@ const TransportLoad = () => {
                   <div className="font-semibold text-gray-700">{trans.locationToLabel}:</div>
                   <div className="break-all text-gray-900">{result.LocationTo ?? "-"}</div>
                   <div className="font-semibold text-gray-700">Quantity:</div>
-                  <div className="break-all text-gray-900">{huQuantity || "-"}</div>
+                  <div className="break-all text-gray-900">
+                    {huQuantity || "-"} {huUnit ? <span className="ml-2 text-gray-700">{huUnit}</span> : ""}
+                  </div>
                 </div>
               </div>
             ) : (

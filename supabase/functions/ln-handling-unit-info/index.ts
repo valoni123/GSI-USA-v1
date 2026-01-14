@@ -96,7 +96,7 @@ serve(async (req) => {
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits`;
     const filter = `HandlingUnit eq '${handlingUnit.replace(/'/g, "''")}'`;
-    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$select=QuantityInInventoryUnit`;
+    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$select=Unit,QuantityInInventoryUnit`;
 
     const odataRes = await fetch(url, {
       method: "GET",
@@ -117,7 +117,8 @@ serve(async (req) => {
 
     const first = Array.isArray(odataJson.value) && odataJson.value.length > 0 ? odataJson.value[0] : null;
     const quantity = first?.QuantityInInventoryUnit ?? null;
-    return json({ ok: true, quantity }, 200);
+    const unit = first?.Unit ?? null;
+    return json({ ok: true, quantity, unit }, 200);
   } catch {
     return json({ ok: false, error: { message: "unhandled" } }, 200);
   }
