@@ -28,7 +28,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { transportId?: string; etag?: string; vehicleId?: string; completed?: string; language?: string; company?: string } = {};
+    let body: { transportId?: string; etag?: string; vehicleId?: string; completed?: string; language?: string; company?: string; runNumber?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -36,6 +36,7 @@ serve(async (req) => {
     }
 
     const transportId = (body.transportId || "").trim();
+    const runNumber = (body.runNumber || "").trim();
     const etag = (body.etag || "").trim();
     const vehicleId = (body.vehicleId || "").trim();
     const completed = (body.completed || "").trim();
@@ -115,7 +116,11 @@ serve(async (req) => {
     // PATCH URL
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const encodedId = transportId.replace(/'/g, "''");
-    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders(TransportID='${encodedId}')?$select=*`;
+    const encodedRun = runNumber.replace(/'/g, "''");
+    const keyPart = runNumber
+      ? `TransportID='${encodedId}',RunNumber='${encodedRun}'`
+      : `TransportID='${encodedId}'`;
+    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders(${keyPart})?$select=*`;
     const url = `${base}${path}`;
 
     // Payload: set fields depending on inputs

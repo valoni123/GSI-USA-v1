@@ -53,7 +53,7 @@ const TransportLoad = () => {
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
-  const [result, setResult] = useState<{ TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null>(null);
+  const [result, setResult] = useState<{ TransportID?: string; RunNumber?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null>(null);
   // NEW: Quantity and Unit for the scanned Handling Unit
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
@@ -179,7 +179,7 @@ const TransportLoad = () => {
       return;
     }
 
-    const first = ordData.first as { TransportID?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
+    const first = ordData.first as { TransportID?: string; RunNumber?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
     setResult(first || null);
 
     const raw = (ordData.raw as any) || {};
@@ -264,6 +264,7 @@ const TransportLoad = () => {
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: (result.TransportID || "").trim(),
+        runNumber: (result.RunNumber || "").trim(),
         etag: etag.trim(),
         vehicleId: vehicleId.trim(),
         language: locale,

@@ -12,6 +12,7 @@ import ScreenSpinner from "@/components/ScreenSpinner";
 
 type LoadedItem = {
   TransportID?: string;
+  RunNumber?: string;
   HandlingUnit: string;
   Item: string;
   LocationFrom: string;
@@ -230,9 +231,10 @@ const TransportUnload = () => {
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: (it.TransportID || "").trim(),
+        runNumber: (it.RunNumber || "").trim(),
         etag: (it.ETag || "").trim(),
-        vehicleId: "",            // clear VehicleID & LocationDevice
-        completed: "Yes",         // mark as completed
+        vehicleId: "",
+        completed: "Yes",
         language: locale,
         company: "1000",
       },
