@@ -46,6 +46,8 @@ const TransportUnload = () => {
       localStorage.removeItem("gsi.username");
       localStorage.removeItem("gsi.employee");
       localStorage.removeItem("gsi.login");
+      // Also clear cached transport count
+      localStorage.removeItem("transport.count");
     } catch {}
     showSuccess(trans.signedOut);
     setSignOutOpen(false);

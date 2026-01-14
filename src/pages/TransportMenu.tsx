@@ -35,6 +35,8 @@ const TransportMenu = () => {
       localStorage.removeItem("ln.token");
       localStorage.removeItem("gsi.id");
       localStorage.removeItem("gsi.full_name");
+      // Clear cached transport count on sign-out to avoid stale badges
+      localStorage.removeItem("transport.count");
     } catch {}
     showSuccess(trans.signedOut);
     setSignOutOpen(false);
@@ -102,9 +104,15 @@ const TransportMenu = () => {
       body: { vehicleId: vid, language: "en-US", company: "1000" },
     });
     if (data && data.ok) {
-      setListItems((data.items || []) as Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>);
+      const items = (data.items || []) as Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>;
+      setListItems(items);
+      const next = Number(data.count ?? items.length ?? 0);
+      setLoadedCount(next);
+      try { localStorage.setItem("transport.count", String(next)); } catch {}
     } else {
       setListItems([]);
+      setLoadedCount(0);
+      try { localStorage.setItem("transport.count", "0"); } catch {}
     }
   };
 

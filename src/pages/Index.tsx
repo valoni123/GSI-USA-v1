@@ -60,6 +60,8 @@ const Index = () => {
     showSuccess(trans.tokenReceived);
     try {
       localStorage.setItem("ln.token", JSON.stringify(tokenData.token));
+      // Reset cached transport count on login
+      localStorage.setItem("transport.count", "0");
     } catch {}
 
     // Decide destination based on Transportscreen checkbox
