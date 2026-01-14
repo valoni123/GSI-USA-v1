@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Forklift, User, LogOut, Search } from "lucide-react";
+import { ArrowBigLeft, ArrowBigRight, Forklift, User, LogOut, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
@@ -47,7 +47,7 @@ const TransportMenu = () => {
       icon: (
         <div className="relative flex items-center justify-center">
           <Forklift className="h-10 w-10 text-red-700" />
-          <ArrowLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-700" />
+          <ArrowBigLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
         </div>
       ),
     },
@@ -56,8 +56,8 @@ const TransportMenu = () => {
       label: trans.transportUnload,
       icon: (
         <div className="relative flex items-center justify-center">
-          <Forklift className="h-10 w-10 text-red-700" />
-          <ArrowRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-700" />
+          <Forklift className="h-10 w-10 text-red-700 transform scale-x-[-1]" />
+          <ArrowBigRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
         </div>
       ),
     },
@@ -165,7 +165,7 @@ const TransportMenu = () => {
               navigate("/menu");
             }}
           >
-            <ArrowLeft className="h-6 w-6" />
+            <ArrowBigLeft className="h-6 w-6" />
           </Button>
 
           <div className="flex flex-col items-center flex-1">
