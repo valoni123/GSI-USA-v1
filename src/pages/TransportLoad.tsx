@@ -237,7 +237,7 @@ const TransportLoad = () => {
       language: locale,
       company: "1000",
     };
-    const tid = showLoading("Bewegung wird ausgeführt…");
+    const tid = showLoading(trans.executingMovement);
     const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
     dismissToast(tid as unknown as string);
     if (error || !data || !data.ok) {
@@ -249,10 +249,10 @@ const TransportLoad = () => {
       setProcessing(false);
       return;
     }
-    showSuccess("Erfolgreich auf Fahrzeug geladen");
+    showSuccess(trans.loadedSuccessfully);
 
     // PATCH Transport order to set VehicleID and LocationDevice = Fahrzeug-ID
-    const patchTid = showLoading("Transportauftrag wird aktualisiert…");
+    const patchTid = showLoading(trans.updatingTransportOrder);
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: (result.TransportID || "").trim(),
@@ -397,7 +397,7 @@ const TransportLoad = () => {
           {/* Red result area */}
           <div className="mt-2 rounded-md min-h-28 p-3">
             {detailsLoading ? (
-              <div className="text-muted-foreground text-sm">Loading details…</div>
+              <div className="text-muted-foreground text-sm">{trans.loadingDetails}</div>
             ) : result ? (
               <div className="text-sm">
                 <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-1 items-start">
@@ -442,7 +442,8 @@ const TransportLoad = () => {
       </div>
 
       {/* Blocking spinner while processing */}
-      {processing && <ScreenSpinner message="Please wait…" />}
+      {listLoading && <ScreenSpinner message={trans.loadingList} />}
+      {processing && <ScreenSpinner message={trans.pleaseWait} />}
 
       {/* Error dialog: HU not found */}
       <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
@@ -498,7 +499,7 @@ const TransportLoad = () => {
             </div>
             <div className="max-h-64 overflow-auto mt-0 space-y-2 px-2 py-2">
               {listItems.length === 0 ? (
-                <div className="text-xs text-muted-foreground px-1">No entries</div>
+                <div className="text-xs text-muted-foreground px-1">{trans.noEntries}</div>
               ) : (
                 listItems.map((it, idx) => (
                   <div key={idx}>
@@ -519,9 +520,6 @@ const TransportLoad = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Blocking spinner while list is loading */}
-      {listLoading && <ScreenSpinner message="Loading list…" />}
     </div>
   );
 };

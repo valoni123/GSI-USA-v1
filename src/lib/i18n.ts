@@ -61,7 +61,16 @@ type TranslationKeys =
   | "unloadAction"
   | "quantityLabel"
   | "fromLabel"
-  | "toLabel";
+  | "toLabel"
+  | "loadingEntries"
+  | "executingMovement"
+  | "updatingTransportOrder"
+  | "unloadedSuccessfully"
+  | "loadedSuccessfully"
+  | "loadingList"
+  | "pleaseWait"
+  | "loadingDetails"
+  | "noEntries";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -121,6 +130,15 @@ const translations: Translations = {
     quantityLabel: "Quantity",
     fromLabel: "From",
     toLabel: "To",
+    loadingEntries: "Loading entries…",
+    executingMovement: "Executing movement…",
+    updatingTransportOrder: "Updating transport order…",
+    unloadedSuccessfully: "Unloaded successfully",
+    loadedSuccessfully: "Loaded onto vehicle successfully",
+    loadingList: "Loading list…",
+    pleaseWait: "Please wait…",
+    loadingDetails: "Loading details…",
+    noEntries: "No entries",
   },
   de: {
     title: "Anmelden",
@@ -177,6 +195,15 @@ const translations: Translations = {
     quantityLabel: "Menge",
     fromLabel: "Von",
     toLabel: "Nach",
+    loadingEntries: "Einträge werden geladen…",
+    executingMovement: "Bewegung wird ausgeführt…",
+    updatingTransportOrder: "Transportauftrag wird aktualisiert…",
+    unloadedSuccessfully: "Erfolgreich entladen",
+    loadedSuccessfully: "Erfolgreich auf Fahrzeug geladen",
+    loadingList: "Liste wird geladen…",
+    pleaseWait: "Bitte warten…",
+    loadingDetails: "Details werden geladen…",
+    noEntries: "Keine Einträge",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -233,6 +260,15 @@ const translations: Translations = {
     quantityLabel: "Cantidad",
     fromLabel: "Desde",
     toLabel: "Hasta",
+    loadingEntries: "Cargando entradas…",
+    executingMovement: "Ejecutando movimiento…",
+    updatingTransportOrder: "Actualizando orden de transporte…",
+    unloadedSuccessfully: "Descarga realizada",
+    loadedSuccessfully: "Cargado al vehículo correctamente",
+    loadingList: "Cargando lista…",
+    pleaseWait: "Por favor espere…",
+    loadingDetails: "Cargando detalles…",
+    noEntries: "Sin registros",
   },
   "pt-BR": {
     title: "Entrar",
@@ -289,6 +325,15 @@ const translations: Translations = {
     quantityLabel: "Quantidade",
     fromLabel: "De",
     toLabel: "Para",
+    loadingEntries: "Carregando registros…",
+    executingMovement: "Executando movimentação…",
+    updatingTransportOrder: "Atualizando ordem de transporte…",
+    unloadedSuccessfully: "Descarregado com sucesso",
+    loadedSuccessfully: "Carregado no veículo com sucesso",
+    loadingList: "Carregando lista…",
+    pleaseWait: "Por favor, aguarde…",
+    loadingDetails: "Carregando detalhes…",
+    noEntries: "Sem entradas",
   },
 };
 

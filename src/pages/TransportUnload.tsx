@@ -79,7 +79,7 @@ const TransportUnload = () => {
     }
     // Show overlay while loading
     setLoading(true);
-    const tid = showLoading("Lade Einträge…");
+    const tid = showLoading(trans.loadingEntries);
     const { data } = await supabase.functions.invoke("ln-transport-list", {
       body: { vehicleId, language: locale, company: "1000" },
     });
@@ -196,7 +196,7 @@ const TransportUnload = () => {
       language: locale,
       company: "1000",
     };
-    const tid = showLoading("Bewegung wird ausgeführt…");
+    const tid = showLoading(trans.executingMovement);
     const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
     dismissToast(tid as unknown as string);
 
@@ -224,7 +224,7 @@ const TransportUnload = () => {
     }
 
     // After successful move, PATCH the TransportOrder: Completed='Yes', clear VehicleID & LocationDevice
-    const patchTid = showLoading("Transportauftrag wird aktualisiert…");
+    const patchTid = showLoading(trans.updatingTransportOrder);
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: (it.TransportID || "").trim(),
@@ -262,7 +262,7 @@ const TransportUnload = () => {
       await sleep(900);
     }
     if (successCount > 0) {
-      showSuccess(`Erfolgreich entladen (${successCount})`);
+      showSuccess(`${trans.unloadedSuccessfully} (${successCount})`);
       await fetchLoaded();
       await fetchCount(); // refresh via REST after UNLOAD
     }
@@ -314,9 +314,9 @@ const TransportUnload = () => {
         <Card className="rounded-md border-2 border-gray-200 bg-white p-0">
           <div className="max-h-[50vh] overflow-x-hidden overflow-y-auto rounded-md">
             {loading ? (
-              <div className="p-3 text-sm text-muted-foreground">Loading…</div>
+              <div className="p-3 text-sm text-muted-foreground">{trans.loadingList}</div>
             ) : items.length === 0 ? (
-              <div className="p-3 text-sm text-muted-foreground">No entries</div>
+              <div className="p-3 text-sm text-muted-foreground">{trans.noEntries}</div>
             ) : (
               <div className="w-full">
                 {/* Black header row */}
@@ -386,7 +386,7 @@ const TransportUnload = () => {
                                     setProcessing(true);
                                     const ok = await unloadSingle(it);
                                     if (ok) {
-                                      showSuccess("Erfolgreich entladen");
+                                      showSuccess(trans.unloadedSuccessfully);
                                       await fetchLoaded();
                                       await fetchCount();
                                     }
@@ -440,7 +440,7 @@ const TransportUnload = () => {
 
       {/* Global blocking spinner */}
       {(processing || loading) && (
-        <ScreenSpinner message={loading ? "Loading…" : "Please wait…"} />
+        <ScreenSpinner message={loading ? trans.loadingList : trans.pleaseWait} />
       )}
     </div>
   );
