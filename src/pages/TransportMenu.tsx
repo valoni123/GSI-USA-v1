@@ -83,7 +83,7 @@ const TransportMenu = () => {
   });
   const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState<boolean>(false);
 
-  // Helper to fetch count for a given vehicle
+  // Helper to fetch count for a given vehicle (called only after load/unload)
   const fetchCount = async (vid: string) => {
     const { data } = await supabase.functions.invoke("ln-transport-count", {
       body: { vehicleId: vid, language: "en-US", company: "1000" },
@@ -106,10 +106,14 @@ const TransportMenu = () => {
     }
   };
 
-  // On mount: decide dialog visibility and prefill; from main → open dialog; inside transport → only open if not selected
+  // Ensure we read cached count immediately on mount and set up focus/visibility refresh
   useEffect(() => {
+    // Read cached count right away regardless of dialog state
+    const cached = Number(localStorage.getItem("transport.count") || "0");
+    setLoadedCount(cached);
+
+    // Prefill vehicleId (unchanged)
     (async () => {
-      // Prefill from gsi_users if available
       const gsiId = localStorage.getItem("gsi.id") || undefined;
       const username = localStorage.getItem("gsi.username") || undefined;
       const { data } = await supabase.functions.invoke("gsi-get-vehicle-id", {
@@ -122,18 +126,28 @@ const TransportMenu = () => {
         if (stored) setVehicleId(stored);
       }
 
-      // Control dialog visibility
+      // Dialog visibility control (unchanged)
       const fromMain = sessionStorage.getItem("transport.fromMain") === "1";
-      const alreadySelected = sessionStorage.getItem("transport.selected") === "1";
       if (fromMain) {
         setVehicleDialogOpen(true);
         sessionStorage.removeItem("transport.fromMain");
-      } else {
-        // Do NOT call REST here; use cached count
-        const cached = Number(localStorage.getItem("transport.count") || "0");
-        setLoadedCount(cached);
       }
     })();
+
+    // Re-read cached count when window/tab regains focus or becomes visible
+    const syncCachedCount = () => {
+      const cachedNow = Number(localStorage.getItem("transport.count") || "0");
+      setLoadedCount(cachedNow);
+    };
+    window.addEventListener("focus", syncCachedCount);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") syncCachedCount();
+    });
+
+    return () => {
+      window.removeEventListener("focus", syncCachedCount);
+      // No need to remove the anonymous listener; add a named wrapper if you prefer later
+    };
   }, []);
 
   return (
