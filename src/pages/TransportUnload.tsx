@@ -323,7 +323,7 @@ const TransportUnload = () => {
                   {items.map((it, idx) => (
                     <div
                       key={`${it.HandlingUnit}-${idx}`}
-                      className="relative rounded-lg border bg-white shadow-sm px-3 py-2"
+                      className="relative rounded-lg border border-gray-200 bg-gray-100/80 shadow-sm px-3 py-2"
                     >
                       {/* Top line: HU (left), Item (left), reserve space for icon on right */}
                       <div className="grid grid-cols-[1fr_1fr] items-center gap-2">
