@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Box, User, LogOut, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, Forklift, User, LogOut, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -46,7 +46,7 @@ const TransportMenu = () => {
       label: trans.transportLoad,
       icon: (
         <div className="relative flex items-center justify-center">
-          <Box className="h-10 w-10 text-red-700" />
+          <Forklift className="h-10 w-10 text-red-700" />
           <ArrowLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-700" />
         </div>
       ),
@@ -56,7 +56,7 @@ const TransportMenu = () => {
       label: trans.transportUnload,
       icon: (
         <div className="relative flex items-center justify-center">
-          <Box className="h-10 w-10 text-red-700" />
+          <Forklift className="h-10 w-10 text-red-700" />
           <ArrowRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-700" />
         </div>
       ),
