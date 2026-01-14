@@ -17,6 +17,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
+import ScreenSpinner from "@/components/ScreenSpinner";
 
 const TransportLoad = () => {
   const navigate = useNavigate();
@@ -205,8 +206,12 @@ const TransportLoad = () => {
 
   const canLoad = vehicleEnabled && vehicleId.trim().length > 0;
 
+  const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
+  const [processing, setProcessing] = useState<boolean>(false);
+
   const onLoadClick = async () => {
     if (!canLoad || !result) return;
+    setProcessing(true);
     const employeeCode = (
       (localStorage.getItem("gsi.employee") ||
         localStorage.getItem("gsi.username") ||
@@ -232,6 +237,7 @@ const TransportLoad = () => {
       const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
       showError(message);
+      setProcessing(false);
       return;
     }
     showSuccess("Erfolgreich auf Fahrzeug geladen");
@@ -254,6 +260,7 @@ const TransportLoad = () => {
       const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
       showError(message);
+      setProcessing(false);
       return;
     }
 
@@ -264,6 +271,8 @@ const TransportLoad = () => {
     setVehicleEnabled(false);
     setLastFetchedHu(null);
     setEtag("");
+    setHuQuantity("");
+    setHuUnit("");
     setTimeout(() => huRef.current?.focus(), 50);
 
     // Refresh the loaded count badge
@@ -271,9 +280,8 @@ const TransportLoad = () => {
     if (selectedVehicle) {
       await fetchCount(selectedVehicle);
     }
+    setProcessing(false);
   };
-
-  const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -421,6 +429,9 @@ const TransportLoad = () => {
           </Button>
         </div>
       </div>
+
+      {/* Blocking spinner while processing */}
+      {processing && <ScreenSpinner message="Please wait…" />}
 
       {/* Error dialog: HU not found */}
       <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>

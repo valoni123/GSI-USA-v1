@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import ScreenSpinner from "@/components/ScreenSpinner";
 
 type LoadedItem = {
   TransportID?: string;
@@ -405,6 +406,9 @@ const TransportUnload = () => {
         noLabel={trans.no}
         onConfirm={onConfirmSignOut}
       />
+
+      {/* Global blocking spinner */}
+      {processing && <ScreenSpinner message="Please wait…" />}
     </div>
   );
 };
