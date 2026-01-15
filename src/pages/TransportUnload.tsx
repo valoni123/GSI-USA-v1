@@ -216,8 +216,7 @@ const TransportUnload = () => {
         topLower.includes("tibde0140.05");
 
       if (attempt < MAX_UNLOAD_RETRY && isQtyTimingIssue) {
-        // Wait a moment to let LN commit the previous movement, then retry
-        await sleep(900);
+        // Removed delay; retry immediately
         return unloadSingle(it, attempt + 1);
       }
 
@@ -262,8 +261,7 @@ const TransportUnload = () => {
         break; // Stop on first error
       }
       successCount += 1;
-      // Give LN more time to commit the previous movement
-      await sleep(900);
+      // Removed pacing delay; proceed immediately to next item
     }
     if (successCount > 0) {
       showSuccess(`${trans.unloadedSuccessfully} (${successCount})`);
