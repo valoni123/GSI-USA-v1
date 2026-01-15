@@ -39,7 +39,8 @@ serve(async (req) => {
     const language = body.language || "en-US";
     const company = body.company || "1000";
     const showAll = Boolean(body.showAll);
-    if (!planningGroup) {
+    // Only require planningGroup when not in showAll mode
+    if (!showAll && !planningGroup) {
       return json({ ok: false, error: "missing_group" }, 200);
     }
 
@@ -98,7 +99,7 @@ serve(async (req) => {
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/TransportPlannings`;
     const filter = `PlanningGroupTransport eq '${planningGroup.replace(/'/g, "''")}'`;
     const url = showAll
-      ? `${base}${path}?$count=true&$select=*`
+      ? `${base}${path}?$count=true&$select=*&$orderby=PlanningGroupTransport`
       : `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
 
     const odataRes = await fetch(url, {
