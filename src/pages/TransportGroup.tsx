@@ -151,7 +151,7 @@ const TransportGroup = () => {
           <div className="w-full overflow-x-auto">
             <div className="min-w-[1100px]">
               {/* Header row */}
-              <div className="grid grid-cols-8 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
+              <div className="grid grid-cols-9 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
                 <div className="whitespace-nowrap">{trans.transportIdLabel}</div>
                 <div className="whitespace-nowrap">{trans.itemLabel}</div>
                 <div className="whitespace-nowrap">{trans.loadHandlingUnit}</div>
@@ -159,6 +159,7 @@ const TransportGroup = () => {
                 <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
                 <div className="whitespace-nowrap">{trans.locationToLabel}</div>
                 <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
+                <div className="whitespace-nowrap">{trans.transportTypeLabel}</div>
                 <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
               </div>
               {/* Rows */}
@@ -170,7 +171,7 @@ const TransportGroup = () => {
                 items.map((it, idx) => (
                   <div
                     key={`${it.TransportID}-${idx}`}
-                    className="grid grid-cols-8 gap-3 px-4 py-2 border-b text-sm"
+                    className="grid grid-cols-9 gap-3 px-4 py-2 border-b text-sm"
                   >
                     <div className="break-all whitespace-nowrap">{it.TransportID || "-"}</div>
                     <div className="break-all whitespace-nowrap">{it.Item || "-"}</div>
@@ -187,6 +188,7 @@ const TransportGroup = () => {
                         "-"
                       )}
                     </div>
+                    <div className="break-all whitespace-nowrap">{(it as any).TransportType || "-"}</div>
                     <div className="break-all whitespace-nowrap">
                       {it.PlannedDeliveryDate ? new Date(it.PlannedDeliveryDate).toLocaleString() : "-"}
                     </div>

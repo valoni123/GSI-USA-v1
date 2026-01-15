@@ -94,10 +94,9 @@ serve(async (req) => {
 
     // OData call
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/TransportPlannings`;
+    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders`;
     const filter = `PlanningGroupTransport eq '${planningGroup.replace(/'/g, "''")}'`;
-    const select = "TransportID,Item,HandlingUnit,Warehouse,LocationFrom,LocationTo,VehicleID,PlannedDeliveryDate";
-    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(select)}`;
+    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=TransportID,Item,HandlingUnit,Warehouse,LocationFrom,LocationTo,VehicleID,PlannedDeliveryDate,TransportType`;
 
     const odataRes = await fetch(url, {
       method: "GET",
@@ -127,6 +126,7 @@ serve(async (req) => {
           LocationTo: v?.LocationTo ?? "",
           VehicleID: v?.VehicleID ?? "",
           PlannedDeliveryDate: v?.PlannedDeliveryDate ?? "",
+          TransportType: v?.TransportType ?? "",
         }))
       : [];
 

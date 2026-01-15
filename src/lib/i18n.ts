@@ -54,6 +54,7 @@ type TranslationKeys =
   | "transportIdLabel"
   | "huAlreadyLoaded"
   | "plannedDateLabel"
+  | "transportTypeLabel"
   | "transportScreen"
   | "planningGroupTransport"
   | "selectLabel"
@@ -122,6 +123,7 @@ const translations: Translations = {
     transportIdLabel: "Transport-ID",
     huAlreadyLoaded: "Handling Unit already loaded.",
     plannedDateLabel: "Planned Date",
+    transportTypeLabel: "Transport Type",
     transportScreen: "Transportscreen",
     planningGroupTransport: "Planning Group Transport",
     selectLabel: "Select",
@@ -187,6 +189,7 @@ const translations: Translations = {
     transportIdLabel: "Transport-ID",
     huAlreadyLoaded: "Ladeeinheit bereits geladen.",
     plannedDateLabel: "Geplantes Datum",
+    transportTypeLabel: "Transportart",
     transportScreen: "Transport-Übersicht",
     planningGroupTransport: "Planungsgruppe Transport",
     selectLabel: "Auswählen",
@@ -252,6 +255,7 @@ const translations: Translations = {
     transportIdLabel: "ID de transporte",
     huAlreadyLoaded: "Unidad de manejo ya cargada.",
     plannedDateLabel: "Fecha planificada",
+    transportTypeLabel: "Tipo de transporte",
     transportScreen: "Pantalla de transporte",
     planningGroupTransport: "Grupo de planificación de transporte",
     selectLabel: "Seleccionar",
@@ -317,6 +321,7 @@ const translations: Translations = {
     transportIdLabel: "ID de transporte",
     huAlreadyLoaded: "Unidade de manuseio já carregada.",
     plannedDateLabel: "Data planejada",
+    transportTypeLabel: "Tipo de transporte",
     transportScreen: "Tela de transporte",
     planningGroupTransport: "Grupo de planejamento de transporte",
     selectLabel: "Selecionar",
