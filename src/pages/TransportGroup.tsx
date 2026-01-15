@@ -32,6 +32,9 @@ const TransportGroup = () => {
   }>>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // NEW: map of PlanningGroupTransport → Description
+  const [groupDescriptions, setGroupDescriptions] = useState<Record<string, string>>({});
+
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -56,6 +59,24 @@ const TransportGroup = () => {
       if (!silent) setError((data && (data.error?.message || data.error)) || "Failed to load");
     }
     if (!silent) setLoading(false);
+  };
+
+  // NEW: fetch all PlanningGroup descriptions
+  const loadGroupDescriptions = async () => {
+    const { data } = await supabase.functions.invoke("ln-transport-groups-list", {
+      body: { language: locale, company: "1000" },
+    });
+    if (data && data.ok) {
+      const map: Record<string, string> = {};
+      const arr = (data.items || []) as Array<{ PlanningGroupTransport: string; Description: string }>;
+      for (const g of arr) {
+        const key = (g.PlanningGroupTransport || "").trim();
+        if (key) map[key] = g.Description || "";
+      }
+      setGroupDescriptions(map);
+    } else {
+      setGroupDescriptions({});
+    }
   };
 
   const [signOutOpen, setSignOutOpen] = useState(false);
@@ -115,7 +136,9 @@ const TransportGroup = () => {
   }, [items]);
 
   useEffect(() => {
+    // Load plannings and group descriptions
     loadPlannings(false);
+    loadGroupDescriptions();
     const intervalId = setInterval(() => {
       loadPlannings(true);
     }, 30000);
@@ -129,9 +152,9 @@ const TransportGroup = () => {
           <div className="font-bold text-lg">
             {trans.planningGroupTransport}{group?.toUpperCase() === "ALL" ? "" : `: ${group}`}
             {/* Single-group: show description next to title */}
-            {group?.toUpperCase() !== "ALL" && items.length > 0 && (
+            {group?.toUpperCase() !== "ALL" && (
               <span className="ml-3 inline-block text-xs text-gray-200 bg-white/10 border border-white/20 rounded-md px-2 py-1">
-                {items[0]?.Description || ""}
+                {groupDescriptions[(group || "").toString()] || ""}
               </span>
             )}
           </div>
@@ -170,7 +193,7 @@ const TransportGroup = () => {
               { (group || "").toUpperCase() === "ALL" ? (
                 Object.keys(grouped).sort().map((gkey) => {
                   const rows = grouped[gkey] || [];
-                  const desc = rows.length > 0 ? (rows[0]?.Description || "") : "";
+                  const desc = groupDescriptions[gkey] || "";
                   return (
                     <div key={gkey} className="mb-6">
                       <div className="flex items-center gap-3 font-bold text-lg mb-2">
