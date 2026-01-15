@@ -19,6 +19,7 @@ const TransportGroup = () => {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<Array<{
     TransportID: string;
+    TransportType: string;
     Item: string;
     HandlingUnit: string;
     Warehouse: string;
@@ -153,13 +154,13 @@ const TransportGroup = () => {
               {/* Header row */}
               <div className="grid grid-cols-9 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
                 <div className="whitespace-nowrap">{trans.transportIdLabel}</div>
+                <div className="whitespace-nowrap">{trans.transportTypeLabel}</div>
                 <div className="whitespace-nowrap">{trans.itemLabel}</div>
                 <div className="whitespace-nowrap">{trans.loadHandlingUnit}</div>
                 <div className="whitespace-nowrap">{trans.warehouseLabel}</div>
                 <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
                 <div className="whitespace-nowrap">{trans.locationToLabel}</div>
                 <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
-                <div className="whitespace-nowrap">{trans.transportTypeLabel}</div>
                 <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
               </div>
               {/* Rows */}
@@ -174,6 +175,7 @@ const TransportGroup = () => {
                     className="grid grid-cols-9 gap-3 px-4 py-2 border-b text-sm"
                   >
                     <div className="break-all whitespace-nowrap">{it.TransportID || "-"}</div>
+                    <div className="break-all whitespace-nowrap">{it.TransportType || "-"}</div>
                     <div className="break-all whitespace-nowrap">{it.Item || "-"}</div>
                     <div className="break-all whitespace-nowrap">{it.HandlingUnit || "-"}</div>
                     <div className="break-all whitespace-nowrap">{it.Warehouse || "-"}</div>
@@ -188,7 +190,6 @@ const TransportGroup = () => {
                         "-"
                       )}
                     </div>
-                    <div className="break-all whitespace-nowrap">{(it as any).TransportType || "-"}</div>
                     <div className="break-all whitespace-nowrap">
                       {it.PlannedDeliveryDate ? new Date(it.PlannedDeliveryDate).toLocaleString() : "-"}
                     </div>
