@@ -132,6 +132,7 @@ serve(async (req) => {
           VehicleID: v?.VehicleID ?? "",
           PlannedDeliveryDate: v?.PlannedDeliveryDate ?? "",
           PlanningGroupTransport: v?.PlanningGroupTransport ?? "",
+          Description: v?.Description ?? "",
         }))
       : [];
 

@@ -28,6 +28,7 @@ const TransportGroup = () => {
     VehicleID: string;
     PlannedDeliveryDate: string;
     PlanningGroupTransport?: string;
+    Description?: string;
   }>>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +39,6 @@ const TransportGroup = () => {
     return "en-US";
   }, [lang]);
 
-  // Helper to load plannings once or silently
   const loadPlannings = async (silent: boolean) => {
     if (!silent) {
       setLoading(true);
@@ -58,7 +58,6 @@ const TransportGroup = () => {
     if (!silent) setLoading(false);
   };
 
-  // Sign out dialog
   const [signOutOpen, setSignOutOpen] = useState(false);
   const onConfirmSignOut = () => {
     try {
@@ -75,7 +74,6 @@ const TransportGroup = () => {
     navigate("/");
   };
 
-  // Planning group switch dialog
   const [switchOpen, setSwitchOpen] = useState(false);
   const [groupInput, setGroupInput] = useState("");
   const [groupsList, setGroupsList] = useState<Array<{ PlanningGroupTransport: string; Description: string }>>([]);
@@ -117,9 +115,7 @@ const TransportGroup = () => {
   }, [items]);
 
   useEffect(() => {
-    // Initial load (shows loading state once)
     loadPlannings(false);
-    // Silent refresh every 30 seconds
     const intervalId = setInterval(() => {
       loadPlannings(true);
     }, 30000);
@@ -132,6 +128,12 @@ const TransportGroup = () => {
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between">
           <div className="font-bold text-lg">
             {trans.planningGroupTransport}{group?.toUpperCase() === "ALL" ? "" : `: ${group}`}
+            {/* Single-group: show description next to title */}
+            {group?.toUpperCase() !== "ALL" && items.length > 0 && (
+              <span className="ml-3 inline-block text-xs text-gray-200 bg-white/10 border border-white/20 rounded-md px-2 py-1">
+                {items[0]?.Description || ""}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -168,11 +170,18 @@ const TransportGroup = () => {
               { (group || "").toUpperCase() === "ALL" ? (
                 Object.keys(grouped).sort().map((gkey) => {
                   const rows = grouped[gkey] || [];
+                  const desc = rows.length > 0 ? (rows[0]?.Description || "") : "";
                   return (
                     <div key={gkey} className="mb-6">
-                      <div className="font-bold text-lg mb-2">{gkey} [{rows.length}]</div>
+                      <div className="flex items-center gap-3 font-bold text-lg mb-2">
+                        <span>{gkey} [{rows.length}]</span>
+                        {desc && (
+                          <span className="inline-block text-xs text-gray-700 bg-white rounded-md border px-2 py-1">
+                            {desc}
+                          </span>
+                        )}
+                      </div>
                       <div className="rounded-md bg-gray-50 p-1 border">
-                        {/* Header row */}
                         <div className="grid grid-cols-9 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
                           <div className="whitespace-nowrap">{trans.transportIdLabel}</div>
                           <div className="whitespace-nowrap">{trans.transportTypeLabel}</div>
@@ -184,7 +193,6 @@ const TransportGroup = () => {
                           <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
                           <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
                         </div>
-                        {/* Rows */}
                         {rows.length === 0 ? (
                           <div className="px-4 py-3 text-sm text-muted-foreground">No entries</div>
                         ) : (
@@ -221,8 +229,6 @@ const TransportGroup = () => {
                 })
               ) : (
                 <>
-                  {/* Original single-group table */}
-                  {/* Header row */}
                   <div className="grid grid-cols-9 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
                     <div className="whitespace-nowrap">{trans.transportIdLabel}</div>
                     <div className="whitespace-nowrap">{trans.transportTypeLabel}</div>
@@ -234,7 +240,6 @@ const TransportGroup = () => {
                     <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
                     <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
                   </div>
-                  {/* Rows */}
                   {loading ? (
                     <div className="px-4 py-3 text-sm text-muted-foreground">Loading…</div>
                   ) : items.length === 0 ? (
@@ -274,7 +279,6 @@ const TransportGroup = () => {
         </div>
       </div>
 
-      {/* Sign-out confirmation dialog */}
       <SignOutConfirm
         open={signOutOpen}
         onOpenChange={setSignOutOpen}
@@ -285,7 +289,6 @@ const TransportGroup = () => {
         onConfirm={onConfirmSignOut}
       />
 
-      {/* Switch planning group dialog */}
       <Dialog open={switchOpen} onOpenChange={setSwitchOpen}>
         <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">
           <DialogHeader>
