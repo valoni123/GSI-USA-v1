@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { showSuccess } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const TransportGroup = () => {
   const { group } = useParams();
@@ -101,6 +102,7 @@ const TransportGroup = () => {
   const [groupsQuery, setGroupsQuery] = useState("");
   const [groupsDropdownOpen, setGroupsDropdownOpen] = useState(false);
   const [groupsDropdownLoading, setGroupsDropdownLoading] = useState(false);
+  const [showAllSwitch, setShowAllSwitch] = useState(false);
   const filteredGroups = groupsList.filter((g) => {
     const q = groupsQuery.trim().toLowerCase();
     if (!q) return true;
@@ -119,6 +121,11 @@ const TransportGroup = () => {
     }
   };
   const onConfirmSwitch = () => {
+    if (showAllSwitch) {
+      setSwitchOpen(false);
+      navigate(`/transportgroup/ALL`);
+      return;
+    }
     const val = groupInput.trim();
     if (!val) return;
     setSwitchOpen(false);
@@ -325,14 +332,16 @@ const TransportGroup = () => {
               onChange={(e) => setGroupInput(e.target.value)}
               autoFocus
               className="pr-12"
+              disabled={showAllSwitch}
             />
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="absolute right-6 top-2 text-gray-700 hover:text-gray-900 h-8 w-8 flex items-center justify-center"
+              className={`absolute right-6 top-2 text-gray-700 hover:text-gray-900 h-8 w-8 flex items-center justify-center ${showAllSwitch ? "pointer-events-none opacity-40" : ""}`}
               aria-label="Search groups"
               onClick={async () => {
+                if (showAllSwitch) return;
                 if (!groupsDropdownOpen) {
                   setGroupsDropdownOpen(true);
                   setGroupsDropdownLoading(true);
@@ -344,7 +353,26 @@ const TransportGroup = () => {
             >
               <Search className="h-6 w-6" />
             </Button>
-            {groupsDropdownOpen && (
+
+            {/* SHOW ALL TRANSPORTS checkbox */}
+            <div className="flex items-center gap-3 mt-1">
+              <Checkbox
+                id="showAllTransportsSwitch"
+                checked={showAllSwitch}
+                onCheckedChange={(val) => {
+                  const next = Boolean(val);
+                  setShowAllSwitch(next);
+                  if (next) {
+                    setGroupsDropdownOpen(false);
+                  }
+                }}
+              />
+              <label htmlFor="showAllTransportsSwitch" className="text-sm text-gray-800">
+                {trans.showAllTransports}
+              </label>
+            </div>
+
+            {groupsDropdownOpen && !showAllSwitch && (
               <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-2 z-50">
                 <div className="space-y-2">
                   <Input
@@ -382,7 +410,7 @@ const TransportGroup = () => {
           <DialogFooter className="px-4 pb-4">
             <Button
               className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-              disabled={!groupInput.trim()}
+              disabled={!showAllSwitch && !groupInput.trim()}
               onClick={onConfirmSwitch}
             >
               OK
