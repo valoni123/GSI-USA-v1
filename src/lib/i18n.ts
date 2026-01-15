@@ -71,7 +71,8 @@ type TranslationKeys =
   | "loadingList"
   | "pleaseWait"
   | "loadingDetails"
-  | "noEntries";
+  | "noEntries"
+  | "showAllTransports";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -141,6 +142,7 @@ const translations: Translations = {
     pleaseWait: "Please wait…",
     loadingDetails: "Loading details…",
     noEntries: "No entries",
+    showAllTransports: "SHOW ALL TRANSPORTS",
   },
   de: {
     title: "Anmelden",
@@ -207,6 +209,7 @@ const translations: Translations = {
     pleaseWait: "Bitte warten…",
     loadingDetails: "Details werden geladen…",
     noEntries: "Keine Einträge",
+    showAllTransports: "ALLE TRANSPORTE ANZEIGEN",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -273,6 +276,7 @@ const translations: Translations = {
     pleaseWait: "Por favor espere…",
     loadingDetails: "Cargando detalles…",
     noEntries: "Sin registros",
+    showAllTransports: "MOSTRAR TODOS LOS TRANSPORTES",
   },
   "pt-BR": {
     title: "Entrar",
@@ -339,6 +343,7 @@ const translations: Translations = {
     pleaseWait: "Por favor, aguarde…",
     loadingDetails: "Carregando detalhes…",
     noEntries: "Sem entradas",
+    showAllTransports: "MOSTRAR TODOS OS TRANSPORTES",
   },
 };
 

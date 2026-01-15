@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { type LanguageKey, t } from "@/lib/i18n";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Item = { PlanningGroupTransport: string; Description: string };
 
@@ -21,6 +22,7 @@ const TransportSelect = () => {
   const [query, setQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dropdownLoading, setDropdownLoading] = useState(false);
+  const [showAll, setShowAll] = useState<boolean>(false);
 
   useEffect(() => {
     // ensure dialog opens on entry
@@ -47,6 +49,10 @@ const TransportSelect = () => {
   };
 
   const onConfirm = () => {
+    if (showAll) {
+      navigate(`/transportgroup/ALL`);
+      return;
+    }
     const val = group.trim();
     if (!val) return;
     navigate(`/transportgroup/${encodeURIComponent(val)}`);
@@ -77,14 +83,16 @@ const TransportSelect = () => {
               onChange={(e) => setGroup(e.target.value)}
               autoFocus
               className="pr-12"
+              disabled={showAll}
             />
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="absolute right-6 top-2 text-gray-700 hover:text-gray-900 h-8 w-8 flex items-center justify-center"
+              className={`absolute right-6 top-2 text-gray-700 hover:text-gray-900 h-8 w-8 flex items-center justify-center ${showAll ? "pointer-events-none opacity-40" : ""}`}
               aria-label="Search groups"
               onClick={async () => {
+                if (showAll) return;
                 if (!dropdownOpen) {
                   setDropdownOpen(true);
                   setDropdownLoading(true);
@@ -97,7 +105,25 @@ const TransportSelect = () => {
               <Search className="h-6 w-6" />
             </Button>
 
-            {dropdownOpen && (
+            {/* SHOW ALL TRANSPORTS checkbox */}
+            <div className="flex items-center gap-3 mt-1">
+              <Checkbox
+                id="showAllTransports"
+                checked={showAll}
+                onCheckedChange={(val) => {
+                  const next = Boolean(val);
+                  setShowAll(next);
+                  if (next) {
+                    setDropdownOpen(false);
+                  }
+                }}
+              />
+              <label htmlFor="showAllTransports" className="text-sm text-gray-800">
+                {trans.showAllTransports}
+              </label>
+            </div>
+
+            {dropdownOpen && !showAll && (
               <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-2 z-50">
                 <div className="space-y-2">
                   <Input
@@ -136,10 +162,10 @@ const TransportSelect = () => {
             <div className="w-full space-y-2">
               <Button
                 className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-                disabled={!group.trim()}
+                disabled={!showAll && !group.trim()}
                 onClick={onConfirm}
               >
-                Select
+                OK
               </Button>
               <Button
                 type="button"

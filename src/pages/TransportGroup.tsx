@@ -27,6 +27,7 @@ const TransportGroup = () => {
     LocationTo: string;
     VehicleID: string;
     PlannedDeliveryDate: string;
+    PlanningGroupTransport?: string;
   }>>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,8 +45,9 @@ const TransportGroup = () => {
       setError(null);
     }
     const pg = (group || "").toString();
+    const showAll = pg.toUpperCase() === "ALL";
     const { data } = await supabase.functions.invoke("ln-transport-planning-list", {
-      body: { planningGroup: pg, language: locale, company: "1000" },
+      body: { planningGroup: showAll ? "" : pg, showAll, language: locale, company: "1000" },
     });
     if (data && data.ok) {
       setItems(data.items || []);
@@ -104,6 +106,16 @@ const TransportGroup = () => {
     navigate(`/transportgroup/${encodeURIComponent(val)}`);
   };
 
+  const grouped = useMemo(() => {
+    const map: Record<string, typeof items> = {};
+    for (const it of items) {
+      const key = (it.PlanningGroupTransport || "").trim() || "_";
+      if (!map[key]) map[key] = [];
+      map[key].push(it);
+    }
+    return map;
+  }, [items]);
+
   useEffect(() => {
     // Initial load (shows loading state once)
     loadPlannings(false);
@@ -118,7 +130,9 @@ const TransportGroup = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between">
-          <div className="font-bold text-lg">{trans.planningGroupTransport}: {group}</div>
+          <div className="font-bold text-lg">
+            {trans.planningGroupTransport}{group?.toUpperCase() === "ALL" ? "" : `: ${group}`}
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -151,50 +165,109 @@ const TransportGroup = () => {
         <div className="rounded-md border bg-white overflow-hidden">
           <div className="w-full overflow-x-auto">
             <div className="min-w-[1100px]">
-              {/* Header row */}
-              <div className="grid grid-cols-9 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
-                <div className="whitespace-nowrap">{trans.transportIdLabel}</div>
-                <div className="whitespace-nowrap">{trans.transportTypeLabel}</div>
-                <div className="whitespace-nowrap">{trans.itemLabel}</div>
-                <div className="whitespace-nowrap">{trans.loadHandlingUnit}</div>
-                <div className="whitespace-nowrap">{trans.warehouseLabel}</div>
-                <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
-                <div className="whitespace-nowrap">{trans.locationToLabel}</div>
-                <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
-                <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
-              </div>
-              {/* Rows */}
-              {loading ? (
-                <div className="px-4 py-3 text-sm text-muted-foreground">Loading…</div>
-              ) : items.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-muted-foreground">No entries</div>
+              { (group || "").toUpperCase() === "ALL" ? (
+                Object.keys(grouped).sort().map((gkey) => {
+                  const rows = grouped[gkey] || [];
+                  return (
+                    <div key={gkey} className="mb-6">
+                      <div className="font-bold text-lg mb-2">{gkey} [{rows.length}]</div>
+                      <div className="rounded-md bg-gray-50 p-1 border">
+                        {/* Header row */}
+                        <div className="grid grid-cols-9 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
+                          <div className="whitespace-nowrap">{trans.transportIdLabel}</div>
+                          <div className="whitespace-nowrap">{trans.transportTypeLabel}</div>
+                          <div className="whitespace-nowrap">{trans.itemLabel}</div>
+                          <div className="whitespace-nowrap">{trans.loadHandlingUnit}</div>
+                          <div className="whitespace-nowrap">{trans.warehouseLabel}</div>
+                          <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
+                          <div className="whitespace-nowrap">{trans.locationToLabel}</div>
+                          <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
+                          <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
+                        </div>
+                        {/* Rows */}
+                        {rows.length === 0 ? (
+                          <div className="px-4 py-3 text-sm text-muted-foreground">No entries</div>
+                        ) : (
+                          rows.map((it, idx) => (
+                            <div
+                              key={`${it.TransportID}-${idx}`}
+                              className="grid grid-cols-9 gap-3 px-4 py-2 border-b text-sm"
+                            >
+                              <div className="break-all whitespace-nowrap">{it.TransportID || "-"}</div>
+                              <div className="break-all whitespace-nowrap">{it.TransportType || "-"}</div>
+                              <div className="break-all whitespace-nowrap">{it.Item || "-"}</div>
+                              <div className="break-all whitespace-nowrap">{it.HandlingUnit || "-"}</div>
+                              <div className="break-all whitespace-nowrap">{it.Warehouse || "-"}</div>
+                              <div className="break-all whitespace-nowrap">{it.LocationFrom || "-"}</div>
+                              <div className="break-all whitespace-nowrap">{it.LocationTo || "-"}</div>
+                              <div className="break-all whitespace-nowrap">
+                                {it.VehicleID ? (
+                                  <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-medium">
+                                    {it.VehicleID}
+                                  </span>
+                                ) : (
+                                  "-"
+                                )}
+                              </div>
+                              <div className="break-all whitespace-nowrap">
+                                {it.PlannedDeliveryDate ? new Date(it.PlannedDeliveryDate).toLocaleString() : "-"}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
-                items.map((it, idx) => (
-                  <div
-                    key={`${it.TransportID}-${idx}`}
-                    className="grid grid-cols-9 gap-3 px-4 py-2 border-b text-sm"
-                  >
-                    <div className="break-all whitespace-nowrap">{it.TransportID || "-"}</div>
-                    <div className="break-all whitespace-nowrap">{it.TransportType || "-"}</div>
-                    <div className="break-all whitespace-nowrap">{it.Item || "-"}</div>
-                    <div className="break-all whitespace-nowrap">{it.HandlingUnit || "-"}</div>
-                    <div className="break-all whitespace-nowrap">{it.Warehouse || "-"}</div>
-                    <div className="break-all whitespace-nowrap">{it.LocationFrom || "-"}</div>
-                    <div className="break-all whitespace-nowrap">{it.LocationTo || "-"}</div>
-                    <div className="break-all whitespace-nowrap">
-                      {it.VehicleID ? (
-                        <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-medium">
-                          {it.VehicleID}
-                        </span>
-                      ) : (
-                        "-"
-                      )}
-                    </div>
-                    <div className="break-all whitespace-nowrap">
-                      {it.PlannedDeliveryDate ? new Date(it.PlannedDeliveryDate).toLocaleString() : "-"}
-                    </div>
+                <>
+                  {/* Original single-group table */}
+                  {/* Header row */}
+                  <div className="grid grid-cols-9 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
+                    <div className="whitespace-nowrap">{trans.transportIdLabel}</div>
+                    <div className="whitespace-nowrap">{trans.transportTypeLabel}</div>
+                    <div className="whitespace-nowrap">{trans.itemLabel}</div>
+                    <div className="whitespace-nowrap">{trans.loadHandlingUnit}</div>
+                    <div className="whitespace-nowrap">{trans.warehouseLabel}</div>
+                    <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
+                    <div className="whitespace-nowrap">{trans.locationToLabel}</div>
+                    <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
+                    <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
                   </div>
-                ))
+                  {/* Rows */}
+                  {loading ? (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">Loading…</div>
+                  ) : items.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">No entries</div>
+                  ) : (
+                    items.map((it, idx) => (
+                      <div
+                        key={`${it.TransportID}-${idx}`}
+                        className="grid grid-cols-9 gap-3 px-4 py-2 border-b text-sm"
+                      >
+                        <div className="break-all whitespace-nowrap">{it.TransportID || "-"}</div>
+                        <div className="break-all whitespace-nowrap">{it.TransportType || "-"}</div>
+                        <div className="break-all whitespace-nowrap">{it.Item || "-"}</div>
+                        <div className="break-all whitespace-nowrap">{it.HandlingUnit || "-"}</div>
+                        <div className="break-all whitespace-nowrap">{it.Warehouse || "-"}</div>
+                        <div className="break-all whitespace-nowrap">{it.LocationFrom || "-"}</div>
+                        <div className="break-all whitespace-nowrap">{it.LocationTo || "-"}</div>
+                        <div className="break-all whitespace-nowrap">
+                          {it.VehicleID ? (
+                            <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-medium">
+                              {it.VehicleID}
+                            </span>
+                          ) : (
+                            "-"
+                          )}
+                        </div>
+                        <div className="break-all whitespace-nowrap">
+                          {it.PlannedDeliveryDate ? new Date(it.PlannedDeliveryDate).toLocaleString() : "-"}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </>
               )}
             </div>
           </div>

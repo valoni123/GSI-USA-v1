@@ -28,7 +28,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { planningGroup?: string; language?: string; company?: string } = {};
+    let body: { planningGroup?: string; language?: string; company?: string; showAll?: boolean } = {};
     try {
       body = await req.json();
     } catch {
@@ -38,6 +38,7 @@ serve(async (req) => {
     const planningGroup = (body.planningGroup || "").trim();
     const language = body.language || "en-US";
     const company = body.company || "1000";
+    const showAll = Boolean(body.showAll);
     if (!planningGroup) {
       return json({ ok: false, error: "missing_group" }, 200);
     }
@@ -96,7 +97,9 @@ serve(async (req) => {
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/TransportPlannings`;
     const filter = `PlanningGroupTransport eq '${planningGroup.replace(/'/g, "''")}'`;
-    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
+    const url = showAll
+      ? `${base}${path}?$count=true&$select=*`
+      : `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
 
     const odataRes = await fetch(url, {
       method: "GET",
@@ -119,6 +122,7 @@ serve(async (req) => {
     const items = Array.isArray(odataJson.value)
       ? odataJson.value.map((v: any) => ({
           TransportID: v?.TransportID ?? "",
+          TransportType: v?.TransportType ?? "",
           Item: v?.Item ?? "",
           HandlingUnit: v?.HandlingUnit ?? "",
           Warehouse: v?.Warehouse ?? "",
@@ -126,7 +130,7 @@ serve(async (req) => {
           LocationTo: v?.LocationTo ?? "",
           VehicleID: v?.VehicleID ?? "",
           PlannedDeliveryDate: v?.PlannedDeliveryDate ?? "",
-          TransportType: v?.TransportType ?? "",
+          PlanningGroupTransport: v?.PlanningGroupTransport ?? "",
         }))
       : [];
 
