@@ -81,20 +81,63 @@ const InfoStockMenu = () => {
         </div>
       </div>
 
-      {/* Grid of sub-menu tiles */}
+      {/* Grid of app tiles */}
       <div className="mx-auto max-w-md px-4 py-6 grid grid-cols-2 gap-4">
-        {tiles.map((tile) => (
-          <Card
-            key={tile.key}
-            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
-            onClick={() => {
-              // Placeholder: later we'll route to each app
-            }}
-          >
-            {tile.icon}
-            <div className="text-sm font-medium text-gray-700 text-center">{tile.label}</div>
-          </Card>
-        ))}
+        <Card
+          className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+          onClick={() => navigate("/menu/info-stock/article")}
+        >
+          <Box className="h-10 w-10 text-red-700" />
+          <div className="text-sm font-medium text-gray-700 text-center">{trans.infoStockArticle}</div>
+        </Card>
+        <Card
+          key="leInfo"
+          className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+          onClick={() => navigate("/menu/info-stock/le-info")}
+        >
+          <Info className="h-10 w-10 text-red-700" />
+          <div className="text-sm font-medium text-gray-700 text-center">{trans.infoStockLEInfo}</div>
+        </Card>
+        <Card
+          key="correction"
+          className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+          onClick={() => navigate("/menu/info-stock/correction")}
+        >
+          <Eraser className="h-10 w-10 text-red-700" />
+          <div className="text-sm font-medium text-gray-700 text-center">{trans.infoStockCorrection}</div>
+        </Card>
+        <Card
+          key="transfer"
+          className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+          onClick={() => navigate("/menu/info-stock/transfer")}
+        >
+          <ArrowLeftRight className="h-10 w-10 text-red-700" />
+          <div className="text-sm font-medium text-gray-700 text-center">{trans.infoStockTransfer}</div>
+        </Card>
+        <Card
+          key="inventoryPos"
+          className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+          onClick={() => navigate("/menu/info-stock/inventory-pos")}
+        >
+          <ListChecks className="h-10 w-10 text-red-700" />
+          <div className="text-sm font-medium text-gray-700 text-center">{trans.infoStockInventoryPos}</div>
+        </Card>
+        <Card
+          key="inventory"
+          className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+          onClick={() => navigate("/menu/info-stock/inventory")}
+        >
+          <ClipboardList className="h-10 w-10 text-red-700" />
+          <div className="text-sm font-medium text-gray-700 text-center">{trans.infoStockInventory}</div>
+        </Card>
+        <Card
+          key="personalInventory"
+          className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+          onClick={() => navigate("/menu/info-stock/personal-inventory")}
+        >
+          <ListChecks className="h-10 w-10 text-red-700" />
+          <div className="text-sm font-medium text-gray-700 text-center">{trans.infoStockPersonalInventory}</div>
+        </Card>
       </div>
 
       {/* Sign-out confirmation dialog */}

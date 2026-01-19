@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Menu from "./pages/Menu";
 import InfoStockMenu from "./pages/InfoStockMenu";
+import InfoStockArticle from "./pages/InfoStockArticle";
 import TransportMenu from "./pages/TransportMenu";
 import TransportLoad from "./pages/TransportLoad";
 import TransportUnload from "./pages/TransportUnload";
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/menu" element={<Menu />} />
           <Route path="/menu/info-stock" element={<InfoStockMenu />} />
+          <Route path="/menu/info-stock/article" element={<InfoStockArticle />} />
           <Route path="/menu/transport" element={<TransportMenu />} />
           <Route path="/menu/transport/load" element={<TransportLoad />} />
           <Route path="/menu/transport/unload" element={<TransportUnload />} />
