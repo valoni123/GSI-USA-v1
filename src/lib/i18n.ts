@@ -74,7 +74,10 @@ type TranslationKeys =
   | "noEntries"
   | "showAllTransports"
   | "locationLabel"
-  | "searchLabel";
+  | "searchLabel"
+  | "onHandLabel"
+  | "allocatedLabel"
+  | "availableLabel";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -147,6 +150,9 @@ const translations: Translations = {
     showAllTransports: "SHOW ALL TRANSPORTS",
     locationLabel: "Location",
     searchLabel: "Search",
+    onHandLabel: "On hand",
+    allocatedLabel: "Allocated",
+    availableLabel: "Available",
   },
   de: {
     title: "Anmelden",
@@ -216,6 +222,9 @@ const translations: Translations = {
     showAllTransports: "ALLE TRANSPORTE ANZEIGEN",
     locationLabel: "Lagerplatz",
     searchLabel: "Suchen",
+    onHandLabel: "Vorhanden",
+    allocatedLabel: "Zuge­teilt",
+    availableLabel: "Verfügbar",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -285,6 +294,9 @@ const translations: Translations = {
     showAllTransports: "MOSTRAR TODOS LOS TRANSPORTES",
     locationLabel: "Ubicación",
     searchLabel: "Buscar",
+    onHandLabel: "Existencia",
+    allocatedLabel: "Asignado",
+    availableLabel: "Disponible",
   },
   "pt-BR": {
     title: "Entrar",
@@ -354,6 +366,9 @@ const translations: Translations = {
     showAllTransports: "MOSTRAR TODOS OS TRANSPORTES",
     locationLabel: "Local",
     searchLabel: "Buscar",
+    onHandLabel: "Em estoque",
+    allocatedLabel: "Alocado",
+    availableLabel: "Disponível",
   },
 };
 
