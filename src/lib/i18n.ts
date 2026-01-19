@@ -106,7 +106,7 @@ const translations: Translations = {
     appTransport: "Transport",
     appSettings: "Settings",
     back: "Back",
-    infoStockArticle: "Article",
+    infoStockArticle: "Item",
     infoStockLEInfo: "LE Info",
     infoStockCorrection: "Correction",
     infoStockTransfer: "Transfer",
