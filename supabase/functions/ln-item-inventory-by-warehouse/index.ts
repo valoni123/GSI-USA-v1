@@ -35,10 +35,12 @@ serve(async (req) => {
       return json({ ok: false, error: "invalid_json" }, 200);
     }
 
-    const item = (body.item || "").trim();
+    const rawItem = body.item || "";
+    const trimmedItem = rawItem.trim();
+    const paddedItem = `${" ".repeat(9)}${trimmedItem}`;
     const language = body.language || "en-US";
     const company = body.company || "1000";
-    if (!item) {
+    if (!trimmedItem) {
       return json({ ok: false, error: "missing_item" }, 200);
     }
 
@@ -95,7 +97,7 @@ serve(async (req) => {
     // OData GET
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/whapi.wmdInventory/ItemInventoryByWarehouses`;
-    const filter = `Item eq '${item.replace(/'/g, "''")}'`;
+    const filter = `Item eq '${paddedItem.replace(/'/g, "''")}'`;
     const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$select=*&$expand=*`;
 
     const odataRes = await fetch(url, {
