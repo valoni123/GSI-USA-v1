@@ -117,30 +117,18 @@ serve(async (req) => {
 
     const rows = Array.isArray(odataJson.value)
       ? odataJson.value.map((v: any) => {
-          const wh = v?.Warehouse ?? v?.Wh ?? v?.Whs ?? "";
-          const onHand = Number(
-            v?.OnHand ??
-            v?.Onhand ??
-            v?.OnHandQuantity ??
-            v?.InventoryOnHand ??
-            v?.QuantityOnHand ??
-            v?.QuantityInInventoryUnit ??
-            0
-          );
-          const allocated = Number(
-            v?.Allocated ??
-            v?.AllocatedQuantity ??
-            v?.Reserved ??
-            0
-          );
-          const available = Number(
-            (v?.Available ?? v?.AvailableQuantity ?? (onHand - allocated))
-          );
+          const wh = v?.Warehouse ?? "";
+          const whName = v?.WarehouseRef?.Description ?? "";
+          const onHand = Number(v?.InventoryOnHand ?? 0);
+          const allocated = Number(v?.InventoryAllocated ?? 0);
+          const blocked = Number(v?.InventoryBlocked ?? 0);
+          const available = onHand - allocated - blocked;
           return {
             Warehouse: String(wh || ""),
+            WarehouseName: String(whName || ""),
             OnHand: isNaN(onHand) ? 0 : onHand,
             Allocated: isNaN(allocated) ? 0 : allocated,
-            Available: isNaN(available) ? Math.max(0, (isNaN(onHand) ? 0 : onHand) - (isNaN(allocated) ? 0 : allocated)) : available,
+            Available: isNaN(available) ? 0 : available,
           };
         })
       : [];

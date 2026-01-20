@@ -47,7 +47,7 @@ const InfoStockArticle = () => {
   const [location, setLocation] = useState("");
 
   // Results
-  const [rows, setRows] = useState<Array<{ Warehouse: string; OnHand: number; Allocated: number; Available: number }>>([]);
+  const [rows, setRows] = useState<Array<{ Warehouse: string; WarehouseName?: string; OnHand: number; Allocated: number; Available: number }>>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -80,7 +80,7 @@ const InfoStockArticle = () => {
       setLoading(false);
       return;
     }
-    setRows((data.rows || []) as Array<{ Warehouse: string; OnHand: number; Allocated: number; Available: number }>);
+    setRows((data.rows || []) as Array<{ Warehouse: string; WarehouseName?: string; OnHand: number; Allocated: number; Available: number }>);
     setLoading(false);
   };
 
@@ -179,12 +179,15 @@ const InfoStockArticle = () => {
                 {rows.map((r, idx) => (
                   <div key={`${r.Warehouse}-${idx}`}>
                     <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center px-3 py-2 rounded-md bg-gray-100/80 shadow-sm">
+                      {/* (1) Warehouse code + description */}
                       <div className="text-sm text-gray-900 whitespace-nowrap">
                         {r.Warehouse || "-"}
+                        {r.WarehouseName ? <span className="ml-2 text-gray-700">({r.WarehouseName})</span> : null}
                       </div>
-                      <div className="text-sm text-gray-900 whitespace-nowrap text-right min-w-[70px]">{r.OnHand}</div>
-                      <div className="text-sm text-gray-900 whitespace-nowrap text-right min-w-[70px]">{r.Allocated}</div>
-                      <div className="text-sm text-gray-900 whitespace-nowrap text-right min-w-[70px]">{r.Available}</div>
+                      {/* (2) Inventory data */}
+                      <div className="text-sm text-gray-900 whitespace-nowrap text-right min-w-[80px]">{r.OnHand}</div>
+                      <div className="text-sm text-gray-900 whitespace-nowrap text-right min-w-[80px]">{r.Allocated}</div>
+                      <div className="text-sm text-gray-900 whitespace-nowrap text-right min-w-[80px]">{r.Available}</div>
                     </div>
                     {idx < rows.length - 1 && <div className="h-px bg-gray-200/60 mx-1 my-1" />}
                   </div>
