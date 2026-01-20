@@ -125,9 +125,11 @@ serve(async (req) => {
           const allocated = Number(v?.InventoryAllocated ?? 0);
           const blocked = Number(v?.InventoryBlocked ?? 0);
           const available = onHand - allocated - blocked;
+          const unit = v?.ItemRef?.InventoryUnit ?? "";
           return {
             Warehouse: String(wh || ""),
             WarehouseName: String(whName || ""),
+            Unit: String(unit || ""),
             OnHand: isNaN(onHand) ? 0 : onHand,
             Allocated: isNaN(allocated) ? 0 : allocated,
             Available: isNaN(available) ? 0 : available,
