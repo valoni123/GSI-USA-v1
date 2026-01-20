@@ -45,6 +45,8 @@ const InfoStockArticle = () => {
   const [item, setItem] = useState("");
   const [warehouse, setWarehouse] = useState("");
   const [location, setLocation] = useState("");
+  // Track last fetched item to avoid redundant calls on blur
+  const [lastFetchedItem, setLastFetchedItem] = useState<string | null>(null);
 
   // Results
   const [rows, setRows] = useState<Array<{ Warehouse: string; WarehouseName?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>>([]);
@@ -65,6 +67,7 @@ const InfoStockArticle = () => {
     const trimmed = (itm || "").trim();
     if (!trimmed) {
       setRows([]);
+      setLastFetchedItem(null);
       return;
     }
     setLoading(true);
@@ -81,6 +84,7 @@ const InfoStockArticle = () => {
       return;
     }
     setRows((data.rows || []) as Array<{ Warehouse: string; WarehouseName?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>);
+    setLastFetchedItem(trimmed);
     setLoading(false);
   };
 
@@ -127,8 +131,22 @@ const InfoStockArticle = () => {
             label={trans.itemLabel}
             ref={itemRef}
             value={item}
-            onChange={(e) => setItem(e.target.value)}
-            onBlur={() => fetchInventory(item)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setItem(v);
+              if (v.trim() === "") {
+                setRows([]);
+                setLastFetchedItem(null);
+              }
+            }}
+            onBlur={() => {
+              const current = item.trim();
+              if (!current) return;
+              // Only call if value changed since last fetch
+              if (lastFetchedItem !== current) {
+                fetchInventory(item);
+              }
+            }}
             autoFocus
             onFocus={(e) => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
