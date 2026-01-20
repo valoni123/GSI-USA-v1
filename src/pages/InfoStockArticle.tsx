@@ -190,15 +190,22 @@ const InfoStockArticle = () => {
                   const unit = r.Unit ? ` ${r.Unit}` : "";
                   return (
                     <div key={`${r.Warehouse}-${idx}`} className="rounded-md bg-gray-50 border px-3 py-2">
-                      <div className="grid grid-cols-[140px_1fr] gap-3">
-                        {/* Left block: Warehouse */}
-                        <div>
-                          <div className="text-[11px] font-semibold text-gray-700">{trans.warehouseLabel}:</div>
+                      {/* Three-column layout: left (warehouse), middle (divider), right (numbers) */}
+                      <div className="grid grid-cols-[170px_10px_1fr] gap-3 items-stretch">
+                        {/* Left block: Warehouse (label same size as value) */}
+                        <div className="flex flex-col justify-center">
+                          <div className="text-sm font-semibold text-gray-700">{trans.warehouseLabel}:</div>
                           <div className="text-sm text-gray-900">
                             {r.Warehouse || "-"}
                             {r.WarehouseName ? <span className="ml-1 text-gray-700">({r.WarehouseName})</span> : null}
                           </div>
                         </div>
+
+                        {/* Middle: vertical divider */}
+                        <div className="flex items-stretch">
+                          <div className="mx-auto w-[2px] rounded bg-gray-300/70" />
+                        </div>
+
                         {/* Right block: Inventory data (labels and values) */}
                         <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 items-center">
                           <div className="text-xs text-gray-500">{trans.onHandLabel}:</div>
