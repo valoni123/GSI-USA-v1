@@ -51,6 +51,9 @@ const InfoStockArticle = () => {
   // Results
   const [rows, setRows] = useState<Array<{ Warehouse: string; WarehouseName?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
+  const [locRows, setLocRows] = useState<Array<{ Location: string; Lot?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>>([]);
+  const [locLoading, setLocLoading] = useState(false);
 
   useEffect(() => {
     itemRef.current?.focus();
@@ -67,6 +70,8 @@ const InfoStockArticle = () => {
     const trimmed = (itm || "").trim();
     if (!trimmed) {
       setRows([]);
+      setLocRows([]);
+      setSelectedWarehouse(null);
       setLastFetchedItem(null);
       return;
     }
@@ -80,12 +85,38 @@ const InfoStockArticle = () => {
       const msg = (data && (data.error?.message || data.error)) || "Failed";
       showError(typeof msg === "string" ? msg : trans.loadingList);
       setRows([]);
+      setLocRows([]);
+      setSelectedWarehouse(null);
       setLoading(false);
       return;
     }
     setRows((data.rows || []) as Array<{ Warehouse: string; WarehouseName?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>);
     setLastFetchedItem(trimmed);
     setLoading(false);
+  };
+
+  const fetchLocations = async (itm: string, wh: string) => {
+    const trimmed = (itm || "").trim();
+    const whTrim = (wh || "").trim();
+    if (!trimmed || !whTrim) {
+      setLocRows([]);
+      return;
+    }
+    setLocLoading(true);
+    const tid = showLoading(trans.loadingList);
+    const { data, error } = await supabase.functions.invoke("ln-stockpoint-inventory", {
+      body: { item: trimmed, warehouse: whTrim, language: locale, company: "1000" },
+    });
+    dismissToast(tid as unknown as string);
+    if (error || !data || !data.ok) {
+      const msg = (data && (data.error?.message || data.error)) || "Failed";
+      showError(typeof msg === "string" ? msg : trans.loadingList);
+      setLocRows([]);
+      setLocLoading(false);
+      return;
+    }
+    setLocRows((data.rows || []) as Array<{ Location: string; Lot?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>);
+    setLocLoading(false);
   };
 
   return (
@@ -136,13 +167,14 @@ const InfoStockArticle = () => {
               setItem(v);
               if (v.trim() === "") {
                 setRows([]);
+                setLocRows([]);
+                setSelectedWarehouse(null);
                 setLastFetchedItem(null);
               }
             }}
             onBlur={() => {
               const current = item.trim();
               if (!current) return;
-              // Only call if value changed since last fetch
               if (lastFetchedItem !== current) {
                 fetchInventory(item);
               }
@@ -180,7 +212,7 @@ const InfoStockArticle = () => {
             }}
           />
 
-          {/* Result list */}
+          {/* Warehouse blocks */}
           <div className="mt-2 rounded-md">
             {rows.length === 0 ? (
               <div className="text-muted-foreground text-sm">{trans.noEntries}</div>
@@ -188,11 +220,21 @@ const InfoStockArticle = () => {
               <div className="space-y-2">
                 {rows.map((r, idx) => {
                   const unit = r.Unit ? ` ${r.Unit}` : "";
+                  const isSelected = selectedWarehouse === r.Warehouse;
                   return (
-                    <div key={`${r.Warehouse}-${idx}`} className="rounded-md bg-gray-50 border px-3 py-2">
+                    <button
+                      key={`${r.Warehouse}-${idx}`}
+                      type="button"
+                      className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${isSelected ? "bg-gray-200/70" : "bg-gray-50 hover:bg-gray-100/70"}`}
+                      onClick={async () => {
+                        setSelectedWarehouse(r.Warehouse);
+                        setWarehouse(r.Warehouse);
+                        await fetchLocations(item, r.Warehouse);
+                      }}
+                    >
                       {/* Three-column layout: left (warehouse), middle (divider), right (numbers) */}
                       <div className="grid grid-cols-[170px_10px_1fr] gap-3 items-stretch">
-                        {/* Left block: Warehouse (label same size as value) */}
+                        {/* Left block: Warehouse */}
                         <div className="flex flex-col justify-center">
                           <div className="text-sm font-semibold text-gray-700">{trans.warehouseLabel}:</div>
                           <div className="text-sm text-gray-900">
@@ -206,7 +248,7 @@ const InfoStockArticle = () => {
                           <div className="mx-auto w-[2px] rounded bg-gray-300/70" />
                         </div>
 
-                        {/* Right block: Inventory data (labels and values) */}
+                        {/* Right block: Inventory data */}
                         <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 items-center">
                           <div className="text-xs text-gray-500">{trans.onHandLabel}:</div>
                           <div className="text-sm text-gray-900 text-right">{r.OnHand}{unit}</div>
@@ -216,12 +258,52 @@ const InfoStockArticle = () => {
                           <div className="text-sm text-gray-900 text-right">{r.Available}{unit}</div>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
             )}
           </div>
+
+          {/* Locations list for selected warehouse */}
+          {selectedWarehouse && (
+            <div className="mt-4 rounded-md">
+              {locLoading ? (
+                <div className="text-muted-foreground text-sm">{trans.loadingList}</div>
+              ) : locRows.length === 0 ? (
+                <div className="text-muted-foreground text-sm">{trans.noEntries}</div>
+              ) : (
+                <div className="space-y-2">
+                  {locRows.map((lr, idx) => {
+                    const unit = lr.Unit ? ` ${lr.Unit}` : "";
+                    return (
+                      <div key={`${lr.Location}-${idx}`} className="rounded-md bg-white border px-3 py-2">
+                        <div className="grid grid-cols-[140px_1fr] gap-3">
+                          {/* Left: Location and optional Lot */}
+                          <div>
+                            <div className="text-[11px] font-semibold text-gray-700">{trans.locationLabel}:</div>
+                            <div className="text-sm text-gray-900">{lr.Location || "-"}</div>
+                            {lr.Lot && (
+                              <div className="text-xs text-gray-700 mt-1">Charge: <span className="text-gray-900">{lr.Lot}</span></div>
+                            )}
+                          </div>
+                          {/* Right: numbers */}
+                          <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 items-center">
+                            <div className="text-xs text-gray-500">{trans.onHandLabel}:</div>
+                            <div className="text-sm text-gray-900 text-right">{lr.OnHand}{unit}</div>
+                            <div className="text-xs text-gray-500">{trans.allocatedLabel}:</div>
+                            <div className="text-sm text-gray-900 text-right">{lr.Allocated}{unit}</div>
+                            <div className="text-xs text-gray-500">{trans.availableLabel}:</div>
+                            <div className="text-sm text-gray-900 text-right">{lr.Available}{unit}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -249,7 +331,7 @@ const InfoStockArticle = () => {
         onConfirm={onConfirmSignOut}
       />
 
-      {/* Full-screen spinner while loading */}
+      {/* Full-screen spinner while loading warehouses */}
       {loading && <ScreenSpinner message={trans.loadingList} />}
     </div>
   );
