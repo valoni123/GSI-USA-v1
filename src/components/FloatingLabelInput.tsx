@@ -2,6 +2,7 @@
 
 import React, { useState, forwardRef } from "react";
 import { Input } from "@/components/ui/input";
+import { X } from "lucide-react";
 
 type Props = {
   id: string;
@@ -16,6 +17,7 @@ type Props = {
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onClick?: (e: React.MouseEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onClear?: () => void;
 };
 
 const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function FloatingLabelInput(
@@ -32,6 +34,7 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
     onFocus,
     onClick,
     onKeyDown,
+    onClear,
   },
   ref
 ) {
@@ -56,7 +59,7 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
         onClick={onClick}
         onKeyDown={onKeyDown}
         placeholder=" "
-        className={`peer h-12 text-base ${className ?? ""}`}
+        className={`peer h-12 text-base pr-10 ${className ?? ""}`}
       />
       <label
         htmlFor={id}
@@ -73,6 +76,20 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
       >
         {label}
       </label>
+
+      {onClear && !disabled && (val ?? "").trim().length > 0 && (
+        <button
+          type="button"
+          aria-label="Clear"
+          className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+          onClick={() => {
+            if (value === undefined) setInternal("");
+            onClear();
+          }}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 });

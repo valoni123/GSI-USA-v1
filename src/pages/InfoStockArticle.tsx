@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, X } from "lucide-react";
+import { ArrowLeft, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
@@ -229,6 +229,7 @@ const InfoStockArticle = () => {
             onClick={(e) => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
+            onClear={clearItem}
           />
           <div className="flex justify-end -mt-2">
             <Button
@@ -280,6 +281,7 @@ const InfoStockArticle = () => {
             onClick={(e) => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
+            onClear={clearWarehouse}
           />
           <div className="flex justify-end -mt-2">
             <Button
@@ -331,6 +333,7 @@ const InfoStockArticle = () => {
             onClick={(e) => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
+            onClear={clearLocation}
           />
           <div className="flex justify-end -mt-2">
             <Button
