@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User } from "lucide-react";
+import { ArrowLeft, LogOut, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
@@ -42,6 +42,8 @@ const InfoStockArticle = () => {
 
   // Inputs
   const itemRef = useRef<HTMLInputElement | null>(null);
+  const warehouseRef = useRef<HTMLInputElement | null>(null);
+  const locationRef = useRef<HTMLInputElement | null>(null);
   const [item, setItem] = useState("");
   const [warehouse, setWarehouse] = useState("");
   const [location, setLocation] = useState("");
@@ -73,6 +75,7 @@ const InfoStockArticle = () => {
       setRows([]);
       setLocRows([]);
       setSelectedWarehouse(null);
+      setSelectedLocation(null);
       setLastFetchedItem(null);
       return;
     }
@@ -88,6 +91,7 @@ const InfoStockArticle = () => {
       setRows([]);
       setLocRows([]);
       setSelectedWarehouse(null);
+      setSelectedLocation(null);
       setLoading(false);
       return;
     }
@@ -119,6 +123,35 @@ const InfoStockArticle = () => {
     }
     setLocRows((data.rows || []) as Array<{ Location: string; Lot?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>);
     setLocLoading(false);
+  };
+
+  // Clear handlers with re-fetch
+  const clearItem = async () => {
+    setItem("");
+    setRows([]);
+    setLocRows([]);
+    setSelectedWarehouse(null);
+    setSelectedLocation(null);
+    setLastFetchedItem(null);
+    itemRef.current?.focus();
+    // No item → show empty state
+  };
+  const clearWarehouse = async () => {
+    setWarehouse("");
+    setSelectedWarehouse(null);
+    setSelectedLocation(null);
+    setLocRows([]);
+    warehouseRef.current?.focus();
+    // Reload warehouses for current item
+    if (item.trim()) await fetchInventory(item);
+  };
+  const clearLocation = async () => {
+    setLocation("");
+    setSelectedLocation(null);
+    locationRef.current?.focus();
+    // Reload locations for current item + warehouse
+    const wh = (warehouse || selectedWarehouse || "").trim();
+    if (item.trim() && wh) await fetchLocations(item, wh);
   };
 
   return (
@@ -159,6 +192,7 @@ const InfoStockArticle = () => {
       {/* Form */}
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
+          {/* Item */}
           <FloatingLabelInput
             id="articleItem"
             label={trans.itemLabel}
@@ -171,6 +205,7 @@ const InfoStockArticle = () => {
                 setRows([]);
                 setLocRows([]);
                 setSelectedWarehouse(null);
+                setSelectedLocation(null);
                 setLastFetchedItem(null);
               }
             }}
@@ -181,6 +216,12 @@ const InfoStockArticle = () => {
                 fetchInventory(item);
               }
             }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const current = item.trim();
+                if (current) fetchInventory(item);
+              }
+            }}
             autoFocus
             onFocus={(e) => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
@@ -189,11 +230,50 @@ const InfoStockArticle = () => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
           />
+          <div className="flex justify-end -mt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-gray-700 hover:text-gray-900"
+              onClick={clearItem}
+              disabled={!item.trim()}
+              aria-label="Clear item"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Warehouse */}
           <FloatingLabelInput
             id="articleWarehouse"
             label={trans.warehouseLabel}
+            ref={warehouseRef}
             value={warehouse}
             onChange={(e) => setWarehouse(e.target.value)}
+            onBlur={() => {
+              const wh = warehouse.trim();
+              if (!wh) {
+                setSelectedWarehouse(null);
+                setLocRows([]);
+                return;
+              }
+              if (item.trim()) {
+                setSelectedWarehouse(wh);
+                setSelectedLocation(null);
+                fetchLocations(item, wh);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const wh = warehouse.trim();
+                if (item.trim() && wh) {
+                  setSelectedWarehouse(wh);
+                  setSelectedLocation(null);
+                  fetchLocations(item, wh);
+                }
+              }
+            }}
             onFocus={(e) => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
@@ -201,11 +281,50 @@ const InfoStockArticle = () => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
           />
+          <div className="flex justify-end -mt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-gray-700 hover:text-gray-900"
+              onClick={clearWarehouse}
+              disabled={!warehouse.trim()}
+              aria-label="Clear warehouse"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Location */}
           <FloatingLabelInput
             id="articleLocation"
             label={trans.locationLabel}
+            ref={locationRef}
             value={location}
             onChange={(e) => setLocation(e.target.value)}
+            onBlur={() => {
+              const loc = location.trim();
+              const wh = (warehouse || selectedWarehouse || "").trim();
+              if (!loc) {
+                setSelectedLocation(null);
+                if (item.trim() && wh) fetchLocations(item, wh);
+                return;
+              }
+              if (item.trim() && wh) {
+                setSelectedLocation(loc);
+                fetchLocations(item, wh, loc);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const loc = location.trim();
+                const wh = (warehouse || selectedWarehouse || "").trim();
+                if (item.trim() && wh) {
+                  setSelectedLocation(loc || null);
+                  fetchLocations(item, wh, loc || undefined);
+                }
+              }
+            }}
             onFocus={(e) => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
@@ -213,6 +332,19 @@ const InfoStockArticle = () => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
           />
+          <div className="flex justify-end -mt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-gray-700 hover:text-gray-900"
+              onClick={clearLocation}
+              disabled={!location.trim()}
+              aria-label="Clear location"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
 
           {/* Warehouse blocks */}
           <div className="mt-2 rounded-md">
@@ -233,11 +365,11 @@ const InfoStockArticle = () => {
                         setWarehouse(r.Warehouse);
                         setSelectedLocation(null);
                         await fetchLocations(item, r.Warehouse);
+                        // Focus next field for convenience
+                        setTimeout(() => locationRef.current?.focus(), 50);
                       }}
                     >
-                      {/* Three-column layout: left (warehouse), middle (divider), right (numbers) */}
                       <div className="grid grid-cols-[170px_10px_1fr] gap-3 items-stretch">
-                        {/* Left block: Warehouse */}
                         <div className="flex flex-col justify-center">
                           <div className="text-sm font-semibold text-gray-700">{trans.warehouseLabel}:</div>
                           <div className="text-sm text-gray-900">
@@ -245,13 +377,9 @@ const InfoStockArticle = () => {
                             {r.WarehouseName ? <span className="ml-1 text-gray-700">({r.WarehouseName})</span> : null}
                           </div>
                         </div>
-
-                        {/* Middle: vertical divider */}
                         <div className="flex items-stretch">
                           <div className="mx-auto w-[2px] rounded bg-gray-300/70" />
                         </div>
-
-                        {/* Right block: Inventory data */}
                         <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 items-center">
                           <div className="text-xs text-gray-500">{trans.onHandLabel}:</div>
                           <div className="text-sm text-gray-900 text-right">{r.OnHand}{unit}</div>
@@ -292,7 +420,6 @@ const InfoStockArticle = () => {
                         }}
                       >
                         <div className="grid grid-cols-[140px_1fr] gap-3">
-                          {/* Left: Location and optional Lot */}
                           <div>
                             <div className="text-[11px] font-semibold text-gray-700">{trans.locationLabel}:</div>
                             <div className="text-sm text-gray-900">{lr.Location || "-"}</div>
@@ -300,7 +427,6 @@ const InfoStockArticle = () => {
                               <div className="text-xs text-gray-700 mt-1">Charge: <span className="text-gray-900">{lr.Lot}</span></div>
                             )}
                           </div>
-                          {/* Right: numbers */}
                           <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 items-center">
                             <div className="text-xs text-gray-500">{trans.onHandLabel}:</div>
                             <div className="text-sm text-gray-900 text-right">{lr.OnHand}{unit}</div>
