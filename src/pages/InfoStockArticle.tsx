@@ -331,42 +331,39 @@ const InfoStockArticle = () => {
                       type="button"
                       className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${isSelected ? "bg-gray-200/70" : "bg-gray-50 hover:bg-gray-100/70"}`}
                       onClick={async () => {
-                        const clickedWh = r.Warehouse;
-                        const currentItem = item.trim();
-                        const currentWh = (warehouse || selectedWarehouse || "").trim();
-
-                        setSelectedWarehouse(clickedWh);
-                        setWarehouse(clickedWh);
+                        setSelectedWarehouse(r.Warehouse);
+                        setWarehouse(r.Warehouse);
                         setSelectedLocation(null);
-
-                        // If the warehouse input already matches the clicked one and we have rows loaded, don't refetch
-                        if (currentItem && currentWh && clickedWh === currentWh && locRows.length > 0) {
-                          setTimeout(() => locationRef.current?.focus(), 50);
-                          return;
-                        }
-
-                        await fetchLocations(item, clickedWh);
+                        await fetchLocations(item, r.Warehouse);
                         setTimeout(() => locationRef.current?.focus(), 50);
                       }}
                     >
-                      <div className="grid grid-cols-[170px_10px_1fr] gap-3 items-stretch">
+                      {/* Responsive grid: narrower left column on mobile, more space for right quantities */}
+                      <div className="grid grid-cols-[130px_10px_1fr] sm:grid-cols-[170px_12px_1fr] gap-3 items-stretch w-full">
+                        {/* Left block: Warehouse label, code, description on its own line */}
                         <div className="flex flex-col justify-center">
                           <div className="text-sm font-semibold text-gray-700">{trans.warehouseLabel}:</div>
-                          <div className="text-sm text-gray-900">
-                            {r.Warehouse || "-"}
-                            {r.WarehouseName ? <span className="ml-1 text-gray-700">({r.WarehouseName})</span> : null}
-                          </div>
+                          <div className="text-sm text-gray-900 whitespace-nowrap">{r.Warehouse || "-"}</div>
+                          {r.WarehouseName && (
+                            <div className="text-xs text-gray-700 break-words">{r.WarehouseName}</div>
+                          )}
                         </div>
+
+                        {/* Middle: vertical divider */}
                         <div className="flex items-stretch">
                           <div className="mx-auto w-[2px] rounded bg-gray-300/70" />
                         </div>
-                        <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 items-center">
-                          <div className="text-xs text-gray-500">{trans.onHandLabel}:</div>
-                          <div className="text-sm text-gray-900 text-right">{r.OnHand}{unit}</div>
-                          <div className="text-xs text-gray-500">{trans.allocatedLabel}:</div>
-                          <div className="text-sm text-gray-900 text-right">{r.Allocated}{unit}</div>
-                          <div className="text-xs text-gray-500">{trans.availableLabel}:</div>
-                          <div className="text-sm text-gray-900 text-right">{r.Available}{unit}</div>
+
+                        {/* Right block: quantities; labels and values each on one line */}
+                        <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 items-center">
+                          <div className="text-xs text-gray-500 whitespace-nowrap">{trans.onHandLabel}:</div>
+                          <div className="text-sm text-gray-900 text-right whitespace-nowrap">{r.OnHand}{unit}</div>
+
+                          <div className="text-xs text-gray-500 whitespace-nowrap">{trans.allocatedLabel}:</div>
+                          <div className="text-sm text-gray-900 text-right whitespace-nowrap">{r.Allocated}{unit}</div>
+
+                          <div className="text-xs text-gray-500 whitespace-nowrap">{trans.availableLabel}:</div>
+                          <div className="text-sm text-gray-900 text-right whitespace-nowrap">{r.Available}{unit}</div>
                         </div>
                       </div>
                     </button>
