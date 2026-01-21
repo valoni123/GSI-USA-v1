@@ -331,11 +331,21 @@ const InfoStockArticle = () => {
                       type="button"
                       className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${isSelected ? "bg-gray-200/70" : "bg-gray-50 hover:bg-gray-100/70"}`}
                       onClick={async () => {
-                        setSelectedWarehouse(r.Warehouse);
-                        setWarehouse(r.Warehouse);
+                        const clickedWh = r.Warehouse;
+                        const currentItem = item.trim();
+                        const currentWh = (warehouse || selectedWarehouse || "").trim();
+
+                        setSelectedWarehouse(clickedWh);
+                        setWarehouse(clickedWh);
                         setSelectedLocation(null);
-                        await fetchLocations(item, r.Warehouse);
-                        // Focus next field for convenience
+
+                        // If the warehouse input already matches the clicked one and we have rows loaded, don't refetch
+                        if (currentItem && currentWh && clickedWh === currentWh && locRows.length > 0) {
+                          setTimeout(() => locationRef.current?.focus(), 50);
+                          return;
+                        }
+
+                        await fetchLocations(item, clickedWh);
                         setTimeout(() => locationRef.current?.focus(), 50);
                       }}
                     >
@@ -388,10 +398,21 @@ const InfoStockArticle = () => {
                           setIsLocationSelecting(true);
                         }}
                         onClick={async () => {
-                          setSelectedLocation(lr.Location);
-                          setLocation(lr.Location);
-                          await fetchLocations(item, warehouse || selectedWarehouse || "", lr.Location);
-                          // Clear selection flag after the request completes
+                          const clickedLoc = lr.Location;
+                          const currentItem = item.trim();
+                          const currentWh = (warehouse || selectedWarehouse || "").trim();
+                          const currentLoc = location.trim();
+
+                          setSelectedLocation(clickedLoc);
+                          setLocation(clickedLoc);
+
+                          // If inputs already match this location, don't refetch
+                          if (currentItem && currentWh && currentLoc === clickedLoc) {
+                            setIsLocationSelecting(false);
+                            return;
+                          }
+
+                          await fetchLocations(item, currentWh || selectedWarehouse || "", clickedLoc);
                           setIsLocationSelecting(false);
                         }}
                       >
