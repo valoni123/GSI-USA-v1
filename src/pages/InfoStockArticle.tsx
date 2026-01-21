@@ -57,6 +57,7 @@ const InfoStockArticle = () => {
   const [locRows, setLocRows] = useState<Array<{ Location: string; Lot?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>>([]);
   const [locLoading, setLocLoading] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [isLocationSelecting, setIsLocationSelecting] = useState<boolean>(false);
 
   useEffect(() => {
     itemRef.current?.focus();
@@ -279,6 +280,11 @@ const InfoStockArticle = () => {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             onBlur={() => {
+              if (isLocationSelecting) {
+                // Skip blur-triggered fetch when a location row is being selected
+                setIsLocationSelecting(false);
+                return;
+              }
               const loc = location.trim();
               const wh = (warehouse || selectedWarehouse || "").trim();
               if (!loc) {
@@ -377,10 +383,16 @@ const InfoStockArticle = () => {
                         key={`${lr.Location}-${idx}`}
                         type="button"
                         className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${isLocSelected ? "bg-gray-200/70" : "bg-white hover:bg-gray-100/70"}`}
+                        onMouseDown={() => {
+                          // Mark that a location selection is in progress (runs before input blur)
+                          setIsLocationSelecting(true);
+                        }}
                         onClick={async () => {
                           setSelectedLocation(lr.Location);
                           setLocation(lr.Location);
                           await fetchLocations(item, warehouse || selectedWarehouse || "", lr.Location);
+                          // Clear selection flag after the request completes
+                          setIsLocationSelecting(false);
                         }}
                       >
                         <div className="grid grid-cols-[140px_1fr] gap-3">
