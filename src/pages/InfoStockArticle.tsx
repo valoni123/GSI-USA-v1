@@ -231,19 +231,6 @@ const InfoStockArticle = () => {
             }}
             onClear={clearItem}
           />
-          <div className="flex justify-end -mt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-gray-700 hover:text-gray-900"
-              onClick={clearItem}
-              disabled={!item.trim()}
-              aria-label="Clear item"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
 
           {/* Warehouse */}
           <FloatingLabelInput
@@ -283,19 +270,6 @@ const InfoStockArticle = () => {
             }}
             onClear={clearWarehouse}
           />
-          <div className="flex justify-end -mt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-gray-700 hover:text-gray-900"
-              onClick={clearWarehouse}
-              disabled={!warehouse.trim()}
-              aria-label="Clear warehouse"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
 
           {/* Location */}
           <FloatingLabelInput
@@ -335,19 +309,6 @@ const InfoStockArticle = () => {
             }}
             onClear={clearLocation}
           />
-          <div className="flex justify-end -mt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-gray-700 hover:text-gray-900"
-              onClick={clearLocation}
-              disabled={!location.trim()}
-              aria-label="Clear location"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
 
           {/* Warehouse blocks */}
           <div className="mt-2 rounded-md">
