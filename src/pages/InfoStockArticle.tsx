@@ -54,6 +54,7 @@ const InfoStockArticle = () => {
   const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
   const [locRows, setLocRows] = useState<Array<{ Location: string; Lot?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>>([]);
   const [locLoading, setLocLoading] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 
   useEffect(() => {
     itemRef.current?.focus();
@@ -95,9 +96,10 @@ const InfoStockArticle = () => {
     setLoading(false);
   };
 
-  const fetchLocations = async (itm: string, wh: string) => {
+  const fetchLocations = async (itm: string, wh: string, loc?: string) => {
     const trimmed = (itm || "").trim();
     const whTrim = (wh || "").trim();
+    const locTrim = (loc || "").trim();
     if (!trimmed || !whTrim) {
       setLocRows([]);
       return;
@@ -105,7 +107,7 @@ const InfoStockArticle = () => {
     setLocLoading(true);
     const tid = showLoading(trans.loadingList);
     const { data, error } = await supabase.functions.invoke("ln-stockpoint-inventory", {
-      body: { item: trimmed, warehouse: whTrim, language: locale, company: "1000" },
+      body: { item: trimmed, warehouse: whTrim, location: locTrim || undefined, language: locale, company: "1000" },
     });
     dismissToast(tid as unknown as string);
     if (error || !data || !data.ok) {
@@ -229,6 +231,7 @@ const InfoStockArticle = () => {
                       onClick={async () => {
                         setSelectedWarehouse(r.Warehouse);
                         setWarehouse(r.Warehouse);
+                        setSelectedLocation(null);
                         await fetchLocations(item, r.Warehouse);
                       }}
                     >
@@ -276,8 +279,18 @@ const InfoStockArticle = () => {
                 <div className="space-y-2">
                   {locRows.map((lr, idx) => {
                     const unit = lr.Unit ? ` ${lr.Unit}` : "";
+                    const isLocSelected = selectedLocation === lr.Location;
                     return (
-                      <div key={`${lr.Location}-${idx}`} className="rounded-md bg-white border px-3 py-2">
+                      <button
+                        key={`${lr.Location}-${idx}`}
+                        type="button"
+                        className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${isLocSelected ? "bg-gray-200/70" : "bg-white hover:bg-gray-100/70"}`}
+                        onClick={async () => {
+                          setSelectedLocation(lr.Location);
+                          setLocation(lr.Location);
+                          await fetchLocations(item, warehouse || selectedWarehouse || "", lr.Location);
+                        }}
+                      >
                         <div className="grid grid-cols-[140px_1fr] gap-3">
                           {/* Left: Location and optional Lot */}
                           <div>
@@ -297,7 +310,7 @@ const InfoStockArticle = () => {
                             <div className="text-sm text-gray-900 text-right">{lr.Available}{unit}</div>
                           </div>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

@@ -39,6 +39,7 @@ serve(async (req) => {
     const trimmedItem = rawItem.trim();
     const paddedItem = `${" ".repeat(9)}${trimmedItem}`;
     const warehouse = (body.warehouse || "").trim();
+    const location = (body as any).location ? String((body as any).location).trim() : "";
     const language = body.language || "en-US";
     const company = body.company || "1000";
 
@@ -100,8 +101,14 @@ serve(async (req) => {
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const encodedItem = paddedItem.replace(/'/g, "''");
     const encodedWh = warehouse.replace(/'/g, "''");
+    const encodedLoc = location.replace(/'/g, "''");
     const path = `/${ti}/LN/lnapi/odata/whapi.inrStockPointInventory/Items(Item='${encodedItem}')/InventoryRefs`;
-    const url = `${base}${path}?$filter=${encodeURIComponent(`Warehouse eq '${encodedWh}'`)}&$select=*&$orderby=Location&$expand=*`;
+    const filterBase = `Warehouse eq '${encodedWh}'`;
+    const filter =
+      location
+        ? `${filterBase} and Location eq '${encodedLoc}'`
+        : filterBase;
+    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$select=*&$orderby=Location&$expand=*`;
 
     const odataRes = await fetch(url, {
       method: "GET",
