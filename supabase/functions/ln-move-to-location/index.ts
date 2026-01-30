@@ -51,7 +51,7 @@ serve(async (req) => {
     const toLocation = (body.toLocation || "").trim();
     const employee = (body.employee || "").trim();
     const language = body.language || "de-DE";
-    const company = body.company || "1000";
+    const company = body.company || "1100";
 
     if (!handlingUnit || !fromWarehouse || !fromLocation || !toWarehouse || !toLocation || !employee) {
       return json({ ok: false, error: "missing_fields" }, 400);

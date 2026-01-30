@@ -38,7 +38,7 @@ serve(async (req) => {
     const handlingUnit = (body.handlingUnit || "").trim();
     const vehicleId = (body.vehicleId || "").trim();
     const language = body.language || "en-US";
-    const company = body.company || "1000";
+    const company = body.company || "1100";
 
     if (!handlingUnit || !vehicleId) {
       return json({ ok: false, error: "missing_fields" }, 200);

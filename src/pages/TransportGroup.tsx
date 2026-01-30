@@ -51,7 +51,7 @@ const TransportGroup = () => {
     const pg = (group || "").toString();
     const showAll = pg.toUpperCase() === "ALL";
     const { data } = await supabase.functions.invoke("ln-transport-planning-list", {
-      body: { planningGroup: showAll ? "" : pg, showAll, language: locale, company: "1000" },
+      body: { planningGroup: showAll ? "" : pg, showAll, language: locale, company: "1100" },
     });
     if (data && data.ok) {
       setItems(data.items || []);
@@ -65,7 +65,7 @@ const TransportGroup = () => {
   // NEW: fetch all PlanningGroup descriptions
   const loadGroupDescriptions = async () => {
     const { data } = await supabase.functions.invoke("ln-transport-groups-list", {
-      body: { language: locale, company: "1000" },
+      body: { language: locale, company: "1100" },
     });
     if (data && data.ok) {
       const map: Record<string, string> = {};

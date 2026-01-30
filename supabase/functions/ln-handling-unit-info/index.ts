@@ -37,7 +37,7 @@ serve(async (req) => {
 
     const handlingUnit = (body.handlingUnit || "").trim();
     const language = body.language || "en-US";
-    const company = body.company || "1000";
+    const company = body.company || "1100";
     if (!handlingUnit) {
       return json({ ok: false, error: "missing_handling_unit" }, 200);
     }

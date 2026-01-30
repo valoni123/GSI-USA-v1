@@ -37,7 +37,7 @@ serve(async (req) => {
 
     const planningGroup = (body.planningGroup || "").trim();
     const language = body.language || "en-US";
-    const company = body.company || "1000";
+    const company = body.company || "1100";
     const showAll = Boolean(body.showAll);
     // Only require planningGroup when not in showAll mode
     if (!showAll && !planningGroup) {

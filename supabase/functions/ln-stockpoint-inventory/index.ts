@@ -41,7 +41,7 @@ serve(async (req) => {
     const warehouse = (body.warehouse || "").trim();
     const location = (body as any).location ? String((body as any).location).trim() : "";
     const language = body.language || "en-US";
-    const company = body.company || "1000";
+    const company = body.company || "1100";
 
     if (!trimmedItem || !warehouse) {
       return json({ ok: false, error: "missing_params" }, 200);

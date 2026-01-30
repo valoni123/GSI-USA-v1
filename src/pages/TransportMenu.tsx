@@ -90,7 +90,7 @@ const TransportMenu = () => {
   // Helper to fetch count for a given vehicle (called only after load/unload)
   const fetchCount = async (vid: string) => {
     const { data } = await supabase.functions.invoke("ln-transport-count", {
-      body: { vehicleId: vid, language: "en-US", company: "1000" },
+      body: { vehicleId: vid, language: "en-US", company: "1100" },
     });
     const next = data && data.ok ? Number(data.count || 0) : 0;
     setLoadedCount(next);
@@ -101,7 +101,7 @@ const TransportMenu = () => {
 
   const fetchList = async (vid: string) => {
     const { data } = await supabase.functions.invoke("ln-transport-list", {
-      body: { vehicleId: vid, language: "en-US", company: "1000" },
+      body: { vehicleId: vid, language: "en-US", company: "1100" },
     });
     if (data && data.ok) {
       const items = (data.items || []) as Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>;

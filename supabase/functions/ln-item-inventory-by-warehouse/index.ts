@@ -39,7 +39,7 @@ serve(async (req) => {
     const trimmedItem = rawItem.trim();
     const paddedItem = `${" ".repeat(9)}${trimmedItem}`;
     const language = body.language || "en-US";
-    const company = body.company || "1000";
+    const company = body.company || "1100";
     if (!trimmedItem) {
       return json({ ok: false, error: "missing_item" }, 200);
     }

@@ -92,7 +92,7 @@ const TransportLoad = () => {
         return;
       }
       const { data } = await supabase.functions.invoke("ln-transport-count", {
-        body: { vehicleId, language: locale, company: "1000" },
+        body: { vehicleId, language: locale, company: "1100" },
       });
       if (!active) return;
       setLoadedCount(data && data.ok ? Number(data.count || 0) : 0);
@@ -104,7 +104,7 @@ const TransportLoad = () => {
 
   const fetchList = async (vid: string) => {
     const { data } = await supabase.functions.invoke("ln-transport-list", {
-      body: { vehicleId: vid, language: locale, company: "1000" },
+      body: { vehicleId: vid, language: locale, company: "1100" },
     });
     if (data && data.ok) {
       const items = (data.items || []) as Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>;
@@ -121,7 +121,7 @@ const TransportLoad = () => {
 
   const fetchCount = async (vid: string) => {
     const { data } = await supabase.functions.invoke("ln-transport-count", {
-      body: { vehicleId: vid, language: locale, company: "1000" },
+      body: { vehicleId: vid, language: locale, company: "1100" },
     });
     const next = data && data.ok ? Number(data.count || 0) : 0;
     setLoadedCount(next);
@@ -139,7 +139,7 @@ const TransportLoad = () => {
     if (selectedVehicle) {
       const preTid = showLoading(trans.checkingHandlingUnit);
       const { data: loadedData, error: loadedErr } = await supabase.functions.invoke("ln-transport-loaded-check", {
-        body: { handlingUnit: hu, vehicleId: selectedVehicle, language: locale, company: "1000" },
+        body: { handlingUnit: hu, vehicleId: selectedVehicle, language: locale, company: "1100" },
       });
       dismissToast(preTid as unknown as string);
       if (!loadedErr && loadedData && loadedData.ok && Number(loadedData.count || 0) > 0) {
@@ -164,10 +164,10 @@ const TransportLoad = () => {
     setDetailsLoading(true);
     const [ordRes, qtyRes] = await Promise.all([
       supabase.functions.invoke("ln-transport-orders", {
-        body: { handlingUnit: hu, language: locale, company: "1000" },
+        body: { handlingUnit: hu, language: locale, company: "1100" },
       }),
       supabase.functions.invoke("ln-handling-unit-info", {
-        body: { handlingUnit: hu, language: locale, company: "1000" },
+        body: { handlingUnit: hu, language: locale, company: "1100" },
       }),
     ]);
     dismissToast(tid as unknown as string);
@@ -243,7 +243,7 @@ const TransportLoad = () => {
       toLocation: vehicleId.trim(),
       employee: employeeCode,
       language: locale,
-      company: "1000",
+      company: "1100",
     };
     const tid = showLoading(trans.executingMovement);
     const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
@@ -268,7 +268,7 @@ const TransportLoad = () => {
         etag: etag.trim(),
         vehicleId: vehicleId.trim(),
         language: locale,
-        company: "1000",
+        company: "1100",
       },
     });
     dismissToast(patchTid as unknown as string);

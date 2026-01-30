@@ -39,7 +39,9 @@ const TransportSelect = () => {
   });
 
   const fetchGroups = async () => {
-    const { data } = await supabase.functions.invoke("ln-transport-groups-list", { body: {} });
+    const { data } = await supabase.functions.invoke("ln-transport-groups-list", {
+      body: { language: "en-US", company: "1100" },
+    });
     if (data && data.ok) {
       setItems((data.items || []) as Item[]);
       setQuery("");

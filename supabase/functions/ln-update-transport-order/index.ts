@@ -41,7 +41,7 @@ serve(async (req) => {
     const vehicleId = (body.vehicleId || "").trim();
     const completed = (body.completed || "").trim();
     const language = body.language || "de-DE";
-    const company = body.company || "1000";
+    const company = body.company || "1100";
 
     if (!transportId || !etag) {
       return json({ ok: false, error: { message: "missing_fields" } }, 200);

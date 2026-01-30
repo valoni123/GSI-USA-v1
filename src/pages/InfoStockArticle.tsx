@@ -83,7 +83,7 @@ const InfoStockArticle = () => {
     setLoading(true);
     const tid = showLoading(trans.loadingList);
     const { data, error } = await supabase.functions.invoke("ln-item-inventory-by-warehouse", {
-      body: { item: trimmed, language: locale, company: "1000" },
+      body: { item: trimmed, language: locale, company: "1100" },
     });
     dismissToast(tid as unknown as string);
     if (error || !data || !data.ok) {
@@ -112,7 +112,7 @@ const InfoStockArticle = () => {
     setLocLoading(true);
     const tid = showLoading(trans.loadingList);
     const { data, error } = await supabase.functions.invoke("ln-stockpoint-inventory", {
-      body: { item: trimmed, warehouse: whTrim, location: locTrim || undefined, language: locale, company: "1000" },
+      body: { item: trimmed, warehouse: whTrim, location: locTrim || undefined, language: locale, company: "1100" },
     });
     dismissToast(tid as unknown as string);
     if (error || !data || !data.ok) {
