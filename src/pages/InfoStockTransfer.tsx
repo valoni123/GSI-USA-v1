@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
-import { showSuccess } from "@/utils/toast";
+import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 
 const InfoStockTransfer = () => {
   const navigate = useNavigate();
@@ -40,11 +40,75 @@ const InfoStockTransfer = () => {
   };
 
   const huRef = useRef<HTMLInputElement | null>(null);
+  const warehouseRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState<string>("");
+  const [lastSearched, setLastSearched] = useState<string | null>(null);
+  // Result fields
+  const [warehouse, setWarehouse] = useState<string>("");
+  const [location, setLocation] = useState<string>("");
+  const [item, setItem] = useState<string>("");
+  const [lot, setLot] = useState<string>("");
+  const [quantity, setQuantity] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
+  // Enablement
+  const [warehouseEnabled, setWarehouseEnabled] = useState<boolean>(false);
+  const locale = useMemo(() => {
+    if (lang === "de") return "de-DE";
+    if (lang === "es-MX") return "es-MX";
+    if (lang === "pt-BR") return "pt-BR";
+    return "en-US";
+  }, [lang]);
 
   useEffect(() => {
     huRef.current?.focus();
   }, []);
+
+  // Main search handler: HU first, then ITEM
+  const handleSearch = async () => {
+    const input = query.trim();
+    if (!input) return;
+    if (lastSearched === input) return;
+    const tid = showLoading(trans.loadingDetails);
+    // 1) Try HU
+    const huRes = await supabase.functions.invoke("ln-handling-unit-info", {
+      body: { handlingUnit: input, language: locale, company: "1100" },
+    });
+    if (huRes.data && huRes.data.ok) {
+      const d = huRes.data;
+      setItem(d.item || "");
+      setWarehouse(d.warehouse || "");
+      setLocation(d.location || "");
+      setLot(d.lot || "");
+      const qty = d.quantity != null ? String(d.quantity) : "";
+      setQuantity(qty + (d.unit ? ` ${d.unit}` : ""));
+      setStatus(d.status || "");
+      setWarehouseEnabled(false);
+      setLastSearched(input);
+      dismissToast(tid as unknown as string);
+      return;
+    }
+    // 2) Try ITEM (no HU error toast)
+    const itemRes = await supabase.functions.invoke("ln-item-info", {
+      body: { item: input, language: locale, company: "1100" },
+    });
+    dismissToast(tid as unknown as string);
+    if (itemRes.data && itemRes.data.ok) {
+      const d = itemRes.data;
+      setItem(d.item || input);
+      setWarehouseEnabled(true);
+      setLastSearched(input);
+      // Clear HU-specific fields
+      setWarehouse("");
+      setLocation("");
+      setLot("");
+      setQuantity("");
+      setStatus("");
+      setTimeout(() => warehouseRef.current?.focus(), 50);
+      return;
+    }
+    // Neither HU nor Item found → small error
+    showError(trans.noEntries);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -93,6 +157,15 @@ const InfoStockTransfer = () => {
                 ref={huRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onBlur={() => {
+                  const v = query.trim();
+                  if (v) handleSearch();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch();
+                  }
+                }}
                 onFocus={(e) => {
                   if (e.currentTarget.value.length > 0) e.currentTarget.select();
                 }}
@@ -101,6 +174,14 @@ const InfoStockTransfer = () => {
                 }}
                 onClear={() => {
                   setQuery("");
+                  setLastSearched(null);
+                  setItem("");
+                  setWarehouse("");
+                  setLocation("");
+                  setLot("");
+                  setQuantity("");
+                  setStatus("");
+                  setWarehouseEnabled(false);
                   huRef.current?.focus();
                 }}
               />
@@ -111,9 +192,7 @@ const InfoStockTransfer = () => {
               size="icon"
               className={query.trim() ? "h-10 w-10 bg-red-600 hover:bg-red-700 text-white" : "h-10 w-10 text-gray-700 hover:text-gray-900"}
               aria-label={trans.searchLabel}
-              onClick={() => {
-                // placeholder for future search/scan action
-              }}
+              onClick={handleSearch}
             >
               <Search className="h-5 w-5" />
             </Button>
@@ -121,12 +200,26 @@ const InfoStockTransfer = () => {
 
           {/* Stacked fields */}
           <div className="space-y-3">
-            <Input disabled placeholder={trans.warehouseLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
-            <Input disabled placeholder={trans.locationLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
-            <Input disabled placeholder={trans.itemLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
-            <Input disabled placeholder={trans.lotLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
-            <Input disabled placeholder={trans.quantityLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
-            <Input disabled placeholder={trans.statusLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
+            <FloatingLabelInput
+              id="transferWarehouse"
+              label={trans.warehouseLabel}
+              ref={warehouseRef}
+              value={warehouse}
+              onChange={(e) => setWarehouse(e.target.value)}
+              disabled={!warehouseEnabled}
+              onFocus={(e) => {
+                if (e.currentTarget.value.length > 0) e.currentTarget.select();
+              }}
+              onClick={(e) => {
+                if (e.currentTarget.value.length > 0) e.currentTarget.select();
+              }}
+              onClear={() => setWarehouse("")}
+            />
+            <Input disabled value={location} placeholder={trans.locationLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
+            <Input disabled value={item} placeholder={trans.itemLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
+            <Input disabled value={lot} placeholder={trans.lotLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
+            <Input disabled value={quantity} placeholder={trans.quantityLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
+            <Input disabled value={status} placeholder={trans.statusLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
             <Input disabled placeholder={trans.targetWarehouseLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
             <Input disabled placeholder={trans.targetLocationLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
           </div>
