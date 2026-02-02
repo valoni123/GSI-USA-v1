@@ -138,6 +138,19 @@ serve(async (req) => {
     const lot = pick(["Lot", "LotNumber", "Batch"]);
     const status = pick(["Status", "StatusDesc", "HandlingUnitStatus"]);
 
+    const toBool = (v: any) => {
+      if (typeof v === "boolean") return v;
+      if (v == null) return false;
+      const s = String(v).toLowerCase();
+      return s === "yes" || s === "true" || s === "1";
+    };
+
+    const fullyBlocked = toBool(pick(["FullyBlocked"]));
+    const blockedForOutbound = toBool(pick(["BlockedForOutbound"]));
+    const blockedForTransferIssue = toBool(pick(["BlockedForTransferIssue"]));
+    const blockedForCycleCounting = toBool(pick(["BlockedForCycleCounting"]));
+    const blockedForAssembly = toBool(pick(["BlockedForAssembly"]));
+
     return json({
       ok: true,
       handlingUnit,
@@ -148,6 +161,11 @@ serve(async (req) => {
       location,
       lot,
       status,
+      fullyBlocked,
+      blockedForOutbound,
+      blockedForTransferIssue,
+      blockedForCycleCounting,
+      blockedForAssembly,
     }, 200);
   } catch {
     return json({ ok: false, error: { message: "unhandled" } }, 200);

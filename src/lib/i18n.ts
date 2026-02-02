@@ -80,7 +80,13 @@ type TranslationKeys =
   | "allocatedLabel"
   | "availableLabel"
   | "statusLabel"
-  | "lotLabel";
+  | "lotLabel"
+  | "blockedLabel"
+  | "blockedFullyLabel"
+  | "blockedOutboundLabel"
+  | "blockedTransferIssueLabel"
+  | "blockedCycleCountingLabel"
+  | "blockedAssemblyLabel";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -159,6 +165,12 @@ const translations: Translations = {
     availableLabel: "Available",
     statusLabel: "Status",
     lotLabel: "Lot",
+    blockedLabel: "Blocked",
+    blockedFullyLabel: "Fully",
+    blockedOutboundLabel: "For Outbound",
+    blockedTransferIssueLabel: "For Transfer Issue",
+    blockedCycleCountingLabel: "For Cycle Counting",
+    blockedAssemblyLabel: "For Assembly",
   },
   de: {
     title: "Anmelden",
@@ -234,6 +246,12 @@ const translations: Translations = {
     availableLabel: "Verfügbar",
     statusLabel: "Status",
     lotLabel: "Charge",
+    blockedLabel: "Gesperrt",
+    blockedFullyLabel: "Vollständig",
+    blockedOutboundLabel: "Für Auslagerung",
+    blockedTransferIssueLabel: "Für Umlagerung (Entnahme)",
+    blockedCycleCountingLabel: "Für Inventur",
+    blockedAssemblyLabel: "Für Zusammenstellung",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -309,6 +327,12 @@ const translations: Translations = {
     availableLabel: "Disponible",
     statusLabel: "Estado",
     lotLabel: "Lote",
+    blockedLabel: "Bloqueado",
+    blockedFullyLabel: "Totalmente",
+    blockedOutboundLabel: "Para salida",
+    blockedTransferIssueLabel: "Para traslado (emisión)",
+    blockedCycleCountingLabel: "Para conteo cíclico",
+    blockedAssemblyLabel: "Para ensamblaje",
   },
   "pt-BR": {
     title: "Entrar",
@@ -384,6 +408,12 @@ const translations: Translations = {
     availableLabel: "Disponível",
     statusLabel: "Status",
     lotLabel: "Lote",
+    blockedLabel: "Bloqueado",
+    blockedFullyLabel: "Total",
+    blockedOutboundLabel: "Para expedição",
+    blockedTransferIssueLabel: "Para transferência (baixa)",
+    blockedCycleCountingLabel: "Para contagem cíclica",
+    blockedAssemblyLabel: "Para montagem",
   },
 };
 

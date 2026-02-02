@@ -19,6 +19,11 @@ type HUInfo = {
   status?: string | null;
   quantity?: number | string | null;
   unit?: string | null;
+  fullyBlocked?: boolean | null;
+  blockedForOutbound?: boolean | null;
+  blockedForTransferIssue?: boolean | null;
+  blockedForCycleCounting?: boolean | null;
+  blockedForAssembly?: boolean | null;
 };
 
 const InfoStockLEInfo = () => {
@@ -98,6 +103,11 @@ const InfoStockLEInfo = () => {
       status: data.status ?? null,
       quantity: data.quantity ?? null,
       unit: data.unit ?? null,
+      fullyBlocked: !!data.fullyBlocked,
+      blockedForOutbound: !!data.blockedForOutbound,
+      blockedForTransferIssue: !!data.blockedForTransferIssue,
+      blockedForCycleCounting: !!data.blockedForCycleCounting,
+      blockedForAssembly: !!data.blockedForAssembly,
     };
     setData(info);
     setLastFetchedHu(trimmed);
@@ -213,6 +223,33 @@ const InfoStockLEInfo = () => {
 
                   <div className="font-semibold text-gray-700">{trans.statusLabel}:</div>
                   <div className="break-all text-gray-900">{data.status ?? "-"}</div>
+                </div>
+
+                {/* Blocked flags */}
+                <div className="mt-4">
+                  <div className="text-[11px] font-semibold text-gray-700">{trans.blockedLabel}:</div>
+                  <ul className="mt-1 space-y-1.5">
+                    <li className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${data.fullyBlocked ? "bg-red-600" : "bg-gray-300"}`} />
+                      <span className="text-sm text-gray-800">{trans.blockedFullyLabel}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${data.blockedForOutbound ? "bg-red-600" : "bg-gray-300"}`} />
+                      <span className="text-sm text-gray-800">{trans.blockedOutboundLabel}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${data.blockedForTransferIssue ? "bg-red-600" : "bg-gray-300"}`} />
+                      <span className="text-sm text-gray-800">{trans.blockedTransferIssueLabel}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${data.blockedForCycleCounting ? "bg-red-600" : "bg-gray-300"}`} />
+                      <span className="text-sm text-gray-800">{trans.blockedCycleCountingLabel}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${data.blockedForAssembly ? "bg-red-600" : "bg-gray-300"}`} />
+                      <span className="text-sm text-gray-800">{trans.blockedAssemblyLabel}</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             )}
