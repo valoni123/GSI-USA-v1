@@ -79,6 +79,9 @@ type TranslationKeys =
   | "onHandLabel"
   | "allocatedLabel"
   | "availableLabel"
+  | "itemOrHandlingUnit"
+  | "targetWarehouseLabel"
+  | "targetLocationLabel"
   | "statusLabel"
   | "lotLabel"
   | "blockedLabel"
@@ -163,6 +166,9 @@ const translations: Translations = {
     onHandLabel: "On hand",
     allocatedLabel: "Allocated",
     availableLabel: "Available",
+    itemOrHandlingUnit: "Item / Handling Unit",
+    targetWarehouseLabel: "Target Warehouse",
+    targetLocationLabel: "Target Location",
     statusLabel: "Status",
     lotLabel: "Lot",
     blockedLabel: "Blocked",
@@ -244,6 +250,9 @@ const translations: Translations = {
     onHandLabel: "Vorhanden",
     allocatedLabel: "Zuge­teilt",
     availableLabel: "Verfügbar",
+    itemOrHandlingUnit: "Artikel / Ladeeinheit",
+    targetWarehouseLabel: "Ziel-Lager",
+    targetLocationLabel: "Ziel-Lagerplatz",
     statusLabel: "Status",
     lotLabel: "Charge",
     blockedLabel: "Gesperrt",
@@ -325,6 +334,9 @@ const translations: Translations = {
     onHandLabel: "Existencia",
     allocatedLabel: "Asignado",
     availableLabel: "Disponible",
+    itemOrHandlingUnit: "Artículo / Unidad de manejo",
+    targetWarehouseLabel: "Almacén destino",
+    targetLocationLabel: "Ubicación destino",
     statusLabel: "Estado",
     lotLabel: "Lote",
     blockedLabel: "Bloqueado",
@@ -406,6 +418,9 @@ const translations: Translations = {
     onHandLabel: "Em estoque",
     allocatedLabel: "Alocado",
     availableLabel: "Disponível",
+    itemOrHandlingUnit: "Artigo / Unidade de manuseio",
+    targetWarehouseLabel: "Armazém destino",
+    targetLocationLabel: "Local de destino",
     statusLabel: "Status",
     lotLabel: "Lote",
     blockedLabel: "Bloqueado",

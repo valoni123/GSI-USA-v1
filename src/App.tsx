@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Menu from "./pages/Menu";
 import InfoStockMenu from "./pages/InfoStockMenu";
 import InfoStockArticle from "./pages/InfoStockArticle";
+import InfoStockTransfer from "./pages/InfoStockTransfer";
 import TransportMenu from "./pages/TransportMenu";
 import InfoStockLEInfo from "./pages/InfoStockLEInfo";
 import TransportLoad from "./pages/TransportLoad";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/menu" element={<Menu />} />
           <Route path="/menu/info-stock" element={<InfoStockMenu />} />
           <Route path="/menu/info-stock/article" element={<InfoStockArticle />} />
+          <Route path="/menu/info-stock/transfer" element={<InfoStockTransfer />} />
           <Route path="/menu/info-stock/le-info" element={<InfoStockLEInfo />} />
           <Route path="/menu/transport" element={<TransportMenu />} />
           <Route path="/menu/transport/load" element={<TransportLoad />} />

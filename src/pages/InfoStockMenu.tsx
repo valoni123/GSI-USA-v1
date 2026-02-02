@@ -109,7 +109,7 @@ const InfoStockMenu = () => {
         <Card
           key="transfer"
           className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
-          onClick={() => {}}
+          onClick={() => navigate("/menu/info-stock/transfer")}
         >
           <ArrowLeftRight className="h-10 w-10 text-red-700" />
           <div className="text-sm font-medium text-gray-700 text-center">{trans.infoStockTransfer}</div>
