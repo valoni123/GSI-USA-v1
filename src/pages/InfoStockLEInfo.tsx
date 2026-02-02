@@ -160,7 +160,7 @@ const InfoStockLEInfo = () => {
       {/* Form + Results */}
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
-          <div className="flex items-end gap-2">
+          <div className="flex items-center gap-2">
             <div className="flex-1">
               <FloatingLabelInput
                 id="leInfoHandlingUnit"
