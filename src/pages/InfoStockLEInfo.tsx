@@ -201,7 +201,7 @@ const InfoStockLEInfo = () => {
               type="button"
               variant="outline"
               size="icon"
-              className="h-10 w-10"
+              className={handlingUnit.trim() ? "h-10 w-10 text-red-600 hover:text-red-700" : "h-10 w-10 text-gray-700 hover:text-gray-900"}
               aria-label={trans.searchLabel}
               onClick={() => {
                 const hu = handlingUnit.trim();
