@@ -92,11 +92,11 @@ serve(async (req) => {
     }
     const accessToken = tokenJson.access_token as string;
 
-    // Build LN OData URL for Handling Units → Quantity
+    // Build LN OData URL for Handling Units → single entity by key
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits`;
-    const filter = `HandlingUnit eq '${handlingUnit.replace(/'/g, "''")}'`;
-    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$select=Unit,QuantityInInventoryUnit`;
+    const escaped = handlingUnit.replace(/'/g, "''");
+    const path = `/${ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits(HandlingUnit='${escaped}')`;
+    const url = `${base}${path}?$select=%2A&$expand=%2A`;
 
     const odataRes = await fetch(url, {
       method: "GET",
@@ -115,10 +115,40 @@ serve(async (req) => {
       return json({ ok: false, error: { message: topMessage, details } }, 200);
     }
 
-    const first = Array.isArray(odataJson.value) && odataJson.value.length > 0 ? odataJson.value[0] : null;
-    const quantity = first?.QuantityInInventoryUnit ?? null;
-    const unit = first?.Unit ?? null;
-    return json({ ok: true, quantity, unit }, 200);
+    const entity = (odataJson && typeof odataJson === "object" && !Array.isArray(odataJson))
+      ? odataJson
+      : (Array.isArray(odataJson?.value) && odataJson.value.length > 0 ? odataJson.value[0] : null);
+
+    if (!entity) {
+      return json({ ok: false, error: { message: "not_found" } }, 200);
+    }
+
+    const pick = (keys: string[]) => {
+      for (const k of keys) {
+        if (k in entity && entity[k] != null) return entity[k];
+      }
+      return null;
+    };
+
+    const quantity = pick(["QuantityInInventoryUnit", "Quantity", "QuantityBase"]);
+    const unit = pick(["Unit", "InventoryUnit", "BaseUnit"]);
+    const item = pick(["Item", "ItemID", "ItemCode"]);
+    const warehouse = pick(["Warehouse", "WarehouseCode"]);
+    const location = pick(["Location", "LocationFrom", "LocationTo"]);
+    const lot = pick(["Lot", "LotNumber", "Batch"]);
+    const status = pick(["Status", "StatusDesc", "HandlingUnitStatus"]);
+
+    return json({
+      ok: true,
+      handlingUnit,
+      quantity,
+      unit,
+      item,
+      warehouse,
+      location,
+      lot,
+      status,
+    }, 200);
   } catch {
     return json({ ok: false, error: { message: "unhandled" } }, 200);
   }

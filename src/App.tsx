@@ -9,6 +9,7 @@ import Menu from "./pages/Menu";
 import InfoStockMenu from "./pages/InfoStockMenu";
 import InfoStockArticle from "./pages/InfoStockArticle";
 import TransportMenu from "./pages/TransportMenu";
+import InfoStockLEInfo from "./pages/InfoStockLEInfo";
 import TransportLoad from "./pages/TransportLoad";
 import TransportUnload from "./pages/TransportUnload";
 import TransportSelect from "./pages/TransportSelect";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/menu" element={<Menu />} />
           <Route path="/menu/info-stock" element={<InfoStockMenu />} />
           <Route path="/menu/info-stock/article" element={<InfoStockArticle />} />
+          <Route path="/menu/info-stock/le-info" element={<InfoStockLEInfo />} />
           <Route path="/menu/transport" element={<TransportMenu />} />
           <Route path="/menu/transport/load" element={<TransportLoad />} />
           <Route path="/menu/transport/unload" element={<TransportUnload />} />

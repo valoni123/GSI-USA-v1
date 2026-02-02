@@ -77,7 +77,9 @@ type TranslationKeys =
   | "searchLabel"
   | "onHandLabel"
   | "allocatedLabel"
-  | "availableLabel";
+  | "availableLabel"
+  | "statusLabel"
+  | "lotLabel";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -153,6 +155,8 @@ const translations: Translations = {
     onHandLabel: "On hand",
     allocatedLabel: "Allocated",
     availableLabel: "Available",
+    statusLabel: "Status",
+    lotLabel: "Lot",
   },
   de: {
     title: "Anmelden",
@@ -225,6 +229,8 @@ const translations: Translations = {
     onHandLabel: "Vorhanden",
     allocatedLabel: "Zuge­teilt",
     availableLabel: "Verfügbar",
+    statusLabel: "Status",
+    lotLabel: "Charge",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -297,6 +303,8 @@ const translations: Translations = {
     onHandLabel: "Existencia",
     allocatedLabel: "Asignado",
     availableLabel: "Disponible",
+    statusLabel: "Estado",
+    lotLabel: "Lote",
   },
   "pt-BR": {
     title: "Entrar",
@@ -369,6 +377,8 @@ const translations: Translations = {
     onHandLabel: "Em estoque",
     allocatedLabel: "Alocado",
     availableLabel: "Disponível",
+    statusLabel: "Status",
+    lotLabel: "Lote",
   },
 };
 
