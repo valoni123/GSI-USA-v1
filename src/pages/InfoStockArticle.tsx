@@ -70,6 +70,13 @@ const InfoStockArticle = () => {
     return "en-US";
   }, [lang]);
 
+  // NEW: Only show the selected/typed warehouse block when a warehouse is specified
+  const displayRows = useMemo(() => {
+    const eff = (warehouse || selectedWarehouse || "").trim();
+    if (!eff) return rows;
+    return rows.filter((r) => (r.Warehouse || "").toLowerCase() === eff.toLowerCase());
+  }, [rows, warehouse, selectedWarehouse]);
+
   const fetchInventory = async (itm: string) => {
     const trimmed = (itm || "").trim();
     if (!trimmed) {
@@ -318,11 +325,11 @@ const InfoStockArticle = () => {
 
           {/* Warehouse blocks */}
           <div className="mt-2 rounded-md">
-            {rows.length === 0 ? (
+            {displayRows.length === 0 ? (
               <div className="text-muted-foreground text-sm">{trans.noEntries}</div>
             ) : (
               <div className="space-y-2">
-                {rows.map((r, idx) => {
+                {displayRows.map((r, idx) => {
                   const unit = r.Unit ? ` ${r.Unit}` : "";
                   const isSelected = selectedWarehouse === r.Warehouse;
                   return (
