@@ -160,47 +160,48 @@ const InfoStockLEInfo = () => {
       {/* Form + Results */}
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
-          <div className="relative">
-            <FloatingLabelInput
-              id="leInfoHandlingUnit"
-              label={trans.loadHandlingUnit}
-              ref={huRef}
-              value={handlingUnit}
-              onChange={(e) => {
-                const v = e.target.value;
-                setHandlingUnit(v);
-                if (v.trim() === "") {
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <FloatingLabelInput
+                id="leInfoHandlingUnit"
+                label={trans.loadHandlingUnit}
+                ref={huRef}
+                value={handlingUnit}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setHandlingUnit(v);
+                  if (v.trim() === "") {
+                    setData(null);
+                    setLastFetchedHu(null);
+                  }
+                }}
+                onBlur={onHUBlur}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const hu = handlingUnit.trim();
+                    if (hu) fetchHU(hu);
+                  }
+                }}
+                autoFocus
+                onFocus={(e) => {
+                  if (e.currentTarget.value.length > 0) e.currentTarget.select();
+                }}
+                onClick={(e) => {
+                  if (e.currentTarget.value.length > 0) e.currentTarget.select();
+                }}
+                onClear={() => {
+                  setHandlingUnit("");
                   setData(null);
                   setLastFetchedHu(null);
-                }
-              }}
-              onBlur={onHUBlur}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const hu = handlingUnit.trim();
-                  if (hu) fetchHU(hu);
-                }
-              }}
-              autoFocus
-              onFocus={(e) => {
-                if (e.currentTarget.value.length > 0) e.currentTarget.select();
-              }}
-              onClick={(e) => {
-                if (e.currentTarget.value.length > 0) e.currentTarget.select();
-              }}
-              onClear={() => {
-                setHandlingUnit("");
-                setData(null);
-                setLastFetchedHu(null);
-                huRef.current?.focus();
-              }}
-              className="pr-16"
-            />
+                  huRef.current?.focus();
+                }}
+              />
+            </div>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="absolute right-10 top-1.5 h-7 w-7 text-gray-700 hover:text-gray-900"
+              className="h-10 w-10"
               aria-label={trans.searchLabel}
               onClick={() => {
                 const hu = handlingUnit.trim();
