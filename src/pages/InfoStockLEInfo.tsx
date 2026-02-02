@@ -194,13 +194,13 @@ const InfoStockLEInfo = () => {
                 setLastFetchedHu(null);
                 huRef.current?.focus();
               }}
-              className="pr-12"
+              className="pr-16"
             />
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-1 h-8 w-8 text-gray-700 hover:text-gray-900"
+              className="absolute right-10 top-1.5 h-7 w-7 text-gray-700 hover:text-gray-900"
               aria-label={trans.searchLabel}
               onClick={() => {
                 const hu = handlingUnit.trim();
