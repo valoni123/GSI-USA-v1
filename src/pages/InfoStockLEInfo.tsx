@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User } from "lucide-react";
+import { ArrowLeft as _ArrowLeft, LogOut as _LogOut, User as _User, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
@@ -160,40 +160,56 @@ const InfoStockLEInfo = () => {
       {/* Form + Results */}
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
-          <FloatingLabelInput
-            id="leInfoHandlingUnit"
-            label={trans.loadHandlingUnit}
-            ref={huRef}
-            value={handlingUnit}
-            onChange={(e) => {
-              const v = e.target.value;
-              setHandlingUnit(v);
-              if (v.trim() === "") {
+          <div className="relative">
+            <FloatingLabelInput
+              id="leInfoHandlingUnit"
+              label={trans.loadHandlingUnit}
+              ref={huRef}
+              value={handlingUnit}
+              onChange={(e) => {
+                const v = e.target.value;
+                setHandlingUnit(v);
+                if (v.trim() === "") {
+                  setData(null);
+                  setLastFetchedHu(null);
+                }
+              }}
+              onBlur={onHUBlur}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const hu = handlingUnit.trim();
+                  if (hu) fetchHU(hu);
+                }
+              }}
+              autoFocus
+              onFocus={(e) => {
+                if (e.currentTarget.value.length > 0) e.currentTarget.select();
+              }}
+              onClick={(e) => {
+                if (e.currentTarget.value.length > 0) e.currentTarget.select();
+              }}
+              onClear={() => {
+                setHandlingUnit("");
                 setData(null);
                 setLastFetchedHu(null);
-              }
-            }}
-            onBlur={onHUBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
+                huRef.current?.focus();
+              }}
+              className="pr-12"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-1 h-8 w-8 text-gray-700 hover:text-gray-900"
+              aria-label={trans.searchLabel}
+              onClick={() => {
                 const hu = handlingUnit.trim();
                 if (hu) fetchHU(hu);
-              }
-            }}
-            autoFocus
-            onFocus={(e) => {
-              if (e.currentTarget.value.length > 0) e.currentTarget.select();
-            }}
-            onClick={(e) => {
-              if (e.currentTarget.value.length > 0) e.currentTarget.select();
-            }}
-            onClear={() => {
-              setHandlingUnit("");
-              setData(null);
-              setLastFetchedHu(null);
-              huRef.current?.focus();
-            }}
-          />
+              }}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+          </div>
 
           {/* Details */}
           <div className="mt-2 rounded-md min-h-28 p-3">
@@ -255,19 +271,6 @@ const InfoStockLEInfo = () => {
             )}
           </div>
         </Card>
-      </div>
-
-      {/* Bottom action bar */}
-      <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
-        <div className="mx-auto max-w-md px-4 py-3">
-          <Button
-            className="w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-            onClick={() => fetchHU(handlingUnit)}
-            disabled={handlingUnit.trim() === ""}
-          >
-            {trans.searchLabel}
-          </Button>
-        </div>
       </div>
 
       {/* Sign-out confirmation dialog */}
