@@ -47,6 +47,7 @@ type TranslationKeys =
   | "loadVehicleId"
   | "checkingHandlingUnit"
   | "huNotFound"
+  | "huNotFoundGeneric"
   | "itemLabel"
   | "locationFromLabel"
   | "locationToLabel"
@@ -124,6 +125,7 @@ const translations: Translations = {
     loadVehicleId: "Vehicle ID",
     checkingHandlingUnit: "Checking handling unit…",
     huNotFound: "Handling Unit not found in any Transport Order.",
+    huNotFoundGeneric: "Handling Unit not found",
     itemLabel: "Item",
     locationFromLabel: "Location From",
     locationToLabel: "Location To",
@@ -198,6 +200,7 @@ const translations: Translations = {
     loadVehicleId: "Fahrzeug ID",
     checkingHandlingUnit: "Ladeeinheit wird geprüft…",
     huNotFound: "Ladeeinheit in keinem Transportauftrag gefunden.",
+    huNotFoundGeneric: "Ladeeinheit nicht gefunden",
     itemLabel: "Artikel",
     locationFromLabel: "Ort Von",
     locationToLabel: "Ort Nach",
@@ -272,6 +275,7 @@ const translations: Translations = {
     loadVehicleId: "ID del vehículo",
     checkingHandlingUnit: "Verificando unidad de manejo…",
     huNotFound: "Unidad de manejo no encontrada en ninguna orden de transporte.",
+    huNotFoundGeneric: "Unidad de manejo no encontrada",
     itemLabel: "Artículo",
     locationFromLabel: "Ubicación desde",
     locationToLabel: "Ubicación hasta",
@@ -346,6 +350,7 @@ const translations: Translations = {
     loadVehicleId: "ID do veículo",
     checkingHandlingUnit: "Verificando unidade de manuseio…",
     huNotFound: "Unidade de manuseio não encontrada em nenhuma ordem de transporte.",
+    huNotFoundGeneric: "Unidade de manuseio não encontrada",
     itemLabel: "Item",
     locationFromLabel: "Local de origem",
     locationToLabel: "Local de destino",

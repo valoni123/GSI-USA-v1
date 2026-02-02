@@ -83,7 +83,7 @@ const InfoStockLEInfo = () => {
     dismissToast(tid as unknown as string);
 
     if (error || !data || !data.ok) {
-      showError(trans.huNotFound);
+      showError(trans.huNotFoundGeneric);
       setData(null);
       setLoading(false);
       return;
