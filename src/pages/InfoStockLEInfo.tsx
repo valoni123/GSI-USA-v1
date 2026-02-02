@@ -227,27 +227,27 @@ const InfoStockLEInfo = () => {
 
                 {/* Blocked flags */}
                 <div className="mt-4">
-                  <div className="text-[11px] font-semibold text-gray-700">{trans.blockedLabel}:</div>
+                  <div className="text-base font-semibold text-gray-800">{trans.blockedLabel}:</div>
                   <ul className="mt-1 space-y-1.5">
                     <li className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${data.fullyBlocked ? "bg-red-600" : "bg-gray-300"}`} />
-                      <span className="text-sm text-gray-800">{trans.blockedFullyLabel}</span>
+                      <span className="text-xs text-gray-800">{trans.blockedFullyLabel}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${data.blockedForOutbound ? "bg-red-600" : "bg-gray-300"}`} />
-                      <span className="text-sm text-gray-800">{trans.blockedOutboundLabel}</span>
+                      <span className="text-xs text-gray-800">{trans.blockedOutboundLabel}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${data.blockedForTransferIssue ? "bg-red-600" : "bg-gray-300"}`} />
-                      <span className="text-sm text-gray-800">{trans.blockedTransferIssueLabel}</span>
+                      <span className="text-xs text-gray-800">{trans.blockedTransferIssueLabel}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${data.blockedForCycleCounting ? "bg-red-600" : "bg-gray-300"}`} />
-                      <span className="text-sm text-gray-800">{trans.blockedCycleCountingLabel}</span>
+                      <span className="text-xs text-gray-800">{trans.blockedCycleCountingLabel}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${data.blockedForAssembly ? "bg-red-600" : "bg-gray-300"}`} />
-                      <span className="text-sm text-gray-800">{trans.blockedAssemblyLabel}</span>
+                      <span className="text-xs text-gray-800">{trans.blockedAssemblyLabel}</span>
                     </li>
                   </ul>
                 </div>
