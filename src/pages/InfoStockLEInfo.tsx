@@ -216,7 +216,9 @@ const InfoStockLEInfo = () => {
             {loading ? (
               <div className="text-muted-foreground text-sm">{trans.loadingDetails}</div>
             ) : !data ? (
-              <div className="text-muted-foreground text-sm">{trans.noEntries}</div>
+              (handlingUnit.trim() === "" && lastFetchedHu === null) ? null : (
+                <div className="text-muted-foreground text-sm">{trans.noEntries}</div>
+              )
             ) : (
               <div className="text-sm">
                 <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-1 items-start">
