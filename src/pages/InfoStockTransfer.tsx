@@ -8,6 +8,7 @@ import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const InfoStockTransfer = () => {
   const navigate = useNavigate();
@@ -157,10 +158,6 @@ const InfoStockTransfer = () => {
                 ref={huRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onBlur={() => {
-                  const v = query.trim();
-                  if (v) handleSearch();
-                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleSearch();
