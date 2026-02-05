@@ -65,11 +65,14 @@ const InfoStockTransfer = () => {
   }, []);
 
   // Main search handler: HU first, then ITEM
-  const handleSearch = async () => {
+  const handleSearch = async (withLoading = false) => {
     const input = query.trim();
     if (!input) return;
     if (lastSearched === input) return;
-    const tid = showLoading(trans.loadingDetails);
+    let tid: string | null = null;
+    if (withLoading) {
+      tid = showLoading(trans.loadingDetails) as unknown as string;
+    }
     // 1) Try HU
     const huRes = await supabase.functions.invoke("ln-handling-unit-info", {
       body: { handlingUnit: input, language: locale, company: "1100" },
@@ -85,14 +88,14 @@ const InfoStockTransfer = () => {
       setStatus(d.status || "");
       setWarehouseEnabled(false);
       setLastSearched(input);
-      dismissToast(tid as unknown as string);
+      if (withLoading && tid) dismissToast(tid);
       return;
     }
     // 2) Try ITEM (no HU error toast)
     const itemRes = await supabase.functions.invoke("ln-item-info", {
       body: { item: input, language: locale, company: "1100" },
     });
-    dismissToast(tid as unknown as string);
+    if (withLoading && tid) dismissToast(tid);
     if (itemRes.data && itemRes.data.ok) {
       const d = itemRes.data;
       setItem(d.item || input);
@@ -158,11 +161,6 @@ const InfoStockTransfer = () => {
                 ref={huRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSearch();
-                  }
-                }}
                 onFocus={(e) => {
                   if (e.currentTarget.value.length > 0) e.currentTarget.select();
                 }}
@@ -189,7 +187,7 @@ const InfoStockTransfer = () => {
               size="icon"
               className={query.trim() ? "h-10 w-10 bg-red-600 hover:bg-red-700 text-white" : "h-10 w-10 text-gray-700 hover:text-gray-900"}
               aria-label={trans.searchLabel}
-              onClick={handleSearch}
+              onClick={() => handleSearch(true)}
             >
               <Search className="h-5 w-5" />
             </Button>
