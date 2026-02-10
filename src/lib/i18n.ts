@@ -92,6 +92,7 @@ type TranslationKeys =
   | "availableLabel"
   | "businessPartnerLotLabel"
   | "incomingLinesLabel"
+  | "unitLabel"
   | "itemOrHandlingUnit"
   | "targetWarehouseLabel"
   | "targetLocationLabel"
@@ -192,6 +193,7 @@ const translations: Translations = {
     availableLabel: "Available",
     businessPartnerLotLabel: "Business Partner - Lot",
     incomingLinesLabel: "Lines",
+    unitLabel: "Unit",
     itemOrHandlingUnit: "Item / Handling Unit",
     targetWarehouseLabel: "Target Warehouse",
     targetLocationLabel: "Target Location",
@@ -289,6 +291,7 @@ const translations: Translations = {
     availableLabel: "Verfügbar",
     businessPartnerLotLabel: "Handelspartner - Charge",
     incomingLinesLabel: "Positionen",
+    unitLabel: "Einheit",
     itemOrHandlingUnit: "Artikel / Ladeeinheit",
     targetWarehouseLabel: "Ziel-Lager",
     targetLocationLabel: "Ziel-Lagerplatz",
@@ -386,6 +389,7 @@ const translations: Translations = {
     availableLabel: "Disponible",
     businessPartnerLotLabel: "Lote del socio comercial",
     incomingLinesLabel: "Líneas",
+    unitLabel: "Unidad",
     itemOrHandlingUnit: "Artículo / Unidad de manejo",
     targetWarehouseLabel: "Almacén destino",
     targetLocationLabel: "Ubicación destino",
@@ -483,6 +487,7 @@ const translations: Translations = {
     availableLabel: "Disponível",
     businessPartnerLotLabel: "Lote do parceiro comercial",
     incomingLinesLabel: "Linhas",
+    unitLabel: "Unidade",
     itemOrHandlingUnit: "Artigo / Unidade de manuseio",
     targetWarehouseLabel: "Armazém destino",
     targetLocationLabel: "Local de destino",

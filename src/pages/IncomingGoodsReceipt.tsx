@@ -59,6 +59,7 @@ const IncomingGoodsReceipt = () => {
   const [bpLot, setBpLot] = useState<string>("");
   const [qty, setQty] = useState<string>("");
   const [grItem, setGrItem] = useState<string>("");
+  const [orderUnit, setOrderUnit] = useState<string>("");
   const [lastCheckedOrder, setLastCheckedOrder] = useState<string | null>(null);
   const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
   // When true, do not auto-fill the Line even if the service returns exactly one line
@@ -195,6 +196,19 @@ const IncomingGoodsReceipt = () => {
         orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
       }))
       .filter((x) => Number.isFinite(x.Line) && x.Line > 0);
+    setInboundLinesAll(mappedLines);
+    // If a specific line is provided, fill Item, Quantity, and Unit from that line (first match)
+    if (lineTrim) {
+      const lnNum = Number(lineTrim);
+      const picked = mappedLines.find((x) => x.Line === lnNum) || mappedLines[0];
+      if (picked) {
+        const itemCode = (picked.Item || "").trim();
+        setGrItem(itemCode);
+        setQty(picked.tbrQty != null ? String(picked.tbrQty) : "");
+        setOrderUnit(picked.orderUnit || "");
+      }
+    }
+
     // Only update the "all lines" list when fetching by order (no specific line filter)
     if (!lineTrim) {
       setInboundLinesAll(mappedLines);
@@ -378,6 +392,11 @@ const IncomingGoodsReceipt = () => {
               setLastCheckedOrder(null);
               setSuppressAutoFillLine(false); // new order → allow auto-fill again
               setInboundLinesAll([]);
+              // Clear dependent fields on order clear
+              setOrderPos("");
+              setGrItem("");
+              setQty("");
+              setOrderUnit("");
               setTimeout(() => orderNoRef.current?.focus(), 0);
             }}
           />
@@ -405,6 +424,10 @@ const IncomingGoodsReceipt = () => {
                 onClear={() => {
                   setOrderPos("");
                   setSuppressAutoFillLine(true); // user cleared → do not auto-fill back
+                  // Clear item/qty/unit when line cleared
+                  setGrItem("");
+                  setQty("");
+                  setOrderUnit("");
                 }}
               />
             </div>
@@ -526,13 +549,26 @@ const IncomingGoodsReceipt = () => {
             onClear={() => setBpLot("")}
           />
 
-          <FloatingLabelInput
-            id="incomingQty"
-            label={trans.quantityLabel}
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-            onClear={() => setQty("")}
-          />
+          {/* Quantity and Unit side-by-side */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <FloatingLabelInput
+                id="incomingQty"
+                label={trans.quantityLabel}
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                onClear={() => setQty("")}
+              />
+            </div>
+            <div className="w-32">
+              <FloatingLabelInput
+                id="incomingUnit"
+                label={trans.unitLabel}
+                value={orderUnit}
+                disabled
+              />
+            </div>
+          </div>
         </Card>
       </div>
 
