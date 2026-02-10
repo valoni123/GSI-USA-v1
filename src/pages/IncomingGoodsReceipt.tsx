@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User } from "lucide-react";
+import { ArrowLeft, LogOut, User, Search } from "lucide-react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
@@ -50,7 +52,8 @@ const IncomingGoodsReceipt = () => {
   const [orderTypeRequired, setOrderTypeRequired] = useState<boolean>(false);
   const [orderNo, setOrderNo] = useState<string>("");
   const [orderPos, setOrderPos] = useState<string>("");
-  const [grItem, setGrItem] = useState<string>("");
+  const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
+  const [inboundLines, setInboundLines] = useState<Array<{ Line: number; Item?: string; ItemDesc?: string }>>([]);
   const [deliveryNote, setDeliveryNote] = useState<string>("");
   const [lot, setLot] = useState<string>("");
   const [bpLot, setBpLot] = useState<string>("");
@@ -171,11 +174,20 @@ const IncomingGoodsReceipt = () => {
       setOrderTypeDisabled(true);
       setOrderTypeRequired(false);
       setLastCheckedOrder(null);
+      // Clear inbound lines on error
+      setInboundLines([]);
       return;
     }
+    // Store inbound lines from raw payload for the picker
+    const rawValues = Array.isArray(data.raw?.value) ? data.raw.value : [];
+    const mappedLines: Array<{ Line: number; Item?: string; ItemDesc?: string }> = rawValues.map((v: any) => ({
+      Line: Number(v?.Line ?? 0),
+      Item: typeof v?.Item === "string" ? v.Item : (typeof v?.ItemRef?.Item === "string" ? v.ItemRef.Item : undefined),
+      ItemDesc: typeof v?.ItemRef?.Description === "string" ? v.ItemRef.Description : undefined,
+    })).filter((x) => Number.isFinite(x.Line) && x.Line > 0);
+    setInboundLines(mappedLines);
     const count = Number(data.count || 0);
     // Collect unique OrderOrigin values from raw payload (fallback to data.origin)
-    const rawValues = Array.isArray(data.raw?.value) ? data.raw.value : [];
     const origins: string[] = rawValues
       .map((v: any) => (v?.OrderOrigin ? String(v.OrderOrigin) : null))
       .filter((v: string | null): v is string => !!v);
@@ -362,7 +374,84 @@ const IncomingGoodsReceipt = () => {
               }
             }}
             onClear={() => setOrderPos("")}
+            className="pr-12"
           />
+
+          {/* Line search icon button */}
+          <div className="relative -mt-11 flex justify-end pr-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-700 hover:text-gray-900"
+              aria-label="Search lines"
+              onClick={async () => {
+                // Ensure we have lines; if not, fetch by order
+                const ord = orderNo.trim();
+                if (inboundLines.length === 0 && ord) {
+                  await checkOrder(ord);
+                }
+                setLinePickerOpen(true);
+              }}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Line picker dialog with blurred background */}
+          <Dialog open={linePickerOpen} onOpenChange={setLinePickerOpen}>
+            <DialogPortal>
+              <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
+              <DialogPrimitive.Content
+                className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-0 shadow-lg"
+              >
+                <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
+                  {trans.incomingOrderPositionLabel}
+                </div>
+                <div className="max-h-64 overflow-auto p-2">
+                  {inboundLines.length === 0 ? (
+                    <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
+                  ) : (
+                    inboundLines.map((ln, idx) => (
+                      <button
+                        key={`${ln.Line}-${idx}`}
+                        type="button"
+                        className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50 hover:bg-gray-100"
+                        onClick={async () => {
+                          const ord = orderNo.trim();
+                          const lineStr = String(ln.Line);
+                          setOrderPos(lineStr);
+                          setLinePickerOpen(false);
+                          if (ord && lineStr) {
+                            await checkOrder(ord, lineStr);
+                          }
+                        }}
+                      >
+                        <div className="grid grid-cols-[60px_1fr] gap-3 items-center">
+                          <div className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold justify-center">
+                            {ln.Line}
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="font-mono text-sm text-gray-900 break-all">{(ln.Item || "").trim() || "-"}</div>
+                            {ln.ItemDesc && <div className="text-xs text-gray-700">{ln.ItemDesc}</div>}
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+                <DialogPrimitive.Close asChild>
+                  <button
+                    type="button"
+                    className="absolute right-3 top-2 text-gray-600 hover:text-gray-900"
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
+                </DialogPrimitive.Close>
+              </DialogPrimitive.Content>
+            </DialogPortal>
+          </Dialog>
 
           <FloatingLabelInput
             id="incomingItem"
