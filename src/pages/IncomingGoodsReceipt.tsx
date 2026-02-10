@@ -64,6 +64,8 @@ const IncomingGoodsReceipt = () => {
   const [lotsAvailableCount, setLotsAvailableCount] = useState<number>(0);
   const [lotsPickerOpen, setLotsPickerOpen] = useState<boolean>(false);
   const [existingLots, setExistingLots] = useState<any[]>([]);
+  // NEW: track origin used for the current lots query
+  const [lotsOrigin, setLotsOrigin] = useState<string>("");
   const [deliveryNote, setDeliveryNote] = useState<string>("");
   const [lot, setLot] = useState<string>("");
   const [bpLot, setBpLot] = useState<string>("");
@@ -317,6 +319,7 @@ const IncomingGoodsReceipt = () => {
     if (!itm || !origin) {
       setLotsAvailableCount(0);
       setExistingLots([]);
+      setLotsOrigin("");
       return;
     }
     const { data, error } = await supabase.functions.invoke("ln-item-existing-lots", {
@@ -331,12 +334,14 @@ const IncomingGoodsReceipt = () => {
     if (error || !data || !data.ok) {
       setLotsAvailableCount(0);
       setExistingLots([]);
+      setLotsOrigin(origin);
       return;
     }
     const value = Array.isArray(data.value) ? data.value : [];
     const count = Number(data.count ?? value.length ?? 0);
     setLotsAvailableCount(count);
     setExistingLots(value);
+    setLotsOrigin(origin);
   };
 
   const fetchLotTracking = async (rawItem: string): Promise<boolean> => {
@@ -533,6 +538,7 @@ const IncomingGoodsReceipt = () => {
                   setBuyFromBusinessPartner("");
                   setLotsAvailableCount(0);
                   setExistingLots([]);
+                  setLotsOrigin("");
                 }}
               />
             </div>
@@ -702,7 +708,7 @@ const IncomingGoodsReceipt = () => {
                     <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
                       <div className="flex flex-col">
                         <span>Lots by Item</span>
-                        {(orderType || "").toLowerCase().includes("purchase") && (buyFromBusinessPartner || "").trim() && (
+                        {(lotsOrigin || "").toLowerCase().includes("purchase") && (buyFromBusinessPartner || "").trim() && (
                           <span className="mt-1 text-xs text-gray-200">
                             Business Partner: {(buyFromBusinessPartner || "").trim()}
                           </span>
@@ -721,6 +727,7 @@ const IncomingGoodsReceipt = () => {
                           const bpLotCode =
                             (typeof ln?.BusinessPartnersLotCode === "string" && ln.BusinessPartnersLotCode) ||
                             "";
+                          const isPurchase = (lotsOrigin || "").toLowerCase().includes("purchase");
                           return (
                             <button
                               key={`${lotCode || "lot"}-${idx}`}
@@ -728,7 +735,7 @@ const IncomingGoodsReceipt = () => {
                               className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50 hover:bg-gray-100"
                               onClick={() => {
                                 const selectedLot = (lotCode || "").trim();
-                                const selectedBpLot = (bpLotCode || "").trim();
+                                const selectedBpLot = isPurchase ? (bpLotCode || "").trim() : "";
                                 if (selectedLot) setLot(selectedLot);
                                 if (selectedBpLot) setBpLot(selectedBpLot);
                                 setLotsPickerOpen(false);
@@ -740,14 +747,20 @@ const IncomingGoodsReceipt = () => {
                                 }
                               }}
                             >
-                              <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                              {isPurchase ? (
+                                <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                                  <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                                    {lotCode || "-"}
+                                  </div>
+                                  <div className="font-mono text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
+                                    {bpLotCode}
+                                  </div>
+                                </div>
+                              ) : (
                                 <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
                                   {lotCode || "-"}
                                 </div>
-                                <div className="font-mono text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
-                                  {bpLotCode}
-                                </div>
-                              </div>
+                              )}
                             </button>
                           );
                         })
