@@ -439,16 +439,18 @@ const IncomingGoodsReceipt = () => {
                           <div className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold justify-center">
                             {ln.Line}
                           </div>
-                          <div className="flex flex-col">
-                            <div className="font-mono text-sm text-gray-900 break-all">
-                              {(ln.Item || "").trim() || "-"}
-                              {(ln.tbrQty != null || ln.orderUnit) && (
-                                <span className="ml-2 text-xs text-gray-700">
-                                  {ln.tbrQty != null ? ln.tbrQty : ""} {ln.orderUnit || ""}
-                                </span>
-                              )}
+                          <div className="grid grid-cols-[1fr_auto] gap-3 items-center w-full">
+                            <div className="flex flex-col">
+                              <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                                {(ln.Item || "").trim() || "-"}
+                              </div>
+                              {ln.ItemDesc && <div className="text-xs text-gray-700">{ln.ItemDesc}</div>}
                             </div>
-                            {ln.ItemDesc && <div className="text-xs text-gray-700">{ln.ItemDesc}</div>}
+                            {(ln.tbrQty != null || ln.orderUnit) && (
+                              <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
+                                {ln.tbrQty != null ? ln.tbrQty : ""} {ln.orderUnit || ""}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </button>
