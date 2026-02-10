@@ -90,6 +90,7 @@ type TranslationKeys =
   | "onHandLabel"
   | "allocatedLabel"
   | "availableLabel"
+  | "businessPartnerLotLabel"
   | "itemOrHandlingUnit"
   | "targetWarehouseLabel"
   | "targetLocationLabel"
@@ -188,6 +189,7 @@ const translations: Translations = {
     onHandLabel: "On hand",
     allocatedLabel: "Allocated",
     availableLabel: "Available",
+    businessPartnerLotLabel: "Business Partner - Lot",
     itemOrHandlingUnit: "Item / Handling Unit",
     targetWarehouseLabel: "Target Warehouse",
     targetLocationLabel: "Target Location",
@@ -283,6 +285,7 @@ const translations: Translations = {
     onHandLabel: "Vorhanden",
     allocatedLabel: "Zuge­teilt",
     availableLabel: "Verfügbar",
+    businessPartnerLotLabel: "Handelspartner - Charge",
     itemOrHandlingUnit: "Artikel / Ladeeinheit",
     targetWarehouseLabel: "Ziel-Lager",
     targetLocationLabel: "Ziel-Lagerplatz",
@@ -378,6 +381,7 @@ const translations: Translations = {
     onHandLabel: "Existencia",
     allocatedLabel: "Asignado",
     availableLabel: "Disponible",
+    businessPartnerLotLabel: "Lote del socio comercial",
     itemOrHandlingUnit: "Artículo / Unidad de manejo",
     targetWarehouseLabel: "Almacén destino",
     targetLocationLabel: "Ubicación destino",
@@ -473,6 +477,7 @@ const translations: Translations = {
     onHandLabel: "Em estoque",
     allocatedLabel: "Alocado",
     availableLabel: "Disponível",
+    businessPartnerLotLabel: "Lote do parceiro comercial",
     itemOrHandlingUnit: "Artigo / Unidade de manuseio",
     targetWarehouseLabel: "Armazém destino",
     targetLocationLabel: "Local de destino",

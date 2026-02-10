@@ -52,6 +52,7 @@ const IncomingGoodsReceipt = () => {
   const [orderPos, setOrderPos] = useState<string>("");
   const [deliveryNote, setDeliveryNote] = useState<string>("");
   const [lot, setLot] = useState<string>("");
+  const [bpLot, setBpLot] = useState<string>("");
   const [qty, setQty] = useState<string>("");
   const [lastCheckedOrder, setLastCheckedOrder] = useState<string | null>(null);
   const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
@@ -357,6 +358,14 @@ const IncomingGoodsReceipt = () => {
             value={lot}
             onChange={(e) => setLot(e.target.value)}
             onClear={() => setLot("")}
+          />
+
+          <FloatingLabelInput
+            id="incomingBusinessPartnerLot"
+            label={trans.businessPartnerLotLabel}
+            value={bpLot}
+            onChange={(e) => setBpLot(e.target.value)}
+            onClear={() => setBpLot("")}
           />
 
           <FloatingLabelInput
