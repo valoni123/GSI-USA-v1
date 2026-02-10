@@ -244,7 +244,7 @@ const IncomingGoodsReceipt = () => {
         <Card className="rounded-md border-0 bg-transparent shadow-none p-0 space-y-3">
           {showOrderType && (
             orderTypeDisabled ? (
-              <div className="space-y-1">
+              <div className="space-y-1 mb-4">
                 <div className="text-xs font-medium text-gray-700">{trans.incomingOrderTypeLabel}</div>
                 <div className="flex flex-wrap gap-2">
                   {(() => {
@@ -261,7 +261,7 @@ const IncomingGoodsReceipt = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-1 mb-4">
                 <div className="text-xs font-medium text-gray-700">
                   {trans.incomingOrderTypeLabel} {orderTypeRequired && <span className="text-red-600">*</span>}
                 </div>
@@ -301,8 +301,6 @@ const IncomingGoodsReceipt = () => {
                     })}
                   </SelectContent>
                 </Select>
-                {/* Extra spacing to avoid overlap with the next floating label input */}
-                <div className="mb-2" />
               </div>
             )
           )}
