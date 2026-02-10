@@ -28,7 +28,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { orderNumber?: string; language?: string; company?: string } = {};
+    let body: { orderNumber?: string; line?: number | string; language?: string; company?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -36,6 +36,8 @@ serve(async (req) => {
     }
 
     const orderNumber = (body.orderNumber || "").trim();
+    const lineRaw = typeof body.line === "number" ? body.line : (typeof body.line === "string" ? body.line.trim() : "");
+    const line = lineRaw !== "" && !Number.isNaN(Number(lineRaw)) ? Number(lineRaw) : null;
     const language = body.language || "en-US";
     const company = body.company || "4000";
     if (!orderNumber) {
@@ -96,7 +98,11 @@ serve(async (req) => {
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/whapi.inhWarehousingOrder/InboundLines`;
     const escaped = orderNumber.replace(/'/g, "''");
-    const filter = `Order eq '${escaped}'`;
+    const filterParts = [`Order eq '${escaped}'`];
+    if (line !== null) {
+      filterParts.push(`Line eq ${line}`);
+    }
+    const filter = filterParts.join(" and ");
     const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=%2A&$orderby=OrderOrigin&$expand=%2A`;
 
     const odataRes = await fetch(url, {

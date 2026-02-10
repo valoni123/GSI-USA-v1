@@ -146,14 +146,21 @@ const IncomingGoodsReceipt = () => {
     };
   }, []);
 
-  // Search handler: call LN for the entered order number; if exactly one, reveal read-only Order Type
-  const checkOrder = async (ord: string) => {
+  // Search handler: call LN for InboundLines by Order (and optional Line)
+  const checkOrder = async (ord: string, lineVal?: string) => {
     const trimmed = (ord || "").trim();
     if (!trimmed) return;
-    if (lastCheckedOrder === trimmed) return;
+    // Allow re-check when line changes even if order is same
+    const lineTrim = (lineVal || "").trim();
+    if (lastCheckedOrder === `${trimmed}|${lineTrim}`) return;
     const tid = showLoading(trans.loadingDetails);
     const { data, error } = await supabase.functions.invoke("ln-warehousing-orders", {
-      body: { orderNumber: trimmed, language: locale, company: "4000" },
+      body: {
+        orderNumber: trimmed,
+        line: lineTrim ? Number(lineTrim) : undefined,
+        language: locale,
+        company: "4000",
+      },
     });
     dismissToast(tid as unknown as string);
     if (error || !data || !data.ok) {
@@ -182,7 +189,7 @@ const IncomingGoodsReceipt = () => {
       setOrderTypeDisabled(true);
       setOrderTypeRequired(false);
       setShowOrderType(true);
-      setLastCheckedOrder(trimmed);
+      setLastCheckedOrder(`${trimmed}|${lineTrim}`);
       return;
     }
 
@@ -193,7 +200,7 @@ const IncomingGoodsReceipt = () => {
       setOrderTypeDisabled(false);
       setOrderTypeRequired(true);
       setShowOrderType(true);
-      setLastCheckedOrder(trimmed);
+      setLastCheckedOrder(`${trimmed}|${lineTrim}`);
       return;
     }
 
@@ -203,7 +210,7 @@ const IncomingGoodsReceipt = () => {
     setOrderTypeOptions([]);
     setOrderTypeDisabled(true);
     setOrderTypeRequired(false);
-    setLastCheckedOrder(trimmed);
+    setLastCheckedOrder(`${trimmed}|${lineTrim}`);
   };
 
   return (
@@ -342,6 +349,18 @@ const IncomingGoodsReceipt = () => {
             label={trans.incomingOrderPositionLabel}
             value={orderPos}
             onChange={(e) => setOrderPos(e.target.value)}
+            onBlur={() => {
+              const ord = orderNo.trim();
+              const ln = orderPos.trim();
+              if (ord && ln) checkOrder(ord, ln);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const ord = orderNo.trim();
+                const ln = orderPos.trim();
+                if (ord && ln) checkOrder(ord, ln);
+              }
+            }}
             onClear={() => setOrderPos("")}
           />
 
