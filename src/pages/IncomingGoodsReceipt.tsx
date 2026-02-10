@@ -44,6 +44,10 @@ const IncomingGoodsReceipt = () => {
 
   const orderTypeRef = useRef<HTMLInputElement | null>(null);
   const orderNoRef = useRef<HTMLInputElement | null>(null);
+  const lotRef = useRef<HTMLInputElement | null>(null);
+  const bpLotRef = useRef<HTMLInputElement | null>(null);
+  const deliveryNoteRef = useRef<HTMLInputElement | null>(null);
+  const qtyRef = useRef<HTMLInputElement | null>(null);
 
   const [orderType, setOrderType] = useState<string>("");
   const [showOrderType, setShowOrderType] = useState<boolean>(false);
@@ -216,8 +220,14 @@ const IncomingGoodsReceipt = () => {
         setOrderUnit(picked.orderUnit || "");
         setGrItemDesc(picked.ItemDesc || "");
         setGrItemRaw(picked.Item || "");
-        // Check LotTracking dynamically
-        await fetchLotTracking(picked.Item || "");
+        const isTracked = await fetchLotTracking(picked.Item || "");
+        setTimeout(() => {
+          if (isTracked) {
+            lotRef.current?.focus();
+          } else {
+            deliveryNoteRef.current?.focus();
+          }
+        }, 50);
       }
     }
 
@@ -275,19 +285,21 @@ const IncomingGoodsReceipt = () => {
     setLastCheckedOrder(`${trimmed}|${lineTrim}`);
   };
 
-  const fetchLotTracking = async (rawItem: string) => {
+  const fetchLotTracking = async (rawItem: string): Promise<boolean> => {
     const itm = (rawItem || "").toString();
     if (!itm) {
       setLotTracking(false);
-      return;
+      return false;
     }
     const { data } = await supabase.functions.invoke("ln-item-lot-tracking", {
       body: { item: itm, language: locale, company: "4000" },
     });
     if (data && data.ok) {
       setLotTracking(Boolean(data.lotTracking));
+      return Boolean(data.lotTracking);
     } else {
       setLotTracking(false);
+      return false;
     }
   };
 
@@ -568,6 +580,19 @@ const IncomingGoodsReceipt = () => {
                 value={lot}
                 onChange={(e) => setLot(e.target.value)}
                 onClear={() => setLot("")}
+                ref={lotRef}
+                onBlur={() => {
+                  if ((lot || "").trim()) {
+                    bpLotRef.current?.focus();
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if ((lot || "").trim()) {
+                      bpLotRef.current?.focus();
+                    }
+                  }
+                }}
               />
               <FloatingLabelInput
                 id="incomingBusinessPartnerLot"
@@ -575,6 +600,19 @@ const IncomingGoodsReceipt = () => {
                 value={bpLot}
                 onChange={(e) => setBpLot(e.target.value)}
                 onClear={() => setBpLot("")}
+                ref={bpLotRef}
+                onBlur={() => {
+                  if ((bpLot || "").trim()) {
+                    deliveryNoteRef.current?.focus();
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if ((bpLot || "").trim()) {
+                      deliveryNoteRef.current?.focus();
+                    }
+                  }
+                }}
               />
             </>
           )}
@@ -586,6 +624,19 @@ const IncomingGoodsReceipt = () => {
               value={deliveryNote}
               onChange={(e) => setDeliveryNote(e.target.value)}
               onClear={() => setDeliveryNote("")}
+              ref={deliveryNoteRef}
+              onBlur={() => {
+                if ((deliveryNote || "").trim()) {
+                  qtyRef.current?.focus();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if ((deliveryNote || "").trim()) {
+                    qtyRef.current?.focus();
+                  }
+                }
+              }}
             />
           </div>
 
@@ -598,6 +649,7 @@ const IncomingGoodsReceipt = () => {
                  value={qty}
                  onChange={(e) => setQty(e.target.value)}
                  onClear={() => setQty("")}
+                 ref={qtyRef}
                />
              </div>
              <div className="w-32">
