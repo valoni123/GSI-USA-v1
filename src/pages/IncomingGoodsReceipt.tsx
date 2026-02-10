@@ -86,6 +86,11 @@ const IncomingGoodsReceipt = () => {
     return "en-US";
   }, [lang]);
 
+  // NEW: Purchase origin flag for UI visibility/focus
+  const isPurchaseOrigin = useMemo(() => {
+    return ((orderType || lotsOrigin || "").toLowerCase().includes("purchase"));
+  }, [orderType, lotsOrigin]);
+
   // Helper: get Buy-from BP from raw line in multiple possible shapes
   const getBuyFromBusinessPartner = (rv: any): string => {
     const candidates = [
@@ -696,13 +701,22 @@ const IncomingGoodsReceipt = () => {
                     ref={lotRef}
                     onBlur={() => {
                       if ((lot || "").trim()) {
-                        bpLotRef.current?.focus();
+                        // If Purchase, go to BP Lot; otherwise skip to Delivery Note
+                        if (isPurchaseOrigin) {
+                          bpLotRef.current?.focus();
+                        } else {
+                          deliveryNoteRef.current?.focus();
+                        }
                       }
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         if ((lot || "").trim()) {
-                          bpLotRef.current?.focus();
+                          if (isPurchaseOrigin) {
+                            bpLotRef.current?.focus();
+                          } else {
+                            deliveryNoteRef.current?.focus();
+                          }
                         }
                       }
                     }}
@@ -722,27 +736,29 @@ const IncomingGoodsReceipt = () => {
                 )}
               </div>
 
-              {/* Business Partner Lot */}
-              <FloatingLabelInput
-                id="incomingBusinessPartnerLot"
-                label={trans.businessPartnerLotLabel}
-                value={bpLot}
-                onChange={(e) => setBpLot(e.target.value)}
-                onClear={() => setBpLot("")}
-                ref={bpLotRef}
-                onBlur={() => {
-                  if ((bpLot || "").trim()) {
-                    deliveryNoteRef.current?.focus();
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+              {/* Business Partner Lot: only visible for Purchase origin */}
+              {isPurchaseOrigin && (
+                <FloatingLabelInput
+                  id="incomingBusinessPartnerLot"
+                  label={trans.businessPartnerLotLabel}
+                  value={bpLot}
+                  onChange={(e) => setBpLot(e.target.value)}
+                  onClear={() => setBpLot("")}
+                  ref={bpLotRef}
+                  onBlur={() => {
                     if ((bpLot || "").trim()) {
                       deliveryNoteRef.current?.focus();
                     }
-                  }
-                }}
-              />
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      if ((bpLot || "").trim()) {
+                        deliveryNoteRef.current?.focus();
+                      }
+                    }
+                  }}
+                />
+              )}
 
               {/* Lots picker dialog */}
               <Dialog open={lotsPickerOpen} onOpenChange={setLotsPickerOpen}>
