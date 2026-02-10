@@ -38,6 +38,13 @@ type TranslationKeys =
   | "incomingWarehouseInspection"
   | "incomingPutawaySuggestions"
   | "incomingDeliveryNotice"
+  | "incomingOrderTypeLabel"
+  | "incomingOrderTypePurchase"
+  | "incomingOrderNumberLabel"
+  | "incomingOrderPositionLabel"
+  | "incomingDeliveryNoteLabel"
+  | "incomingConfirmAndPost"
+  | "incomingConfirm"
   | "infoStockArticle"
   | "infoStockLEInfo"
   | "infoStockCorrection"
@@ -129,6 +136,13 @@ const translations: Translations = {
     incomingWarehouseInspection: "Warehouse Inspection",
     incomingPutawaySuggestions: "Putaway Suggestions",
     incomingDeliveryNotice: "Delivery Notice",
+    incomingOrderTypeLabel: "Order type",
+    incomingOrderTypePurchase: "Purchase",
+    incomingOrderNumberLabel: "Order number",
+    incomingOrderPositionLabel: "Order position",
+    incomingDeliveryNoteLabel: "Delivery note",
+    incomingConfirmAndPost: "Confirm & Post",
+    incomingConfirm: "Confirm",
     infoStockArticle: "Item",
     infoStockLEInfo: "HU-Info",
     infoStockCorrection: "Correction",
@@ -217,6 +231,13 @@ const translations: Translations = {
     incomingWarehouseInspection: "Lagerprüfung",
     incomingPutawaySuggestions: "Einlag.-Vorschläge",
     incomingDeliveryNotice: "Lieferavis",
+    incomingOrderTypeLabel: "Auftragstyp",
+    incomingOrderTypePurchase: "Einkauf",
+    incomingOrderNumberLabel: "Auftragsnummer",
+    incomingOrderPositionLabel: "Auftragsposition",
+    incomingDeliveryNoteLabel: "Lieferschein",
+    incomingConfirmAndPost: "Bestätigen & Buchen",
+    incomingConfirm: "Bestätigen",
     infoStockArticle: "Artikel",
     infoStockLEInfo: "LE-Info",
     infoStockCorrection: "Korrektur",
@@ -305,6 +326,13 @@ const translations: Translations = {
     incomingWarehouseInspection: "Inspección de almacén",
     incomingPutawaySuggestions: "Sugerencias de ubicación",
     incomingDeliveryNotice: "Aviso de entrega",
+    incomingOrderTypeLabel: "Tipo de orden",
+    incomingOrderTypePurchase: "Compra",
+    incomingOrderNumberLabel: "Número de orden",
+    incomingOrderPositionLabel: "Posición de orden",
+    incomingDeliveryNoteLabel: "Albarán",
+    incomingConfirmAndPost: "Confirmar y contabilizar",
+    incomingConfirm: "Confirmar",
     infoStockArticle: "Artículo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Corrección",
@@ -393,6 +421,13 @@ const translations: Translations = {
     incomingWarehouseInspection: "Inspeção de armazém",
     incomingPutawaySuggestions: "Sugestões de endereçamento",
     incomingDeliveryNotice: "Aviso de entrega",
+    incomingOrderTypeLabel: "Tipo de ordem",
+    incomingOrderTypePurchase: "Compra",
+    incomingOrderNumberLabel: "Número do pedido",
+    incomingOrderPositionLabel: "Posição do pedido",
+    incomingDeliveryNoteLabel: "Nota de entrega",
+    incomingConfirmAndPost: "Confirmar e lançar",
+    incomingConfirm: "Confirmar",
     infoStockArticle: "Artigo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Correção",
