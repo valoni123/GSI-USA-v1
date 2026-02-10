@@ -123,34 +123,64 @@ serve(async (req) => {
     qs.set("$select", "*");
     qs.set("$orderby", "Item");
     qs.set("$expand", "LotByWarehouseRef");
+    // Request more items per page (server may cap, but try a higher top)
+    qs.set("$top", "200");
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const url = `${base}/${ti}/LN/lnapi/odata/whapi.ltcLot/Lots?${qs.toString()}`;
+    const initialUrl = `${base}/${ti}/LN/lnapi/odata/whapi.ltcLot/Lots?${qs.toString()}`;
 
-    const odataRes = await fetch(url, {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        "Content-Language": language,
-        "X-Infor-LnCompany": company,
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }).catch(() => null as unknown as Response);
-    if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
-    const odataJson = await odataRes.json().catch(() => null) as any;
-    if (!odataRes.ok || !odataJson) {
-      const topMessage = odataJson?.error?.message || "odata_error";
-      const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
-      return json({ ok: false, error: { message: topMessage, details } }, 200);
+    // Fetch all pages
+    const items: any[] = [];
+    let totalCount: number | null = null;
+    let nextUrl: string | null = initialUrl;
+
+    for (let i = 0; i < 20 && nextUrl; i++) {
+      const odataRes = await fetch(nextUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          "Content-Language": language,
+          "X-Infor-LnCompany": company,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }).catch(() => null as unknown as Response);
+      if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
+      const odataJson = await odataRes.json().catch(() => null) as any;
+      if (!odataRes.ok || !odataJson) {
+        const topMessage = odataJson?.error?.message || "odata_error";
+        const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
+        return json({ ok: false, error: { message: topMessage, details } }, 200);
+      }
+
+      if (totalCount === null && typeof odataJson?.["@odata.count"] === "number") {
+        totalCount = odataJson["@odata.count"];
+      }
+
+      const page = Array.isArray(odataJson?.value) ? odataJson.value : [];
+      if (page.length) items.push(...page);
+
+      const rawNext =
+        (odataJson?.["@odata.nextLink"] as string | undefined) ||
+        (odataJson?.["odata.nextLink"] as string | undefined) ||
+        null;
+
+      if (!rawNext) {
+        nextUrl = null;
+      } else if (rawNext.startsWith("http")) {
+        nextUrl = rawNext;
+      } else if (rawNext.startsWith("/")) {
+        nextUrl = `${base}${rawNext}`;
+      } else {
+        nextUrl = `${base}/${rawNext}`;
+      }
     }
 
-    const value = Array.isArray(odataJson?.value) ? odataJson.value : [];
     const count =
-      typeof odataJson?.["@odata.count"] === "number"
-        ? odataJson["@odata.count"]
-        : value.length;
+      totalCount !== null
+        ? totalCount
+        : items.length;
 
-    return json({ ok: true, count, value }, 200);
+    return json({ ok: true, count, value: items }, 200);
   } catch {
     return json({ ok: false, error: { message: "unhandled" } }, 200);
   }
