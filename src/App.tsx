@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Menu from "./pages/Menu";
+import IncomingMenu from "./pages/IncomingMenu";
 import InfoStockMenu from "./pages/InfoStockMenu";
 import InfoStockArticle from "./pages/InfoStockArticle";
 import InfoStockTransfer from "./pages/InfoStockTransfer";
@@ -27,6 +28,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/menu" element={<Menu />} />
+          <Route path="/menu/incoming" element={<IncomingMenu />} />
           <Route path="/menu/info-stock" element={<InfoStockMenu />} />
           <Route path="/menu/info-stock/article" element={<InfoStockArticle />} />
           <Route path="/menu/info-stock/transfer" element={<InfoStockTransfer />} />

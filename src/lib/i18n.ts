@@ -34,6 +34,10 @@ type TranslationKeys =
   | "appTransport"
   | "appSettings"
   | "back"
+  | "incomingGoodsReceipt"
+  | "incomingWarehouseInspection"
+  | "incomingPutawaySuggestions"
+  | "incomingDeliveryNotice"
   | "infoStockArticle"
   | "infoStockLEInfo"
   | "infoStockCorrection"
@@ -121,6 +125,10 @@ const translations: Translations = {
     appTransport: "Transport",
     appSettings: "Settings",
     back: "Back",
+    incomingGoodsReceipt: "Goods Receipt",
+    incomingWarehouseInspection: "Warehouse Inspection",
+    incomingPutawaySuggestions: "Putaway Suggestions",
+    incomingDeliveryNotice: "Delivery Notice",
     infoStockArticle: "Item",
     infoStockLEInfo: "HU-Info",
     infoStockCorrection: "Correction",
@@ -205,6 +213,10 @@ const translations: Translations = {
     appTransport: "Transport",
     appSettings: "Einstellungen",
     back: "Zurück",
+    incomingGoodsReceipt: "Wareneingang",
+    incomingWarehouseInspection: "Lagerprüfung",
+    incomingPutawaySuggestions: "Einlag.-Vorschläge",
+    incomingDeliveryNotice: "Lieferavis",
     infoStockArticle: "Artikel",
     infoStockLEInfo: "LE-Info",
     infoStockCorrection: "Korrektur",
@@ -289,6 +301,10 @@ const translations: Translations = {
     appTransport: "Transporte",
     appSettings: "Configuración",
     back: "Atrás",
+    incomingGoodsReceipt: "Recepción de mercancías",
+    incomingWarehouseInspection: "Inspección de almacén",
+    incomingPutawaySuggestions: "Sugerencias de ubicación",
+    incomingDeliveryNotice: "Aviso de entrega",
     infoStockArticle: "Artículo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Corrección",
@@ -373,6 +389,10 @@ const translations: Translations = {
     appTransport: "Transporte",
     appSettings: "Configurações",
     back: "Voltar",
+    incomingGoodsReceipt: "Recebimento",
+    incomingWarehouseInspection: "Inspeção de armazém",
+    incomingPutawaySuggestions: "Sugestões de endereçamento",
+    incomingDeliveryNotice: "Aviso de entrega",
     infoStockArticle: "Artigo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Correção",
