@@ -59,6 +59,11 @@ const IncomingGoodsReceipt = () => {
   const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
   const [inboundLinesAll, setInboundLinesAll] = useState<Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }>>([]);
   const [hasMultipleLines, setHasMultipleLines] = useState<boolean>(false);
+  // NEW: BP from order line (for Purchase) and existing lots UI state
+  const [buyFromBusinessPartner, setBuyFromBusinessPartner] = useState<string>("");
+  const [lotsAvailableCount, setLotsAvailableCount] = useState<number>(0);
+  const [lotsPickerOpen, setLotsPickerOpen] = useState<boolean>(false);
+  const [existingLots, setExistingLots] = useState<any[]>([]);
   const [deliveryNote, setDeliveryNote] = useState<string>("");
   const [lot, setLot] = useState<string>("");
   const [bpLot, setBpLot] = useState<string>("");
@@ -213,6 +218,8 @@ const IncomingGoodsReceipt = () => {
     if (lineTrim) {
       const lnNum = Number(lineTrim);
       const picked = mappedLines.find((x) => x.Line === lnNum) || mappedLines[0];
+      // NEW: also find the raw entry for BP/origin
+      const pickedRaw = rawValues.find((rv: any) => Number(rv?.Line) === lnNum) || rawValues[0];
       if (picked) {
         const itemCode = (picked.Item || "").trim();
         setGrItem(itemCode);
@@ -220,7 +227,26 @@ const IncomingGoodsReceipt = () => {
         setOrderUnit(picked.orderUnit || "");
         setGrItemDesc(picked.ItemDesc || "");
         setGrItemRaw(picked.Item || "");
+
+        // Derive BuyfromBusinessPartner from raw entry (fallbacks)
+        const bpCode =
+          (typeof pickedRaw?.ShipFromBusinessPartnerRef?.BusinessPartner === "string" && pickedRaw.ShipFromBusinessPartnerRef.BusinessPartner) ||
+          (typeof pickedRaw?.ShipfromBusinessPartner === "string" && pickedRaw.ShipfromBusinessPartner) ||
+          "";
+        setBuyFromBusinessPartner(bpCode);
+
         const isTracked = await fetchLotTracking(picked.Item || "");
+        // Check existing lots when tracking is enabled
+        if (isTracked) {
+          const originCandidate =
+            (typeof pickedRaw?.OrderOrigin === "string" && pickedRaw.OrderOrigin) || orderType || "";
+          await checkExistingLots(itemCode, originCandidate, bpCode);
+        } else {
+          // Reset existing lots UI
+          setLotsAvailableCount(0);
+          setExistingLots([]);
+        }
+
         setTimeout(() => {
           if (isTracked) {
             lotRef.current?.focus();
@@ -283,6 +309,34 @@ const IncomingGoodsReceipt = () => {
     setOrderTypeDisabled(true);
     setOrderTypeRequired(false);
     setLastCheckedOrder(`${trimmed}|${lineTrim}`);
+  };
+
+  // NEW: helper to query existing Lots (by origin and optional BP)
+  const checkExistingLots = async (itm: string, originStr: string, bp?: string) => {
+    const origin = (originStr || "").toString();
+    if (!itm || !origin) {
+      setLotsAvailableCount(0);
+      setExistingLots([]);
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("ln-item-existing-lots", {
+      body: {
+        item: itm,
+        origin,
+        buyFromBusinessPartner: (bp || "").trim() || undefined,
+        language: locale,
+        company: "4000",
+      },
+    });
+    if (error || !data || !data.ok) {
+      setLotsAvailableCount(0);
+      setExistingLots([]);
+      return;
+    }
+    const value = Array.isArray(data.value) ? data.value : [];
+    const count = Number(data.count ?? value.length ?? 0);
+    setLotsAvailableCount(count);
+    setExistingLots(value);
   };
 
   const fetchLotTracking = async (rawItem: string): Promise<boolean> => {
@@ -475,6 +529,10 @@ const IncomingGoodsReceipt = () => {
                   setOrderUnit("");
                   setGrItemRaw("");
                   setLotTracking(false);
+                  // NEW: clear BP and lot candidates
+                  setBuyFromBusinessPartner("");
+                  setLotsAvailableCount(0);
+                  setExistingLots([]);
                 }}
               />
             </div>
@@ -574,26 +632,45 @@ const IncomingGoodsReceipt = () => {
 
           {lotTracking && (
             <>
-              <FloatingLabelInput
-                id="incomingLot"
-                label={trans.lotLabel}
-                value={lot}
-                onChange={(e) => setLot(e.target.value)}
-                onClear={() => setLot("")}
-                ref={lotRef}
-                onBlur={() => {
-                  if ((lot || "").trim()) {
-                    bpLotRef.current?.focus();
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    if ((lot || "").trim()) {
-                      bpLotRef.current?.focus();
-                    }
-                  }
-                }}
-              />
+              {/* Lot field with optional search icon when matches exist */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <FloatingLabelInput
+                    id="incomingLot"
+                    label={trans.lotLabel}
+                    value={lot}
+                    onChange={(e) => setLot(e.target.value)}
+                    onClear={() => setLot("")}
+                    ref={lotRef}
+                    onBlur={() => {
+                      if ((lot || "").trim()) {
+                        bpLotRef.current?.focus();
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        if ((lot || "").trim()) {
+                          bpLotRef.current?.focus();
+                        }
+                      }
+                    }}
+                  />
+                </div>
+                {lotsAvailableCount > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-12 w-12"
+                    aria-label={trans.searchLabel}
+                    onClick={() => setLotsPickerOpen(true)}
+                  >
+                    <Search className="h-5 w-5" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Business Partner Lot */}
               <FloatingLabelInput
                 id="incomingBusinessPartnerLot"
                 label={trans.businessPartnerLotLabel}
@@ -614,6 +691,83 @@ const IncomingGoodsReceipt = () => {
                   }
                 }}
               />
+
+              {/* Lots picker dialog */}
+              <Dialog open={lotsPickerOpen} onOpenChange={setLotsPickerOpen}>
+                <DialogPortal>
+                  <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
+                  <DialogPrimitive.Content
+                    className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-0 shadow-lg"
+                  >
+                    <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
+                      {trans.searchLabel}
+                    </div>
+                    <div className="max-h-64 overflow-auto p-2">
+                      {existingLots.length === 0 ? (
+                        <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
+                      ) : (
+                        existingLots.map((ln: any, idx: number) => {
+                          const lotCode =
+                            (typeof ln?.Lot === "string" && ln.Lot) ||
+                            (typeof ln?.LotByWarehouseRef?.Lot === "string" && ln.LotByWarehouseRef.Lot) ||
+                            "";
+                          const warehouse =
+                            (typeof ln?.LotByWarehouseRef?.Warehouse === "string" && ln.LotByWarehouseRef.Warehouse) ||
+                            (typeof ln?.Warehouse === "string" && ln.Warehouse) ||
+                            "";
+                          const bpLotVal =
+                            (typeof ln?.BusinessPartnerLot === "string" && ln.BusinessPartnerLot) || "";
+                          return (
+                            <button
+                              key={`${lotCode || "lot"}-${idx}`}
+                              type="button"
+                              className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50 hover:bg-gray-100"
+                              onClick={() => {
+                                const selectedLot = (lotCode || "").trim();
+                                const selectedBpLot = (bpLotVal || "").trim();
+                                if (selectedLot) setLot(selectedLot);
+                                if (selectedBpLot) setBpLot(selectedBpLot);
+                                setLotsPickerOpen(false);
+                                // Advance focus
+                                if (selectedBpLot) {
+                                  deliveryNoteRef.current?.focus();
+                                } else {
+                                  bpLotRef.current?.focus();
+                                }
+                              }}
+                            >
+                              <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                                <div className="flex flex-col">
+                                  <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                                    {lotCode || "-"}
+                                  </div>
+                                  {warehouse && (
+                                    <div className="text-xs text-gray-700">{warehouse}</div>
+                                  )}
+                                </div>
+                                {bpLotVal && (
+                                  <div className="font-mono text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
+                                    {bpLotVal}
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                    <DialogPrimitive.Close asChild>
+                      <button
+                        type="button"
+                        className="absolute right-3 top-2 text-gray-600 hover:text-gray-900"
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                    </DialogPrimitive.Close>
+                  </DialogPrimitive.Content>
+                </DialogPortal>
+              </Dialog>
             </>
           )}
 
