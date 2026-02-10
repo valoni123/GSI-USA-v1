@@ -68,32 +68,44 @@ const IncomingGoodsReceipt = () => {
     if (lang === "de") {
       if (o === "JSCProduction") return "Produktion (JSC)";
       if (o === "Purchase") return "Einkauf";
+      if (o === "Sales") return "Verkauf";
+      if (o === "Transfer") return "Umbuchung";
+      if (o === "TransferManual") return "Umbuchung (manuell)";
     } else if (lang === "es-MX") {
       if (o === "JSCProduction") return "Producción (JSC)";
       if (o === "Purchase") return "Compra";
+      if (o === "Sales") return "Venta";
+      if (o === "Transfer") return "Transferencia";
+      if (o === "TransferManual") return "Transferencia (manual)";
     } else if (lang === "pt-BR") {
       if (o === "JSCProduction") return "Produção (JSC)";
       if (o === "Purchase") return "Compra";
+      if (o === "Sales") return "Vendas";
+      if (o === "Transfer") return "Transferência";
+      if (o === "TransferManual") return "Transferência (manual)";
     } else {
       if (o === "JSCProduction") return "Production (JSC)";
       if (o === "Purchase") return "Purchase";
+      if (o === "Sales") return "Sales";
+      if (o === "Transfer") return "Transfer";
+      if (o === "TransferManual") return "Transfer (manual)";
     }
     return o || "-";
   };
 
-  // Styling for origin colors: Production -> light green, Purchase -> dark green
-  const originColorClasses = (origin: string) => {
+  // Hex color mapping for known origins (button background + text color)
+  const originColorStyle = (origin: string) => {
     const o = (origin || "").toLowerCase();
-    if (o.includes("production")) {
-      // light green
-      return "bg-emerald-500 hover:bg-emerald-600";
-    }
-    if (o.includes("purchase")) {
-      // dark green
-      return "bg-green-700 hover:bg-green-800";
-    }
-    // default green
-    return "bg-green-600 hover:bg-green-700";
+    // Produktion (JSC)
+    if (o.includes("production")) return { bg: "#2db329", text: "#ffffff" };
+    // Purchase / Einkauf
+    if (o.includes("purchase")) return { bg: "#9ed927", text: "#1a1a1a" };
+    // Sales / Verkauf
+    if (o.includes("sales")) return { bg: "#1d5f8a", text: "#ffffff" };
+    // Transfer / Umbuchung (+ Manual)
+    if (o.includes("transfer")) return { bg: "#ffd500", text: "#1a1a1a" };
+    // Default
+    return { bg: "#2db329", text: "#ffffff" };
   };
 
   useEffect(() => {
@@ -235,11 +247,17 @@ const IncomingGoodsReceipt = () => {
               <div className="space-y-1">
                 <div className="text-xs font-medium text-gray-700">{trans.incomingOrderTypeLabel}</div>
                 <div className="flex flex-wrap gap-2">
-                  <span
-                    className={`inline-flex items-center rounded-full ${originColorClasses(orderType)} text-white px-3 py-1 text-sm font-semibold`}
-                  >
-                    {formatOriginLabel(orderType)}
-                  </span>
+                  {(() => {
+                    const s = originColorStyle(orderType);
+                    return (
+                      <span
+                        className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold shadow-sm"
+                        style={{ backgroundColor: s.bg, color: s.text }}
+                      >
+                        {formatOriginLabel(orderType)}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             ) : (
@@ -250,27 +268,36 @@ const IncomingGoodsReceipt = () => {
                 <Select value={orderType} onValueChange={setOrderType}>
                   <SelectTrigger className="h-12">
                     <div className="flex items-center gap-2">
-                      {orderType && (
-                        <span
-                          className={`inline-flex items-center rounded-full ${originColorClasses(orderType)} text-white px-2.5 py-0.5 text-xs font-semibold`}
-                        >
-                          {formatOriginLabel(orderType)}
-                        </span>
-                      )}
+                      {orderType && (() => {
+                        const s = originColorStyle(orderType);
+                        return (
+                          <span
+                            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-sm"
+                            style={{ backgroundColor: s.bg, color: s.text }}
+                          >
+                            {formatOriginLabel(orderType)}
+                          </span>
+                        );
+                      })()}
                       <SelectValue placeholder={trans.incomingOrderTypeLabel} />
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    {orderTypeOptions.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`h-2.5 w-2.5 rounded-full ${originColorClasses(opt).split(" ")[0]}`}
-                          />
-                          <span>{formatOriginLabel(opt)}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {orderTypeOptions.map((opt) => {
+                      const s = originColorStyle(opt);
+                      return (
+                        <SelectItem key={opt} value={opt}>
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                              style={{ backgroundColor: s.bg, color: s.text }}
+                            >
+                              {formatOriginLabel(opt)}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
