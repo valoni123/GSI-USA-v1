@@ -267,8 +267,8 @@ const IncomingGoodsReceipt = () => {
                 </div>
                 <Select value={orderType} onValueChange={setOrderType}>
                   <SelectTrigger className="h-12">
-                    <div className="flex items-center gap-2">
-                      {orderType && (() => {
+                    {orderType ? (
+                      (() => {
                         const s = originColorStyle(orderType);
                         return (
                           <span
@@ -278,9 +278,10 @@ const IncomingGoodsReceipt = () => {
                             {formatOriginLabel(orderType)}
                           </span>
                         );
-                      })()}
-                      <SelectValue placeholder={trans.incomingOrderTypeLabel} />
-                    </div>
+                      })()
+                    ) : (
+                      <span className="text-gray-500">{trans.incomingOrderTypeLabel}</span>
+                    )}
                   </SelectTrigger>
                   <SelectContent>
                     {orderTypeOptions.map((opt) => {
@@ -300,6 +301,8 @@ const IncomingGoodsReceipt = () => {
                     })}
                   </SelectContent>
                 </Select>
+                {/* Extra spacing to avoid overlap with the next floating label input */}
+                <div className="mb-2" />
               </div>
             )
           )}
