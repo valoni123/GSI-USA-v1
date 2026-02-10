@@ -53,7 +53,7 @@ const IncomingGoodsReceipt = () => {
   const [orderNo, setOrderNo] = useState<string>("");
   const [orderPos, setOrderPos] = useState<string>("");
   const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
-  const [inboundLines, setInboundLines] = useState<Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }>>([]);
+  const [inboundLinesAll, setInboundLinesAll] = useState<Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }>>([]);
   const [deliveryNote, setDeliveryNote] = useState<string>("");
   const [lot, setLot] = useState<string>("");
   const [bpLot, setBpLot] = useState<string>("");
@@ -181,7 +181,7 @@ const IncomingGoodsReceipt = () => {
       setOrderTypeRequired(false);
       setLastCheckedOrder(null);
       // Clear inbound lines on error
-      setInboundLines([]);
+      setInboundLinesAll([]);
       return;
     }
     // Store inbound lines from raw payload for the picker
@@ -195,7 +195,10 @@ const IncomingGoodsReceipt = () => {
         orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
       }))
       .filter((x) => Number.isFinite(x.Line) && x.Line > 0);
-    setInboundLines(mappedLines);
+    // Only update the "all lines" list when fetching by order (no specific line filter)
+    if (!lineTrim) {
+      setInboundLinesAll(mappedLines);
+    }
 
     // If this was the first call (no line filter) and there is exactly one line, auto-fill only if not suppressed
     if (!lineTrim && mappedLines.length === 1 && !suppressAutoFillLine) {
@@ -374,7 +377,7 @@ const IncomingGoodsReceipt = () => {
               setOrderTypeRequired(false);
               setLastCheckedOrder(null);
               setSuppressAutoFillLine(false); // new order → allow auto-fill again
-              setInboundLines([]);
+              setInboundLinesAll([]);
               setTimeout(() => orderNoRef.current?.focus(), 0);
             }}
           />
@@ -405,7 +408,7 @@ const IncomingGoodsReceipt = () => {
                 }}
               />
             </div>
-            {inboundLines.length > 1 && (
+            {inboundLinesAll.length > 1 && (
               <Button
                 type="button"
                 variant="outline"
@@ -415,7 +418,7 @@ const IncomingGoodsReceipt = () => {
                 onClick={async () => {
                   // Ensure we have lines; if not, fetch by order
                   const ord = orderNo.trim();
-                  if (inboundLines.length === 0 && ord) {
+                  if (inboundLinesAll.length === 0 && ord) {
                     await checkOrder(ord);
                   }
                   setLinePickerOpen(true);
@@ -437,10 +440,10 @@ const IncomingGoodsReceipt = () => {
                   {trans.incomingLinesLabel}
                 </div>
                 <div className="max-h-64 overflow-auto p-2">
-                  {inboundLines.length === 0 ? (
+                  {inboundLinesAll.length === 0 ? (
                     <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
                   ) : (
-                    inboundLines.map((ln, idx) => (
+                    inboundLinesAll.map((ln, idx) => (
                       <button
                         key={`${ln.Line}-${idx}`}
                         type="button"
