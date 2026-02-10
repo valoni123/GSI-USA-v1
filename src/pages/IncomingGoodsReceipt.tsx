@@ -58,6 +58,7 @@ const IncomingGoodsReceipt = () => {
   const [lot, setLot] = useState<string>("");
   const [bpLot, setBpLot] = useState<string>("");
   const [qty, setQty] = useState<string>("");
+  const [grItem, setGrItem] = useState<string>("");
   const [lastCheckedOrder, setLastCheckedOrder] = useState<string | null>(null);
   const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
   const locale = useMemo(() => {
