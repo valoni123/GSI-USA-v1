@@ -50,6 +50,7 @@ const IncomingGoodsReceipt = () => {
   const [orderTypeRequired, setOrderTypeRequired] = useState<boolean>(false);
   const [orderNo, setOrderNo] = useState<string>("");
   const [orderPos, setOrderPos] = useState<string>("");
+  const [grItem, setGrItem] = useState<string>("");
   const [deliveryNote, setDeliveryNote] = useState<string>("");
   const [lot, setLot] = useState<string>("");
   const [bpLot, setBpLot] = useState<string>("");
@@ -342,6 +343,14 @@ const IncomingGoodsReceipt = () => {
             value={orderPos}
             onChange={(e) => setOrderPos(e.target.value)}
             onClear={() => setOrderPos("")}
+          />
+
+          <FloatingLabelInput
+            id="incomingItem"
+            label={trans.itemLabel}
+            value={grItem}
+            onChange={(e) => setGrItem(e.target.value)}
+            onClear={() => setGrItem("")}
           />
 
           <FloatingLabelInput
