@@ -194,6 +194,17 @@ const IncomingGoodsReceipt = () => {
       }))
       .filter((x) => Number.isFinite(x.Line) && x.Line > 0);
     setInboundLines(mappedLines);
+
+    // If this was the first call (no line filter) and there is exactly one line, auto-fill the Line and re-check with the line filter
+    if (!lineTrim && mappedLines.length === 1) {
+      const singleLineStr = String(mappedLines[0].Line);
+      setOrderPos(singleLineStr);
+      setLastCheckedOrder(`${trimmed}|${singleLineStr}`);
+      // Re-run with the specific line to resolve OrderOrigin accurately and narrow data
+      await checkOrder(trimmed, singleLineStr);
+      return;
+    }
+
     const count = Number(data.count || 0);
     // Collect unique OrderOrigin values from raw payload (fallback to data.origin)
     const origins: string[] = rawValues
@@ -360,6 +371,7 @@ const IncomingGoodsReceipt = () => {
               setOrderTypeDisabled(true);
               setOrderTypeRequired(false);
               setLastCheckedOrder(null);
+              setInboundLines([]);
               setTimeout(() => orderNoRef.current?.focus(), 0);
             }}
           />
@@ -387,23 +399,25 @@ const IncomingGoodsReceipt = () => {
                 onClear={() => setOrderPos("")}
               />
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-12 w-12"
-              aria-label="Search lines"
-              onClick={async () => {
-                // Ensure we have lines; if not, fetch by order
-                const ord = orderNo.trim();
-                if (inboundLines.length === 0 && ord) {
-                  await checkOrder(ord);
-                }
-                setLinePickerOpen(true);
-              }}
-            >
-              <Search className="h-5 w-5" />
-            </Button>
+            {inboundLines.length > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-12 w-12"
+                aria-label="Search lines"
+                onClick={async () => {
+                  // Ensure we have lines; if not, fetch by order
+                  const ord = orderNo.trim();
+                  if (inboundLines.length === 0 && ord) {
+                    await checkOrder(ord);
+                  }
+                  setLinePickerOpen(true);
+                }}
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+            )}
           </div>
 
           {/* Line picker dialog with blurred background */}
