@@ -62,6 +62,8 @@ const IncomingGoodsReceipt = () => {
   const [grItem, setGrItem] = useState<string>("");
   const [orderUnit, setOrderUnit] = useState<string>("");
   const [grItemDesc, setGrItemDesc] = useState<string>("");
+  const [grItemRaw, setGrItemRaw] = useState<string>("");
+  const [lotTracking, setLotTracking] = useState<boolean>(false);
   const [lastCheckedOrder, setLastCheckedOrder] = useState<string | null>(null);
   const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
   // When true, do not auto-fill the Line even if the service returns exactly one line
@@ -213,6 +215,9 @@ const IncomingGoodsReceipt = () => {
         setQty(picked.tbrQty != null ? String(picked.tbrQty) : "");
         setOrderUnit(picked.orderUnit || "");
         setGrItemDesc(picked.ItemDesc || "");
+        setGrItemRaw(picked.Item || "");
+        // Check LotTracking dynamically
+        await fetchLotTracking(picked.Item || "");
       }
     }
 
@@ -268,6 +273,22 @@ const IncomingGoodsReceipt = () => {
     setOrderTypeDisabled(true);
     setOrderTypeRequired(false);
     setLastCheckedOrder(`${trimmed}|${lineTrim}`);
+  };
+
+  const fetchLotTracking = async (rawItem: string) => {
+    const itm = (rawItem || "").toString();
+    if (!itm) {
+      setLotTracking(false);
+      return;
+    }
+    const { data } = await supabase.functions.invoke("ln-item-lot-tracking", {
+      body: { item: itm, language: locale, company: "4000" },
+    });
+    if (data && data.ok) {
+      setLotTracking(Boolean(data.lotTracking));
+    } else {
+      setLotTracking(false);
+    }
   };
 
   return (
@@ -406,6 +427,8 @@ const IncomingGoodsReceipt = () => {
               setGrItemDesc("");
               setQty("");
               setOrderUnit("");
+              setGrItemRaw("");
+              setLotTracking(false);
               setTimeout(() => orderNoRef.current?.focus(), 0);
             }}
           />
@@ -438,6 +461,8 @@ const IncomingGoodsReceipt = () => {
                   setGrItemDesc("");
                   setQty("");
                   setOrderUnit("");
+                  setGrItemRaw("");
+                  setLotTracking(false);
                 }}
               />
             </div>
@@ -543,21 +568,24 @@ const IncomingGoodsReceipt = () => {
             onClear={() => setDeliveryNote("")}
           />
 
-          <FloatingLabelInput
-            id="incomingLot"
-            label={trans.lotLabel}
-            value={lot}
-            onChange={(e) => setLot(e.target.value)}
-            onClear={() => setLot("")}
-          />
-
-          <FloatingLabelInput
-            id="incomingBusinessPartnerLot"
-            label={trans.businessPartnerLotLabel}
-            value={bpLot}
-            onChange={(e) => setBpLot(e.target.value)}
-            onClear={() => setBpLot("")}
-          />
+          {lotTracking && (
+            <>
+              <FloatingLabelInput
+                id="incomingLot"
+                label={trans.lotLabel}
+                value={lot}
+                onChange={(e) => setLot(e.target.value)}
+                onClear={() => setLot("")}
+              />
+              <FloatingLabelInput
+                id="incomingBusinessPartnerLot"
+                label={trans.businessPartnerLotLabel}
+                value={bpLot}
+                onChange={(e) => setBpLot(e.target.value)}
+                onClear={() => setBpLot("")}
+              />
+            </>
+          )}
 
           {/* Quantity and Unit side-by-side */}
           <div className="flex items-center gap-2">
