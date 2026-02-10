@@ -54,6 +54,7 @@ const IncomingGoodsReceipt = () => {
   const [orderPos, setOrderPos] = useState<string>("");
   const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
   const [inboundLinesAll, setInboundLinesAll] = useState<Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }>>([]);
+  const [hasMultipleLines, setHasMultipleLines] = useState<boolean>(false);
   const [deliveryNote, setDeliveryNote] = useState<string>("");
   const [lot, setLot] = useState<string>("");
   const [bpLot, setBpLot] = useState<string>("");
@@ -198,6 +199,9 @@ const IncomingGoodsReceipt = () => {
       }))
       .filter((x) => Number.isFinite(x.Line) && x.Line > 0);
     setInboundLinesAll(mappedLines);
+    if (!lineTrim) {
+      setHasMultipleLines(mappedLines.length > 1);
+    }
     // If a specific line is provided, fill Item, Quantity, and Unit from that line (first match)
     if (lineTrim) {
       const lnNum = Number(lineTrim);
@@ -394,6 +398,7 @@ const IncomingGoodsReceipt = () => {
               setLastCheckedOrder(null);
               setSuppressAutoFillLine(false); // new order → allow auto-fill again
               setInboundLinesAll([]);
+              setHasMultipleLines(false);
               // Clear dependent fields on order clear
               setOrderPos("");
               setGrItem("");
@@ -435,7 +440,7 @@ const IncomingGoodsReceipt = () => {
                 }}
               />
             </div>
-            {inboundLinesAll.length > 1 && (
+            {hasMultipleLines && (
               <Button
                 type="button"
                 variant="outline"
