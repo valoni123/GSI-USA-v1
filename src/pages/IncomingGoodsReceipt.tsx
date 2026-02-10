@@ -86,6 +86,20 @@ const IncomingGoodsReceipt = () => {
     return "en-US";
   }, [lang]);
 
+  // Helper: get Buy-from BP from raw line in multiple possible shapes
+  const getBuyFromBusinessPartner = (rv: any): string => {
+    const candidates = [
+      rv?.BuyfromBusinessPartner,
+      rv?.BuyFromBusinessPartner,
+      rv?.ShipfromBusinessPartner,
+      rv?.ShipFromBusinessPartner,
+      rv?.ShipfromBusinessPartnerRef?.BusinessPartner,
+      rv?.ShipFromBusinessPartnerRef?.BusinessPartner,
+    ];
+    const first = candidates.find((v: any) => typeof v === "string" && v.trim().length > 0);
+    return (first || "").trim();
+  };
+
   // Friendly label for known OrderOrigin values
   const formatOriginLabel = (origin: string) => {
     const o = (origin || "").trim();
@@ -220,7 +234,6 @@ const IncomingGoodsReceipt = () => {
     if (lineTrim) {
       const lnNum = Number(lineTrim);
       const picked = mappedLines.find((x) => x.Line === lnNum) || mappedLines[0];
-      // NEW: also find the raw entry for BP/origin
       const pickedRaw = rawValues.find((rv: any) => Number(rv?.Line) === lnNum) || rawValues[0];
       if (picked) {
         const itemCode = (picked.Item || "").trim();
@@ -230,32 +243,28 @@ const IncomingGoodsReceipt = () => {
         setGrItemDesc(picked.ItemDesc || "");
         setGrItemRaw(picked.Item || "");
 
-        // Derive BuyfromBusinessPartner from raw entry (fallbacks)
-        const bpCode =
-          (typeof pickedRaw?.ShipFromBusinessPartnerRef?.BusinessPartner === "string" && pickedRaw.ShipFromBusinessPartnerRef.BusinessPartner) ||
-          (typeof pickedRaw?.ShipfromBusinessPartner === "string" && pickedRaw.ShipfromBusinessPartner) ||
-          "";
+        // Derive BuyfromBusinessPartner robustly
+        const bpCode = getBuyFromBusinessPartner(pickedRaw);
         setBuyFromBusinessPartner(bpCode);
 
         const isTracked = await fetchLotTracking(picked.Item || "");
         const originCandidate =
           (typeof pickedRaw?.OrderOrigin === "string" && pickedRaw.OrderOrigin) || orderType || "";
 
-        // Only query existing lots when we have the necessary inputs
         if (isTracked) {
           const originLower = (originCandidate || "").toLowerCase();
           if (originLower.includes("purchase")) {
-            // Require BP for Purchase, otherwise skip (prevents showing all lots)
-            if ((bpCode || "").trim()) {
-              await checkExistingLots(itemCode, originCandidate, bpCode);
+            // Only query when BP is present for Purchase
+            if (bpCode) {
+              await checkExistingLots((picked.Item || "").trim(), originCandidate, bpCode);
             } else {
               setLotsAvailableCount(0);
               setExistingLots([]);
               setLotsOrigin(originCandidate);
             }
           } else {
-            // Production or other origins → filter by origin only
-            await checkExistingLots(itemCode, originCandidate);
+            // Production and other → filter by origin only
+            await checkExistingLots((picked.Item || "").trim(), originCandidate);
           }
         } else {
           setLotsAvailableCount(0);
