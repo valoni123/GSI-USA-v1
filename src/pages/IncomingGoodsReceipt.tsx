@@ -8,6 +8,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess, showLoading, dismissToast } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const IncomingGoodsReceipt = () => {
   const navigate = useNavigate();
@@ -234,7 +235,9 @@ const IncomingGoodsReceipt = () => {
               <div className="space-y-1">
                 <div className="text-xs font-medium text-gray-700">{trans.incomingOrderTypeLabel}</div>
                 <div className="flex flex-wrap gap-2">
-                  <span className={`inline-flex items-center rounded-full ${originColorClasses(orderType)} text-white px-3 py-1 text-sm font-semibold`}>
+                  <span
+                    className={`inline-flex items-center rounded-full ${originColorClasses(orderType)} text-white px-3 py-1 text-sm font-semibold`}
+                  >
                     {formatOriginLabel(orderType)}
                   </span>
                 </div>
@@ -244,22 +247,32 @@ const IncomingGoodsReceipt = () => {
                 <div className="text-xs font-medium text-gray-700">
                   {trans.incomingOrderTypeLabel} {orderTypeRequired && <span className="text-red-600">*</span>}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {orderTypeOptions.map((opt) => {
-                    const selected = orderType === opt;
-                    return (
-                      <button
-                        key={opt}
-                        type="button"
-                        className={`inline-flex items-center rounded-full ${originColorClasses(opt)} text-white px-3 py-1 text-sm font-semibold transition-colors ${selected ? "" : "opacity-85"}`}
-                        onClick={() => setOrderType(opt)}
-                        aria-pressed={selected}
-                      >
-                        {formatOriginLabel(opt)}
-                      </button>
-                    );
-                  })}
-                </div>
+                <Select value={orderType} onValueChange={setOrderType}>
+                  <SelectTrigger className="h-12">
+                    <div className="flex items-center gap-2">
+                      {orderType && (
+                        <span
+                          className={`inline-flex items-center rounded-full ${originColorClasses(orderType)} text-white px-2.5 py-0.5 text-xs font-semibold`}
+                        >
+                          {formatOriginLabel(orderType)}
+                        </span>
+                      )}
+                      <SelectValue placeholder={trans.incomingOrderTypeLabel} />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orderTypeOptions.map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${originColorClasses(opt).split(" ")[0]}`}
+                          />
+                          <span>{formatOriginLabel(opt)}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )
           )}
