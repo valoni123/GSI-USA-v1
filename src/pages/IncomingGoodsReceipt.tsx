@@ -60,6 +60,7 @@ const IncomingGoodsReceipt = () => {
   const [qty, setQty] = useState<string>("");
   const [grItem, setGrItem] = useState<string>("");
   const [orderUnit, setOrderUnit] = useState<string>("");
+  const [grItemDesc, setGrItemDesc] = useState<string>("");
   const [lastCheckedOrder, setLastCheckedOrder] = useState<string | null>(null);
   const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
   // When true, do not auto-fill the Line even if the service returns exactly one line
@@ -206,6 +207,7 @@ const IncomingGoodsReceipt = () => {
         setGrItem(itemCode);
         setQty(picked.tbrQty != null ? String(picked.tbrQty) : "");
         setOrderUnit(picked.orderUnit || "");
+        setGrItemDesc(picked.ItemDesc || "");
       }
     }
 
@@ -395,6 +397,7 @@ const IncomingGoodsReceipt = () => {
               // Clear dependent fields on order clear
               setOrderPos("");
               setGrItem("");
+              setGrItemDesc("");
               setQty("");
               setOrderUnit("");
               setTimeout(() => orderNoRef.current?.focus(), 0);
@@ -426,6 +429,7 @@ const IncomingGoodsReceipt = () => {
                   setSuppressAutoFillLine(true); // user cleared → do not auto-fill back
                   // Clear item/qty/unit when line cleared
                   setGrItem("");
+                  setGrItemDesc("");
                   setQty("");
                   setOrderUnit("");
                 }}
@@ -517,13 +521,25 @@ const IncomingGoodsReceipt = () => {
             </DialogPortal>
           </Dialog>
 
-          <FloatingLabelInput
-            id="incomingItem"
-            label={trans.itemLabel}
-            value={grItem}
-            onChange={(e) => setGrItem(e.target.value)}
-            onClear={() => setGrItem("")}
-          />
+          {/* Item and description side-by-side; both read-only */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <FloatingLabelInput
+                id="incomingItem"
+                label={trans.itemLabel}
+                value={grItem}
+                disabled
+              />
+            </div>
+            <div className="flex-[1.5]">
+              <FloatingLabelInput
+                id="incomingItemDesc"
+                label={trans.itemDescriptionLabel}
+                value={grItemDesc}
+                disabled
+              />
+            </div>
+          </div>
 
           <FloatingLabelInput
             id="incomingDeliveryNote"
