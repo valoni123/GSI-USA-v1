@@ -579,13 +579,15 @@ const IncomingGoodsReceipt = () => {
             </>
           )}
 
-          <FloatingLabelInput
-            id="incomingDeliveryNote"
-            label={trans.incomingDeliveryNoteLabel}
-            value={deliveryNote}
-            onChange={(e) => setDeliveryNote(e.target.value)}
-            onClear={() => setDeliveryNote("")}
-          />
+          <div className="mb-4">
+            <FloatingLabelInput
+              id="incomingDeliveryNote"
+              label={trans.incomingDeliveryNoteLabel}
+              value={deliveryNote}
+              onChange={(e) => setDeliveryNote(e.target.value)}
+              onClear={() => setDeliveryNote("")}
+            />
+          </div>
 
            {/* Quantity and Unit side-by-side */}
            <div className="flex items-center gap-2">
