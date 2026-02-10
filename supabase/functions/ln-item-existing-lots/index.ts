@@ -125,7 +125,7 @@ serve(async (req) => {
     qs.set("$expand", "LotByWarehouseRef");
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const url = `${base}/${ti}/LN/lnapi/odata/whapi.ltcLot/Lots?${encodeURI(qs.toString())}`;
+    const url = `${base}/${ti}/LN/lnapi/odata/whapi.ltcLot/Lots?${qs.toString()}`;
 
     const odataRes = await fetch(url, {
       method: "GET",

@@ -238,15 +238,29 @@ const IncomingGoodsReceipt = () => {
         setBuyFromBusinessPartner(bpCode);
 
         const isTracked = await fetchLotTracking(picked.Item || "");
-        // Check existing lots when tracking is enabled
+        const originCandidate =
+          (typeof pickedRaw?.OrderOrigin === "string" && pickedRaw.OrderOrigin) || orderType || "";
+
+        // Only query existing lots when we have the necessary inputs
         if (isTracked) {
-          const originCandidate =
-            (typeof pickedRaw?.OrderOrigin === "string" && pickedRaw.OrderOrigin) || orderType || "";
-          await checkExistingLots(itemCode, originCandidate, bpCode);
+          const originLower = (originCandidate || "").toLowerCase();
+          if (originLower.includes("purchase")) {
+            // Require BP for Purchase, otherwise skip (prevents showing all lots)
+            if ((bpCode || "").trim()) {
+              await checkExistingLots(itemCode, originCandidate, bpCode);
+            } else {
+              setLotsAvailableCount(0);
+              setExistingLots([]);
+              setLotsOrigin(originCandidate);
+            }
+          } else {
+            // Production or other origins → filter by origin only
+            await checkExistingLots(itemCode, originCandidate);
+          }
         } else {
-          // Reset existing lots UI
           setLotsAvailableCount(0);
           setExistingLots([]);
+          setLotsOrigin("");
         }
 
         setTimeout(() => {
@@ -320,6 +334,13 @@ const IncomingGoodsReceipt = () => {
       setLotsAvailableCount(0);
       setExistingLots([]);
       setLotsOrigin("");
+      return;
+    }
+    // Guard: for Purchase, do not query without BP
+    if (origin.toLowerCase().includes("purchase") && !(bp || "").trim()) {
+      setLotsAvailableCount(0);
+      setExistingLots([]);
+      setLotsOrigin(origin);
       return;
     }
     const { data, error } = await supabase.functions.invoke("ln-item-existing-lots", {
