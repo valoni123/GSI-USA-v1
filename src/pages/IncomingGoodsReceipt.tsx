@@ -526,25 +526,13 @@ const IncomingGoodsReceipt = () => {
             </DialogPortal>
           </Dialog>
 
-          {/* Item and description side-by-side; both read-only */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <FloatingLabelInput
-                id="incomingItem"
-                label={trans.itemLabel}
-                value={grItem}
-                disabled
-              />
-            </div>
-            <div className="flex-[1.5]">
-              <FloatingLabelInput
-                id="incomingItemDesc"
-                label={trans.itemDescriptionLabel}
-                value={grItemDesc}
-                disabled
-              />
-            </div>
-          </div>
+          {/* Item with description in same (read-only) field */}
+          <FloatingLabelInput
+            id="incomingItem"
+            label={trans.itemLabel}
+            value={[grItem, grItemDesc].filter(Boolean).join(" - ")}
+            disabled
+          />
 
           <FloatingLabelInput
             id="incomingDeliveryNote"
