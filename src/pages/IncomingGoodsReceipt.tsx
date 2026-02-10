@@ -158,10 +158,13 @@ const IncomingGoodsReceipt = () => {
     const lineTrim = (lineVal || "").trim();
     if (lastCheckedOrder === `${trimmed}|${lineTrim}`) return;
     const tid = showLoading(trans.loadingDetails);
+    // Include OrderOrigin in filter when we have a line and a known/selected orderType
+    const originForFilter = lineTrim && orderType ? orderType : undefined;
     const { data, error } = await supabase.functions.invoke("ln-warehousing-orders", {
       body: {
         orderNumber: trimmed,
         line: lineTrim ? Number(lineTrim) : undefined,
+        orderOrigin: originForFilter,
         language: locale,
         company: "4000",
       },

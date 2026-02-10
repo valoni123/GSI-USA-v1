@@ -28,7 +28,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { orderNumber?: string; line?: number | string; language?: string; company?: string } = {};
+    let body: { orderNumber?: string; line?: number | string; orderOrigin?: string; language?: string; company?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -36,6 +36,7 @@ serve(async (req) => {
     }
 
     const orderNumber = (body.orderNumber || "").trim();
+    const originRaw = (body.orderOrigin || "").trim();
     const lineRaw = typeof body.line === "number" ? body.line : (typeof body.line === "string" ? body.line.trim() : "");
     const line = lineRaw !== "" && !Number.isNaN(Number(lineRaw)) ? Number(lineRaw) : null;
     const language = body.language || "en-US";
@@ -99,6 +100,10 @@ serve(async (req) => {
     const path = `/${ti}/LN/lnapi/odata/whapi.inhWarehousingOrder/InboundLines`;
     const escaped = orderNumber.replace(/'/g, "''");
     const filterParts = [`Order eq '${escaped}'`];
+    if (originRaw) {
+      // OData enum literal format: Namespace.EnumType'Value'
+      filterParts.unshift(`OrderOrigin eq whapi.inhWarehousingOrder.OrderOrigin'${originRaw.replace(/'/g, "''")}'`);
+    }
     if (line !== null) {
       filterParts.push(`Line eq ${line}`);
     }
