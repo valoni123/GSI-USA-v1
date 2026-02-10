@@ -92,9 +92,9 @@ serve(async (req) => {
     }
     const accessToken = tokenJson.access_token as string;
 
-    // Build OData URL for Warehousing Orders filtered by Order
+    // Build OData URL for Warehousing InboundLines filtered by Order
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/whapi.inhWarehousingOrder/Orders`;
+    const path = `/${ti}/LN/lnapi/odata/whapi.inhWarehousingOrder/InboundLines`;
     const escaped = orderNumber.replace(/'/g, "''");
     const filter = `Order eq '${escaped}'`;
     const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=%2A&$orderby=OrderOrigin&$expand=%2A`;
