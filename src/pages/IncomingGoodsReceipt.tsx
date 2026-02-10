@@ -761,56 +761,75 @@ const IncomingGoodsReceipt = () => {
                         )}
                       </div>
                     </div>
-                    <div className="max-h-64 overflow-auto p-2">
-                      {existingLots.length === 0 ? (
-                        <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
-                      ) : (
-                        existingLots.map((ln: any, idx: number) => {
-                          const lotCode =
-                            (typeof ln?.Lot === "string" && ln.Lot) ||
-                            (typeof ln?.LotByWarehouseRef?.Lot === "string" && ln.LotByWarehouseRef.Lot) ||
-                            "";
-                          const bpLotCode =
-                            (typeof ln?.BusinessPartnersLotCode === "string" && ln.BusinessPartnersLotCode) ||
-                            "";
-                          const isPurchase = (lotsOrigin || "").toLowerCase().includes("purchase");
-                          return (
-                            <button
-                              key={`${lotCode || "lot"}-${idx}`}
-                              type="button"
-                              className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50 hover:bg-gray-100"
-                              onClick={() => {
-                                const selectedLot = (lotCode || "").trim();
-                                const selectedBpLot = isPurchase ? (bpLotCode || "").trim() : "";
-                                if (selectedLot) setLot(selectedLot);
-                                if (selectedBpLot) setBpLot(selectedBpLot);
-                                setLotsPickerOpen(false);
-                                // Advance focus
-                                if (selectedBpLot) {
-                                  deliveryNoteRef.current?.focus();
-                                } else {
-                                  bpLotRef.current?.focus();
-                                }
-                              }}
-                            >
-                              {isPurchase ? (
-                                <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                    {/* Scroll area with sticky column headers */}
+                    <div className="max-h-64 overflow-auto">
+                      {/* Table-like headers */}
+                      {(() => {
+                        const isPurchase = (lotsOrigin || "").toLowerCase().includes("purchase");
+                        return (
+                          <div className="sticky top-0 z-10 bg-white px-3 py-2 border-b">
+                            {isPurchase ? (
+                              <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                                <div className="text-xs font-semibold text-gray-600">Lot</div>
+                                <div className="text-xs font-semibold text-gray-600 text-right">Businesspartner Lot</div>
+                              </div>
+                            ) : (
+                              <div className="text-xs font-semibold text-gray-600">Lot</div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      <div className="p-2">
+                        {existingLots.length === 0 ? (
+                          <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
+                        ) : (
+                          existingLots.map((ln: any, idx: number) => {
+                            const lotCode =
+                              (typeof ln?.Lot === "string" && ln.Lot) ||
+                              (typeof ln?.LotByWarehouseRef?.Lot === "string" && ln.LotByWarehouseRef.Lot) ||
+                              "";
+                            const bpLotCode =
+                              (typeof ln?.BusinessPartnersLotCode === "string" && ln.BusinessPartnersLotCode) ||
+                              "";
+                            const isPurchase = (lotsOrigin || "").toLowerCase().includes("purchase");
+                            return (
+                              <button
+                                key={`${lotCode || "lot"}-${idx}`}
+                                type="button"
+                                className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50 hover:bg-gray-100"
+                                onClick={() => {
+                                  const selectedLot = (lotCode || "").trim();
+                                  const selectedBpLot = isPurchase ? (bpLotCode || "").trim() : "";
+                                  if (selectedLot) setLot(selectedLot);
+                                  if (selectedBpLot) setBpLot(selectedBpLot);
+                                  setLotsPickerOpen(false);
+                                  // Advance focus
+                                  if (selectedBpLot) {
+                                    deliveryNoteRef.current?.focus();
+                                  } else {
+                                    bpLotRef.current?.focus();
+                                  }
+                                }}
+                              >
+                                {isPurchase ? (
+                                  <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                                    <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                                      {lotCode || "-"}
+                                    </div>
+                                    <div className="font-mono text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
+                                      {bpLotCode}
+                                    </div>
+                                  </div>
+                                ) : (
                                   <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
                                     {lotCode || "-"}
                                   </div>
-                                  <div className="font-mono text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
-                                    {bpLotCode}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
-                                  {lotCode || "-"}
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })
-                      )}
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
                     <DialogPrimitive.Close asChild>
                       <button
