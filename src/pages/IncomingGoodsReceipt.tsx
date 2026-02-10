@@ -1,4 +1,3 @@
-1 and origins differ; keep read-only for single origin; hide initially.">
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogOut, User } from "lucide-react";
