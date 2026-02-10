@@ -662,7 +662,7 @@ const IncomingGoodsReceipt = () => {
                     variant="outline"
                     size="icon"
                     className="h-12 w-12"
-                    aria-label={trans.searchLabel}
+                    aria-label="Lots by Item"
                     onClick={() => setLotsPickerOpen(true)}
                   >
                     <Search className="h-5 w-5" />
@@ -700,7 +700,14 @@ const IncomingGoodsReceipt = () => {
                     className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-0 shadow-lg"
                   >
                     <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
-                      {trans.searchLabel}
+                      <div className="flex flex-col">
+                        <span>Lots by Item</span>
+                        {(orderType || "").toLowerCase().includes("purchase") && (buyFromBusinessPartner || "").trim() && (
+                          <span className="mt-1 text-xs text-gray-200">
+                            Business Partner: {(buyFromBusinessPartner || "").trim()}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="max-h-64 overflow-auto p-2">
                       {existingLots.length === 0 ? (
@@ -711,12 +718,9 @@ const IncomingGoodsReceipt = () => {
                             (typeof ln?.Lot === "string" && ln.Lot) ||
                             (typeof ln?.LotByWarehouseRef?.Lot === "string" && ln.LotByWarehouseRef.Lot) ||
                             "";
-                          const warehouse =
-                            (typeof ln?.LotByWarehouseRef?.Warehouse === "string" && ln.LotByWarehouseRef.Warehouse) ||
-                            (typeof ln?.Warehouse === "string" && ln.Warehouse) ||
+                          const bpLotCode =
+                            (typeof ln?.BusinessPartnersLotCode === "string" && ln.BusinessPartnersLotCode) ||
                             "";
-                          const bpLotVal =
-                            (typeof ln?.BusinessPartnerLot === "string" && ln.BusinessPartnerLot) || "";
                           return (
                             <button
                               key={`${lotCode || "lot"}-${idx}`}
@@ -724,7 +728,7 @@ const IncomingGoodsReceipt = () => {
                               className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50 hover:bg-gray-100"
                               onClick={() => {
                                 const selectedLot = (lotCode || "").trim();
-                                const selectedBpLot = (bpLotVal || "").trim();
+                                const selectedBpLot = (bpLotCode || "").trim();
                                 if (selectedLot) setLot(selectedLot);
                                 if (selectedBpLot) setBpLot(selectedBpLot);
                                 setLotsPickerOpen(false);
@@ -737,19 +741,12 @@ const IncomingGoodsReceipt = () => {
                               }}
                             >
                               <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
-                                <div className="flex flex-col">
-                                  <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
-                                    {lotCode || "-"}
-                                  </div>
-                                  {warehouse && (
-                                    <div className="text-xs text-gray-700">{warehouse}</div>
-                                  )}
+                                <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                                  {lotCode || "-"}
                                 </div>
-                                {bpLotVal && (
-                                  <div className="font-mono text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
-                                    {bpLotVal}
-                                  </div>
-                                )}
+                                <div className="font-mono text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
+                                  {bpLotCode}
+                                </div>
                               </div>
                             </button>
                           );
