@@ -560,14 +560,6 @@ const IncomingGoodsReceipt = () => {
             disabled
           />
 
-          <FloatingLabelInput
-            id="incomingDeliveryNote"
-            label={trans.incomingDeliveryNoteLabel}
-            value={deliveryNote}
-            onChange={(e) => setDeliveryNote(e.target.value)}
-            onClear={() => setDeliveryNote("")}
-          />
-
           {lotTracking && (
             <>
               <FloatingLabelInput
@@ -587,26 +579,34 @@ const IncomingGoodsReceipt = () => {
             </>
           )}
 
-          {/* Quantity and Unit side-by-side */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <FloatingLabelInput
-                id="incomingQty"
-                label={trans.quantityLabel}
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
-                onClear={() => setQty("")}
-              />
-            </div>
-            <div className="w-32">
-              <FloatingLabelInput
-                id="incomingUnit"
-                label={trans.unitLabel}
-                value={orderUnit}
-                disabled
-              />
-            </div>
-          </div>
+          <FloatingLabelInput
+            id="incomingDeliveryNote"
+            label={trans.incomingDeliveryNoteLabel}
+            value={deliveryNote}
+            onChange={(e) => setDeliveryNote(e.target.value)}
+            onClear={() => setDeliveryNote("")}
+          />
+
+           {/* Quantity and Unit side-by-side */}
+           <div className="flex items-center gap-2">
+             <div className="flex-1">
+               <FloatingLabelInput
+                 id="incomingQty"
+                 label={trans.quantityLabel}
+                 value={qty}
+                 onChange={(e) => setQty(e.target.value)}
+                 onClear={() => setQty("")}
+               />
+             </div>
+             <div className="w-32">
+               <FloatingLabelInput
+                 id="incomingUnit"
+                 label={trans.unitLabel}
+                 value={orderUnit}
+                 disabled
+               />
+             </div>
+           </div>
         </Card>
       </div>
 
