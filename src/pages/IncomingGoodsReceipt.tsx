@@ -80,6 +80,21 @@ const IncomingGoodsReceipt = () => {
     return o || "-";
   };
 
+  // Styling for origin colors: Production -> light green, Purchase -> dark green
+  const originColorClasses = (origin: string) => {
+    const o = (origin || "").toLowerCase();
+    if (o.includes("production")) {
+      // light green
+      return "bg-emerald-500 hover:bg-emerald-600";
+    }
+    if (o.includes("purchase")) {
+      // dark green
+      return "bg-green-700 hover:bg-green-800";
+    }
+    // default green
+    return "bg-green-600 hover:bg-green-700";
+  };
+
   useEffect(() => {
     // Focus first editable field on open
     orderNoRef.current?.focus();
@@ -219,7 +234,7 @@ const IncomingGoodsReceipt = () => {
               <div className="space-y-1">
                 <div className="text-xs font-medium text-gray-700">{trans.incomingOrderTypeLabel}</div>
                 <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center rounded-full bg-green-600 text-white px-3 py-1 text-sm font-semibold">
+                  <span className={`inline-flex items-center rounded-full ${originColorClasses(orderType)} text-white px-3 py-1 text-sm font-semibold`}>
                     {formatOriginLabel(orderType)}
                   </span>
                 </div>
@@ -236,11 +251,7 @@ const IncomingGoodsReceipt = () => {
                       <button
                         key={opt}
                         type="button"
-                        className={
-                          selected
-                            ? "inline-flex items-center rounded-full bg-green-600 text-white px-3 py-1 text-sm font-semibold"
-                            : "inline-flex items-center rounded-full bg-gray-200 text-gray-800 hover:bg-gray-300 px-3 py-1 text-sm"
-                        }
+                        className={`inline-flex items-center rounded-full ${originColorClasses(opt)} text-white px-3 py-1 text-sm font-semibold transition-colors ${selected ? "" : "opacity-85"}`}
                         onClick={() => setOrderType(opt)}
                         aria-pressed={selected}
                       >
