@@ -198,8 +198,9 @@ const IncomingGoodsReceipt = () => {
         orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
       }))
       .filter((x) => Number.isFinite(x.Line) && x.Line > 0);
-    setInboundLinesAll(mappedLines);
+    // IMPORTANT: Only update the full list when fetching by order (no line filter)
     if (!lineTrim) {
+      setInboundLinesAll(mappedLines);
       setHasMultipleLines(mappedLines.length > 1);
     }
     // If a specific line is provided, fill Item, Quantity, and Unit from that line (first match)
@@ -448,9 +449,9 @@ const IncomingGoodsReceipt = () => {
                 className="h-12 w-12"
                 aria-label="Search lines"
                 onClick={async () => {
-                  // Ensure we have lines; if not, fetch by order
+                  // Ensure we have the full list for the picker → fetch by order (no line filter)
                   const ord = orderNo.trim();
-                  if (inboundLinesAll.length === 0 && ord) {
+                  if (ord) {
                     await checkOrder(ord);
                   }
                   setLinePickerOpen(true);
