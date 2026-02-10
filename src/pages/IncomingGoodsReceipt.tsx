@@ -54,6 +54,7 @@ const IncomingGoodsReceipt = () => {
   const [lot, setLot] = useState<string>("");
   const [qty, setQty] = useState<string>("");
   const [lastCheckedOrder, setLastCheckedOrder] = useState<string | null>(null);
+  const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -64,6 +65,38 @@ const IncomingGoodsReceipt = () => {
   useEffect(() => {
     // Focus first editable field on open
     orderNoRef.current?.focus();
+  }, []);
+
+  // Read parameter to decide which buttons to show
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      // Try company 4000 first
+      const byComp = await supabase
+        .from("gsi000_params")
+        .select("txgsi000_aure")
+        .eq("txgsi000_compnr", "4000")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (active && byComp.data) {
+        setConfirmOnly(Boolean(byComp.data.txgsi000_aure));
+        return;
+      }
+      // Fallback: latest row
+      const latest = await supabase
+        .from("gsi000_params")
+        .select("txgsi000_aure")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (active && latest.data) {
+        setConfirmOnly(Boolean(latest.data.txgsi000_aure));
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Search handler: call LN for the entered order number; if exactly one, reveal read-only Order Type
@@ -260,14 +293,22 @@ const IncomingGoodsReceipt = () => {
 
       {/* Bottom buttons (disabled at startup like screenshot) */}
       <div className="fixed inset-x-0 bottom-0 bg-white border-t">
-        <div className="mx-auto max-w-md px-3 py-3 grid grid-cols-2 gap-3">
-          <Button className="h-12" variant="secondary" disabled>
-            {trans.incomingConfirmAndPost}
-          </Button>
-          <Button className="h-12" variant="secondary" disabled>
-            {trans.incomingConfirm}
-          </Button>
-        </div>
+        {confirmOnly ? (
+          <div className="mx-auto max-w-md px-3 py-3">
+            <Button className="h-12 w-full" variant="secondary" disabled>
+              {trans.incomingConfirm}
+            </Button>
+          </div>
+        ) : (
+          <div className="mx-auto max-w-md px-3 py-3 grid grid-cols-2 gap-3">
+            <Button className="h-12" variant="secondary" disabled>
+              {trans.incomingConfirmAndPost}
+            </Button>
+            <Button className="h-12" variant="secondary" disabled>
+              {trans.incomingConfirm}
+            </Button>
+          </div>
+        )}
       </div>
 
       <SignOutConfirm
