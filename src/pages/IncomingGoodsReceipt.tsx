@@ -8,7 +8,6 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess, showLoading, dismissToast } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const IncomingGoodsReceipt = () => {
   const navigate = useNavigate();
@@ -61,6 +60,25 @@ const IncomingGoodsReceipt = () => {
     if (lang === "pt-BR") return "pt-BR";
     return "en-US";
   }, [lang]);
+
+  // Friendly label for known OrderOrigin values
+  const formatOriginLabel = (origin: string) => {
+    const o = (origin || "").trim();
+    if (lang === "de") {
+      if (o === "JSCProduction") return "Produktion (JSC)";
+      if (o === "Purchase") return "Einkauf";
+    } else if (lang === "es-MX") {
+      if (o === "JSCProduction") return "Producción (JSC)";
+      if (o === "Purchase") return "Compra";
+    } else if (lang === "pt-BR") {
+      if (o === "JSCProduction") return "Produção (JSC)";
+      if (o === "Purchase") return "Compra";
+    } else {
+      if (o === "JSCProduction") return "Production (JSC)";
+      if (o === "Purchase") return "Purchase";
+    }
+    return o || "-";
+  };
 
   useEffect(() => {
     // Focus first editable field on open
@@ -198,30 +216,39 @@ const IncomingGoodsReceipt = () => {
         <Card className="rounded-md border-0 bg-transparent shadow-none p-0 space-y-3">
           {showOrderType && (
             orderTypeDisabled ? (
-              <FloatingLabelInput
-                id="incomingOrderType"
-                label={trans.incomingOrderTypeLabel}
-                ref={orderTypeRef}
-                value={orderType}
-                disabled
-              />
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-gray-700">{trans.incomingOrderTypeLabel}</div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center rounded-full bg-green-600 text-white px-3 py-1 text-sm font-semibold">
+                    {formatOriginLabel(orderType)}
+                  </span>
+                </div>
+              </div>
             ) : (
               <div className="space-y-1">
                 <div className="text-xs font-medium text-gray-700">
                   {trans.incomingOrderTypeLabel} {orderTypeRequired && <span className="text-red-600">*</span>}
                 </div>
-                <Select value={orderType} onValueChange={setOrderType}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder={trans.incomingOrderTypeLabel} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {orderTypeOptions.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-wrap gap-2">
+                  {orderTypeOptions.map((opt) => {
+                    const selected = orderType === opt;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        className={
+                          selected
+                            ? "inline-flex items-center rounded-full bg-green-600 text-white px-3 py-1 text-sm font-semibold"
+                            : "inline-flex items-center rounded-full bg-gray-200 text-gray-800 hover:bg-gray-300 px-3 py-1 text-sm"
+                        }
+                        onClick={() => setOrderType(opt)}
+                        aria-pressed={selected}
+                      >
+                        {formatOriginLabel(opt)}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )
           )}
