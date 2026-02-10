@@ -61,6 +61,8 @@ const IncomingGoodsReceipt = () => {
   const [grItem, setGrItem] = useState<string>("");
   const [lastCheckedOrder, setLastCheckedOrder] = useState<string | null>(null);
   const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
+  // When true, do not auto-fill the Line even if the service returns exactly one line
+  const [suppressAutoFillLine, setSuppressAutoFillLine] = useState<boolean>(false);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -195,8 +197,8 @@ const IncomingGoodsReceipt = () => {
       .filter((x) => Number.isFinite(x.Line) && x.Line > 0);
     setInboundLines(mappedLines);
 
-    // If this was the first call (no line filter) and there is exactly one line, auto-fill the Line and re-check with the line filter
-    if (!lineTrim && mappedLines.length === 1) {
+    // If this was the first call (no line filter) and there is exactly one line, auto-fill only if not suppressed
+    if (!lineTrim && mappedLines.length === 1 && !suppressAutoFillLine) {
       const singleLineStr = String(mappedLines[0].Line);
       setOrderPos(singleLineStr);
       setLastCheckedOrder(`${trimmed}|${singleLineStr}`);
@@ -371,6 +373,7 @@ const IncomingGoodsReceipt = () => {
               setOrderTypeDisabled(true);
               setOrderTypeRequired(false);
               setLastCheckedOrder(null);
+              setSuppressAutoFillLine(false); // new order → allow auto-fill again
               setInboundLines([]);
               setTimeout(() => orderNoRef.current?.focus(), 0);
             }}
@@ -396,7 +399,10 @@ const IncomingGoodsReceipt = () => {
                     if (ord && ln) checkOrder(ord, ln);
                   }
                 }}
-                onClear={() => setOrderPos("")}
+                onClear={() => {
+                  setOrderPos("");
+                  setSuppressAutoFillLine(true); // user cleared → do not auto-fill back
+                }}
               />
             </div>
             {inboundLines.length > 1 && (
@@ -443,6 +449,7 @@ const IncomingGoodsReceipt = () => {
                           const ord = orderNo.trim();
                           const lineStr = String(ln.Line);
                           setOrderPos(lineStr);
+                          setSuppressAutoFillLine(false); // explicit selection → allow normal behavior
                           setLinePickerOpen(false);
                           if (ord && lineStr) {
                             await checkOrder(ord, lineStr);
