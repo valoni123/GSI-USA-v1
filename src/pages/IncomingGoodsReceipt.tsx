@@ -357,34 +357,34 @@ const IncomingGoodsReceipt = () => {
             }}
           />
 
-          <FloatingLabelInput
-            id="incomingOrderPos"
-            label={trans.incomingOrderPositionLabel}
-            value={orderPos}
-            onChange={(e) => setOrderPos(e.target.value)}
-            onBlur={() => {
-              const ord = orderNo.trim();
-              const ln = orderPos.trim();
-              if (ord && ln) checkOrder(ord, ln);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                const ord = orderNo.trim();
-                const ln = orderPos.trim();
-                if (ord && ln) checkOrder(ord, ln);
-              }
-            }}
-            onClear={() => setOrderPos("")}
-            className="pr-12"
-          />
-
-          {/* Line search icon button */}
-          <div className="relative -mt-11 flex justify-end pr-2">
+          {/* Line with search icon aligned next to the field */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <FloatingLabelInput
+                id="incomingOrderPos"
+                label={trans.incomingOrderPositionLabel}
+                value={orderPos}
+                onChange={(e) => setOrderPos(e.target.value)}
+                onBlur={() => {
+                  const ord = orderNo.trim();
+                  const ln = orderPos.trim();
+                  if (ord && ln) checkOrder(ord, ln);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const ord = orderNo.trim();
+                    const ln = orderPos.trim();
+                    if (ord && ln) checkOrder(ord, ln);
+                  }
+                }}
+                onClear={() => setOrderPos("")}
+              />
+            </div>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-8 w-8 text-gray-700 hover:text-gray-900"
+              className="h-12 w-12"
               aria-label="Search lines"
               onClick={async () => {
                 // Ensure we have lines; if not, fetch by order
