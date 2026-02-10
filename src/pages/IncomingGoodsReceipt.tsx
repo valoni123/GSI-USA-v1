@@ -53,7 +53,7 @@ const IncomingGoodsReceipt = () => {
   const [orderNo, setOrderNo] = useState<string>("");
   const [orderPos, setOrderPos] = useState<string>("");
   const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
-  const [inboundLines, setInboundLines] = useState<Array<{ Line: number; Item?: string; ItemDesc?: string }>>([]);
+  const [inboundLines, setInboundLines] = useState<Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }>>([]);
   const [deliveryNote, setDeliveryNote] = useState<string>("");
   const [lot, setLot] = useState<string>("");
   const [bpLot, setBpLot] = useState<string>("");
@@ -184,11 +184,15 @@ const IncomingGoodsReceipt = () => {
     }
     // Store inbound lines from raw payload for the picker
     const rawValues = Array.isArray(data.raw?.value) ? data.raw.value : [];
-    const mappedLines: Array<{ Line: number; Item?: string; ItemDesc?: string }> = rawValues.map((v: any) => ({
-      Line: Number(v?.Line ?? 0),
-      Item: typeof v?.Item === "string" ? v.Item : (typeof v?.ItemRef?.Item === "string" ? v.ItemRef.Item : undefined),
-      ItemDesc: typeof v?.ItemRef?.Description === "string" ? v.ItemRef.Description : undefined,
-    })).filter((x) => Number.isFinite(x.Line) && x.Line > 0);
+    const mappedLines: Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }> =
+      rawValues.map((v: any) => ({
+        Line: Number(v?.Line ?? 0),
+        Item: typeof v?.Item === "string" ? v.Item : (typeof v?.ItemRef?.Item === "string" ? v.ItemRef.Item : undefined),
+        ItemDesc: typeof v?.ItemRef?.Description === "string" ? v.ItemRef.Description : undefined,
+        tbrQty: typeof v?.ToBeReceivedQuantity === "number" ? v.ToBeReceivedQuantity : undefined,
+        orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
+      }))
+      .filter((x) => Number.isFinite(x.Line) && x.Line > 0);
     setInboundLines(mappedLines);
     const count = Number(data.count || 0);
     // Collect unique OrderOrigin values from raw payload (fallback to data.origin)
@@ -410,7 +414,7 @@ const IncomingGoodsReceipt = () => {
                 className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-0 shadow-lg"
               >
                 <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
-                  {trans.incomingOrderPositionLabel}
+                  {trans.incomingLinesLabel}
                 </div>
                 <div className="max-h-64 overflow-auto p-2">
                   {inboundLines.length === 0 ? (
@@ -436,7 +440,14 @@ const IncomingGoodsReceipt = () => {
                             {ln.Line}
                           </div>
                           <div className="flex flex-col">
-                            <div className="font-mono text-sm text-gray-900 break-all">{(ln.Item || "").trim() || "-"}</div>
+                            <div className="font-mono text-sm text-gray-900 break-all">
+                              {(ln.Item || "").trim() || "-"}
+                              {(ln.tbrQty != null || ln.orderUnit) && (
+                                <span className="ml-2 text-xs text-gray-700">
+                                  {ln.tbrQty != null ? ln.tbrQty : ""} {ln.orderUnit || ""}
+                                </span>
+                              )}
+                            </div>
                             {ln.ItemDesc && <div className="text-xs text-gray-700">{ln.ItemDesc}</div>}
                           </div>
                         </div>
