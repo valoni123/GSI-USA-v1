@@ -237,36 +237,52 @@ const IncomingGoodsReceipt = () => {
       const pickedRaw = rawValues.find((rv: any) => Number(rv?.Line) === lnNum) || rawValues[0];
       if (picked) {
         const itemCode = (picked.Item || "").trim();
+        // Keep and use the RAW item value (may include leading spaces) for queries
+        const itemRaw = (picked.Item || "");
         setGrItem(itemCode);
         setQty(picked.tbrQty != null ? String(picked.tbrQty) : "");
         setOrderUnit(picked.orderUnit || "");
         setGrItemDesc(picked.ItemDesc || "");
-        setGrItemRaw(picked.Item || "");
+        setGrItemRaw(itemRaw);
 
         // Derive BuyfromBusinessPartner robustly
-        const bpCode = getBuyFromBusinessPartner(pickedRaw);
+        const bpCode =
+          (() => {
+            const candidates = [
+              pickedRaw?.BuyfromBusinessPartner,
+              pickedRaw?.BuyFromBusinessPartner,
+              pickedRaw?.ShipfromBusinessPartner,
+              pickedRaw?.ShipFromBusinessPartner,
+              pickedRaw?.ShipfromBusinessPartnerRef?.BusinessPartner,
+              pickedRaw?.ShipFromBusinessPartnerRef?.BusinessPartner,
+            ];
+            const first = candidates.find((v: any) => typeof v === "string" && v.trim().length > 0);
+            return (first || "").trim();
+          })();
         setBuyFromBusinessPartner(bpCode);
 
-        const isTracked = await fetchLotTracking(picked.Item || "");
+        const isTracked = await fetchLotTracking(itemRaw || "");
         const originCandidate =
           (typeof pickedRaw?.OrderOrigin === "string" && pickedRaw.OrderOrigin) || orderType || "";
 
+        // Only query existing lots when we have the necessary inputs
         if (isTracked) {
           const originLower = (originCandidate || "").toLowerCase();
           if (originLower.includes("purchase")) {
-            // Only query when BP is present for Purchase
-            if (bpCode) {
-              await checkExistingLots((picked.Item || "").trim(), originCandidate, bpCode);
+            // Require BP for Purchase, otherwise skip (prevents showing unfiltered lots)
+            if ((bpCode || "").trim()) {
+              await checkExistingLots(itemRaw, originCandidate, bpCode);
             } else {
               setLotsAvailableCount(0);
               setExistingLots([]);
               setLotsOrigin(originCandidate);
             }
           } else {
-            // Production and other → filter by origin only
-            await checkExistingLots((picked.Item || "").trim(), originCandidate);
+            // Production or other origins → filter by origin only
+            await checkExistingLots(itemRaw, originCandidate);
           }
         } else {
+          // Reset existing lots UI
           setLotsAvailableCount(0);
           setExistingLots([]);
           setLotsOrigin("");
