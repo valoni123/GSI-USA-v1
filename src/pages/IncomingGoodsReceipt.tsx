@@ -67,35 +67,44 @@ const IncomingGoodsReceipt = () => {
     orderNoRef.current?.focus();
   }, []);
 
-  // Read parameter to decide which buttons to show
+  // Read parameter (on mount and when screen regains focus)
   useEffect(() => {
     let active = true;
-    (async () => {
-      // Try company 4000 first
+    const toBool = (v: unknown) => (typeof v === "boolean" ? v : String(v ?? "").toLowerCase() === "true");
+    const readParams = async () => {
+      // Prefer row for company 4000, then fall back to most recent row
       const byComp = await supabase
         .from("gsi000_params")
-        .select("txgsi000_aure")
+        .select("txgsi000_aure, txgsi000_compnr")
         .eq("txgsi000_compnr", "4000")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (active && byComp.data) {
-        setConfirmOnly(Boolean(byComp.data.txgsi000_aure));
+        setConfirmOnly(toBool(byComp.data.txgsi000_aure));
         return;
       }
-      // Fallback: latest row
       const latest = await supabase
         .from("gsi000_params")
-        .select("txgsi000_aure")
+        .select("txgsi000_aure, txgsi000_compnr")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (active && latest.data) {
-        setConfirmOnly(Boolean(latest.data.txgsi000_aure));
+        setConfirmOnly(toBool(latest.data.txgsi000_aure));
       }
-    })();
+    };
+    readParams();
+    const onFocus = () => readParams();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") readParams();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       active = false;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
