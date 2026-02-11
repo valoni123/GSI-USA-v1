@@ -624,7 +624,7 @@ const IncomingGoodsReceipt = () => {
             orderTypeDisabled ? (
               <div className="space-y-1 mb-4">
                 <div className="text-xs font-medium text-gray-700">{trans.incomingOrderTypeLabel}</div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between w-full">
                   {(() => {
                     const s = originColorStyle(orderType);
                     return (
