@@ -19,6 +19,8 @@ function buildTokenUrl(pu: string, ot: string) {
   return base + ot.replace(/^\//, "");
 }
 
+const escOdataString = (s: string) => s.replace(/'/g, "''");
+
 serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -56,7 +58,13 @@ serve(async (req) => {
     if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
 
     const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
-      ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
+      ci: string;
+      cs: string;
+      pu: string;
+      ot: string;
+      grant_type: string;
+      saak: string;
+      sask: string;
     };
     const grantType = grant_type === "password_credentials" ? "password" : grant_type;
 
@@ -81,22 +89,22 @@ serve(async (req) => {
     const tokenRes = await fetch(buildTokenUrl(pu, ot), {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${basic}`,
+        Authorization: `Basic ${basic}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: tokenParams.toString(),
     }).catch(() => null as unknown as Response);
     if (!tokenRes) return json({ ok: false, error: "token_network_error" }, 200);
-    const tokenJson = await tokenRes.json().catch(() => null) as any;
+    const tokenJson = (await tokenRes.json().catch(() => null)) as any;
     if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
       return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
     }
     const accessToken = tokenJson.access_token as string;
 
-    // OData query
+    // OData query (received lines)
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const escapedOrder = orderNumber.replace(/'/g, "''");
-    const escapedOrigin = originRaw.replace(/'/g, "''");
+    const escapedOrder = escOdataString(orderNumber);
+    const escapedOrigin = escOdataString(originRaw);
     const filter = [
       `OrderOrigin eq whapi.inhReceipt.OrderOrigin'${escapedOrigin}'`,
       `Order eq '${escapedOrder}'`,
@@ -129,7 +137,7 @@ serve(async (req) => {
         },
       }).catch(() => null as unknown as Response);
       if (!res) return json({ ok: false, error: "odata_network_error" }, 200);
-      const jsonBody = await res.json().catch(() => null) as any;
+      const jsonBody = (await res.json().catch(() => null)) as any;
       if (!res.ok || !jsonBody) {
         const topMessage = jsonBody?.error?.message || "odata_error";
         const details = Array.isArray(jsonBody?.error?.details) ? jsonBody.error.details : [];
@@ -159,46 +167,76 @@ serve(async (req) => {
       }
     }
 
-    // ALSO fetch GSIReceipts with Confirm='No' for mapping TransactionID and etag
-    const gsiQs = new URLSearchParams();
-    gsiQs.set("$filter", [
-      `Confirm eq 'No'`,
-      `OrderOrigin eq '${escapedOrigin}'`,
-      `Order eq '${escapedOrder}'`,
-    ].join(" and "));
-    gsiQs.set("$select", "*");
-    gsiQs.set("$top", "500");
-    const gsiUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts?${gsiQs.toString()}`;
-    const gsiRes = await fetch(gsiUrl, {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        "Content-Language": language,
-        "X-Infor-LnCompany": company,
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }).catch(() => null as unknown as Response);
-    const gsiJson = gsiRes ? await gsiRes.json().catch(() => null) as any : null;
-    const gsiValues: any[] = (gsiRes && gsiRes.ok && Array.isArray(gsiJson?.value)) ? gsiJson.value : [];
+    // Fetch TransactionID + @odata.etag from txgsi310 using ReceiptNumber + ReceiptLine
+    // (group by receipt number to avoid one request per line)
+    const receiptGroups = new Map<string, number[]>();
+    for (const ln of items) {
+      const receipt = typeof ln?.Receipt === "string" ? ln.Receipt.trim() : "";
+      const rLine = Number(ln?.ReceiptLine ?? 0);
+      if (!receipt || !Number.isFinite(rLine) || rLine <= 0) continue;
+      const list = receiptGroups.get(receipt) || [];
+      if (!list.includes(rLine)) list.push(rLine);
+      receiptGroups.set(receipt, list);
+    }
 
-    // Build a lookup by OrderLine/Sequence/Set/PackingSlip
-    const keyOfGsi = (x: any) =>
-      `${String(x?.OrderOrigin || "").trim()}|${String(x?.Order || "").trim()}|${Number(x?.Position || 0)}|${Number(x?.Sequence || 0)}|${Number(x?.Set || 0)}|${String(x?.PackingSlip || "").trim()}`;
-    const gsiMap = new Map<string, any>();
-    for (const g of gsiValues) {
-      gsiMap.set(keyOfGsi(g), g);
+    const gsiMap = new Map<string, { TransactionID?: string; etag?: string }>();
+
+    const fetchGsiForReceipt = async (receipt: string, lines: number[]) => {
+      // chunk lines to keep query size reasonable
+      const unique = Array.from(new Set(lines)).filter((n) => Number.isFinite(n) && n > 0);
+      const chunks: number[][] = [];
+      for (let i = 0; i < unique.length; i += 40) chunks.push(unique.slice(i, i + 40));
+
+      for (const chunk of chunks) {
+        const lineFilter = chunk.map((n) => `ReceiptLine eq ${n}`).join(" or ");
+        const filter = `ReceiptNumber eq '${escOdataString(receipt)}' and (${lineFilter})`;
+
+        const gsiQs = new URLSearchParams();
+        gsiQs.set("$filter", filter);
+        gsiQs.set("$select", "TransactionID,ReceiptNumber,ReceiptLine");
+        gsiQs.set("$top", "200");
+
+        const gsiUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts?${gsiQs.toString()}`;
+        const gsiRes = await fetch(gsiUrl, {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+            "Content-Language": language,
+            "X-Infor-LnCompany": company,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }).catch(() => null as unknown as Response);
+
+        if (!gsiRes) continue;
+        const gsiJson = (await gsiRes.json().catch(() => null)) as any;
+        const values: any[] = gsiRes.ok && Array.isArray(gsiJson?.value) ? gsiJson.value : [];
+
+        for (const g of values) {
+          const rn = typeof g?.ReceiptNumber === "string" ? g.ReceiptNumber.trim() : receipt.trim();
+          const rl = Number(g?.ReceiptLine ?? 0);
+          const key = `${rn}|${rl}`;
+          gsiMap.set(key, {
+            TransactionID: typeof g?.TransactionID === "string" ? g.TransactionID : (g?.TransactionID != null ? String(g.TransactionID) : undefined),
+            etag: typeof g?.["@odata.etag"] === "string" ? g["@odata.etag"] : undefined,
+          });
+        }
+      }
+    };
+
+    for (const [receipt, lines] of receiptGroups.entries()) {
+      await fetchGsiForReceipt(receipt, lines);
     }
 
     // Attach TransactionID and etag to each received line if found
     const linedItems = items.map((ln) => {
-      const key = `${String(ln?.OrderOrigin || "").trim()}|${String(ln?.Order || "").trim()}|${Number(ln?.OrderLine || 0)}|${Number(ln?.OrderSequence || 0)}|${Number(ln?.OrderSet || 0)}|${String(ln?.PackingSlip || "").trim()}`;
+      const receipt = typeof ln?.Receipt === "string" ? ln.Receipt.trim() : "";
+      const receiptLine = Number(ln?.ReceiptLine ?? 0);
+      const key = `${receipt}|${receiptLine}`;
       const gsi = gsiMap.get(key);
-      const gsiTransactionID = gsi?.TransactionID;
-      const gsiEtag = gsi?.["@odata.etag"];
       return {
         ...ln,
-        gsiTransactionID,
-        gsiEtag,
+        gsiTransactionID: gsi?.TransactionID,
+        gsiEtag: gsi?.etag,
       };
     });
 

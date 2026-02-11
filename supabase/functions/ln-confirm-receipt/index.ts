@@ -19,6 +19,8 @@ function buildTokenUrl(pu: string, ot: string) {
   return base + ot.replace(/^\//, "");
 }
 
+const escOdataString = (s: string) => s.replace(/'/g, "''");
+
 serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -28,15 +30,33 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { transactionId?: string; etag?: string; language?: string; company?: string; origin?: string; order?: string; position?: number; sequence?: number; set?: number; packingSlip?: string } = {};
+    let body: {
+      transactionId?: string;
+      etag?: string;
+      receiptNumber?: string;
+      receiptLine?: number;
+      language?: string;
+      company?: string;
+      // legacy fallback fields
+      origin?: string;
+      order?: string;
+      position?: number;
+      sequence?: number;
+      set?: number;
+      packingSlip?: string;
+    } = {};
+
     try {
       body = await req.json();
     } catch {
       return json({ ok: false, error: "invalid_json" }, 200);
     }
 
-    const transactionId = (body.transactionId || "").toString();
+    let transactionId = (body.transactionId || "").toString();
     let etag = (body.etag || "").toString();
+    const receiptNumber = (body.receiptNumber || "").toString();
+    const receiptLine = typeof body.receiptLine === "number" ? body.receiptLine : NaN;
+
     const language = body.language || "en-US";
     const company = body.company || "4000";
 
@@ -46,10 +66,6 @@ serve(async (req) => {
     const sequence = typeof body.sequence === "number" ? body.sequence : NaN;
     const setNum = typeof body.set === "number" ? body.set : NaN;
     const packingSlip = (body.packingSlip || "").toString();
-
-    if (!transactionId || !etag) {
-      return json({ ok: false, error: "missing_inputs" }, 200);
-    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -64,7 +80,13 @@ serve(async (req) => {
     if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
 
     const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
-      ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
+      ci: string;
+      cs: string;
+      pu: string;
+      ot: string;
+      grant_type: string;
+      saak: string;
+      sask: string;
     };
     const grantType = grant_type === "password_credentials" ? "password" : grant_type;
 
@@ -89,66 +111,105 @@ serve(async (req) => {
     const tokenRes = await fetch(buildTokenUrl(pu, ot), {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${basic}`,
+        Authorization: `Basic ${basic}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: tokenParams.toString(),
     }).catch(() => null as unknown as Response);
+
     if (!tokenRes) return json({ ok: false, error: "token_network_error" }, 200);
-    const tokenJson = await tokenRes.json().catch(() => null) as any;
+    const tokenJson = (await tokenRes.json().catch(() => null)) as any;
     if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
       return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
     }
     const accessToken = tokenJson.access_token as string;
 
-    // If transactionId/etag are missing, look up by fields
-    let txIdToUse = transactionId;
-    if (!txIdToUse || !etag) {
-      if (!origin || !order || !Number.isFinite(position) || !Number.isFinite(sequence) || !Number.isFinite(setNum) || !packingSlip) {
-        return json({ ok: false, error: "missing_inputs" }, 200);
-      }
+    const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
 
-      const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-      const gsiQs = new URLSearchParams();
-      gsiQs.set("$filter", [
-        `Confirm eq 'No'`,
-        `OrderOrigin eq '${origin.replace(/'/g, "''")}'`,
-        `Order eq '${order.replace(/'/g, "''")}'`,
-        `Position eq ${position}`,
-        `Sequence eq ${sequence}`,
-        `Set eq ${setNum}`,
-        `PackingSlip eq '${packingSlip.replace(/'/g, "''")}'`,
-      ].join(" and "));
-      gsiQs.set("$select", "*");
-      gsiQs.set("$top", "1");
-      const gsiUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts?${gsiQs.toString()}`;
+    // If txId/etag are missing, look up by ReceiptNumber + ReceiptLine (preferred)
+    if (!transactionId || !etag) {
+      if (receiptNumber && Number.isFinite(receiptLine)) {
+        const qs = new URLSearchParams();
+        qs.set(
+          "$filter",
+          `ReceiptNumber eq '${escOdataString(receiptNumber)}' and ReceiptLine eq ${receiptLine}`,
+        );
+        qs.set("$select", "TransactionID");
+        qs.set("$top", "1");
+        const lookupUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts?${qs.toString()}`;
 
-      const lookupRes = await fetch(gsiUrl, {
-        method: "GET",
-        headers: {
-          accept: "application/json",
-          "Content-Language": language,
-          "X-Infor-LnCompany": company,
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }).catch(() => null as unknown as Response);
-      if (!lookupRes) return json({ ok: false, error: "lookup_network_error" }, 200);
-      const lookupJson = await lookupRes.json().catch(() => null) as any;
-      if (!lookupRes.ok || !lookupJson || !Array.isArray(lookupJson?.value) || lookupJson.value.length === 0) {
-        return json({ ok: false, error: "receipt_not_found" }, 200);
-      }
-      const rec = lookupJson.value[0];
-      txIdToUse = String(rec?.TransactionID || "");
-      etag = String(rec?.["@odata.etag"] || "");
-      if (!txIdToUse || !etag) {
-        return json({ ok: false, error: "missing_tx_or_etag" }, 200);
+        const lookupRes = await fetch(lookupUrl, {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+            "Content-Language": language,
+            "X-Infor-LnCompany": company,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }).catch(() => null as unknown as Response);
+
+        if (!lookupRes) return json({ ok: false, error: "lookup_network_error" }, 200);
+        const lookupJson = (await lookupRes.json().catch(() => null)) as any;
+        if (!lookupRes.ok || !lookupJson || !Array.isArray(lookupJson?.value) || lookupJson.value.length === 0) {
+          return json({ ok: false, error: "receipt_not_found" }, 200);
+        }
+        const rec = lookupJson.value[0];
+        transactionId = String(rec?.TransactionID || "");
+        etag = String(rec?.["@odata.etag"] || "");
+      } else if (
+        // legacy fallback (kept for compatibility)
+        origin &&
+        order &&
+        Number.isFinite(position) &&
+        Number.isFinite(sequence) &&
+        Number.isFinite(setNum) &&
+        packingSlip
+      ) {
+        const gsiQs = new URLSearchParams();
+        gsiQs.set(
+          "$filter",
+          [
+            `Confirm eq 'No'`,
+            `OrderOrigin eq '${escOdataString(origin)}'`,
+            `Order eq '${escOdataString(order)}'`,
+            `Position eq ${position}`,
+            `Sequence eq ${sequence}`,
+            `Set eq ${setNum}`,
+            `PackingSlip eq '${escOdataString(packingSlip)}'`,
+          ].join(" and "),
+        );
+        gsiQs.set("$select", "*");
+        gsiQs.set("$top", "1");
+        const gsiUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts?${gsiQs.toString()}`;
+
+        const lookupRes = await fetch(gsiUrl, {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+            "Content-Language": language,
+            "X-Infor-LnCompany": company,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }).catch(() => null as unknown as Response);
+
+        if (!lookupRes) return json({ ok: false, error: "lookup_network_error" }, 200);
+        const lookupJson = (await lookupRes.json().catch(() => null)) as any;
+        if (!lookupRes.ok || !lookupJson || !Array.isArray(lookupJson?.value) || lookupJson.value.length === 0) {
+          return json({ ok: false, error: "receipt_not_found" }, 200);
+        }
+        const rec = lookupJson.value[0];
+        transactionId = String(rec?.TransactionID || "");
+        etag = String(rec?.["@odata.etag"] || "");
       }
     }
 
+    if (!transactionId || !etag) {
+      return json({ ok: false, error: "missing_tx_or_etag" }, 200);
+    }
+
     // PATCH GSIReceipts Confirm='Yes'
-    const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const escaped = txIdToUse.replace(/'/g, "''");
-    const url = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts(TransactionID='${escaped}')?$select=*`;
+    const escapedTx = transactionId.replace(/'/g, "''");
+    const url = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts(TransactionID='${escapedTx}')?$select=*`;
 
     const patchRes = await fetch(url, {
       method: "PATCH",
@@ -173,7 +234,10 @@ serve(async (req) => {
     if (!patchRes.ok) {
       const topMessage = (responseBody as any)?.error?.message || "patch_error";
       const details = Array.isArray((responseBody as any)?.error?.details) ? (responseBody as any).error.details : [];
-      return json({ ok: false, error: { message: topMessage, details }, status: patchRes.status, body: responseBody }, 200);
+      return json(
+        { ok: false, error: { message: topMessage, details }, status: patchRes.status, body: responseBody },
+        200,
+      );
     }
 
     return json({ ok: true, status: patchRes.status, body: responseBody }, 200);
