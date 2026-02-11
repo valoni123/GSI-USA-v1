@@ -623,20 +623,8 @@ const IncomingGoodsReceipt = () => {
           {showOrderType && (
             orderTypeDisabled ? (
               <div className="space-y-1 mb-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-medium text-gray-700">{trans.incomingOrderTypeLabel}</div>
-                  {receivedLinesCount > 0 && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="h-8"
-                      onClick={() => setReceivedLinesOpen(true)}
-                    >
-                      {receivedLinesCount} Received Lines
-                    </Button>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="text-xs font-medium text-gray-700">{trans.incomingOrderTypeLabel}</div>
+                <div className="flex items-center gap-2">
                   {(() => {
                     const s = originColorStyle(orderType);
                     return (
@@ -648,61 +636,71 @@ const IncomingGoodsReceipt = () => {
                       </span>
                     );
                   })()}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-1 mb-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-medium text-gray-700">
-                    {trans.incomingOrderTypeLabel} {orderTypeRequired && <span className="text-red-600">*</span>}
-                  </div>
-                  {receivedLinesCount > 0 && !!orderType && (
+                  {receivedLinesCount > 0 && (
                     <Button
                       variant="destructive"
-                      size="sm"
-                      className="h-8"
+                      className="rounded-full px-3 py-1 h-auto text-sm font-semibold shadow-sm"
                       onClick={() => setReceivedLinesOpen(true)}
                     >
                       {receivedLinesCount} Received Lines
                     </Button>
                   )}
                 </div>
-                <Select value={orderType} onValueChange={setOrderType}>
-                  <SelectTrigger className="h-12">
-                    {orderType ? (
-                      (() => {
-                        const s = originColorStyle(orderType);
-                        return (
-                          <span
-                            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-sm"
-                            style={{ backgroundColor: s.bg, color: s.text }}
-                          >
-                            {formatOriginLabel(orderType)}
-                          </span>
-                        );
-                      })()
-                    ) : (
-                      <span className="text-gray-500">{trans.incomingOrderTypeLabel}</span>
-                    )}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {orderTypeOptions.map((opt) => {
-                      const s = originColorStyle(opt);
-                      return (
-                        <SelectItem key={opt} value={opt}>
-                          <div className="flex items-center gap-3">
-                            <span
-                              className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
-                              style={{ backgroundColor: s.bg, color: s.text }}
-                            >
-                              {formatOriginLabel(opt)}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+              </div>
+            ) : (
+              <div className="space-y-1 mb-4">
+                <div className="text-xs font-medium text-gray-700">
+                  {trans.incomingOrderTypeLabel} {orderTypeRequired && <span className="text-red-600">*</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Select value={orderType} onValueChange={setOrderType}>
+                      <SelectTrigger className="h-12">
+                        {orderType ? (
+                          (() => {
+                            const s = originColorStyle(orderType);
+                            return (
+                              <span
+                                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-sm"
+                                style={{ backgroundColor: s.bg, color: s.text }}
+                              >
+                                {formatOriginLabel(orderType)}
+                              </span>
+                            );
+                          })()
+                        ) : (
+                          <span className="text-gray-500">{trans.incomingOrderTypeLabel}</span>
+                        )}
+                      </SelectTrigger>
+                      <SelectContent>
+                        {orderTypeOptions.map((opt) => {
+                          const s = originColorStyle(opt);
+                          return (
+                            <SelectItem key={opt} value={opt}>
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                                  style={{ backgroundColor: s.bg, color: s.text }}
+                                >
+                                  {formatOriginLabel(opt)}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {receivedLinesCount > 0 && !!orderType && (
+                    <Button
+                      variant="destructive"
+                      className="h-12 px-3"
+                      onClick={() => setReceivedLinesOpen(true)}
+                    >
+                      {receivedLinesCount} Received Lines
+                    </Button>
+                  )}
+                </div>
               </div>
             )
           )}
