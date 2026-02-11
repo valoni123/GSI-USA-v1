@@ -911,22 +911,11 @@ const IncomingGoodsReceipt = () => {
 
       {/* Bottom buttons (disabled at startup like screenshot) */}
       <div className="fixed inset-x-0 bottom-0 bg-white border-t">
-        {confirmOnly ? (
-          <div className="mx-auto max-w-md px-3 py-3">
-            <Button className="h-12 w-full" variant="secondary" disabled>
-              {trans.incomingConfirm}
-            </Button>
-          </div>
-        ) : (
-          <div className="mx-auto max-w-md px-3 py-3 grid grid-cols-2 gap-3">
-            <Button className="h-12" variant="secondary" disabled>
-              {trans.incomingConfirmAndPost}
-            </Button>
-            <Button className="h-12" variant="secondary" disabled>
-              {trans.incomingConfirm}
-            </Button>
-          </div>
-        )}
+        <div className="mx-auto max-w-md px-3 py-3">
+          <Button className="h-12 w-full" variant="secondary" disabled>
+            {confirmOnly ? "CONFIRM" : "Receive"}
+          </Button>
+        </div>
       </div>
 
       <SignOutConfirm
