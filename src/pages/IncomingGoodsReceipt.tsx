@@ -301,6 +301,78 @@ const IncomingGoodsReceipt = () => {
     }
   };
 
+  // Confirm all received lines sequentially
+  const confirmAllReceivedLines = async () => {
+    if (receivedLines.length === 0) return;
+
+    setIsSubmitting(true);
+    const tid = showLoading(trans.pleaseWait);
+
+    const originSelected = (orderType || "").trim();
+    const ord = (orderNo || "").trim();
+    let confirmed = 0;
+
+    for (const ln of receivedLines) {
+      const pos = Number(ln?.OrderLine ?? ln?.ReceiptLine ?? 0);
+      const seq = Number(ln?.OrderSequence ?? 0) || 1;
+      const setNum = Number(ln?.OrderSet ?? 0) || 1;
+      const pSlip = typeof ln?.PackingSlip === "string" ? ln.PackingSlip : "";
+
+      const receipt = typeof ln?.Receipt === "string" ? ln.Receipt : "";
+      const receiptLine = Number(ln?.ReceiptLine ?? ln?.OrderLine ?? 0);
+      const lineQty = Number(ln?.ReceivedQuantityInReceiptUnit ?? 0);
+      const lineUnit = typeof ln?.ReceiptUnit === "string" ? ln.ReceiptUnit : "";
+
+      const lotCode =
+        (typeof ln?.Lot === "string" && ln.Lot) ||
+        (typeof ln?.LotByWarehouseRef?.Lot === "string" && ln.LotByWarehouseRef.Lot) ||
+        "";
+      const bpLotCode = (typeof ln?.BusinessPartnersLotCode === "string" && ln.BusinessPartnersLotCode) || "";
+
+      const { data, error } = await supabase.functions.invoke("ln-confirm-receipt", {
+        body: {
+          origin: originSelected,
+          order: ord,
+          position: pos,
+          sequence: seq,
+          set: setNum,
+          packingSlip: pSlip,
+          receiptNumber: receipt,
+          receiptLine,
+          quantity: lineQty,
+          unit: lineUnit,
+          lot: (lotCode || lot || "").trim(),
+          businessPartnerLot: (bpLotCode || bpLot || "").trim(),
+          language: locale,
+          company: "4000",
+        },
+      });
+
+      if (error || !data || !data.ok) {
+        showError("Confirm failed");
+        break;
+      } else {
+        confirmed++;
+      }
+    }
+
+    dismissToast(tid as unknown as string);
+    setIsSubmitting(false);
+
+    if (confirmed === receivedLines.length) {
+      showSuccess("All confirmed");
+    } else {
+      showSuccess(`${confirmed}/${receivedLines.length} confirmed`);
+    }
+
+    if (ord && originSelected) {
+      const count = await loadReceivedLines(ord, originSelected);
+      if (count <= 0) {
+        setReceivedLinesOpen(false);
+      }
+    }
+  };
+
   // Re-fetch whenever order number and type are set (no caching)
   useEffect(() => {
     const ord = (orderNo || "").trim();
@@ -1214,7 +1286,17 @@ const IncomingGoodsReceipt = () => {
             className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-0 shadow-lg"
           >
             <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
-              {receivedLinesCount} Received Lines
+              <div className="flex items-center justify-between pr-8">
+                <span>{receivedLinesCount} Received Lines</span>
+                <Button
+                  className="h-7 px-3 bg-green-600 hover:bg-green-700 text-white rounded-full"
+                  variant="default"
+                  disabled={isSubmitting || receivedLinesCount <= 0}
+                  onClick={confirmAllReceivedLines}
+                >
+                  Confirm All
+                </Button>
+              </div>
             </div>
             <div className="max-h-80 overflow-auto p-2">
               {receivedLines.length === 0 ? (
