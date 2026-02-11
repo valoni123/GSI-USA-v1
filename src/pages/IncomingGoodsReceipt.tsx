@@ -234,13 +234,19 @@ const IncomingGoodsReceipt = () => {
     setReceivedLines(value);
   };
 
-  // Confirm one receipt line (uses attached gsiTransactionID & gsiEtag)
-  const confirmReceiptLine = async (transactionId: string, etag: string) => {
+  // Confirm one receipt line: uses txId/etag or falls back to details lookup
+  const confirmReceiptLine = async (opts: { transactionId?: string; etag?: string; origin: string; order: string; position: number; sequence: number; set: number; packingSlip: string }) => {
     const tid = showLoading(trans.pleaseWait);
     const { data, error } = await supabase.functions.invoke("ln-confirm-receipt", {
       body: {
-        transactionId,
-        etag,
+        transactionId: opts.transactionId,
+        etag: opts.etag,
+        origin: opts.origin,
+        order: opts.order,
+        position: opts.position,
+        sequence: opts.sequence,
+        set: opts.set,
+        packingSlip: opts.packingSlip,
         language: locale,
         company: "4000",
       },
@@ -251,7 +257,6 @@ const IncomingGoodsReceipt = () => {
       return;
     }
     showSuccess("Confirmed");
-    // Refresh list
     const ord = (orderNo || "").trim();
     const originSelected = (orderType || "").trim();
     if (ord && originSelected) {
@@ -1187,13 +1192,19 @@ const IncomingGoodsReceipt = () => {
                   const unit = typeof ln?.ReceiptUnit === "string" ? ln.ReceiptUnit : "";
                   const txId = typeof ln?.gsiTransactionID === "string" ? ln.gsiTransactionID : "";
                   const etag = typeof ln?.gsiEtag === "string" ? ln.gsiEtag : "";
+                  const originSelected = (orderType || "").trim();
+                  const ord = (orderNo || "").trim();
+                  const pos = Number(ln?.OrderLine ?? ln?.ReceiptLine ?? 0);
+                  const seq = Number(ln?.OrderSequence ?? 0);
+                  const setNum = Number(ln?.OrderSet ?? 0);
+                  const pSlip = typeof ln?.PackingSlip === "string" ? ln.PackingSlip : "";
 
                   return (
                     <div
                       key={`${receipt}-${receiptLine}-${idx}`}
                       className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50"
                     >
-                      <div className="grid grid-cols-[1fr_120px] gap-3 items-start">
+                      <div className="grid grid-cols-[1fr_140px] gap-3 items-start">
                         {/* Left: item and description */}
                         <div className="flex flex-col">
                           <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
@@ -1205,19 +1216,25 @@ const IncomingGoodsReceipt = () => {
                           </div>
                         </div>
 
-                        {/* Right: qty top, confirm button below */}
+                        {/* Right: qty top, green confirm button below */}
                         <div className="flex flex-col items-end">
                           <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
                             {qty} {unit}
                           </div>
                           <Button
-                            className="mt-2 h-8 px-3"
-                            variant="destructive"
-                            disabled={!txId || !etag}
+                            className="mt-2 h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
+                            variant="default"
                             onClick={async () => {
-                              if (txId && etag) {
-                                await confirmReceiptLine(txId, etag);
-                              }
+                              await confirmReceiptLine({
+                                transactionId: txId || undefined,
+                                etag: etag || undefined,
+                                origin: originSelected,
+                                order: ord,
+                                position: pos,
+                                sequence: seq,
+                                set: setNum,
+                                packingSlip: pSlip,
+                              });
                             }}
                           >
                             {trans.incomingConfirm}

@@ -28,7 +28,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { transactionId?: string; etag?: string; language?: string; company?: string } = {};
+    let body: { transactionId?: string; etag?: string; language?: string; company?: string; origin?: string; order?: string; position?: number; sequence?: number; set?: number; packingSlip?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -36,9 +36,16 @@ serve(async (req) => {
     }
 
     const transactionId = (body.transactionId || "").toString();
-    const etag = (body.etag || "").toString();
+    let etag = (body.etag || "").toString();
     const language = body.language || "en-US";
     const company = body.company || "4000";
+
+    const origin = (body.origin || "").toString();
+    const order = (body.order || "").toString();
+    const position = typeof body.position === "number" ? body.position : NaN;
+    const sequence = typeof body.sequence === "number" ? body.sequence : NaN;
+    const setNum = typeof body.set === "number" ? body.set : NaN;
+    const packingSlip = (body.packingSlip || "").toString();
 
     if (!transactionId || !etag) {
       return json({ ok: false, error: "missing_inputs" }, 200);
@@ -94,9 +101,53 @@ serve(async (req) => {
     }
     const accessToken = tokenJson.access_token as string;
 
+    // If transactionId/etag are missing, look up by fields
+    let txIdToUse = transactionId;
+    if (!txIdToUse || !etag) {
+      if (!origin || !order || !Number.isFinite(position) || !Number.isFinite(sequence) || !Number.isFinite(setNum) || !packingSlip) {
+        return json({ ok: false, error: "missing_inputs" }, 200);
+      }
+
+      const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
+      const gsiQs = new URLSearchParams();
+      gsiQs.set("$filter", [
+        `Confirm eq 'No'`,
+        `OrderOrigin eq '${origin.replace(/'/g, "''")}'`,
+        `Order eq '${order.replace(/'/g, "''")}'`,
+        `Position eq ${position}`,
+        `Sequence eq ${sequence}`,
+        `Set eq ${setNum}`,
+        `PackingSlip eq '${packingSlip.replace(/'/g, "''")}'`,
+      ].join(" and "));
+      gsiQs.set("$select", "*");
+      gsiQs.set("$top", "1");
+      const gsiUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts?${gsiQs.toString()}`;
+
+      const lookupRes = await fetch(gsiUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          "Content-Language": language,
+          "X-Infor-LnCompany": company,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }).catch(() => null as unknown as Response);
+      if (!lookupRes) return json({ ok: false, error: "lookup_network_error" }, 200);
+      const lookupJson = await lookupRes.json().catch(() => null) as any;
+      if (!lookupRes.ok || !lookupJson || !Array.isArray(lookupJson?.value) || lookupJson.value.length === 0) {
+        return json({ ok: false, error: "receipt_not_found" }, 200);
+      }
+      const rec = lookupJson.value[0];
+      txIdToUse = String(rec?.TransactionID || "");
+      etag = String(rec?.["@odata.etag"] || "");
+      if (!txIdToUse || !etag) {
+        return json({ ok: false, error: "missing_tx_or_etag" }, 200);
+      }
+    }
+
     // PATCH GSIReceipts Confirm='Yes'
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const escaped = transactionId.replace(/'/g, "''");
+    const escaped = txIdToUse.replace(/'/g, "''");
     const url = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts(TransactionID='${escaped}')?$select=*`;
 
     const patchRes = await fetch(url, {
