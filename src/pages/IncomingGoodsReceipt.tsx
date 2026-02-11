@@ -81,7 +81,6 @@ const IncomingGoodsReceipt = () => {
   const [receivedLinesCount, setReceivedLinesCount] = useState<number>(0);
   const [receivedLines, setReceivedLines] = useState<any[]>([]);
   const [receivedLinesOpen, setReceivedLinesOpen] = useState<boolean>(false);
-  const [lastReceivedCheckKey, setLastReceivedCheckKey] = useState<string | null>(null);
   // When true, do not auto-fill the Line even if the service returns exactly one line
   const [suppressAutoFillLine, setSuppressAutoFillLine] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -213,40 +212,38 @@ const IncomingGoodsReceipt = () => {
     };
   }, []);
 
-  // Background fetch of "Received" lines awaiting confirm when order + origin selected and confirmOnly=false
+  // Helper: fetch received lines awaiting confirm
+  const loadReceivedLines = async (ord: string, originSelected: string) => {
+    if (!ord || !originSelected || confirmOnly) return;
+    const { data, error } = await supabase.functions.invoke("ln-received-lines", {
+      body: {
+        orderNumber: ord,
+        origin: originSelected,
+        language: locale,
+        company: "4000",
+      },
+    });
+    if (error || !data || !data.ok) {
+      setReceivedLinesCount(0);
+      setReceivedLines([]);
+      return;
+    }
+    const count = Number(data.count || 0);
+    const value = Array.isArray(data.value) ? data.value : [];
+    setReceivedLinesCount(count);
+    setReceivedLines(value);
+  };
+
+  // Re-fetch whenever order number and type are set (no caching)
   useEffect(() => {
     const ord = (orderNo || "").trim();
     const originSelected = (orderType || "").trim();
-    const key = `${ord}|${originSelected}`;
-    if (!ord || !originSelected || confirmOnly) return;
-    if (lastReceivedCheckKey === key) return;
-
-    let active = true;
-    const run = async () => {
-      const { data, error } = await supabase.functions.invoke("ln-received-lines", {
-        body: {
-          orderNumber: ord,
-          origin: originSelected,
-          language: locale,
-          company: "4000",
-        },
-      });
-      if (!active) return;
-      if (error || !data || !data.ok) {
-        setReceivedLinesCount(0);
-        setReceivedLines([]);
-        setLastReceivedCheckKey(key);
-        return;
-      }
-      const count = Number(data.count || 0);
-      const value = Array.isArray(data.value) ? data.value : [];
-      setReceivedLinesCount(count);
-      setReceivedLines(value);
-      setLastReceivedCheckKey(key);
-    };
-    void run();
-
-    return () => { active = false; };
+    if (!confirmOnly && ord && originSelected) {
+      void loadReceivedLines(ord, originSelected);
+    } else {
+      setReceivedLinesCount(0);
+      setReceivedLines([]);
+    }
   }, [orderNo, orderType, confirmOnly, locale]);
 
   // Search handler: call LN for InboundLines by Order (and optional Line)
@@ -640,7 +637,14 @@ const IncomingGoodsReceipt = () => {
                     <Button
                       variant="destructive"
                       className="rounded-full px-3 py-1 h-auto text-sm font-semibold shadow-sm"
-                      onClick={() => setReceivedLinesOpen(true)}
+                      onClick={async () => {
+                        const ord = (orderNo || "").trim();
+                        const originSelected = (orderType || "").trim();
+                        if (ord && originSelected) {
+                          await loadReceivedLines(ord, originSelected);
+                        }
+                        setReceivedLinesOpen(true);
+                      }}
                     >
                       {receivedLinesCount} Received Lines
                     </Button>
@@ -695,7 +699,14 @@ const IncomingGoodsReceipt = () => {
                     <Button
                       variant="destructive"
                       className="h-12 px-3"
-                      onClick={() => setReceivedLinesOpen(true)}
+                      onClick={async () => {
+                        const ord = (orderNo || "").trim();
+                        const originSelected = (orderType || "").trim();
+                        if (ord && originSelected) {
+                          await loadReceivedLines(ord, originSelected);
+                        }
+                        setReceivedLinesOpen(true);
+                      }}
                     >
                       {receivedLinesCount} Received Lines
                     </Button>
