@@ -79,6 +79,7 @@ const IncomingGoodsReceipt = () => {
   const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
   // When true, do not auto-fill the Line even if the service returns exactly one line
   const [suppressAutoFillLine, setSuppressAutoFillLine] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -463,6 +464,81 @@ const IncomingGoodsReceipt = () => {
     }
 
     return Number(data.count || 0) > 0;
+  };
+
+  // Handle Receive action (only when confirmOnly is false)
+  const handleReceive = async () => {
+    if (confirmOnly) return;
+    // Basic guard: rely on actionEnabled; if disabled, exit
+    const ready =
+      (orderNo || "").trim() &&
+      (orderPos || "").trim() &&
+      (grItemRaw || "").toString() &&
+      (deliveryNote || "").trim() &&
+      (qty || "").trim() &&
+      (!showOrderType || !orderTypeRequired || (orderType || "").trim());
+    if (!ready) return;
+
+    const originToSend = (orderType || lotsOrigin || "").trim();
+    const tid = showLoading(trans.pleaseWait);
+    setIsSubmitting(true);
+
+    const { data, error } = await supabase.functions.invoke("ln-receive-goods", {
+      body: {
+        OrderOrigin: originToSend,
+        Order: (orderNo || "").trim(),
+        Position: Number((orderPos || "").trim()),
+        Sequence: 1,
+        Set: 1,
+        PackingSlip: (deliveryNote || "").trim(),
+        Lot: (lot || "").trim(),
+        BusinessPartnerLot: (bpLot || "").trim(),
+        Quantity: Number((qty || "").trim()),
+        Unit: (orderUnit || "").trim(),
+        Confirm: "No", // When txgsi000_aure (confirmOnly) is false
+        FromWebservice: "Yes",
+        language: locale,
+        company: "4000",
+      },
+    });
+
+    dismissToast(tid as unknown as string);
+    setIsSubmitting(false);
+
+    if (error || !data || !data.ok) {
+      showError(trans.loadingDetails); // reuse a generic label
+      return;
+    }
+
+    showSuccess(trans.unloadedSuccessfully); // show success feedback
+    // Clear all fields
+    setShowOrderType(false);
+    setOrderType("");
+    setOrderTypeOptions([]);
+    setOrderTypeDisabled(true);
+    setOrderTypeRequired(false);
+    setLastCheckedOrder(null);
+    setSuppressAutoFillLine(false);
+    setInboundLinesAll([]);
+    setHasMultipleLines(false);
+
+    setOrderNo("");
+    setOrderPos("");
+    setGrItem("");
+    setGrItemDesc("");
+    setQty("");
+    setOrderUnit("");
+    setGrItemRaw("");
+    setLot("");
+    setBpLot("");
+    setDeliveryNote("");
+    setLotTracking(false);
+    setBuyFromBusinessPartner("");
+    setLotsAvailableCount(0);
+    setExistingLots([]);
+    setLotsOrigin("");
+
+    setTimeout(() => orderNoRef.current?.focus(), 0);
   };
 
   return (
@@ -994,8 +1070,13 @@ const IncomingGoodsReceipt = () => {
         <div className="mx-auto max-w-md px-3 py-3">
           <Button
             className="h-12 w-full"
-            variant={actionEnabled ? "destructive" : "secondary"}
-            disabled={!actionEnabled}
+            variant={actionEnabled && !isSubmitting ? "destructive" : "secondary"}
+            disabled={!actionEnabled || isSubmitting}
+            onClick={() => {
+              if (!confirmOnly) {
+                void handleReceive();
+              }
+            }}
           >
             {confirmOnly ? "CONFIRM" : "Receive"}
           </Button>
