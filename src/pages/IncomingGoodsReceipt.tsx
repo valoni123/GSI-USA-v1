@@ -234,8 +234,19 @@ const IncomingGoodsReceipt = () => {
     setReceivedLines(value);
   };
 
-  // Confirm one receipt line: uses txId/etag or falls back to details lookup
-  const confirmReceiptLine = async (opts: { transactionId?: string; etag?: string; origin: string; order: string; position: number; sequence: number; set: number; packingSlip: string }) => {
+  // Confirm one receipt line: uses txId/etag or falls back to receipt/order details lookup
+  const confirmReceiptLine = async (opts: {
+    transactionId?: string;
+    etag?: string;
+    origin: string;
+    order: string;
+    position: number;
+    sequence: number;
+    set: number;
+    packingSlip: string;
+    receiptNumber?: string;
+    receiptLine?: number;
+  }) => {
     const tid = showLoading(trans.pleaseWait);
     const { data, error } = await supabase.functions.invoke("ln-confirm-receipt", {
       body: {
@@ -247,6 +258,8 @@ const IncomingGoodsReceipt = () => {
         sequence: opts.sequence,
         set: opts.set,
         packingSlip: opts.packingSlip,
+        receiptNumber: opts.receiptNumber,
+        receiptLine: opts.receiptLine,
         language: locale,
         company: "4000",
       },
@@ -1234,11 +1247,14 @@ const IncomingGoodsReceipt = () => {
                                 sequence: seq,
                                 set: setNum,
                                 packingSlip: pSlip,
+                                receiptNumber: receipt,
+                                receiptLine: receiptLine,
                               });
                             }}
                           >
                             {trans.incomingConfirm}
                           </Button>
+
                         </div>
                       </div>
                     </div>
