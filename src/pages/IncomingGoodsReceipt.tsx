@@ -686,7 +686,28 @@ const IncomingGoodsReceipt = () => {
       return;
     }
 
-    // Step 2: Confirm (same line)
+    // Extract Receipt and ReceiptLine from receive response
+    const rb: any = recvData.body;
+    let receiptNumber = "";
+    let receiptLine = 0;
+
+    if (rb && typeof rb === "object") {
+      // Direct fields
+      if (typeof rb.Receipt === "string") receiptNumber = rb.Receipt;
+      if (typeof rb.ReceiptLine === "number") receiptLine = Number(rb.ReceiptLine);
+      // OData array payload
+      if ((!receiptNumber || !receiptLine) && Array.isArray(rb.value) && rb.value.length > 0) {
+        const first = rb.value[0];
+        if (typeof first?.Receipt === "string") receiptNumber = first.Receipt;
+        if (typeof first?.ReceiptLine === "number") receiptLine = Number(first.ReceiptLine);
+        // fallback to OrderLine if ReceiptLine missing
+        if (!receiptLine && typeof first?.OrderLine === "number") receiptLine = Number(first.OrderLine);
+      }
+      // final fallback to OrderLine from root if present
+      if (!receiptLine && typeof rb.OrderLine === "number") receiptLine = Number(rb.OrderLine);
+    }
+
+    // Step 2: Confirm (same line, using receipt fields from receive)
     const { data: confData, error: confError } = await supabase.functions.invoke("ln-confirm-receipt", {
       body: {
         origin: originToSend,
@@ -699,9 +720,8 @@ const IncomingGoodsReceipt = () => {
         unit: (orderUnit || "").trim(),
         lot: (lot || "").trim(),
         businessPartnerLot: (bpLot || "").trim(),
-        // receipt fields may not be available right after receive; send empty/defaults
-        receiptNumber: "",
-        receiptLine: 0,
+        receiptNumber: receiptNumber || "",
+        receiptLine: receiptLine || 0,
         language: locale,
         company: "4000",
       },
