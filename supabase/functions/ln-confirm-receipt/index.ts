@@ -65,6 +65,10 @@ serve(async (req) => {
     const lot = (body.lot || "").toString().trim();
     const businessPartnerLot = (body.businessPartnerLot || "").toString().trim();
 
+    // NEW: receipt fields (default to "" and 0 if missing)
+    const receiptNumber = (body.receiptNumber ?? "").toString().trim();
+    const receiptLine = typeof body.receiptLine === "number" ? body.receiptLine : 0;
+
     const language = body.language || "en-US";
     const company = body.company || "4000";
 
@@ -167,6 +171,9 @@ serve(async (req) => {
         Scan1: "CONFIRM",
         Processed: "No",
         FromWebservice: "Yes",
+        // NEW: pass through receipt fields
+        ReceiptNumber: receiptNumber,
+        ReceiptLine: receiptLine,
       }),
     }).catch(() => null as unknown as Response);
 
