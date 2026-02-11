@@ -643,6 +643,110 @@ const IncomingGoodsReceipt = () => {
     return Number(data.count || 0) > 0;
   };
 
+  // Handle Confirm-only mode: first receive, then confirm automatically
+  const handleConfirmOnly = async () => {
+    // Ensure required fields are filled (same guards as actionEnabled)
+    const ready =
+      (orderNo || "").trim() &&
+      (orderPos || "").trim() &&
+      (grItemRaw || "").toString() &&
+      (deliveryNote || "").trim() &&
+      (qty || "").trim() &&
+      (!showOrderType || !orderTypeRequired || (orderType || "").trim());
+    if (!ready) return;
+
+    const originToSend = (orderType || lotsOrigin || "").trim();
+    const tid = showLoading(trans.pleaseWait);
+    setIsSubmitting(true);
+
+    // Step 1: Receive
+    const { data: recvData, error: recvError } = await supabase.functions.invoke("ln-receive-goods", {
+      body: {
+        OrderOrigin: originToSend,
+        Order: (orderNo || "").trim(),
+        Position: Number((orderPos || "").trim()),
+        Sequence: 1,
+        Set: 1,
+        PackingSlip: (deliveryNote || "").trim(),
+        Lot: (lot || "").trim(),
+        BusinessPartnerLot: (bpLot || "").trim(),
+        Quantity: Number((qty || "").trim()),
+        Unit: (orderUnit || "").trim(),
+        Confirm: "No",
+        FromWebservice: "Yes",
+        language: locale,
+        company: "4000",
+      },
+    });
+
+    if (recvError || !recvData || !recvData.ok) {
+      dismissToast(tid as unknown as string);
+      setIsSubmitting(false);
+      showError(trans.loadingDetails);
+      return;
+    }
+
+    // Step 2: Confirm (same line)
+    const { data: confData, error: confError } = await supabase.functions.invoke("ln-confirm-receipt", {
+      body: {
+        origin: originToSend,
+        order: (orderNo || "").trim(),
+        position: Number((orderPos || "").trim()),
+        sequence: 1,
+        set: 1,
+        packingSlip: (deliveryNote || "").trim(),
+        quantity: Number((qty || "").trim()),
+        unit: (orderUnit || "").trim(),
+        lot: (lot || "").trim(),
+        businessPartnerLot: (bpLot || "").trim(),
+        // receipt fields may not be available right after receive; send empty/defaults
+        receiptNumber: "",
+        receiptLine: 0,
+        language: locale,
+        company: "4000",
+      },
+    });
+
+    dismissToast(tid as unknown as string);
+    setIsSubmitting(false);
+
+    if (confError || !confData || !confData.ok) {
+      showError("Confirm failed");
+      return;
+    }
+
+    showSuccess("Confirmed");
+
+    // Reset form (same as after successful receive)
+    setShowOrderType(false);
+    setOrderType("");
+    setOrderTypeOptions([]);
+    setOrderTypeDisabled(true);
+    setOrderTypeRequired(false);
+    setLastCheckedOrder(null);
+    setSuppressAutoFillLine(false);
+    setInboundLinesAll([]);
+    setHasMultipleLines(false);
+
+    setOrderNo("");
+    setOrderPos("");
+    setGrItem("");
+    setGrItemDesc("");
+    setQty("");
+    setOrderUnit("");
+    setGrItemRaw("");
+    setLot("");
+    setBpLot("");
+    setDeliveryNote("");
+    setLotTracking(false);
+    setBuyFromBusinessPartner("");
+    setLotsAvailableCount(0);
+    setExistingLots([]);
+    setLotsOrigin("");
+
+    setTimeout(() => orderNoRef.current?.focus(), 0);
+  };
+
   // Handle Receive action (only when confirmOnly is false)
   const handleReceive = async () => {
     if (confirmOnly) return;
@@ -1399,7 +1503,9 @@ const IncomingGoodsReceipt = () => {
             variant={actionEnabled && !isSubmitting ? "destructive" : "secondary"}
             disabled={!actionEnabled || isSubmitting}
             onClick={() => {
-              if (!confirmOnly) {
+              if (confirmOnly) {
+                void handleConfirmOnly();
+              } else {
                 void handleReceive();
               }
             }}
