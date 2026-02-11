@@ -1214,6 +1214,20 @@ const IncomingGoodsReceipt = () => {
                           <div className="mt-1 text-xs text-gray-600">
                             Receipt: {receipt} · Line: {receiptLine}
                           </div>
+                          {(txId || etag) && (
+                            <div className="mt-1 space-y-0.5">
+                              {txId && (
+                                <div className="text-[11px] text-gray-500 font-mono break-all">
+                                  TxnID: {txId}
+                                </div>
+                              )}
+                              {etag && (
+                                <div className="text-[11px] text-gray-500 font-mono break-all">
+                                  ETag: {etag}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Right: qty top, green confirm button below */}
