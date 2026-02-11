@@ -246,8 +246,13 @@ const IncomingGoodsReceipt = () => {
     packingSlip: string;
     receiptNumber?: string;
     receiptLine?: number;
+    quantity?: number;
+    unit?: string;
+    lot?: string;
+    businessPartnerLot?: string;
   }) => {
     const tid = showLoading(trans.pleaseWait);
+
     const { data, error } = await supabase.functions.invoke("ln-confirm-receipt", {
       body: {
         transactionId: opts.transactionId,
@@ -260,6 +265,10 @@ const IncomingGoodsReceipt = () => {
         packingSlip: opts.packingSlip,
         receiptNumber: opts.receiptNumber,
         receiptLine: opts.receiptLine,
+        quantity: typeof opts.quantity === "number" ? opts.quantity : Number((qty || "").trim() || "0"),
+        unit: (opts.unit || orderUnit || "").trim(),
+        lot: (opts.lot || lot || "").trim(),
+        businessPartnerLot: (opts.businessPartnerLot || bpLot || "").trim(),
         language: locale,
         company: "4000",
       },
@@ -1201,8 +1210,8 @@ const IncomingGoodsReceipt = () => {
                   const receiptLine = Number(ln?.ReceiptLine ?? ln?.OrderLine ?? 0);
                   const item = typeof ln?.Item === "string" ? ln.Item : (typeof ln?.ItemRef?.Item === "string" ? ln.ItemRef.Item : "");
                   const desc = typeof ln?.ItemRef?.Description === "string" ? ln.ItemRef.Description : "";
-                  const qty = Number(ln?.ReceivedQuantityInReceiptUnit ?? 0);
-                  const unit = typeof ln?.ReceiptUnit === "string" ? ln.ReceiptUnit : "";
+                  const lineQty = Number(ln?.ReceivedQuantityInReceiptUnit ?? 0);
+                  const lineUnit = typeof ln?.ReceiptUnit === "string" ? ln.ReceiptUnit : "";
                   const txId = typeof ln?.gsiTransactionID === "string" ? ln.gsiTransactionID : "";
                   const etag = typeof ln?.gsiEtag === "string" ? ln.gsiEtag : "";
                   const originSelected = (orderType || "").trim();
@@ -1211,6 +1220,12 @@ const IncomingGoodsReceipt = () => {
                   const seq = Number(ln?.OrderSequence ?? 0);
                   const setNum = Number(ln?.OrderSet ?? 0);
                   const pSlip = typeof ln?.PackingSlip === "string" ? ln.PackingSlip : "";
+
+                  const lotCode =
+                    (typeof ln?.Lot === "string" && ln.Lot) ||
+                    (typeof ln?.LotByWarehouseRef?.Lot === "string" && ln.LotByWarehouseRef.Lot) ||
+                    "";
+                  const bpLotCode = (typeof ln?.BusinessPartnersLotCode === "string" && ln.BusinessPartnersLotCode) || "";
 
                   return (
                     <div
@@ -1232,7 +1247,7 @@ const IncomingGoodsReceipt = () => {
                         {/* Right: qty top, green confirm button below */}
                         <div className="flex flex-col items-end">
                           <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
-                            {qty} {unit}
+                            {lineQty} {lineUnit}
                           </div>
                           <Button
                             className="mt-2 h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
@@ -1244,11 +1259,15 @@ const IncomingGoodsReceipt = () => {
                                 origin: originSelected,
                                 order: ord,
                                 position: pos,
-                                sequence: seq,
-                                set: setNum,
+                                sequence: seq || 1,
+                                set: setNum || 1,
                                 packingSlip: pSlip,
                                 receiptNumber: receipt,
                                 receiptLine: receiptLine,
+                                quantity: lineQty,
+                                unit: lineUnit,
+                                lot: (lotCode || lot || "").trim(),
+                                businessPartnerLot: (bpLotCode || bpLot || "").trim(),
                               });
                             }}
                           >
