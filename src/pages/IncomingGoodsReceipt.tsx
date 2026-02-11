@@ -77,6 +77,11 @@ const IncomingGoodsReceipt = () => {
   const [lotTracking, setLotTracking] = useState<boolean>(false);
   const [lastCheckedOrder, setLastCheckedOrder] = useState<string | null>(null);
   const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
+  // Received lines state
+  const [receivedLinesCount, setReceivedLinesCount] = useState<number>(0);
+  const [receivedLines, setReceivedLines] = useState<any[]>([]);
+  const [receivedLinesOpen, setReceivedLinesOpen] = useState<boolean>(false);
+  const [lastReceivedCheckKey, setLastReceivedCheckKey] = useState<string | null>(null);
   // When true, do not auto-fill the Line even if the service returns exactly one line
   const [suppressAutoFillLine, setSuppressAutoFillLine] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -207,6 +212,42 @@ const IncomingGoodsReceipt = () => {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
+
+  // Background fetch of "Received" lines awaiting confirm when order + origin selected and confirmOnly=false
+  useEffect(() => {
+    const ord = (orderNo || "").trim();
+    const originSelected = (orderType || "").trim();
+    const key = `${ord}|${originSelected}`;
+    if (!ord || !originSelected || confirmOnly) return;
+    if (lastReceivedCheckKey === key) return;
+
+    let active = true;
+    const run = async () => {
+      const { data, error } = await supabase.functions.invoke("ln-received-lines", {
+        body: {
+          orderNumber: ord,
+          origin: originSelected,
+          language: locale,
+          company: "4000",
+        },
+      });
+      if (!active) return;
+      if (error || !data || !data.ok) {
+        setReceivedLinesCount(0);
+        setReceivedLines([]);
+        setLastReceivedCheckKey(key);
+        return;
+      }
+      const count = Number(data.count || 0);
+      const value = Array.isArray(data.value) ? data.value : [];
+      setReceivedLinesCount(count);
+      setReceivedLines(value);
+      setLastReceivedCheckKey(key);
+    };
+    void run();
+
+    return () => { active = false; };
+  }, [orderNo, orderType, confirmOnly, locale]);
 
   // Search handler: call LN for InboundLines by Order (and optional Line)
   const checkOrder = async (ord: string, lineVal?: string) => {
@@ -582,7 +623,19 @@ const IncomingGoodsReceipt = () => {
           {showOrderType && (
             orderTypeDisabled ? (
               <div className="space-y-1 mb-4">
-                <div className="text-xs font-medium text-gray-700">{trans.incomingOrderTypeLabel}</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-gray-700">{trans.incomingOrderTypeLabel}</div>
+                  {receivedLinesCount > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => setReceivedLinesOpen(true)}
+                    >
+                      {receivedLinesCount} Received Lines
+                    </Button>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {(() => {
                     const s = originColorStyle(orderType);
@@ -599,8 +652,20 @@ const IncomingGoodsReceipt = () => {
               </div>
             ) : (
               <div className="space-y-1 mb-4">
-                <div className="text-xs font-medium text-gray-700">
-                  {trans.incomingOrderTypeLabel} {orderTypeRequired && <span className="text-red-600">*</span>}
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-gray-700">
+                    {trans.incomingOrderTypeLabel} {orderTypeRequired && <span className="text-red-600">*</span>}
+                  </div>
+                  {receivedLinesCount > 0 && !!orderType && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => setReceivedLinesOpen(true)}
+                    >
+                      {receivedLinesCount} Received Lines
+                    </Button>
+                  )}
                 </div>
                 <Select value={orderType} onValueChange={setOrderType}>
                   <SelectTrigger className="h-12">
@@ -1064,6 +1129,64 @@ const IncomingGoodsReceipt = () => {
            </div>
         </Card>
       </div>
+
+      {/* Received Lines dialog */}
+      <Dialog open={receivedLinesOpen} onOpenChange={setReceivedLinesOpen}>
+        <DialogPortal>
+          <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
+          <DialogPrimitive.Content
+            className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-0 shadow-lg"
+          >
+            <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
+              {receivedLinesCount} Received Lines
+            </div>
+            <div className="max-h-80 overflow-auto p-2">
+              {receivedLines.length === 0 ? (
+                <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
+              ) : (
+                receivedLines.map((ln: any, idx: number) => {
+                  const receipt = typeof ln?.Receipt === "string" ? ln.Receipt : "";
+                  const receiptLine = Number(ln?.ReceiptLine ?? ln?.OrderLine ?? 0);
+                  const item = typeof ln?.Item === "string" ? ln.Item : (typeof ln?.ItemRef?.Item === "string" ? ln.ItemRef.Item : "");
+                  const desc = typeof ln?.ItemRef?.Description === "string" ? ln.ItemRef.Description : "";
+                  const qty = Number(ln?.ReceivedQuantityInReceiptUnit ?? 0);
+                  const unit = typeof ln?.ReceiptUnit === "string" ? ln.ReceiptUnit : "";
+                  return (
+                    <div
+                      key={`${receipt}-${receiptLine}-${idx}`}
+                      className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50"
+                    >
+                      <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                        <div className="flex flex-col">
+                          <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                            {item || "-"}
+                          </div>
+                          {desc && <div className="text-xs text-gray-700">{desc}</div>}
+                          <div className="mt-1 text-xs text-gray-600">
+                            Receipt: {receipt} · Line: {receiptLine}
+                          </div>
+                        </div>
+                        <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
+                          {qty} {unit}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <DialogPrimitive.Close asChild>
+              <button
+                type="button"
+                className="absolute right-3 top-2 text-gray-600 hover:text-gray-900"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </DialogPrimitive.Close>
+          </DialogPrimitive.Content>
+        </DialogPortal>
+      </Dialog>
 
       {/* Bottom buttons (disabled at startup like screenshot) */}
       <div className="fixed inset-x-0 bottom-0 bg-white border-t">
