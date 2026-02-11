@@ -11,6 +11,7 @@ import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ScreenSpinner from "@/components/ScreenSpinner";
 
 const IncomingGoodsReceipt = () => {
   const navigate = useNavigate();
@@ -213,8 +214,14 @@ const IncomingGoodsReceipt = () => {
   }, []);
 
   // Helper: fetch received lines awaiting confirm
-  const loadReceivedLines = async (ord: string, originSelected: string) => {
-    if (!ord || !originSelected || confirmOnly) return;
+  const loadReceivedLines = async (ord: string, originSelected: string): Promise<number> => {
+    if (!ord || !originSelected || confirmOnly) {
+      setReceivedLinesCount(0);
+      setReceivedLines([]);
+      return 0;
+    }
+    // Show spinner while loading lines
+    setIsSubmitting(true);
     const { data, error } = await supabase.functions.invoke("ln-received-lines", {
       body: {
         orderNumber: ord,
@@ -223,15 +230,17 @@ const IncomingGoodsReceipt = () => {
         company: "4000",
       },
     });
+    setIsSubmitting(false);
     if (error || !data || !data.ok) {
       setReceivedLinesCount(0);
       setReceivedLines([]);
-      return;
+      return 0;
     }
     const count = Number(data.count || 0);
     const value = Array.isArray(data.value) ? data.value : [];
     setReceivedLinesCount(count);
     setReceivedLines(value);
+    return count;
   };
 
   // Confirm one receipt line: uses txId/etag or falls back to receipt/order details lookup
@@ -251,6 +260,8 @@ const IncomingGoodsReceipt = () => {
     lot?: string;
     businessPartnerLot?: string;
   }) => {
+    // Show full-screen spinner
+    setIsSubmitting(true);
     const tid = showLoading(trans.pleaseWait);
 
     const { data, error } = await supabase.functions.invoke("ln-confirm-receipt", {
@@ -274,6 +285,7 @@ const IncomingGoodsReceipt = () => {
       },
     });
     dismissToast(tid as unknown as string);
+    setIsSubmitting(false);
     if (error || !data || !data.ok) {
       showError("Confirm failed");
       return;
@@ -282,7 +294,10 @@ const IncomingGoodsReceipt = () => {
     const ord = (orderNo || "").trim();
     const originSelected = (orderType || "").trim();
     if (ord && originSelected) {
-      await loadReceivedLines(ord, originSelected);
+      const count = await loadReceivedLines(ord, originSelected);
+      if (count <= 0) {
+        setReceivedLinesOpen(false);
+      }
     }
   };
 
@@ -1311,6 +1326,9 @@ const IncomingGoodsReceipt = () => {
           </Button>
         </div>
       </div>
+
+      {/* Full-screen spinner overlay when submitting/loading */}
+      {isSubmitting && <ScreenSpinner backdropBlur />}
 
       <SignOutConfirm
         open={signOutOpen}
