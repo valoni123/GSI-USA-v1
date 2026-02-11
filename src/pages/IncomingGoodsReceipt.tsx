@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
-import { showSuccess, showLoading, dismissToast } from "@/utils/toast";
+import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -433,6 +433,38 @@ const IncomingGoodsReceipt = () => {
     }
   };
 
+  // NEW: validate a manually entered lot against LN "lots by item" service
+  const validateManualLot = async (enteredLot: string) => {
+    const lotValue = (enteredLot || "").trim();
+    if (!lotValue) return true;
+
+    const origin = (orderType || lotsOrigin || "").toString();
+    const item = (grItemRaw || "").toString();
+    if (!origin || !item) return true;
+
+    const isPurchase = origin.toLowerCase().includes("purchase");
+    const bp = isPurchase ? (buyFromBusinessPartner || "").trim() : "";
+    if (isPurchase && !bp) return true;
+
+    const { data, error } = await supabase.functions.invoke("ln-item-existing-lots", {
+      body: {
+        item,
+        origin,
+        buyFromBusinessPartner: isPurchase ? bp : undefined,
+        lot: lotValue,
+        language: locale,
+        company: "4000",
+      },
+    });
+
+    if (error || !data || !data.ok) {
+      // If we can't validate due to an error, don't block the user.
+      return true;
+    }
+
+    return Number(data.count || 0) > 0;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
@@ -720,24 +752,48 @@ const IncomingGoodsReceipt = () => {
                     onClear={() => setLot("")}
                     ref={lotRef}
                     onBlur={() => {
-                      if ((lot || "").trim()) {
+                      const next = async () => {
+                        const entered = (lot || "").trim();
+                        if (!entered) return;
+
+                        const ok = await validateManualLot(entered);
+                        if (!ok) {
+                          showError("Lot does not exist");
+                          setLot("");
+                          setTimeout(() => lotRef.current?.focus(), 0);
+                          return;
+                        }
+
                         // If Purchase, go to BP Lot; otherwise skip to Delivery Note
                         if (isPurchaseOrigin) {
                           bpLotRef.current?.focus();
                         } else {
                           deliveryNoteRef.current?.focus();
                         }
-                      }
+                      };
+                      void next();
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        if ((lot || "").trim()) {
+                        const next = async () => {
+                          const entered = (lot || "").trim();
+                          if (!entered) return;
+
+                          const ok = await validateManualLot(entered);
+                          if (!ok) {
+                            showError("Lot does not exist");
+                            setLot("");
+                            setTimeout(() => lotRef.current?.focus(), 0);
+                            return;
+                          }
+
                           if (isPurchaseOrigin) {
                             bpLotRef.current?.focus();
                           } else {
                             deliveryNoteRef.current?.focus();
                           }
-                        }
+                        };
+                        void next();
                       }
                     }}
                   />

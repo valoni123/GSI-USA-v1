@@ -32,6 +32,7 @@ serve(async (req) => {
       item?: string;
       origin?: string;
       buyFromBusinessPartner?: string;
+      lot?: string;
       language?: string;
       company?: string;
     } = {};
@@ -44,6 +45,7 @@ serve(async (req) => {
     const item = (body.item || "").toString();
     const origin = (body.origin || "").toString();
     const bp = (body.buyFromBusinessPartner || "").toString();
+    const lot = (body.lot || "").toString();
     const language = body.language || "en-US";
     const company = body.company || "4000";
 
@@ -117,16 +119,56 @@ serve(async (req) => {
       const escapedBp = bp.replace(/'/g, "''");
       filter += ` and BuyfromBusinessPartner eq '${escapedBp}'`;
     }
+
+    const lotTrim = lot.trim();
+    if (lotTrim) {
+      const escapedLot = lotTrim.replace(/'/g, "''");
+      filter += ` and Lot eq '${escapedLot}'`;
+    }
+
     const qs = new URLSearchParams();
     qs.set("$filter", filter);
     qs.set("$count", "true");
     qs.set("$select", "*");
     qs.set("$orderby", "Item");
     qs.set("$expand", "LotByWarehouseRef");
+
+    const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
+
+    // If a specific lot is provided, we only need to check existence (avoid paging)
+    if (lotTrim) {
+      qs.set("$top", "1");
+      const url = `${base}/${ti}/LN/lnapi/odata/whapi.ltcLot/Lots?${qs.toString()}`;
+
+      const odataRes = await fetch(url, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          "Content-Language": language,
+          "X-Infor-LnCompany": company,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }).catch(() => null as unknown as Response);
+      if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
+      const odataJson = await odataRes.json().catch(() => null) as any;
+      if (!odataRes.ok || !odataJson) {
+        const topMessage = odataJson?.error?.message || "odata_error";
+        const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
+        return json({ ok: false, error: { message: topMessage, details } }, 200);
+      }
+
+      const value = Array.isArray(odataJson?.value) ? odataJson.value : [];
+      const count =
+        typeof odataJson?.["@odata.count"] === "number"
+          ? odataJson["@odata.count"]
+          : value.length;
+
+      return json({ ok: true, count, value }, 200);
+    }
+
     // Request more items per page (server may cap, but try a higher top)
     qs.set("$top", "200");
 
-    const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const initialUrl = `${base}/${ti}/LN/lnapi/odata/whapi.ltcLot/Lots?${qs.toString()}`;
 
     // Fetch all pages
@@ -175,10 +217,7 @@ serve(async (req) => {
       }
     }
 
-    const count =
-      totalCount !== null
-        ? totalCount
-        : items.length;
+    const count = totalCount !== null ? totalCount : items.length;
 
     return json({ ok: true, count, value: items }, 200);
   } catch {
