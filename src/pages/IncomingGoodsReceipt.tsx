@@ -234,6 +234,31 @@ const IncomingGoodsReceipt = () => {
     setReceivedLines(value);
   };
 
+  // Confirm one receipt line (uses attached gsiTransactionID & gsiEtag)
+  const confirmReceiptLine = async (transactionId: string, etag: string) => {
+    const tid = showLoading(trans.pleaseWait);
+    const { data, error } = await supabase.functions.invoke("ln-confirm-receipt", {
+      body: {
+        transactionId,
+        etag,
+        language: locale,
+        company: "4000",
+      },
+    });
+    dismissToast(tid as unknown as string);
+    if (error || !data || !data.ok) {
+      showError("Confirm failed");
+      return;
+    }
+    showSuccess("Confirmed");
+    // Refresh list
+    const ord = (orderNo || "").trim();
+    const originSelected = (orderType || "").trim();
+    if (ord && originSelected) {
+      await loadReceivedLines(ord, originSelected);
+    }
+  };
+
   // Re-fetch whenever order number and type are set (no caching)
   useEffect(() => {
     const ord = (orderNo || "").trim();
@@ -1160,12 +1185,16 @@ const IncomingGoodsReceipt = () => {
                   const desc = typeof ln?.ItemRef?.Description === "string" ? ln.ItemRef.Description : "";
                   const qty = Number(ln?.ReceivedQuantityInReceiptUnit ?? 0);
                   const unit = typeof ln?.ReceiptUnit === "string" ? ln.ReceiptUnit : "";
+                  const txId = typeof ln?.gsiTransactionID === "string" ? ln.gsiTransactionID : "";
+                  const etag = typeof ln?.gsiEtag === "string" ? ln.gsiEtag : "";
+
                   return (
                     <div
                       key={`${receipt}-${receiptLine}-${idx}`}
                       className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50"
                     >
-                      <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                      <div className="grid grid-cols-[1fr_120px] gap-3 items-start">
+                        {/* Left: item and description */}
                         <div className="flex flex-col">
                           <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
                             {item || "-"}
@@ -1175,8 +1204,24 @@ const IncomingGoodsReceipt = () => {
                             Receipt: {receipt} · Line: {receiptLine}
                           </div>
                         </div>
-                        <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
-                          {qty} {unit}
+
+                        {/* Right: qty top, confirm button below */}
+                        <div className="flex flex-col items-end">
+                          <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
+                            {qty} {unit}
+                          </div>
+                          <Button
+                            className="mt-2 h-8 px-3"
+                            variant="destructive"
+                            disabled={!txId || !etag}
+                            onClick={async () => {
+                              if (txId && etag) {
+                                await confirmReceiptLine(txId, etag);
+                              }
+                            }}
+                          >
+                            {trans.incomingConfirm}
+                          </Button>
                         </div>
                       </div>
                     </div>
