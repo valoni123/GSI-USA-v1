@@ -88,8 +88,36 @@ const IncomingGoodsReceipt = () => {
 
   // NEW: Purchase origin flag for UI visibility/focus
   const isPurchaseOrigin = useMemo(() => {
-    return ((orderType || lotsOrigin || "").toLowerCase().includes("purchase"));
+    return (orderType || lotsOrigin || "").toLowerCase().includes("purchase");
   }, [orderType, lotsOrigin]);
+
+  // NEW: enable action button only when required fields are filled
+  const actionEnabled = useMemo(() => {
+    const hasOrder = (orderNo || "").trim().length > 0;
+    const hasLine = (orderPos || "").trim().length > 0;
+    const hasItem = (grItemRaw || "").toString().length > 0;
+
+    // If origin selection is required, it must be selected
+    const hasRequiredOrigin = !showOrderType || !orderTypeRequired || (orderType || "").trim().length > 0;
+
+    const needsLot = lotTracking;
+    const hasLot = (lot || "").trim().length > 0;
+
+    const needsBpLot = lotTracking && isPurchaseOrigin;
+    const hasBpLot = (bpLot || "").trim().length > 0;
+
+    const hasDeliveryNote = (deliveryNote || "").trim().length > 0;
+    const hasQty = (qty || "").trim().length > 0;
+
+    if (!hasOrder || !hasLine || !hasItem) return false;
+    if (!hasRequiredOrigin) return false;
+    if (needsLot && !hasLot) return false;
+    if (needsBpLot && !hasBpLot) return false;
+    if (!hasDeliveryNote) return false;
+    if (!hasQty) return false;
+
+    return true;
+  }, [orderNo, orderPos, grItemRaw, showOrderType, orderTypeRequired, orderType, lotTracking, lot, bpLot, isPurchaseOrigin, deliveryNote, qty]);
 
   // Helper: get Buy-from BP from raw line in multiple possible shapes
   const getBuyFromBusinessPartner = (rv: any): string => {
@@ -820,10 +848,14 @@ const IncomingGoodsReceipt = () => {
                                   if (selectedBpLot) setBpLot(selectedBpLot);
                                   setLotsPickerOpen(false);
                                   // Advance focus
-                                  if (selectedBpLot) {
-                                    deliveryNoteRef.current?.focus();
+                                  if (isPurchase) {
+                                    if (selectedBpLot) {
+                                      deliveryNoteRef.current?.focus();
+                                    } else {
+                                      bpLotRef.current?.focus();
+                                    }
                                   } else {
-                                    bpLotRef.current?.focus();
+                                    deliveryNoteRef.current?.focus();
                                   }
                                 }}
                               >
@@ -865,7 +897,7 @@ const IncomingGoodsReceipt = () => {
           <div className="mb-4">
             <FloatingLabelInput
               id="incomingDeliveryNote"
-              label={trans.incomingDeliveryNoteLabel}
+              label={`${trans.incomingDeliveryNoteLabel} *`}
               value={deliveryNote}
               onChange={(e) => setDeliveryNote(e.target.value)}
               onClear={() => setDeliveryNote("")}
@@ -912,7 +944,7 @@ const IncomingGoodsReceipt = () => {
       {/* Bottom buttons (disabled at startup like screenshot) */}
       <div className="fixed inset-x-0 bottom-0 bg-white border-t">
         <div className="mx-auto max-w-md px-3 py-3">
-          <Button className="h-12 w-full" variant="secondary" disabled>
+          <Button className="h-12 w-full" variant="secondary" disabled={!actionEnabled}>
             {confirmOnly ? "CONFIRM" : "Receive"}
           </Button>
         </div>
