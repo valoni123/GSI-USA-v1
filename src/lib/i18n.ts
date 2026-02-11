@@ -104,7 +104,8 @@ type TranslationKeys =
   | "blockedOutboundLabel"
   | "blockedTransferIssueLabel"
   | "blockedCycleCountingLabel"
-  | "blockedAssemblyLabel";
+  | "blockedAssemblyLabel"
+  | "receivedSuccessfully";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -207,6 +208,7 @@ const translations: Translations = {
     blockedTransferIssueLabel: "For Transfer Issue",
     blockedCycleCountingLabel: "For Cycle Counting",
     blockedAssemblyLabel: "For Assembly",
+    receivedSuccessfully: "Received successfully...",
   },
   de: {
     title: "Anmelden",
@@ -306,6 +308,7 @@ const translations: Translations = {
     blockedTransferIssueLabel: "Für Umlagerung (Entnahme)",
     blockedCycleCountingLabel: "Für Inventur",
     blockedAssemblyLabel: "Für Zusammenstellung",
+    receivedSuccessfully: "Erfolgreich empfangen...",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -405,6 +408,7 @@ const translations: Translations = {
     blockedTransferIssueLabel: "Para traslado (emisión)",
     blockedCycleCountingLabel: "Para conteo cíclico",
     blockedAssemblyLabel: "Para ensamblaje",
+    receivedSuccessfully: "Recibido correctamente...",
   },
   "pt-BR": {
     title: "Entrar",
@@ -504,6 +508,7 @@ const translations: Translations = {
     blockedTransferIssueLabel: "Para transferência (baixa)",
     blockedCycleCountingLabel: "Para contagem cíclica",
     blockedAssemblyLabel: "Para montagem",
+    receivedSuccessfully: "Recebido com sucesso...",
   },
 };
 

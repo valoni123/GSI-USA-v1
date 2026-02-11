@@ -510,7 +510,7 @@ const IncomingGoodsReceipt = () => {
       return;
     }
 
-    showSuccess(trans.unloadedSuccessfully); // show success feedback
+    showSuccess(trans.receivedSuccessfully);
     // Clear all fields
     setShowOrderType(false);
     setOrderType("");
