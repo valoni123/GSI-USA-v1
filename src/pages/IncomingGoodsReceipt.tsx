@@ -852,7 +852,7 @@ const IncomingGoodsReceipt = () => {
       void loadReceivedLines(preservedOrderNo, preservedOrderType);
     }
 
-    setTimeout(() => orderPosRef.current?.focus(), 0);
+    setTimeout(() => orderNoRef.current?.focus(), 0);
   };
 
   return (
