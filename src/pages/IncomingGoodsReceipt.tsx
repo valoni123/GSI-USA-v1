@@ -397,6 +397,13 @@ const IncomingGoodsReceipt = () => {
       return;
     }
 
+    // Abort if user changed/cleared the order while we were loading
+    const ordNow = (orderNo || "").trim();
+    const lnNow = (orderPos || "").trim();
+    if (ordNow !== trimmed || (lineTrim && lnNow !== lineTrim)) {
+      return;
+    }
+
     const rawValues = Array.isArray(data.raw?.value) ? data.raw.value : [];
     const mappedLines: Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }> =
       rawValues.map((v: any) => ({
@@ -1021,7 +1028,6 @@ const IncomingGoodsReceipt = () => {
             onChange={(e) => {
               const v = e.target.value;
               const parsed = parseOrderLinePair(v);
-              // Re-enable auto-open when the user edits the order number
               setAllowLinePickerAutoOpen(true);
               if (parsed) {
                 setOrderNo(parsed.order);
@@ -1035,7 +1041,6 @@ const IncomingGoodsReceipt = () => {
             onPaste={(e) => {
               const text = e.clipboardData.getData("text");
               const parsed = parseOrderLinePair(text);
-              // Re-enable auto-open when the user pastes into the order number
               setAllowLinePickerAutoOpen(true);
               if (parsed) {
                 e.preventDefault();
@@ -1059,7 +1064,6 @@ const IncomingGoodsReceipt = () => {
             onClick={(e) => e.currentTarget.select()}
             onClear={() => {
               setOrderNo("");
-              // Re-enable auto-open when the order is cleared
               setAllowLinePickerAutoOpen(true);
               setShowOrderType(false);
               setOrderType("");
@@ -1069,6 +1073,7 @@ const IncomingGoodsReceipt = () => {
               setLastCheckedOrder(null);
               setSuppressAutoFillLine(false);
               setInboundLinesAll([]);
+              setInboundLinesGrouped([]);
               setHasMultipleLines(false);
               setOrderPos("");
               setGrItem("");
