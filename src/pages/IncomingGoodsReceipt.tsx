@@ -60,6 +60,8 @@ const IncomingGoodsReceipt = () => {
   const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
   const [inboundLinesAll, setInboundLinesAll] = useState<Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }>>([]);
   const [hasMultipleLines, setHasMultipleLines] = useState<boolean>(false);
+  // NEW: Grouped lines by OrderOrigin for the dialog
+  const [inboundLinesGrouped, setInboundLinesGrouped] = useState<Array<{ origin: string; lines: Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }> }>>([]);
   // NEW: BP from order line (for Purchase) and existing lots UI state
   const [buyFromBusinessPartner, setBuyFromBusinessPartner] = useState<string>("");
   const [lotsAvailableCount, setLotsAvailableCount] = useState<number>(0);
@@ -446,7 +448,7 @@ const IncomingGoodsReceipt = () => {
         tbrQty: typeof v?.ToBeReceivedQuantity === "number" ? v.ToBeReceivedQuantity : undefined,
         orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
       }))
-      // FIX: accept line 0 (production orders often use line 0)
+      // Accept line 0 for production orders
       .filter((x) => Number.isFinite(x.Line));
 
     if (!lineTrim) {
@@ -534,23 +536,47 @@ const IncomingGoodsReceipt = () => {
     const uniqueOrigins = Array.from(new Set(origins.length ? origins : (data.origin ? [String(data.origin)] : [])));
 
     if (count === 1 || uniqueOrigins.length === 1) {
+      // Single origin → read-only
       const origin = uniqueOrigins[0] || (data.origin ? String(data.origin) : "");
       setOrderType(origin || "");
       setOrderTypeOptions([]);
       setOrderTypeDisabled(true);
       setOrderTypeRequired(false);
       setShowOrderType(true);
-      setLastCheckedOrder(`${trimmed}|${lineTrim}|${origin || ""}`); // NEW: include origin
+      setLastCheckedOrder(`${trimmed}|${lineTrim}|${origin || ""}`);
       return;
     }
 
     if (count > 1 && uniqueOrigins.length > 1) {
+      // Multiple differing origins → auto-open grouped lines dialog by origin
+      // Build grouped lines from raw payload
+      const grouped = uniqueOrigins.map((org) => {
+        const linesForOrigin = rawValues
+          .filter((rv: any) => String(rv?.OrderOrigin || "") === org)
+          .map((v: any) => ({
+            Line: Number(v?.Line ?? 0),
+            Item: typeof v?.Item === "string" ? v.Item : (typeof v?.ItemRef?.Item === "string" ? v.ItemRef.Item : undefined),
+            ItemDesc: typeof v?.ItemRef?.Description === "string" ? v.ItemRef.Description : undefined,
+            tbrQty: typeof v?.ToBeReceivedQuantity === "number" ? v.ToBeReceivedQuantity : undefined,
+            orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
+          }))
+          .filter((x) => Number.isFinite(x.Line));
+        return { origin: org, lines: linesForOrigin };
+      });
+
+      setInboundLinesGrouped(grouped);
+      setInboundLinesAll(mappedLines);
+      setHasMultipleLines(mappedLines.length > 1);
+
+      // Do not force Order Type selection; let the user pick a line (which sets type)
+      setShowOrderType(false);
       setOrderType("");
-      setOrderTypeOptions(uniqueOrigins);
-      setOrderTypeDisabled(false);
-      setOrderTypeRequired(true);
-      setShowOrderType(true);
-      setLastCheckedOrder(`${trimmed}|${lineTrim}|`); // NEW: include origin (empty until selected)
+      setOrderTypeOptions([]);
+      setOrderTypeDisabled(true);
+      setOrderTypeRequired(false);
+
+      setLinePickerOpen(true);
+      setLastCheckedOrder(`${trimmed}|${lineTrim}|`);
       return;
     }
 
@@ -1175,45 +1201,103 @@ const IncomingGoodsReceipt = () => {
                   {trans.incomingLinesLabel}
                 </div>
                 <div className="max-h-64 overflow-auto p-2">
-                  {inboundLinesAll.length === 0 ? (
-                    <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
-                  ) : (
-                    inboundLinesAll.map((ln, idx) => (
-                      <button
-                        key={`${ln.Line}-${idx}`}
-                        type="button"
-                        className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50 hover:bg-gray-100"
-                        onClick={async () => {
-                          const ord = orderNo.trim();
-                          const lineStr = String(ln.Line);
-                          setOrderPos(lineStr);
-                          setSuppressAutoFillLine(false); // explicit selection → allow normal behavior
-                          setLinePickerOpen(false);
-                          if (ord && lineStr) {
-                            await checkOrder(ord, lineStr);
-                          }
-                        }}
-                      >
-                        <div className="grid grid-cols-[60px_1fr] gap-3 items-center">
-                          <div className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold justify-center">
-                            {ln.Line}
-                          </div>
-                          <div className="grid grid-cols-[1fr_auto] gap-3 items-center w-full">
-                            <div className="flex flex-col">
-                              <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
-                                {(ln.Item || "").trim() || "-"}
-                              </div>
-                              {ln.ItemDesc && <div className="text-xs text-gray-700">{ln.ItemDesc}</div>}
-                            </div>
-                            {(ln.tbrQty != null || ln.orderUnit) && (
-                              <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
-                                {ln.tbrQty != null ? ln.tbrQty : ""} {ln.orderUnit || ""}
-                              </div>
-                            )}
+                  {inboundLinesGrouped.length > 0 ? (
+                    // Grouped by Order Type
+                    inboundLinesGrouped.map((grp, gidx) => (
+                      <div key={`grp-${grp.origin}-${gidx}`} className="mb-3">
+                        <div className="sticky top-0 z-10 bg-white px-3 py-2 border-b">
+                          <div className="text-xs font-semibold text-gray-600">
+                            Lines for {formatOriginLabel(grp.origin)}
                           </div>
                         </div>
-                      </button>
+                        {grp.lines.length === 0 ? (
+                          <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
+                        ) : (
+                          grp.lines.map((ln, idx) => (
+                            <button
+                              key={`${grp.origin}-${ln.Line}-${idx}`}
+                              type="button"
+                              className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50 hover:bg-gray-100"
+                              onClick={async () => {
+                                const ord = (orderNo || "").trim();
+                                const lineStr = String(ln.Line);
+                                // Set selected Order Type from group and Line from selection
+                                setOrderType(grp.origin);
+                                setOrderPos(lineStr);
+                                setSuppressAutoFillLine(false);
+                                setLinePickerOpen(false);
+                                if (ord && lineStr) {
+                                  await checkOrder(ord, lineStr);
+                                }
+                              }}
+                            >
+                              <div className="grid grid-cols-[60px_1fr] gap-3 items-center">
+                                <div className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold justify-center">
+                                  {ln.Line}
+                                </div>
+                                <div className="grid grid-cols-[1fr_auto] gap-3 items-center w-full">
+                                  <div className="flex flex-col">
+                                    <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                                      {(ln.Item || "").trim() || "-"}
+                                    </div>
+                                    {ln.ItemDesc && <div className="text-xs text-gray-700">{ln.ItemDesc}</div>}
+                                  </div>
+                                  {(ln.tbrQty != null || ln.orderUnit) && (
+                                    <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
+                                      {ln.tbrQty != null ? ln.tbrQty : ""} {ln.orderUnit || ""}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
                     ))
+                  ) : (
+                    // Fallback: flat list (single origin flows)
+                    <>
+                      {inboundLinesAll.length === 0 ? (
+                        <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
+                      ) : (
+                        inboundLinesAll.map((ln, idx) => (
+                          <button
+                            key={`${ln.Line}-${idx}`}
+                            type="button"
+                            className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50 hover:bg-gray-100"
+                            onClick={async () => {
+                              const ord = (orderNo || "").trim();
+                              const lineStr = String(ln.Line);
+                              setOrderPos(lineStr);
+                              setSuppressAutoFillLine(false);
+                              setLinePickerOpen(false);
+                              if (ord && lineStr) {
+                                await checkOrder(ord, lineStr);
+                              }
+                            }}
+                          >
+                            <div className="grid grid-cols-[60px_1fr] gap-3 items-center">
+                              <div className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold justify-center">
+                                {ln.Line}
+                              </div>
+                              <div className="grid grid-cols-[1fr_auto] gap-3 items-center w-full">
+                                <div className="flex flex-col">
+                                  <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                                    {(ln.Item || "").trim() || "-"}
+                                  </div>
+                                  {ln.ItemDesc && <div className="text-xs text-gray-700">{ln.ItemDesc}</div>}
+                                </div>
+                                {(ln.tbrQty != null || ln.orderUnit) && (
+                                  <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
+                                    {ln.tbrQty != null ? ln.tbrQty : ""} {ln.orderUnit || ""}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </>
                   )}
                 </div>
                 <DialogPrimitive.Close asChild>
