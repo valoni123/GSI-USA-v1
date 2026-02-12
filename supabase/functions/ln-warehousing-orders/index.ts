@@ -107,8 +107,10 @@ serve(async (req) => {
     if (line !== null) {
       filterParts.push(`Line eq ${line}`);
     }
-    // NEW: LineStatus filter (default to 'Open' if not provided)
-    const lineStatusValue = (body as any)?.lineStatus ? String((body as any).lineStatus).trim() : "Open";
+    // Always require lines with a positive 'ToBeReceivedQuantity'
+    filterParts.push(`ToBeReceivedQuantity gt 0`);
+    // Optional LineStatus filter only when provided explicitly
+    const lineStatusValue = (body as any)?.lineStatus ? String((body as any).lineStatus).trim() : "";
     if (lineStatusValue) {
       filterParts.push(`LineStatus eq whapi.inhWarehousingOrder.InboundOrderLineStatus'${lineStatusValue.replace(/'/g, "''")}'`);
     }
