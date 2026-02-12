@@ -3,11 +3,16 @@ import { Loader2 } from "lucide-react";
 
 type ScreenSpinnerProps = {
   message?: string;
+  backdropBlur?: boolean;
 };
 
-const ScreenSpinner: React.FC<ScreenSpinnerProps> = ({ message = "Please wait…" }) => {
+const ScreenSpinner: React.FC<ScreenSpinnerProps> = ({ message = "Please wait…", backdropBlur = true }) => {
   return (
-    <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[1px] flex items-center justify-center">
+    <div
+      className={`fixed inset-0 z-[60] bg-black/40 flex items-center justify-center ${
+        backdropBlur ? "backdrop-blur-[1px]" : ""
+      }`}
+    >
       <div className="flex flex-col items-center gap-3 bg-white rounded-xl px-6 py-5 shadow-lg">
         <Loader2 className="h-8 w-8 text-red-600 animate-spin" />
         <div className="text-sm text-gray-700">{message}</div>

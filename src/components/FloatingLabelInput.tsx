@@ -13,6 +13,7 @@ type Props = {
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   className?: string;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onClick?: (e: React.MouseEvent<HTMLInputElement>) => void;
@@ -30,6 +31,7 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
     value,
     onChange,
     onBlur,
+    onPaste,
     className,
     onFocus,
     onClick,
@@ -55,6 +57,7 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
           onChange?.(e);
         }}
         onBlur={onBlur}
+        onPaste={onPaste}
         onFocus={onFocus}
         onClick={onClick}
         onKeyDown={onKeyDown}
