@@ -396,6 +396,15 @@ const IncomingGoodsReceipt = () => {
     }
   }, [orderNo, orderType, confirmOnly, locale]);
 
+  // NEW: When an Order Type is chosen after scanning order/line, re-run line lookup with the selected type
+  useEffect(() => {
+    const ord = (orderNo || "").trim();
+    const ln = (orderPos || "").trim();
+    if (ord && ln && (orderType || "").trim()) {
+      void checkOrder(ord, ln);
+    }
+  }, [orderType]);
+
   // Search handler: call LN for InboundLines by Order (and optional Line)
   const checkOrder = async (ord: string, lineVal?: string) => {
     const trimmed = (ord || "").trim();
@@ -936,7 +945,14 @@ const IncomingGoodsReceipt = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <Select value={orderType} onValueChange={setOrderType}>
+                    <Select value={orderType} onValueChange={(val) => {
+                      setOrderType(val);
+                      const ord = (orderNo || "").trim();
+                      const ln = (orderPos || "").trim();
+                      if (ord && ln) {
+                        void checkOrder(ord, ln);
+                      }
+                    }}>
                       <SelectTrigger className="h-12">
                         {orderType ? (
                           (() => {
