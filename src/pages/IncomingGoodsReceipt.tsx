@@ -1137,7 +1137,7 @@ const IncomingGoodsReceipt = () => {
                 }}
               />
             </div>
-            {hasMultipleLines && (
+            {hasMultipleLines && !!(orderType || "").trim() && (
               <Button
                 type="button"
                 variant="outline"
@@ -1145,8 +1145,13 @@ const IncomingGoodsReceipt = () => {
                 className="h-12 w-12"
                 aria-label="Search lines"
                 onClick={async () => {
-                  // Ensure we have the full list for the picker → fetch by order (no line filter)
                   const ord = orderNo.trim();
+                  const originSelected = (orderType || "").trim();
+                  if (!originSelected) {
+                    showError("Select order type first");
+                    return;
+                  }
+                  // Ensure we have the full list for the picker → fetch by order (filtered by origin)
                   if (ord) {
                     await checkOrder(ord);
                   }
