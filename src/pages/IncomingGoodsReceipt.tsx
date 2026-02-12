@@ -90,6 +90,9 @@ const IncomingGoodsReceipt = () => {
     return "en-US";
   }, [lang]);
 
+  // NEW: control whether the line picker can auto-open
+  const [allowLinePickerAutoOpen, setAllowLinePickerAutoOpen] = useState<boolean>(true);
+
   // Handle QR scans like "200000066/10", "200000066|10", "200000066-10", "200000066\\10", "200000066,10", "200000066;10"
   const splitSeparators = /[\/|\\,;\-]/;
   const parseOrderLinePair = (input: string): { order: string; line: string } | null => {
@@ -499,7 +502,8 @@ const IncomingGoodsReceipt = () => {
       if (!lineTrim) {
         setInboundLinesAll(mappedLines);
         setHasMultipleLines(mappedLines.length > 1);
-        if (mappedLines.length > 1) {
+        // Only auto-open the picker if allowed
+        if (mappedLines.length > 1 && allowLinePickerAutoOpen) {
           setLinePickerOpen(true);
         }
       }
@@ -533,7 +537,8 @@ const IncomingGoodsReceipt = () => {
       setOrderTypeDisabled(true);
       setOrderTypeRequired(false);
 
-      if (!lineTrim) {
+      // Only auto-open the grouped picker if allowed
+      if (!lineTrim && allowLinePickerAutoOpen) {
         setLinePickerOpen(true);
       }
       setLastCheckedOrder(`${trimmed}|${lineTrim}|`);
@@ -734,6 +739,9 @@ const IncomingGoodsReceipt = () => {
       setOrderTypeRequired(false);
     }
 
+    // Prevent auto-opening the picker after confirm
+    setAllowLinePickerAutoOpen(false);
+
     setLastCheckedOrder(null);
     setSuppressAutoFillLine(false);
     setInboundLinesAll([]);
@@ -814,6 +822,9 @@ const IncomingGoodsReceipt = () => {
       setOrderTypeOptions([]);
       setOrderTypeRequired(false);
     }
+
+    // Prevent auto-opening the picker after receive
+    setAllowLinePickerAutoOpen(false);
 
     setLastCheckedOrder(null);
     setSuppressAutoFillLine(false);
@@ -994,6 +1005,8 @@ const IncomingGoodsReceipt = () => {
             onChange={(e) => {
               const v = e.target.value;
               const parsed = parseOrderLinePair(v);
+              // Re-enable auto-open when the user edits the order number
+              setAllowLinePickerAutoOpen(true);
               if (parsed) {
                 setOrderNo(parsed.order);
                 setOrderPos(parsed.line);
@@ -1006,6 +1019,8 @@ const IncomingGoodsReceipt = () => {
             onPaste={(e) => {
               const text = e.clipboardData.getData("text");
               const parsed = parseOrderLinePair(text);
+              // Re-enable auto-open when the user pastes into the order number
+              setAllowLinePickerAutoOpen(true);
               if (parsed) {
                 e.preventDefault();
                 setOrderNo(parsed.order);
@@ -1028,6 +1043,8 @@ const IncomingGoodsReceipt = () => {
             onClick={(e) => e.currentTarget.select()}
             onClear={() => {
               setOrderNo("");
+              // Re-enable auto-open when the order is cleared
+              setAllowLinePickerAutoOpen(true);
               setShowOrderType(false);
               setOrderType("");
               setOrderTypeOptions([]);
