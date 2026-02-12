@@ -446,7 +446,8 @@ const IncomingGoodsReceipt = () => {
         tbrQty: typeof v?.ToBeReceivedQuantity === "number" ? v.ToBeReceivedQuantity : undefined,
         orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
       }))
-      .filter((x) => Number.isFinite(x.Line) && x.Line > 0);
+      // FIX: accept line 0 (production orders often use line 0)
+      .filter((x) => Number.isFinite(x.Line));
 
     if (!lineTrim) {
       setInboundLinesAll(mappedLines);
