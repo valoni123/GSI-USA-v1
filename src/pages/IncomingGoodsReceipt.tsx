@@ -45,7 +45,6 @@ const IncomingGoodsReceipt = () => {
 
   const orderTypeRef = useRef<HTMLInputElement | null>(null);
   const orderNoRef = useRef<HTMLInputElement | null>(null);
-  const orderPosRef = useRef<HTMLInputElement | null>(null);
   const lotRef = useRef<HTMLInputElement | null>(null);
   const bpLotRef = useRef<HTMLInputElement | null>(null);
   const deliveryNoteRef = useRef<HTMLInputElement | null>(null);
@@ -689,9 +688,6 @@ const IncomingGoodsReceipt = () => {
       (!showOrderType || !orderTypeRequired || (orderType || "").trim());
     if (!ready) return;
 
-    const preservedOrderNo = (orderNo || "").trim();
-    const preservedOrderType = (orderType || "").trim();
-
     const originToSend = (orderType || lotsOrigin || "").trim();
     const tid = showLoading(trans.pleaseWait);
     setIsSubmitting(true);
@@ -778,23 +774,18 @@ const IncomingGoodsReceipt = () => {
 
     showSuccess("Confirmed");
 
-    // After successful receive+confirm: keep Order Type + Order Number, clear everything else
-    setOrderNo(preservedOrderNo);
-    setOrderType(preservedOrderType);
-    setShowOrderType(Boolean(preservedOrderType));
-    if (preservedOrderType) {
-      setOrderTypeDisabled(true);
-      setOrderTypeOptions([]);
-      setOrderTypeRequired(false);
-    }
-
+    // Reset form (same as after successful receive)
+    setShowOrderType(false);
+    setOrderType("");
+    setOrderTypeOptions([]);
+    setOrderTypeDisabled(true);
+    setOrderTypeRequired(false);
     setLastCheckedOrder(null);
     setSuppressAutoFillLine(false);
     setInboundLinesAll([]);
-    setInboundLinesGrouped([]);
     setHasMultipleLines(false);
-    setLinePickerOpen(false);
 
+    setOrderNo("");
     setOrderPos("");
     setGrItem("");
     setGrItemDesc("");
@@ -810,7 +801,7 @@ const IncomingGoodsReceipt = () => {
     setExistingLots([]);
     setLotsOrigin("");
 
-    setTimeout(() => orderPosRef.current?.focus(), 0);
+    setTimeout(() => orderNoRef.current?.focus(), 0);
   };
 
   // Handle Receive action (only when confirmOnly is false)
@@ -825,9 +816,6 @@ const IncomingGoodsReceipt = () => {
       (qty || "").trim() &&
       (!showOrderType || !orderTypeRequired || (orderType || "").trim());
     if (!ready) return;
-
-    const preservedOrderNo = (orderNo || "").trim();
-    const preservedOrderType = (orderType || "").trim();
 
     const originToSend = (orderType || lotsOrigin || "").trim();
     const tid = showLoading(trans.pleaseWait);
@@ -861,24 +849,18 @@ const IncomingGoodsReceipt = () => {
     }
 
     showSuccess(trans.receivedSuccessfully);
-
-    // Keep Order Type + Order Number, clear everything else
-    setOrderNo(preservedOrderNo);
-    setOrderType(preservedOrderType);
-    setShowOrderType(Boolean(preservedOrderType));
-    if (preservedOrderType) {
-      setOrderTypeDisabled(true);
-      setOrderTypeOptions([]);
-      setOrderTypeRequired(false);
-    }
-
+    // Clear all fields
+    setShowOrderType(false);
+    setOrderType("");
+    setOrderTypeOptions([]);
+    setOrderTypeDisabled(true);
+    setOrderTypeRequired(false);
     setLastCheckedOrder(null);
     setSuppressAutoFillLine(false);
     setInboundLinesAll([]);
-    setInboundLinesGrouped([]);
     setHasMultipleLines(false);
-    setLinePickerOpen(false);
 
+    setOrderNo("");
     setOrderPos("");
     setGrItem("");
     setGrItemDesc("");
@@ -894,12 +876,7 @@ const IncomingGoodsReceipt = () => {
     setExistingLots([]);
     setLotsOrigin("");
 
-    // Refresh received-lines counter for the preserved order/type
-    if (preservedOrderNo && preservedOrderType) {
-      void loadReceivedLines(preservedOrderNo, preservedOrderType);
-    }
-
-    setTimeout(() => orderPosRef.current?.focus(), 0);
+    setTimeout(() => orderNoRef.current?.focus(), 0);
   };
 
   return (
@@ -1117,7 +1094,6 @@ const IncomingGoodsReceipt = () => {
               <FloatingLabelInput
                 id="incomingOrderPos"
                 label={trans.incomingOrderPositionLabel}
-                ref={orderPosRef}
                 value={orderPos}
                 onChange={(e) => {
                   const v = e.target.value;
