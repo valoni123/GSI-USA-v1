@@ -92,6 +92,16 @@ const IncomingGoodsReceipt = () => {
     return "en-US";
   }, [lang]);
 
+  // Handle QR scans like "200000066/10", "200000066|10", "200000066-10", "200000066\\10", "200000066,10", "200000066;10"
+  const splitSeparators = /[\/|\\,;\-]/;
+  const parseOrderLinePair = (input: string): { order: string; line: string } | null => {
+    const txt = (input || "").trim();
+    if (!txt || !splitSeparators.test(txt)) return null;
+    const parts = txt.split(/[\/|\\,;\-]+/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length < 2) return null;
+    return { order: parts[0], line: parts[1] };
+  };
+
   // NEW: Purchase origin flag for UI visibility/focus
   const isPurchaseOrigin = useMemo(() => {
     return (orderType || lotsOrigin || "").toLowerCase().includes("purchase");
@@ -989,7 +999,29 @@ const IncomingGoodsReceipt = () => {
             label={trans.incomingOrderNumberLabel}
             ref={orderNoRef}
             value={orderNo}
-            onChange={(e) => setOrderNo(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              const parsed = parseOrderLinePair(v);
+              if (parsed) {
+                setOrderNo(parsed.order);
+                setOrderPos(parsed.line);
+                setSuppressAutoFillLine(false);
+                void checkOrder(parsed.order, parsed.line);
+              } else {
+                setOrderNo(v);
+              }
+            }}
+            onPaste={(e) => {
+              const text = e.clipboardData.getData("text");
+              const parsed = parseOrderLinePair(text);
+              if (parsed) {
+                e.preventDefault();
+                setOrderNo(parsed.order);
+                setOrderPos(parsed.line);
+                setSuppressAutoFillLine(false);
+                void checkOrder(parsed.order, parsed.line);
+              }
+            }}
             onBlur={() => {
               const v = orderNo.trim();
               if (v) checkOrder(v);
@@ -1032,7 +1064,29 @@ const IncomingGoodsReceipt = () => {
                 id="incomingOrderPos"
                 label={trans.incomingOrderPositionLabel}
                 value={orderPos}
-                onChange={(e) => setOrderPos(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  const parsed = parseOrderLinePair(v);
+                  if (parsed) {
+                    setOrderNo(parsed.order);
+                    setOrderPos(parsed.line);
+                    setSuppressAutoFillLine(false);
+                    void checkOrder(parsed.order, parsed.line);
+                  } else {
+                    setOrderPos(v);
+                  }
+                }}
+                onPaste={(e) => {
+                  const text = e.clipboardData.getData("text");
+                  const parsed = parseOrderLinePair(text);
+                  if (parsed) {
+                    e.preventDefault();
+                    setOrderNo(parsed.order);
+                    setOrderPos(parsed.line);
+                    setSuppressAutoFillLine(false);
+                    void checkOrder(parsed.order, parsed.line);
+                  }
+                }}
                 onBlur={() => {
                   const ord = orderNo.trim();
                   const ln = orderPos.trim();
