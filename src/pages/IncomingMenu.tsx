@@ -42,12 +42,12 @@ const IncomingMenu = () => {
     },
     {
       key: "warehouseInspection",
-      label: trans.incomingWarehouseInspection,
+      label: "Inspection",
       icon: <Search className="h-10 w-10 text-red-700" />,
     },
     {
       key: "putawaySuggestions",
-      label: trans.incomingPutawaySuggestions,
+      label: "Putaway",
       icon: <Box className="h-10 w-10 text-red-700" />,
     },
     {
@@ -97,7 +97,7 @@ const IncomingMenu = () => {
         {tiles.map((tile) => (
           <Card
             key={tile.key}
-            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center gap-3 shadow-sm cursor-pointer active:scale-[0.99] min-h-[160px]"
             onClick={() => {
               if (tile.key === "goodsReceipt") {
                 navigate("/menu/incoming/goods-receipt");
