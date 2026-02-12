@@ -408,6 +408,22 @@ const IncomingGoodsReceipt = () => {
       }))
       .filter((x) => Number.isFinite(x.Line));
 
+    // NEW: If only order number was provided and no lines were found, show error and refocus Order Number
+    if (!lineTrim && mappedLines.length === 0) {
+      setShowOrderType(false);
+      setOrderType("");
+      setOrderTypeOptions([]);
+      setOrderTypeDisabled(true);
+      setOrderTypeRequired(false);
+      setInboundLinesAll([]);
+      setInboundLinesGrouped([]);
+      setHasMultipleLines(false);
+      setLastCheckedOrder(null);
+      showError("Order not found");
+      setTimeout(() => orderNoRef.current?.focus(), 0);
+      return;
+    }
+
     if (!lineTrim) {
       setInboundLinesAll(mappedLines);
       setHasMultipleLines(mappedLines.length > 1);
