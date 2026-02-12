@@ -1022,7 +1022,8 @@ const IncomingGoodsReceipt = () => {
                 setOrderNo(parsed.order);
                 setOrderPos(parsed.line);
                 setSuppressAutoFillLine(false);
-                void checkOrder(parsed.order, parsed.line);
+                // Load origins first; defer line details until Order type is selected
+                void checkOrder(parsed.order);
               } else {
                 setOrderNo(v);
               }
@@ -1035,7 +1036,8 @@ const IncomingGoodsReceipt = () => {
                 setOrderNo(parsed.order);
                 setOrderPos(parsed.line);
                 setSuppressAutoFillLine(false);
-                void checkOrder(parsed.order, parsed.line);
+                // Load origins first; defer line details until Order type is selected
+                void checkOrder(parsed.order);
               }
             }}
             onBlur={() => {
@@ -1087,7 +1089,8 @@ const IncomingGoodsReceipt = () => {
                     setOrderNo(parsed.order);
                     setOrderPos(parsed.line);
                     setSuppressAutoFillLine(false);
-                    void checkOrder(parsed.order, parsed.line);
+                    // Load origins first; defer line details until Order type is selected
+                    void checkOrder(parsed.order);
                   } else {
                     setOrderPos(v);
                   }
@@ -1100,19 +1103,34 @@ const IncomingGoodsReceipt = () => {
                     setOrderNo(parsed.order);
                     setOrderPos(parsed.line);
                     setSuppressAutoFillLine(false);
-                    void checkOrder(parsed.order, parsed.line);
+                    // Load origins first; defer line details until Order type is selected
+                    void checkOrder(parsed.order);
                   }
                 }}
                 onBlur={() => {
                   const ord = orderNo.trim();
                   const ln = orderPos.trim();
-                  if (ord && ln) checkOrder(ord, ln);
+                  if (ord && ln) {
+                    // Only fetch line details after Order type is chosen; otherwise load origins
+                    if ((orderType || "").trim()) {
+                      void checkOrder(ord, ln);
+                    } else {
+                      void checkOrder(ord);
+                    }
+                  }
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     const ord = orderNo.trim();
                     const ln = orderPos.trim();
-                    if (ord && ln) checkOrder(ord, ln);
+                    if (ord && ln) {
+                      // Only fetch line details after Order type is chosen; otherwise load origins
+                      if ((orderType || "").trim()) {
+                        void checkOrder(ord, ln);
+                      } else {
+                        void checkOrder(ord);
+                      }
+                    }
                   }
                 }}
                 onClear={() => {
