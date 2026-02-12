@@ -10,7 +10,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import ScreenSpinner from "@/components/ScreenSpinner";
 
 const IncomingGoodsReceipt = () => {
@@ -45,6 +45,7 @@ const IncomingGoodsReceipt = () => {
 
   const orderTypeRef = useRef<HTMLInputElement | null>(null);
   const orderNoRef = useRef<HTMLInputElement | null>(null);
+  const orderPosRef = useRef<HTMLInputElement | null>(null);
   const lotRef = useRef<HTMLInputElement | null>(null);
   const bpLotRef = useRef<HTMLInputElement | null>(null);
   const deliveryNoteRef = useRef<HTMLInputElement | null>(null);
@@ -60,14 +61,11 @@ const IncomingGoodsReceipt = () => {
   const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
   const [inboundLinesAll, setInboundLinesAll] = useState<Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }>>([]);
   const [hasMultipleLines, setHasMultipleLines] = useState<boolean>(false);
-  // NEW: Grouped lines by OrderOrigin for the dialog
   const [inboundLinesGrouped, setInboundLinesGrouped] = useState<Array<{ origin: string; lines: Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }> }>>([]);
-  // NEW: BP from order line (for Purchase) and existing lots UI state
   const [buyFromBusinessPartner, setBuyFromBusinessPartner] = useState<string>("");
   const [lotsAvailableCount, setLotsAvailableCount] = useState<number>(0);
   const [lotsPickerOpen, setLotsPickerOpen] = useState<boolean>(false);
   const [existingLots, setExistingLots] = useState<any[]>([]);
-  // NEW: track origin used for the current lots query
   const [lotsOrigin, setLotsOrigin] = useState<string>("");
   const [deliveryNote, setDeliveryNote] = useState<string>("");
   const [lot, setLot] = useState<string>("");
@@ -80,11 +78,9 @@ const IncomingGoodsReceipt = () => {
   const [lotTracking, setLotTracking] = useState<boolean>(false);
   const [lastCheckedOrder, setLastCheckedOrder] = useState<string | null>(null);
   const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
-  // Received lines state
   const [receivedLinesCount, setReceivedLinesCount] = useState<number>(0);
   const [receivedLines, setReceivedLines] = useState<any[]>([]);
   const [receivedLinesOpen, setReceivedLinesOpen] = useState<boolean>(false);
-  // When true, do not auto-fill the Line even if the service returns exactly one line
   const [suppressAutoFillLine, setSuppressAutoFillLine] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const locale = useMemo(() => {
@@ -104,20 +100,15 @@ const IncomingGoodsReceipt = () => {
     return { order: parts[0], line: parts[1] };
   };
 
-  // NEW: Purchase origin flag for UI visibility/focus
   const isPurchaseOrigin = useMemo(() => {
     return (orderType || lotsOrigin || "").toLowerCase().includes("purchase");
   }, [orderType, lotsOrigin]);
 
-  // NEW: enable action button only when required fields are filled
   const actionEnabled = useMemo(() => {
     const hasOrder = (orderNo || "").trim().length > 0;
     const hasLine = (orderPos || "").trim().length > 0;
     const hasItem = (grItemRaw || "").toString().length > 0;
-
-    // If origin selection is required, it must be selected
     const hasRequiredOrigin = !showOrderType || !orderTypeRequired || (orderType || "").trim().length > 0;
-
     const hasDeliveryNote = (deliveryNote || "").trim().length > 0;
     const hasQty = (qty || "").trim().length > 0;
 
@@ -129,21 +120,6 @@ const IncomingGoodsReceipt = () => {
     return true;
   }, [orderNo, orderPos, grItemRaw, showOrderType, orderTypeRequired, orderType, deliveryNote, qty]);
 
-  // Helper: get Buy-from BP from raw line in multiple possible shapes
-  const getBuyFromBusinessPartner = (rv: any): string => {
-    const candidates = [
-      rv?.BuyfromBusinessPartner,
-      rv?.BuyFromBusinessPartner,
-      rv?.ShipfromBusinessPartner,
-      rv?.ShipFromBusinessPartner,
-      rv?.ShipfromBusinessPartnerRef?.BusinessPartner,
-      rv?.ShipFromBusinessPartnerRef?.BusinessPartner,
-    ];
-    const first = candidates.find((v: any) => typeof v === "string" && v.trim().length > 0);
-    return (first || "").trim();
-  };
-
-  // Friendly label for known OrderOrigin values
   const formatOriginLabel = (origin: string) => {
     const o = (origin || "").trim();
     if (lang === "de") {
@@ -174,27 +150,19 @@ const IncomingGoodsReceipt = () => {
     return o || "-";
   };
 
-  // Hex color mapping for known origins (button background + text color)
   const originColorStyle = (origin: string) => {
     const o = (origin || "").toLowerCase();
-    // Produktion (JSC)
     if (o.includes("production")) return { bg: "#2db329", text: "#ffffff" };
-    // Purchase / Einkauf
     if (o.includes("purchase")) return { bg: "#9ed927", text: "#1a1a1a" };
-    // Sales / Verkauf
     if (o.includes("sales")) return { bg: "#1d5f8a", text: "#ffffff" };
-    // Transfer / Umbuchung (+ Manual)
     if (o.includes("transfer")) return { bg: "#ffd500", text: "#1a1a1a" };
-    // Default
     return { bg: "#2db329", text: "#ffffff" };
   };
 
   useEffect(() => {
-    // Focus first editable field on open
     orderNoRef.current?.focus();
   }, []);
 
-  // Read parameter (on mount and when screen regains focus)
   useEffect(() => {
     let active = true;
 
@@ -203,10 +171,7 @@ const IncomingGoodsReceipt = () => {
         body: { company: "4000" },
       });
       if (!active) return;
-      if (error || !data || !data.ok) {
-        // keep default false (both buttons)
-        return;
-      }
+      if (error || !data || !data.ok) return;
       const aure = Boolean(data.params?.aure);
       setConfirmOnly(aure);
     };
@@ -225,14 +190,12 @@ const IncomingGoodsReceipt = () => {
     };
   }, []);
 
-  // Helper: fetch received lines awaiting confirm
   const loadReceivedLines = async (ord: string, originSelected: string): Promise<number> => {
     if (!ord || !originSelected || confirmOnly) {
       setReceivedLinesCount(0);
       setReceivedLines([]);
       return 0;
     }
-    // Show spinner while loading lines
     setIsSubmitting(true);
     const { data, error } = await supabase.functions.invoke("ln-received-lines", {
       body: {
@@ -255,7 +218,6 @@ const IncomingGoodsReceipt = () => {
     return count;
   };
 
-  // Confirm one receipt line: uses txId/etag or falls back to receipt/order details lookup
   const confirmReceiptLine = async (opts: {
     transactionId?: string;
     etag?: string;
@@ -272,7 +234,6 @@ const IncomingGoodsReceipt = () => {
     lot?: string;
     businessPartnerLot?: string;
   }) => {
-    // Show full-screen spinner
     setIsSubmitting(true);
     const tid = showLoading(trans.pleaseWait);
 
@@ -313,7 +274,6 @@ const IncomingGoodsReceipt = () => {
     }
   };
 
-  // Confirm all received lines sequentially
   const confirmAllReceivedLines = async () => {
     if (receivedLines.length === 0) return;
 
@@ -330,7 +290,6 @@ const IncomingGoodsReceipt = () => {
       const setNum = Number(ln?.OrderSet ?? 0) || 1;
       const pSlip = typeof ln?.PackingSlip === "string" ? ln.PackingSlip : "";
 
-      // Prefer ReceiptNumber, fallback to legacy Receipt
       const receipt = typeof ln?.ReceiptNumber === "string" ? ln.ReceiptNumber : (typeof ln?.Receipt === "string" ? ln.Receipt : "");
       const receiptLine = Number(ln?.ReceiptLine ?? ln?.OrderLine ?? 0);
       const lineQty = Number(ln?.ReceivedQuantityInReceiptUnit ?? 0);
@@ -386,7 +345,6 @@ const IncomingGoodsReceipt = () => {
     }
   };
 
-  // Re-fetch whenever order number and type are set (no caching)
   useEffect(() => {
     const ord = (orderNo || "").trim();
     const originSelected = (orderType || "").trim();
@@ -398,7 +356,6 @@ const IncomingGoodsReceipt = () => {
     }
   }, [orderNo, orderType, confirmOnly, locale]);
 
-  // NEW: When an Order Type is chosen after scanning order/line, re-run line lookup with the selected type
   useEffect(() => {
     const ord = (orderNo || "").trim();
     const ln = (orderPos || "").trim();
@@ -407,12 +364,10 @@ const IncomingGoodsReceipt = () => {
     }
   }, [orderType]);
 
-  // Search handler: call LN for InboundLines by Order (and optional Line)
   const checkOrder = async (ord: string, lineVal?: string) => {
     const trimmed = (ord || "").trim();
     if (!trimmed) return;
     const lineTrim = (lineVal || "").trim();
-    // NEW: include origin in the cache key
     const originKey = (orderType || "").trim() || "";
     if (lastCheckedOrder === `${trimmed}|${lineTrim}|${originKey}`) return;
 
@@ -448,7 +403,6 @@ const IncomingGoodsReceipt = () => {
         tbrQty: typeof v?.ToBeReceivedQuantity === "number" ? v.ToBeReceivedQuantity : undefined,
         orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
       }))
-      // Accept line 0 for production orders
       .filter((x) => Number.isFinite(x.Line));
 
     if (!lineTrim) {
@@ -524,32 +478,37 @@ const IncomingGoodsReceipt = () => {
     if (!lineTrim && mappedLines.length === 1 && !suppressAutoFillLine) {
       const singleLineStr = String(mappedLines[0].Line);
       setOrderPos(singleLineStr);
-      setLastCheckedOrder(`${trimmed}|${singleLineStr}|${originKey}`); // NEW: include origin
+      setLastCheckedOrder(`${trimmed}|${singleLineStr}|${originKey}`);
       await checkOrder(trimmed, singleLineStr);
       return;
     }
 
-    const count = Number(data.count || 0);
     const origins: string[] = rawValues
       .map((v: any) => (v?.OrderOrigin ? String(v.OrderOrigin) : null))
       .filter((v: string | null): v is string => !!v);
     const uniqueOrigins = Array.from(new Set(origins.length ? origins : (data.origin ? [String(data.origin)] : [])));
 
-    if (count === 1 || uniqueOrigins.length === 1) {
-      // Single origin → read-only
+    if (uniqueOrigins.length === 1) {
       const origin = uniqueOrigins[0] || (data.origin ? String(data.origin) : "");
       setOrderType(origin || "");
       setOrderTypeOptions([]);
       setOrderTypeDisabled(true);
       setOrderTypeRequired(false);
       setShowOrderType(true);
+
+      if (!lineTrim) {
+        setInboundLinesAll(mappedLines);
+        setHasMultipleLines(mappedLines.length > 1);
+        if (mappedLines.length > 1) {
+          setLinePickerOpen(true);
+        }
+      }
+
       setLastCheckedOrder(`${trimmed}|${lineTrim}|${origin || ""}`);
       return;
     }
 
-    if (count > 1 && uniqueOrigins.length > 1) {
-      // Multiple differing origins → auto-open grouped lines dialog by origin
-      // Build grouped lines from raw payload
+    if (uniqueOrigins.length > 1) {
       const grouped = uniqueOrigins.map((org) => {
         const linesForOrigin = rawValues
           .filter((rv: any) => String(rv?.OrderOrigin || "") === org)
@@ -568,14 +527,15 @@ const IncomingGoodsReceipt = () => {
       setInboundLinesAll(mappedLines);
       setHasMultipleLines(mappedLines.length > 1);
 
-      // Do not force Order Type selection; let the user pick a line (which sets type)
       setShowOrderType(false);
       setOrderType("");
       setOrderTypeOptions([]);
       setOrderTypeDisabled(true);
       setOrderTypeRequired(false);
 
-      setLinePickerOpen(true);
+      if (!lineTrim) {
+        setLinePickerOpen(true);
+      }
       setLastCheckedOrder(`${trimmed}|${lineTrim}|`);
       return;
     }
@@ -585,10 +545,9 @@ const IncomingGoodsReceipt = () => {
     setOrderTypeOptions([]);
     setOrderTypeDisabled(true);
     setOrderTypeRequired(false);
-    setLastCheckedOrder(`${trimmed}|${lineTrim}|${originKey}`); // NEW: include origin
+    setLastCheckedOrder(`${trimmed}|${lineTrim}|${originKey}`);
   };
 
-  // NEW: helper to query existing Lots (by origin and optional BP)
   const checkExistingLots = async (itm: string, originStr: string, bp?: string) => {
     const origin = (originStr || "").toString();
     if (!itm || !origin) {
@@ -597,7 +556,6 @@ const IncomingGoodsReceipt = () => {
       setLotsOrigin("");
       return;
     }
-    // Guard: for Purchase, do not query without BP
     if (origin.toLowerCase().includes("purchase") && !(bp || "").trim()) {
       setLotsAvailableCount(0);
       setExistingLots([]);
@@ -644,7 +602,6 @@ const IncomingGoodsReceipt = () => {
     }
   };
 
-  // NEW: validate a manually entered lot against LN "lots by item" service
   const validateManualLot = async (enteredLot: string) => {
     const lotValue = (enteredLot || "").trim();
     if (!lotValue) return true;
@@ -669,16 +626,13 @@ const IncomingGoodsReceipt = () => {
     });
 
     if (error || !data || !data.ok) {
-      // If we can't validate due to an error, don't block the user.
       return true;
     }
 
     return Number(data.count || 0) > 0;
   };
 
-  // Handle Confirm-only mode: first receive, then confirm automatically
   const handleConfirmOnly = async () => {
-    // Ensure required fields are filled (same guards as actionEnabled)
     const ready =
       (orderNo || "").trim() &&
       (orderPos || "").trim() &&
@@ -688,11 +642,13 @@ const IncomingGoodsReceipt = () => {
       (!showOrderType || !orderTypeRequired || (orderType || "").trim());
     if (!ready) return;
 
+    const preservedOrderNo = (orderNo || "").trim();
+    const preservedOrderType = (orderType || "").trim();
+
     const originToSend = (orderType || lotsOrigin || "").trim();
     const tid = showLoading(trans.pleaseWait);
     setIsSubmitting(true);
 
-    // Step 1: Receive
     const { data: recvData, error: recvError } = await supabase.functions.invoke("ln-receive-goods", {
       body: {
         OrderOrigin: originToSend,
@@ -719,19 +675,16 @@ const IncomingGoodsReceipt = () => {
       return;
     }
 
-    // Extract Receipt and ReceiptLine from receive response
     const rb: any = recvData.body;
     let receiptNumber = "";
     let receiptLine = 0;
 
     if (rb && typeof rb === "object") {
-      // Prefer ReceiptNumber (modern), fallback to legacy Receipt
       if (typeof rb.ReceiptNumber === "string") receiptNumber = rb.ReceiptNumber;
       else if (typeof rb.Receipt === "string") receiptNumber = rb.Receipt;
 
       if (typeof rb.ReceiptLine === "number") receiptLine = Number(rb.ReceiptLine);
 
-      // OData array payload fallback
       if ((!receiptNumber || !receiptLine) && Array.isArray(rb.value) && rb.value.length > 0) {
         const first = rb.value[0];
         if (typeof first?.ReceiptNumber === "string") receiptNumber = first.ReceiptNumber;
@@ -740,11 +693,9 @@ const IncomingGoodsReceipt = () => {
         if (!receiptLine && typeof first?.OrderLine === "number") receiptLine = Number(first.OrderLine);
       }
 
-      // Final fallback to OrderLine from root if present
       if (!receiptLine && typeof rb.OrderLine === "number") receiptLine = Number(rb.OrderLine);
     }
 
-    // Step 2: Confirm (same line, using receipt fields from receive)
     const { data: confData, error: confError } = await supabase.functions.invoke("ln-confirm-receipt", {
       body: {
         origin: originToSend,
@@ -774,18 +725,22 @@ const IncomingGoodsReceipt = () => {
 
     showSuccess("Confirmed");
 
-    // Reset form (same as after successful receive)
-    setShowOrderType(false);
-    setOrderType("");
-    setOrderTypeOptions([]);
-    setOrderTypeDisabled(true);
-    setOrderTypeRequired(false);
+    setOrderNo(preservedOrderNo);
+    setOrderType(preservedOrderType);
+    setShowOrderType(Boolean(preservedOrderType));
+    if (preservedOrderType) {
+      setOrderTypeDisabled(true);
+      setOrderTypeOptions([]);
+      setOrderTypeRequired(false);
+    }
+
     setLastCheckedOrder(null);
     setSuppressAutoFillLine(false);
     setInboundLinesAll([]);
+    setInboundLinesGrouped([]);
     setHasMultipleLines(false);
+    setLinePickerOpen(false);
 
-    setOrderNo("");
     setOrderPos("");
     setGrItem("");
     setGrItemDesc("");
@@ -801,13 +756,11 @@ const IncomingGoodsReceipt = () => {
     setExistingLots([]);
     setLotsOrigin("");
 
-    setTimeout(() => orderNoRef.current?.focus(), 0);
+    setTimeout(() => orderPosRef.current?.focus(), 0);
   };
 
-  // Handle Receive action (only when confirmOnly is false)
   const handleReceive = async () => {
     if (confirmOnly) return;
-    // Basic guard: rely on actionEnabled; if disabled, exit
     const ready =
       (orderNo || "").trim() &&
       (orderPos || "").trim() &&
@@ -816,6 +769,9 @@ const IncomingGoodsReceipt = () => {
       (qty || "").trim() &&
       (!showOrderType || !orderTypeRequired || (orderType || "").trim());
     if (!ready) return;
+
+    const preservedOrderNo = (orderNo || "").trim();
+    const preservedOrderType = (orderType || "").trim();
 
     const originToSend = (orderType || lotsOrigin || "").trim();
     const tid = showLoading(trans.pleaseWait);
@@ -833,7 +789,7 @@ const IncomingGoodsReceipt = () => {
         BusinessPartnerLot: (bpLot || "").trim(),
         Quantity: Number((qty || "").trim()),
         Unit: (orderUnit || "").trim(),
-        Confirm: "No", // When txgsi000_aure (confirmOnly) is false
+        Confirm: "No",
         FromWebservice: "Yes",
         language: locale,
         company: "4000",
@@ -844,23 +800,28 @@ const IncomingGoodsReceipt = () => {
     setIsSubmitting(false);
 
     if (error || !data || !data.ok) {
-      showError(trans.loadingDetails); // reuse a generic label
+      showError(trans.loadingDetails);
       return;
     }
 
     showSuccess(trans.receivedSuccessfully);
-    // Clear all fields
-    setShowOrderType(false);
-    setOrderType("");
-    setOrderTypeOptions([]);
-    setOrderTypeDisabled(true);
-    setOrderTypeRequired(false);
+
+    setOrderNo(preservedOrderNo);
+    setOrderType(preservedOrderType);
+    setShowOrderType(Boolean(preservedOrderType));
+    if (preservedOrderType) {
+      setOrderTypeDisabled(true);
+      setOrderTypeOptions([]);
+      setOrderTypeRequired(false);
+    }
+
     setLastCheckedOrder(null);
     setSuppressAutoFillLine(false);
     setInboundLinesAll([]);
+    setInboundLinesGrouped([]);
     setHasMultipleLines(false);
+    setLinePickerOpen(false);
 
-    setOrderNo("");
     setOrderPos("");
     setGrItem("");
     setGrItemDesc("");
@@ -876,18 +837,21 @@ const IncomingGoodsReceipt = () => {
     setExistingLots([]);
     setLotsOrigin("");
 
-    setTimeout(() => orderNoRef.current?.focus(), 0);
+    if (preservedOrderNo && preservedOrderType) {
+      void loadReceivedLines(preservedOrderNo, preservedOrderType);
+    }
+
+    setTimeout(() => orderPosRef.current?.focus(), 0);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top bar */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/10"
+            className="text-white hover:bg白/10"
             aria-label={trans.back}
             onClick={() => navigate("/menu/incoming")}
           >
@@ -914,7 +878,6 @@ const IncomingGoodsReceipt = () => {
         </div>
       </div>
 
-      {/* Form */}
       <div className="mx-auto max-w-md px-4 py-4 pb-24">
         <Card className="rounded-md border-0 bg-transparent shadow-none p-0 space-y-3">
           {showOrderType && (
@@ -1035,8 +998,7 @@ const IncomingGoodsReceipt = () => {
                 setOrderNo(parsed.order);
                 setOrderPos(parsed.line);
                 setSuppressAutoFillLine(false);
-                // Load origins first; defer line details until Order type is selected
-                void checkOrder(parsed.order);
+                void checkOrder(parsed.order, parsed.line);
               } else {
                 setOrderNo(v);
               }
@@ -1049,8 +1011,7 @@ const IncomingGoodsReceipt = () => {
                 setOrderNo(parsed.order);
                 setOrderPos(parsed.line);
                 setSuppressAutoFillLine(false);
-                // Load origins first; defer line details until Order type is selected
-                void checkOrder(parsed.order);
+                void checkOrder(parsed.order, parsed.line);
               }
             }}
             onBlur={() => {
@@ -1073,10 +1034,9 @@ const IncomingGoodsReceipt = () => {
               setOrderTypeDisabled(true);
               setOrderTypeRequired(false);
               setLastCheckedOrder(null);
-              setSuppressAutoFillLine(false); // new order → allow auto-fill again
+              setSuppressAutoFillLine(false);
               setInboundLinesAll([]);
               setHasMultipleLines(false);
-              // Clear dependent fields on order clear
               setOrderPos("");
               setGrItem("");
               setGrItemDesc("");
@@ -1088,12 +1048,12 @@ const IncomingGoodsReceipt = () => {
             }}
           />
 
-          {/* Line with search icon aligned next to the field */}
           <div className="flex items-center gap-2">
             <div className="flex-1">
               <FloatingLabelInput
                 id="incomingOrderPos"
                 label={trans.incomingOrderPositionLabel}
+                ref={orderPosRef}
                 value={orderPos}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -1102,8 +1062,7 @@ const IncomingGoodsReceipt = () => {
                     setOrderNo(parsed.order);
                     setOrderPos(parsed.line);
                     setSuppressAutoFillLine(false);
-                    // Load origins first; defer line details until Order type is selected
-                    void checkOrder(parsed.order);
+                    void checkOrder(parsed.order, parsed.line);
                   } else {
                     setOrderPos(v);
                   }
@@ -1116,20 +1075,16 @@ const IncomingGoodsReceipt = () => {
                     setOrderNo(parsed.order);
                     setOrderPos(parsed.line);
                     setSuppressAutoFillLine(false);
-                    // Load origins first; defer line details until Order type is selected
-                    void checkOrder(parsed.order);
+                    void checkOrder(parsed.order, parsed.line);
                   }
                 }}
                 onBlur={() => {
                   const ord = orderNo.trim();
                   const ln = orderPos.trim();
                   if (ord && ln) {
-                    // Only fetch line details after Order type is chosen; otherwise load origins
-                    if ((orderType || "").trim()) {
-                      void checkOrder(ord, ln);
-                    } else {
-                      void checkOrder(ord);
-                    }
+                    void checkOrder(ord, ln);
+                  } else if (ord) {
+                    void checkOrder(ord);
                   }
                 }}
                 onKeyDown={(e) => {
@@ -1137,26 +1092,21 @@ const IncomingGoodsReceipt = () => {
                     const ord = orderNo.trim();
                     const ln = orderPos.trim();
                     if (ord && ln) {
-                      // Only fetch line details after Order type is chosen; otherwise load origins
-                      if ((orderType || "").trim()) {
-                        void checkOrder(ord, ln);
-                      } else {
-                        void checkOrder(ord);
-                      }
+                      void checkOrder(ord, ln);
+                    } else if (ord) {
+                      void checkOrder(ord);
                     }
                   }
                 }}
                 onClear={() => {
                   setOrderPos("");
-                  setSuppressAutoFillLine(true); // user cleared → do not auto-fill back
-                  // Clear item/qty/unit when line cleared
+                  setSuppressAutoFillLine(true);
                   setGrItem("");
                   setGrItemDesc("");
                   setQty("");
                   setOrderUnit("");
                   setGrItemRaw("");
                   setLotTracking(false);
-                  // NEW: clear BP and lot candidates
                   setBuyFromBusinessPartner("");
                   setLotsAvailableCount(0);
                   setExistingLots([]);
@@ -1178,7 +1128,6 @@ const IncomingGoodsReceipt = () => {
                     showError("Select order type first");
                     return;
                   }
-                  // Ensure we have the full list for the picker → fetch by order (filtered by origin)
                   if (ord) {
                     await checkOrder(ord);
                   }
@@ -1190,7 +1139,6 @@ const IncomingGoodsReceipt = () => {
             )}
           </div>
 
-          {/* Line picker dialog with blurred background */}
           <Dialog open={linePickerOpen} onOpenChange={setLinePickerOpen}>
             <DialogPortal>
               <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
@@ -1202,7 +1150,6 @@ const IncomingGoodsReceipt = () => {
                 </div>
                 <div className="max-h-64 overflow-auto p-2">
                   {inboundLinesGrouped.length > 0 ? (
-                    // Grouped by Order Type
                     inboundLinesGrouped.map((grp, gidx) => (
                       <div key={`grp-${grp.origin}-${gidx}`} className="mb-3">
                         <div className="bg-white px-3 py-2 border-b">
@@ -1229,7 +1176,6 @@ const IncomingGoodsReceipt = () => {
                               onClick={async () => {
                                 const ord = (orderNo || "").trim();
                                 const lineStr = String(ln.Line);
-                                // Set selected Order Type from group and Line from selection
                                 setOrderType(grp.origin);
                                 setOrderPos(lineStr);
                                 setSuppressAutoFillLine(false);
@@ -1263,7 +1209,6 @@ const IncomingGoodsReceipt = () => {
                       </div>
                     ))
                   ) : (
-                    // Fallback: flat list (single origin flows)
                     <>
                       {inboundLinesAll.length === 0 ? (
                         <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
@@ -1321,7 +1266,6 @@ const IncomingGoodsReceipt = () => {
             </DialogPortal>
           </Dialog>
 
-          {/* Item with description in same (read-only) field */}
           <FloatingLabelInput
             id="incomingItem"
             label={trans.itemLabel}
@@ -1331,7 +1275,6 @@ const IncomingGoodsReceipt = () => {
 
           {lotTracking && (
             <>
-              {/* Lot field with optional search icon when matches exist */}
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <FloatingLabelInput
@@ -1354,7 +1297,6 @@ const IncomingGoodsReceipt = () => {
                           return;
                         }
 
-                        // If Purchase, go to BP Lot; otherwise skip to Delivery Note
                         if (isPurchaseOrigin) {
                           bpLotRef.current?.focus();
                         } else {
@@ -1402,7 +1344,6 @@ const IncomingGoodsReceipt = () => {
                 )}
               </div>
 
-              {/* Business Partner Lot: only visible for Purchase origin */}
               {isPurchaseOrigin && (
                 <FloatingLabelInput
                   id="incomingBusinessPartnerLot"
@@ -1426,7 +1367,6 @@ const IncomingGoodsReceipt = () => {
                 />
               )}
 
-              {/* Lots picker dialog */}
               <Dialog open={lotsPickerOpen} onOpenChange={setLotsPickerOpen}>
                 <DialogPortal>
                   <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
@@ -1443,9 +1383,7 @@ const IncomingGoodsReceipt = () => {
                         )}
                       </div>
                     </div>
-                    {/* Scroll area with sticky column headers */}
                     <div className="max-h-64 overflow-auto">
-                      {/* Table-like headers */}
                       {(() => {
                         const isPurchase = (lotsOrigin || "").toLowerCase().includes("purchase");
                         return (
@@ -1485,7 +1423,6 @@ const IncomingGoodsReceipt = () => {
                                   if (selectedLot) setLot(selectedLot);
                                   if (selectedBpLot) setBpLot(selectedBpLot);
                                   setLotsPickerOpen(false);
-                                  // Advance focus
                                   if (isPurchase) {
                                     if (selectedBpLot) {
                                       deliveryNoteRef.current?.focus();
@@ -1555,31 +1492,29 @@ const IncomingGoodsReceipt = () => {
             />
           </div>
 
-           {/* Quantity and Unit side-by-side */}
-           <div className="flex items-center gap-2">
-             <div className="flex-1">
-               <FloatingLabelInput
-                 id="incomingQty"
-                 label={trans.quantityLabel}
-                 value={qty}
-                 onChange={(e) => setQty(e.target.value)}
-                 onClear={() => setQty("")}
-                 ref={qtyRef}
-               />
-             </div>
-             <div className="w-32">
-               <FloatingLabelInput
-                 id="incomingUnit"
-                 label={trans.unitLabel}
-                 value={orderUnit}
-                 disabled
-               />
-             </div>
-           </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <FloatingLabelInput
+                id="incomingQty"
+                label={trans.quantityLabel}
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                onClear={() => setQty("")}
+                ref={qtyRef}
+              />
+            </div>
+            <div className="w-32">
+              <FloatingLabelInput
+                id="incomingUnit"
+                label={trans.unitLabel}
+                value={orderUnit}
+                disabled
+              />
+            </div>
+          </div>
         </Card>
       </div>
 
-      {/* Received Lines dialog */}
       <Dialog open={receivedLinesOpen} onOpenChange={setReceivedLinesOpen}>
         <DialogPortal>
           <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
@@ -1604,7 +1539,6 @@ const IncomingGoodsReceipt = () => {
                 <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
               ) : (
                 receivedLines.map((ln: any, idx: number) => {
-                  // Prefer ReceiptNumber, fallback to legacy Receipt
                   const receipt = typeof ln?.ReceiptNumber === "string" ? ln.ReceiptNumber : (typeof ln?.Receipt === "string" ? ln.Receipt : "");
                   const receiptLine = Number(ln?.ReceiptLine ?? ln?.OrderLine ?? 0);
                   const item = typeof ln?.Item === "string" ? ln.Item : (typeof ln?.ItemRef?.Item === "string" ? ln.ItemRef.Item : "");
@@ -1632,7 +1566,6 @@ const IncomingGoodsReceipt = () => {
                       className="w-full text-left px-3 py-2 rounded-md border mb-2 bg-gray-50"
                     >
                       <div className="grid grid-cols-[1fr_140px] gap-3 items-start">
-                        {/* Left: item and description */}
                         <div className="flex flex-col">
                           <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
                             {item || "-"}
@@ -1643,7 +1576,6 @@ const IncomingGoodsReceipt = () => {
                           </div>
                         </div>
 
-                        {/* Right: qty top, green confirm button below */}
                         <div className="flex flex-col items-end">
                           <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
                             {lineQty} {lineUnit}
@@ -1658,8 +1590,8 @@ const IncomingGoodsReceipt = () => {
                                 origin: originSelected,
                                 order: ord,
                                 position: pos,
-                                sequence: seq || 1,
-                                set: setNum || 1,
+                                sequence: (seq || 1),
+                                set: (setNum || 1),
                                 packingSlip: pSlip,
                                 receiptNumber: receipt,
                                 receiptLine: receiptLine,
@@ -1693,7 +1625,6 @@ const IncomingGoodsReceipt = () => {
         </DialogPortal>
       </Dialog>
 
-      {/* Bottom buttons (disabled at startup like screenshot) */}
       <div className="fixed inset-x-0 bottom-0 bg-white border-t">
         <div className="mx-auto max-w-md px-3 py-3">
           <Button
@@ -1713,7 +1644,6 @@ const IncomingGoodsReceipt = () => {
         </div>
       </div>
 
-      {/* Full-screen spinner overlay when submitting/loading */}
       {isSubmitting && <ScreenSpinner backdropBlur />}
 
       <SignOutConfirm
