@@ -107,6 +107,11 @@ serve(async (req) => {
     if (line !== null) {
       filterParts.push(`Line eq ${line}`);
     }
+    // NEW: LineStatus filter (default to 'Open' if not provided)
+    const lineStatusValue = (body as any)?.lineStatus ? String((body as any).lineStatus).trim() : "Open";
+    if (lineStatusValue) {
+      filterParts.push(`LineStatus eq whapi.inhWarehousingOrder.InboundOrderLineStatus'${lineStatusValue.replace(/'/g, "''")}'`);
+    }
     const filter = filterParts.join(" and ");
     const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=%2A&$orderby=OrderOrigin&$expand=%2A`;
 
