@@ -318,7 +318,8 @@ const IncomingGoodsReceipt = () => {
       const setNum = Number(ln?.OrderSet ?? 0) || 1;
       const pSlip = typeof ln?.PackingSlip === "string" ? ln.PackingSlip : "";
 
-      const receipt = typeof ln?.Receipt === "string" ? ln.Receipt : "";
+      // Prefer ReceiptNumber, fallback to legacy Receipt
+      const receipt = typeof ln?.ReceiptNumber === "string" ? ln.ReceiptNumber : (typeof ln?.Receipt === "string" ? ln.Receipt : "");
       const receiptLine = Number(ln?.ReceiptLine ?? ln?.OrderLine ?? 0);
       const lineQty = Number(ln?.ReceivedQuantityInReceiptUnit ?? 0);
       const lineUnit = typeof ln?.ReceiptUnit === "string" ? ln.ReceiptUnit : "";
@@ -692,18 +693,22 @@ const IncomingGoodsReceipt = () => {
     let receiptLine = 0;
 
     if (rb && typeof rb === "object") {
-      // Direct fields
-      if (typeof rb.Receipt === "string") receiptNumber = rb.Receipt;
+      // Prefer ReceiptNumber (modern), fallback to legacy Receipt
+      if (typeof rb.ReceiptNumber === "string") receiptNumber = rb.ReceiptNumber;
+      else if (typeof rb.Receipt === "string") receiptNumber = rb.Receipt;
+
       if (typeof rb.ReceiptLine === "number") receiptLine = Number(rb.ReceiptLine);
-      // OData array payload
+
+      // OData array payload fallback
       if ((!receiptNumber || !receiptLine) && Array.isArray(rb.value) && rb.value.length > 0) {
         const first = rb.value[0];
-        if (typeof first?.Receipt === "string") receiptNumber = first.Receipt;
+        if (typeof first?.ReceiptNumber === "string") receiptNumber = first.ReceiptNumber;
+        else if (typeof first?.Receipt === "string") receiptNumber = first.Receipt;
         if (typeof first?.ReceiptLine === "number") receiptLine = Number(first.ReceiptLine);
-        // fallback to OrderLine if ReceiptLine missing
         if (!receiptLine && typeof first?.OrderLine === "number") receiptLine = Number(first.OrderLine);
       }
-      // final fallback to OrderLine from root if present
+
+      // Final fallback to OrderLine from root if present
       if (!receiptLine && typeof rb.OrderLine === "number") receiptLine = Number(rb.OrderLine);
     }
 
@@ -1427,7 +1432,8 @@ const IncomingGoodsReceipt = () => {
                 <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
               ) : (
                 receivedLines.map((ln: any, idx: number) => {
-                  const receipt = typeof ln?.Receipt === "string" ? ln.Receipt : "";
+                  // Prefer ReceiptNumber, fallback to legacy Receipt
+                  const receipt = typeof ln?.ReceiptNumber === "string" ? ln.ReceiptNumber : (typeof ln?.Receipt === "string" ? ln.Receipt : "");
                   const receiptLine = Number(ln?.ReceiptLine ?? ln?.OrderLine ?? 0);
                   const item = typeof ln?.Item === "string" ? ln.Item : (typeof ln?.ItemRef?.Item === "string" ? ln.ItemRef.Item : "");
                   const desc = typeof ln?.ItemRef?.Description === "string" ? ln.ItemRef.Description : "";
