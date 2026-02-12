@@ -409,11 +409,12 @@ const IncomingGoodsReceipt = () => {
   const checkOrder = async (ord: string, lineVal?: string) => {
     const trimmed = (ord || "").trim();
     if (!trimmed) return;
-    // Allow re-check when line changes even if order is same
     const lineTrim = (lineVal || "").trim();
-    if (lastCheckedOrder === `${trimmed}|${lineTrim}`) return;
+    // NEW: include origin in the cache key
+    const originKey = (orderType || "").trim() || "";
+    if (lastCheckedOrder === `${trimmed}|${lineTrim}|${originKey}`) return;
+
     const tid = showLoading(trans.loadingDetails);
-    // Include OrderOrigin whenever a type is selected (for both order-only and line-specific lookups)
     const originForFilter = (orderType || "").trim() ? orderType : undefined;
     const { data, error } = await supabase.functions.invoke("ln-warehousing-orders", {
       body: {
@@ -426,18 +427,16 @@ const IncomingGoodsReceipt = () => {
     });
     dismissToast(tid as unknown as string);
     if (error || !data || !data.ok) {
-      // Stay hidden, do not show an error as per spec; user can re-enter
       setShowOrderType(false);
       setOrderType("");
       setOrderTypeOptions([]);
       setOrderTypeDisabled(true);
       setOrderTypeRequired(false);
       setLastCheckedOrder(null);
-      // Clear inbound lines on error
       setInboundLinesAll([]);
       return;
     }
-    // Store inbound lines from raw payload for the picker
+
     const rawValues = Array.isArray(data.raw?.value) ? data.raw.value : [];
     const mappedLines: Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }> =
       rawValues.map((v: any) => ({
@@ -448,19 +447,18 @@ const IncomingGoodsReceipt = () => {
         orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
       }))
       .filter((x) => Number.isFinite(x.Line) && x.Line > 0);
-    // IMPORTANT: Only update the full list when fetching by order (no line filter)
+
     if (!lineTrim) {
       setInboundLinesAll(mappedLines);
       setHasMultipleLines(mappedLines.length > 1);
     }
-    // If a specific line is provided, fill Item, Quantity, and Unit from that line (first match)
+
     if (lineTrim) {
       const lnNum = Number(lineTrim);
       const picked = mappedLines.find((x) => x.Line === lnNum) || mappedLines[0];
       const pickedRaw = rawValues.find((rv: any) => Number(rv?.Line) === lnNum) || rawValues[0];
       if (picked) {
         const itemCode = (picked.Item || "").trim();
-        // Keep and use the RAW item value (may include leading spaces) for queries
         const itemRaw = (picked.Item || "");
         setGrItem(itemCode);
         setQty(picked.tbrQty != null ? String(picked.tbrQty) : "");
@@ -468,7 +466,6 @@ const IncomingGoodsReceipt = () => {
         setGrItemDesc(picked.ItemDesc || "");
         setGrItemRaw(itemRaw);
 
-        // Derive BuyfromBusinessPartner robustly
         const bpCode =
           (() => {
             const candidates = [
@@ -488,11 +485,9 @@ const IncomingGoodsReceipt = () => {
         const originCandidate =
           (typeof pickedRaw?.OrderOrigin === "string" && pickedRaw.OrderOrigin) || orderType || "";
 
-        // Only query existing lots when we have the necessary inputs
         if (isTracked) {
           const originLower = (originCandidate || "").toLowerCase();
           if (originLower.includes("purchase")) {
-            // Require BP for Purchase, otherwise skip (prevents showing unfiltered lots)
             if ((bpCode || "").trim()) {
               await checkExistingLots(itemRaw, originCandidate, bpCode);
             } else {
@@ -501,11 +496,9 @@ const IncomingGoodsReceipt = () => {
               setLotsOrigin(originCandidate);
             }
           } else {
-            // Production or other origins → filter by origin only
             await checkExistingLots(itemRaw, originCandidate);
           }
         } else {
-          // Reset existing lots UI
           setLotsAvailableCount(0);
           setExistingLots([]);
           setLotsOrigin("");
@@ -521,58 +514,51 @@ const IncomingGoodsReceipt = () => {
       }
     }
 
-    // Only update the "all lines" list when fetching by order (no specific line filter)
     if (!lineTrim) {
       setInboundLinesAll(mappedLines);
     }
 
-    // If this was the first call (no line filter) and there is exactly one line, auto-fill only if not suppressed
     if (!lineTrim && mappedLines.length === 1 && !suppressAutoFillLine) {
       const singleLineStr = String(mappedLines[0].Line);
       setOrderPos(singleLineStr);
-      setLastCheckedOrder(`${trimmed}|${singleLineStr}`);
-      // Re-run with the specific line to resolve OrderOrigin accurately and narrow data
+      setLastCheckedOrder(`${trimmed}|${singleLineStr}|${originKey}`); // NEW: include origin
       await checkOrder(trimmed, singleLineStr);
       return;
     }
 
     const count = Number(data.count || 0);
-    // Collect unique OrderOrigin values from raw payload (fallback to data.origin)
     const origins: string[] = rawValues
       .map((v: any) => (v?.OrderOrigin ? String(v.OrderOrigin) : null))
       .filter((v: string | null): v is string => !!v);
     const uniqueOrigins = Array.from(new Set(origins.length ? origins : (data.origin ? [String(data.origin)] : [])));
 
     if (count === 1 || uniqueOrigins.length === 1) {
-      // Single origin → read-only
       const origin = uniqueOrigins[0] || (data.origin ? String(data.origin) : "");
       setOrderType(origin || "");
       setOrderTypeOptions([]);
       setOrderTypeDisabled(true);
       setOrderTypeRequired(false);
       setShowOrderType(true);
-      setLastCheckedOrder(`${trimmed}|${lineTrim}`);
+      setLastCheckedOrder(`${trimmed}|${lineTrim}|${origin || ""}`); // NEW: include origin
       return;
     }
 
     if (count > 1 && uniqueOrigins.length > 1) {
-      // Multiple differing origins → user must select
       setOrderType("");
       setOrderTypeOptions(uniqueOrigins);
       setOrderTypeDisabled(false);
       setOrderTypeRequired(true);
       setShowOrderType(true);
-      setLastCheckedOrder(`${trimmed}|${lineTrim}`);
+      setLastCheckedOrder(`${trimmed}|${lineTrim}|`); // NEW: include origin (empty until selected)
       return;
     }
 
-    // Default fallback: hide
     setShowOrderType(false);
     setOrderType("");
     setOrderTypeOptions([]);
     setOrderTypeDisabled(true);
     setOrderTypeRequired(false);
-    setLastCheckedOrder(`${trimmed}|${lineTrim}`);
+    setLastCheckedOrder(`${trimmed}|${lineTrim}|${originKey}`); // NEW: include origin
   };
 
   // NEW: helper to query existing Lots (by origin and optional BP)
