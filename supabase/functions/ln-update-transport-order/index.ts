@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getCompanyFromParams } from "../_shared/company.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +29,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { transportId?: string; etag?: string; vehicleId?: string; completed?: string; language?: string; company?: string; runNumber?: string } = {};
+    let body: { transportId?: string; etag?: string; vehicleId?: string; completed?: string; language?: string; runNumber?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -41,7 +42,6 @@ serve(async (req) => {
     const vehicleId = (body.vehicleId || "").trim();
     const completed = (body.completed || "").trim();
     const language = body.language || "de-DE";
-    const company = body.company || "1100";
 
     if (!transportId || !etag) {
       return json({ ok: false, error: { message: "missing_fields" } }, 200);
@@ -54,6 +54,7 @@ serve(async (req) => {
       return json({ ok: false, error: { message: "env_missing" } }, 200);
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const company = await getCompanyFromParams(supabase);
 
     // Decrypted credentials via RPC
     const { data: cfgData, error: cfgErr } = await supabase.rpc("get_active_ionapi");

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getCompanyFromParams } from "../_shared/company.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,7 +37,6 @@ serve(async (req) => {
       toLocation?: string;
       employee?: string;
       language?: string;
-      company?: string;
     } = {};
     try {
       body = await req.json();
@@ -51,7 +51,6 @@ serve(async (req) => {
     const toLocation = (body.toLocation || "").trim();
     const employee = (body.employee || "").trim();
     const language = body.language || "de-DE";
-    const company = body.company || "1100";
 
     if (!handlingUnit || !fromWarehouse || !fromLocation || !toWarehouse || !toLocation || !employee) {
       return json({ ok: false, error: "missing_fields" }, 400);
@@ -64,6 +63,7 @@ serve(async (req) => {
       return json({ ok: false, error: "env_missing" }, 500);
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const company = await getCompanyFromParams(supabase);
 
     // Get decrypted credentials via RPC
     const { data: cfgData, error: cfgErr } = await supabase.rpc("get_active_ionapi");
