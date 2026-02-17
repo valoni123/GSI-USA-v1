@@ -400,7 +400,8 @@ const IncomingGoodsReceipt = () => {
     // Abort if user changed/cleared the order while we were loading
     const ordNow = (orderNo || "").trim();
     const lnNow = (orderPos || "").trim();
-    if (ordNow !== trimmed || (lineTrim && lnNow !== lineTrim)) {
+    // Abort only if the order number changed; allow line mismatches (React state may not have flushed yet)
+    if (ordNow !== trimmed) {
       return;
     }
 
