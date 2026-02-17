@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getCompanyFromParams } from "../_shared/company.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,7 +40,15 @@ serve(async (req) => {
     const trimmedItem = rawItem.trim();
     const paddedItem = `${" ".repeat(9)}${trimmedItem}`;
     const language = body.language || "en-US";
-    const company = body.company || "1100";
+    const company = await (async () => {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!supabaseUrl || !serviceRoleKey) {
+        throw new Error("env_missing");
+      }
+      const supabase = createClient(supabaseUrl, serviceRoleKey);
+      return await getCompanyFromParams(supabase);
+    })();
     if (!trimmedItem) {
       return json({ ok: false, error: "missing_item" }, 200);
     }
