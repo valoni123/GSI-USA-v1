@@ -38,6 +38,9 @@ const TransportGroup = () => {
   // NEW: map of PlanningGroupTransport → Description
   const [groupDescriptions, setGroupDescriptions] = useState<Record<string, string>>({});
 
+  // NEW: per-group pagination state for ALL view
+  const [groupPages, setGroupPages] = useState<Record<string, number>>({});
+
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -146,6 +149,17 @@ const TransportGroup = () => {
     return map;
   }, [items]);
 
+  // Reset per-group pages when items or group change
+  useEffect(() => {
+    if ((group || "").toUpperCase() === "ALL") {
+      const init: Record<string, number> = {};
+      Object.keys(grouped).forEach((k) => { init[k] = 1; });
+      setGroupPages(init);
+    } else {
+      setGroupPages({});
+    }
+  }, [group, grouped]);
+
   const totalPages = useMemo(() => {
     if ((group || "").toUpperCase() === "ALL") return 1;
     return Math.max(1, Math.ceil(items.length / PAGE_SIZE));
@@ -214,12 +228,16 @@ const TransportGroup = () => {
             <div className="min-w-[1100px]">
               { (group || "").toUpperCase() === "ALL" ? (
                 Object.keys(grouped).sort().map((gkey) => {
-                  const rows = grouped[gkey] || [];
+                  const rowsAll = grouped[gkey] || [];
                   const desc = groupDescriptions[gkey] || "";
+                  const gPage = groupPages[gkey] ?? 1;
+                  const gTotalPages = Math.max(1, Math.ceil(rowsAll.length / PAGE_SIZE));
+                  const start = (gPage - 1) * PAGE_SIZE;
+                  const rows = rowsAll.slice(start, start + PAGE_SIZE);
                   return (
                     <div key={gkey} className="mb-6">
                       <div className="flex items-center gap-3 font-bold text-lg mb-2">
-                        <span>{gkey} [{rows.length}]</span>
+                        <span>{gkey} [{rowsAll.length}]</span>
                         {desc && (
                           <span className="inline-block text-xs text-gray-700 bg-white rounded-md border px-2 py-1">
                             {desc}
@@ -238,7 +256,7 @@ const TransportGroup = () => {
                           <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
                           <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
                         </div>
-                        {rows.length === 0 ? (
+                        {rowsAll.length === 0 ? (
                           <div className="px-4 py-3 text-sm text-muted-foreground">No entries</div>
                         ) : (
                           rows.map((it, idx) => (
@@ -267,6 +285,53 @@ const TransportGroup = () => {
                               </div>
                             </div>
                           ))
+                        )}
+                        {/* Per-group pagination controls (ALL view) */}
+                        {rowsAll.length > PAGE_SIZE && (
+                          <div className="flex items-center justify-between px-4 py-3">
+                            <div className="text-xs text-gray-600">
+                              Page {gPage} of {gTotalPages} · Showing {rows.length} of {rowsAll.length}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                className="h-8 px-2"
+                                disabled={gPage <= 1}
+                                onClick={() => setGroupPages((p) => ({ ...p, [gkey]: Math.max(1, gPage - 1) }))}
+                              >
+                                Previous
+                              </Button>
+                              {Array.from({ length: gTotalPages }).map((_, i) => {
+                                const idx = i + 1;
+                                const isCurrent = idx === gPage;
+                                const show =
+                                  idx === 1 ||
+                                  idx === gTotalPages ||
+                                  Math.abs(idx - gPage) <= 2 ||
+                                  (gPage <= 3 && idx <= 5) ||
+                                  (gPage >= gTotalPages - 2 && idx >= gTotalPages - 4);
+                                if (!show) return null;
+                                return (
+                                  <Button
+                                    key={`pg-${gkey}-${idx}`}
+                                    variant={isCurrent ? "destructive" : "outline"}
+                                    className="h-8 px-3"
+                                    onClick={() => setGroupPages((p) => ({ ...p, [gkey]: idx }))}
+                                  >
+                                    {idx}
+                                  </Button>
+                                );
+                              })}
+                              <Button
+                                variant="outline"
+                                className="h-8 px-2"
+                                disabled={gPage >= gTotalPages}
+                                onClick={() => setGroupPages((p) => ({ ...p, [gkey]: Math.min(gTotalPages, gPage + 1) }))}
+                              >
+                                Next
+                              </Button>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
