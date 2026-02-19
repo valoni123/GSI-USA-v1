@@ -36,9 +36,13 @@ serve(async (req) => {
       return json({ ok: false, error: "invalid_json" }, 400);
     }
 
-    const handlingUnit = (body.handlingUnit || "").trim();
-    const item = (body.item || "").trim();
-    const code = (body.code || handlingUnit || item || "").trim();
+    const codeRawInput = typeof body.code === "string"
+      ? body.code
+      : (typeof body.handlingUnit === "string"
+          ? body.handlingUnit
+          : (typeof body.item === "string" ? body.item : ""));
+    const codeRaw = (codeRawInput ?? "");
+    const codeTrim = codeRaw.trim();
     const language = body.language || "de-DE";
     const company = await (async () => {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -49,7 +53,7 @@ serve(async (req) => {
       const supabase = createClient(supabaseUrl, serviceRoleKey);
       return await getCompanyFromParams(supabase);
     })();
-    if (!code) {
+    if (!codeTrim) {
       return json({ ok: false, error: "missing_code" }, 400);
     }
 
@@ -128,8 +132,10 @@ serve(async (req) => {
     // Build LN OData URL
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders`;
-    const esc = code.replace(/'/g, "''");
-    const filter = `HandlingUnit eq '${esc}' or Item eq '${esc}'`;
+    const escRaw = codeRaw.replace(/'/g, "''");
+    const escTrim = codeTrim.replace(/'/g, "''");
+    // Try both raw (with possible leading spaces) and trimmed variants
+    const filter = `(HandlingUnit eq '${escRaw}' or Item eq '${escRaw}' or HandlingUnit eq '${escTrim}' or Item eq '${escTrim}')`;
     const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
 
     // Call OData

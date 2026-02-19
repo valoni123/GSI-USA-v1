@@ -136,20 +136,20 @@ const TransportLoad = () => {
   };
 
   const onHUBlur = async () => {
-    const hu = handlingUnit.trim();
-    if (!hu) return;
+    const huRaw = handlingUnit;
+    if (!huRaw.trim()) return;
 
     setLocationRequired(false);
     setLocationScan("");
 
     // Only proceed if result is empty (first time) or HU changed
-    const shouldCheck = result === null || lastFetchedHu !== hu;
+    const shouldCheck = result === null || lastFetchedHu !== huRaw;
     if (!shouldCheck) return;
 
     const tid = showLoading(trans.checkingHandlingUnit);
     setDetailsLoading(true);
     const ordRes = await supabase.functions.invoke("ln-transport-orders", {
-      body: { handlingUnit: hu, language: locale },
+      body: { handlingUnit: huRaw, language: locale },
     });
     dismissToast(tid as unknown as string);
 
