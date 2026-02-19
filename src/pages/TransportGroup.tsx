@@ -32,6 +32,8 @@ const TransportGroup = () => {
     Description?: string;
   }>>([]);
   const [error, setError] = useState<string | null>(null);
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
 
   // NEW: map of PlanningGroupTransport → Description
   const [groupDescriptions, setGroupDescriptions] = useState<Record<string, string>>({});
@@ -55,6 +57,8 @@ const TransportGroup = () => {
     });
     if (data && data.ok) {
       setItems(data.items || []);
+      // Reset to first page whenever new items are loaded
+      setPage(1);
       if (!silent) setError(null);
     } else {
       if (!silent) setError((data && (data.error?.message || data.error)) || "Failed to load");
@@ -141,6 +145,17 @@ const TransportGroup = () => {
     }
     return map;
   }, [items]);
+
+  const totalPages = useMemo(() => {
+    if ((group || "").toUpperCase() === "ALL") return 1;
+    return Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  }, [items, group]);
+
+  const pagedItems = useMemo(() => {
+    if ((group || "").toUpperCase() === "ALL") return items;
+    const start = (page - 1) * PAGE_SIZE;
+    return items.slice(start, start + PAGE_SIZE);
+  }, [items, page, group]);
 
   useEffect(() => {
     // Load plannings and group descriptions
@@ -275,7 +290,7 @@ const TransportGroup = () => {
                   ) : items.length === 0 ? (
                     <div className="px-4 py-3 text-sm text-muted-foreground">No entries</div>
                   ) : (
-                    items.map((it, idx) => (
+                    pagedItems.map((it, idx) => (
                       <div
                         key={`${it.TransportID}-${idx}`}
                         className="grid grid-cols-9 gap-3 px-4 py-2 border-b text-sm"
@@ -301,6 +316,54 @@ const TransportGroup = () => {
                         </div>
                       </div>
                     ))
+                  )}
+                  {/* Pagination controls (single-group view) */}
+                  {items.length > 0 && (group || "").toUpperCase() !== "ALL" && (
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <div className="text-xs text-gray-600">
+                        Page {page} of {totalPages} · Showing {pagedItems.length} of {items.length}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          className="h-8 px-2"
+                          disabled={page <= 1}
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        >
+                          Previous
+                        </Button>
+                        {/* Simple numeric page buttons (limit to first/last and nearby pages) */}
+                        {Array.from({ length: totalPages }).map((_, i) => {
+                          const idx = i + 1;
+                          const isCurrent = idx === page;
+                          const show =
+                            idx === 1 ||
+                            idx === totalPages ||
+                            Math.abs(idx - page) <= 2 ||
+                            (page <= 3 && idx <= 5) ||
+                            (page >= totalPages - 2 && idx >= totalPages - 4);
+                          if (!show) return null;
+                          return (
+                            <Button
+                              key={`pg-${idx}`}
+                              variant={isCurrent ? "destructive" : "outline"}
+                              className="h-8 px-3"
+                              onClick={() => setPage(idx)}
+                            >
+                              {idx}
+                            </Button>
+                          );
+                        })}
+                        <Button
+                          variant="outline"
+                          className="h-8 px-2"
+                          disabled={page >= totalPages}
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </>
               )}
