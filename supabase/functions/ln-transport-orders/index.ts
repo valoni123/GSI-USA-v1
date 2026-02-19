@@ -29,7 +29,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { handlingUnit?: string; language?: string; company?: string } = {};
+    let body: { handlingUnit?: string; item?: string; code?: string; language?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -37,6 +37,8 @@ serve(async (req) => {
     }
 
     const handlingUnit = (body.handlingUnit || "").trim();
+    const item = (body.item || "").trim();
+    const code = (body.code || handlingUnit || item || "").trim();
     const language = body.language || "de-DE";
     const company = await (async () => {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -47,8 +49,8 @@ serve(async (req) => {
       const supabase = createClient(supabaseUrl, serviceRoleKey);
       return await getCompanyFromParams(supabase);
     })();
-    if (!handlingUnit) {
-      return json({ ok: false, error: "missing_handling_unit" }, 400);
+    if (!code) {
+      return json({ ok: false, error: "missing_code" }, 400);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -126,7 +128,8 @@ serve(async (req) => {
     // Build LN OData URL
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders`;
-    const filter = `HandlingUnit eq '${handlingUnit.replace(/'/g, "''")}'`;
+    const esc = code.replace(/'/g, "''");
+    const filter = `HandlingUnit eq '${esc}' or Item eq '${esc}'`;
     const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
 
     // Call OData
@@ -152,8 +155,9 @@ serve(async (req) => {
       return json({ ok: false, error: "odata_error", details: odataJson }, odataRes.status || 500);
     }
 
-    const count = odataJson["@odata.count"] ?? 0;
-    const first = Array.isArray(odataJson.value) && odataJson.value.length > 0 ? odataJson.value[0] : null;
+    const count = odataJson["@odata.count"] ?? (Array.isArray(odataJson.value) ? odataJson.value.length : 0);
+    const arr = Array.isArray(odataJson.value) ? odataJson.value : [];
+    const first = arr.length > 0 ? arr[0] : null;
 
     return json({
       ok: true,
@@ -163,12 +167,23 @@ serve(async (req) => {
             TransportID: first.TransportID,
             RunNumber: first.RunNumber,
             Item: first.Item,
+            HandlingUnit: first.HandlingUnit ?? "",
             Warehouse: first.Warehouse,
             LocationFrom: first.LocationFrom,
             LocationTo: first.LocationTo,
             ETag: first["@odata.etag"],
           }
         : null,
+      items: arr.map((v: any) => ({
+        TransportID: v?.TransportID ?? "",
+        RunNumber: v?.RunNumber ?? "",
+        Item: v?.Item ?? "",
+        HandlingUnit: v?.HandlingUnit ?? "",
+        Warehouse: v?.Warehouse ?? "",
+        LocationFrom: v?.LocationFrom ?? "",
+        LocationTo: v?.LocationTo ?? "",
+        ETag: v?.["@odata.etag"] ?? "",
+      })),
       raw: odataJson,
     }, 200);
   } catch (e) {

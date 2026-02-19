@@ -49,6 +49,7 @@ const TransportLoad = () => {
   };
 
   const huRef = useRef<HTMLInputElement | null>(null);
+  const locationRef = useRef<HTMLInputElement | null>(null);
   const vehicleRef = useRef<HTMLInputElement | null>(null);
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
@@ -61,6 +62,10 @@ const TransportLoad = () => {
   const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [etag, setEtag] = useState<string>("");
+  const [selectOpen, setSelectOpen] = useState<boolean>(false);
+  const [selectItems, setSelectItems] = useState<Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string }>>([]);
+  const [locationScan, setLocationScan] = useState<string>("");
+  const [locationRequired, setLocationRequired] = useState<boolean>(false);
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [listOpen, setListOpen] = useState<boolean>(false);
   const [listItems, setListItems] = useState<Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>>([]);
@@ -134,27 +139,8 @@ const TransportLoad = () => {
     const hu = handlingUnit.trim();
     if (!hu) return;
 
-    // First: check if this HU is already loaded to the selected vehicle
-    const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
-    if (selectedVehicle) {
-      const preTid = showLoading(trans.checkingHandlingUnit);
-      const { data: loadedData, error: loadedErr } = await supabase.functions.invoke("ln-transport-loaded-check", {
-        body: { handlingUnit: hu, vehicleId: selectedVehicle, language: locale, company: "1100" },
-      });
-      dismissToast(preTid as unknown as string);
-      if (!loadedErr && loadedData && loadedData.ok && Number(loadedData.count || 0) > 0) {
-        setLoadedErrorOpen(true);
-        // Clear and reset
-        setResult(null);
-        setVehicleEnabled(false);
-        setHandlingUnit("");
-        setVehicleId("");
-        setLastFetchedHu(null);
-        setEtag("");
-        setTimeout(() => huRef.current?.focus(), 50);
-        return;
-      }
-    }
+    setLocationRequired(false);
+    setLocationScan("");
 
     // Only proceed if result is empty (first time) or HU changed
     const shouldCheck = result === null || lastFetchedHu !== hu;
@@ -162,14 +148,9 @@ const TransportLoad = () => {
 
     const tid = showLoading(trans.checkingHandlingUnit);
     setDetailsLoading(true);
-    const [ordRes, qtyRes] = await Promise.all([
-      supabase.functions.invoke("ln-transport-orders", {
-        body: { handlingUnit: hu, language: locale, company: "1100" },
-      }),
-      supabase.functions.invoke("ln-handling-unit-info", {
-        body: { handlingUnit: hu, language: locale, company: "1100" },
-      }),
-    ]);
+    const ordRes = await supabase.functions.invoke("ln-transport-orders", {
+      body: { handlingUnit: hu, language: locale },
+    });
     dismissToast(tid as unknown as string);
 
     const ordData = ordRes.data;
@@ -179,34 +160,69 @@ const TransportLoad = () => {
       return;
     }
 
-    const first = ordData.first as { TransportID?: string; RunNumber?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
-    setResult(first || null);
+    const items = (ordData.items || []) as Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string }>;
+    const first = ordData.first as { TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
 
-    const raw = (ordData.raw as any) || {};
-    const rawFirst = Array.isArray(raw.value) && raw.value.length > 0 ? raw.value[0] : null;
-    const etagValue =
-      (first && typeof first?.ETag === "string" && first.ETag) ||
-      (rawFirst && typeof rawFirst?.["@odata.etag"] === "string" && rawFirst["@odata.etag"]) ||
-      "";
-    setEtag(etagValue);
-
-    // Quantity and Unit from HU info response
-    const qtyData = qtyRes.data;
-    const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
-    const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
-    setHuQuantity(qty);
-    setHuUnit(unit);
-
-    // Enable and prefill Vehicle ID after both calls
-    setVehicleEnabled(true);
-    const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
-    if (storedVehicle) {
-      setVehicleId(storedVehicle);
+    // If multiple matches → open selection popup
+    if ((ordData.count ?? items.length ?? 0) > 1) {
+      setSelectItems(items);
+      setSelectOpen(true);
+      setDetailsLoading(false);
+      return;
     }
 
-    setLastFetchedHu(hu);
-    setDetailsLoading(false);
-    setTimeout(() => vehicleRef.current?.focus(), 50);
+    // Single match path
+    setResult(first || null);
+    const etagValue = (first && typeof first?.ETag === "string" ? first.ETag : "");
+    setEtag(etagValue);
+
+    // If HandlingUnit present → load HU info for qty/unit; else require Location scan
+    const chosenHU = (first?.HandlingUnit || "").trim();
+    if (chosenHU) {
+      const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+      if (selectedVehicle) {
+        const preTid = showLoading(trans.checkingHandlingUnit);
+        const { data: loadedData } = await supabase.functions.invoke("ln-transport-loaded-check", {
+          body: { handlingUnit: chosenHU, vehicleId: selectedVehicle, language: locale },
+        });
+        dismissToast(preTid as unknown as string);
+        if (loadedData && loadedData.ok && Number(loadedData.count || 0) > 0) {
+          setLoadedErrorOpen(true);
+          // Clear and reset
+          setResult(null);
+          setVehicleEnabled(false);
+          setHandlingUnit("");
+          setVehicleId("");
+          setLastFetchedHu(null);
+          setEtag("");
+          setDetailsLoading(false);
+          setTimeout(() => huRef.current?.focus(), 50);
+          return;
+        }
+      }
+      const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
+        body: { handlingUnit: chosenHU, language: locale },
+      });
+      const qtyData = infoRes.data;
+      const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+      const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
+      setHuQuantity(qty);
+      setHuUnit(unit);
+      setVehicleEnabled(true);
+      const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+      if (storedVehicle) setVehicleId(storedVehicle);
+      setLastFetchedHu(chosenHU);
+      setDetailsLoading(false);
+      setTimeout(() => vehicleRef.current?.focus(), 50);
+    } else {
+      // Item-only → Location required before proceeding
+      setHuQuantity("");
+      setHuUnit("");
+      setVehicleEnabled(false);
+      setLocationRequired(true);
+      setDetailsLoading(false);
+      setTimeout(() => locationRef.current?.focus(), 50);
+    }
   };
 
   const onErrorConfirm = () => {
@@ -360,7 +376,7 @@ const TransportLoad = () => {
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
           <FloatingLabelInput
             id="handlingUnit"
-            label={trans.loadHandlingUnit}
+            label={"Handling Unit / Item"}
             autoFocus
             ref={huRef}
             value={handlingUnit}
@@ -375,6 +391,8 @@ const TransportLoad = () => {
                 setEtag("");
                 setHuQuantity("");
                 setHuUnit("");
+                setLocationRequired(false);
+                setLocationScan("");
               }
             }}
             onBlur={onHUBlur}
@@ -389,6 +407,47 @@ const TransportLoad = () => {
               }
             }}
           />
+          {locationRequired && (
+            <FloatingLabelInput
+              id="scanLocation"
+              label={trans.locationFromLabel}
+              ref={locationRef}
+              value={locationScan}
+              onChange={(e) => setLocationScan(e.target.value)}
+              onBlur={() => {
+                const loc = (locationScan || "").trim();
+                const expected = (result?.LocationFrom || "").trim();
+                if (!loc || !expected) return;
+                if (loc !== expected) {
+                  showError("Scanned Location does not match Location From");
+                  setLocationScan("");
+                  setTimeout(() => locationRef.current?.focus(), 50);
+                } else {
+                  setVehicleEnabled(true);
+                  const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+                  if (storedVehicle) setVehicleId(storedVehicle);
+                  setTimeout(() => vehicleRef.current?.focus(), 50);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const loc = (locationScan || "").trim();
+                  const expected = (result?.LocationFrom || "").trim();
+                  if (!loc || !expected) return;
+                  if (loc !== expected) {
+                    showError("Scanned Location does not match Location From");
+                    setLocationScan("");
+                    setTimeout(() => locationRef.current?.focus(), 50);
+                  } else {
+                    setVehicleEnabled(true);
+                    const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+                    if (storedVehicle) setVehicleId(storedVehicle);
+                    setTimeout(() => vehicleRef.current?.focus(), 50);
+                  }
+                }
+              }}
+            />
+          )}
           <FloatingLabelInput
             id="vehicleId"
             label={trans.loadVehicleId}
@@ -523,6 +582,79 @@ const TransportLoad = () => {
                       <div className="h-px bg-gray-200/60 mx-1 my-2" />
                     )}
                   </div>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Selection popup for multiple matches */}
+      <Dialog open={selectOpen} onOpenChange={setSelectOpen}>
+        <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">
+          <div className="text-sm">
+            <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-2 px-3 py-2 border-b rounded-t-lg bg-black text-white">
+              <div className="font-semibold">Handling Unit</div>
+              <div className="font-semibold">{trans.itemLabel}</div>
+              <div className="font-semibold">{trans.locationFromLabel}</div>
+              <div className="font-semibold">{trans.locationToLabel}</div>
+            </div>
+            <div className="max-h-64 overflow-auto mt-0 space-y-2 px-2 py-2">
+              {selectItems.length === 0 ? (
+                <div className="text-xs text-muted-foreground px-1">{trans.noEntries}</div>
+              ) : (
+                selectItems.map((it, idx) => (
+                  <button
+                    key={`${it.TransportID}-${idx}`}
+                    type="button"
+                    className="w-full text-left"
+                    onClick={async () => {
+                      setSelectOpen(false);
+                      const chosenHU = (it.HandlingUnit || "").trim();
+                      setResult({
+                        TransportID: it.TransportID,
+                        RunNumber: it.RunNumber,
+                        Item: it.Item,
+                        Warehouse: it.Warehouse,
+                        LocationFrom: it.LocationFrom,
+                        LocationTo: it.LocationTo,
+                        ETag: it.ETag,
+                      });
+                      setEtag(it.ETag || "");
+                      if (chosenHU) {
+                        const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
+                          body: { handlingUnit: chosenHU, language: locale },
+                        });
+                        const qtyData = infoRes.data;
+                        const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+                        const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
+                        setHuQuantity(qty);
+                        setHuUnit(unit);
+                        setVehicleEnabled(true);
+                        const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+                        if (storedVehicle) setVehicleId(storedVehicle);
+                        setTimeout(() => vehicleRef.current?.focus(), 50);
+                      } else {
+                        setHuQuantity("");
+                        setHuUnit("");
+                        setVehicleEnabled(false);
+                        setLocationRequired(true);
+                        setTimeout(() => locationRef.current?.focus(), 50);
+                      }
+                    }}
+                  >
+                    <div className="rounded-md bg-gray-100/80 px-3 py-2 shadow-sm">
+                      <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-2 text-xs">
+                        <div className="break-all">{it.HandlingUnit || "-"}</div>
+                        <div className="break-all">{it.Item || "-"}</div>
+                        <div className="break-all">{it.LocationFrom || "-"}</div>
+                        <div className="break-all">{it.LocationTo || "-"}</div>
+                      </div>
+                    </div>
+                    {idx < selectItems.length - 1 && (
+                      <div className="h-px bg-gray-200/60 mx-1 my-2" />
+                    )}
+                  </button>
                 ))
               )}
             </div>
