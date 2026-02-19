@@ -136,7 +136,6 @@ serve(async (req) => {
 
     // Request body for movement
     const movementBody = {
-      TransferID: "",
       FromWarehouse: fromWarehouse,
       FromLocation: fromLocation,
       ToWarehouse: toWarehouse,
