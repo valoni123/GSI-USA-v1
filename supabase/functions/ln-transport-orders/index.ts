@@ -134,8 +134,11 @@ serve(async (req) => {
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders`;
     const escRaw = codeRaw.replace(/'/g, "''");
     const escTrim = codeTrim.replace(/'/g, "''");
-    // Try both raw (with possible leading spaces) and trimmed variants
-    const filter = `(HandlingUnit eq '${escRaw}' or Item eq '${escRaw}' or HandlingUnit eq '${escTrim}' or Item eq '${escTrim}')`;
+    // Try exact raw, exact trimmed, and padded values via endswith()
+    const filter =
+      `(HandlingUnit eq '${escRaw}' or Item eq '${escRaw}'` +
+      ` or HandlingUnit eq '${escTrim}' or Item eq '${escTrim}'` +
+      ` or endswith(HandlingUnit,'${escTrim}') or endswith(Item,'${escTrim}'))`;
     const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
 
     // Call OData
