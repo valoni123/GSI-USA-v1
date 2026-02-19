@@ -20,6 +20,15 @@ function buildTokenUrl(pu: string, ot: string) {
   return base + ot.replace(/^\//, "");
 }
 
+function toAbsoluteUrl(base: string, maybeUrl: string) {
+  const u = (maybeUrl || "").toString();
+  if (!u) return "";
+  if (u.startsWith("http://") || u.startsWith("https://")) return u;
+  if (u.startsWith("/")) return `${base}${u}`;
+  // If LN returns a relative URL without a leading slash, just append with slash.
+  return `${base}/${u}`;
+}
+
 serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -67,7 +76,13 @@ serve(async (req) => {
     if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
 
     const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
-      ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
+      ci: string;
+      cs: string;
+      pu: string;
+      ot: string;
+      grant_type: string;
+      saak: string;
+      sask: string;
     };
     const grantType = grant_type === "password_credentials" ? "password" : grant_type;
 
@@ -91,59 +106,76 @@ serve(async (req) => {
     const tokenRes = await fetch(buildTokenUrl(pu, ot), {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${basic}`,
+        Authorization: `Basic ${basic}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: tokenParams.toString(),
     }).catch(() => null as unknown as Response);
     if (!tokenRes) return json({ ok: false, error: "token_network_error" }, 200);
-    const tokenJson = await tokenRes.json().catch(() => null) as any;
+    const tokenJson = (await tokenRes.json().catch(() => null)) as any;
     if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
       return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
     }
     const accessToken = tokenJson.access_token as string;
 
-    // OData call
+    // OData call (with paging support)
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/TransportPlannings`;
     const filter = `PlanningGroupTransport eq '${planningGroup.replace(/'/g, "''")}'`;
-    const url = showAll
+
+    const firstUrl = showAll
       ? `${base}${path}?$count=true&$select=*&$orderby=PlanningGroupTransport`
       : `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
 
-    const odataRes = await fetch(url, {
-      method: "GET",
-      headers: {
-        "accept": "application/json",
-        "Content-Language": language,
-        "X-Infor-LnCompany": company,
-        "Authorization": `Bearer ${accessToken}`,
-      },
-    }).catch(() => null as unknown as Response);
-    if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
-    const odataJson = await odataRes.json().catch(() => null) as any;
-    if (!odataRes.ok || !odataJson) {
-      const top = odataJson?.error?.message || "odata_error";
-      const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
-      return json({ ok: false, error: { message: top, details } }, 200);
+    const headers = {
+      accept: "application/json",
+      "Content-Language": language,
+      "X-Infor-LnCompany": company,
+      Authorization: `Bearer ${accessToken}`,
+    } as const;
+
+    let count = 0;
+    const all: any[] = [];
+    let nextUrl = firstUrl;
+
+    // LN OData typically pages results. Follow @odata.nextLink until exhausted.
+    // Cap iterations to avoid infinite loops if the upstream behaves unexpectedly.
+    for (let i = 0; i < 50 && nextUrl; i++) {
+      const odataRes = await fetch(nextUrl, { method: "GET", headers }).catch(() => null as unknown as Response);
+      if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
+      const odataJson = (await odataRes.json().catch(() => null)) as any;
+      if (!odataRes.ok || !odataJson) {
+        const top = odataJson?.error?.message || "odata_error";
+        const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
+        return json({ ok: false, error: { message: top, details } }, 200);
+      }
+
+      if (i === 0) {
+        count = odataJson["@odata.count"] ?? 0;
+      }
+
+      const pageItems = Array.isArray(odataJson.value) ? odataJson.value : [];
+      all.push(...pageItems);
+
+      const maybeNext = (odataJson["@odata.nextLink"] || odataJson["odata.nextLink"] || "") as string;
+      nextUrl = maybeNext ? toAbsoluteUrl(base, maybeNext) : "";
+
+      if (count && all.length >= count) break;
     }
 
-    const count = odataJson["@odata.count"] ?? 0;
-    const items = Array.isArray(odataJson.value)
-      ? odataJson.value.map((v: any) => ({
-          TransportID: v?.TransportID ?? "",
-          TransportType: v?.TransportType ?? "",
-          Item: v?.Item ?? "",
-          HandlingUnit: v?.HandlingUnit ?? "",
-          Warehouse: v?.Warehouse ?? "",
-          LocationFrom: v?.LocationFrom ?? "",
-          LocationTo: v?.LocationTo ?? "",
-          VehicleID: v?.VehicleID ?? "",
-          PlannedDeliveryDate: v?.PlannedDeliveryDate ?? "",
-          PlanningGroupTransport: v?.PlanningGroupTransport ?? "",
-          Description: v?.Description ?? "",
-        }))
-      : [];
+    const items = all.map((v: any) => ({
+      TransportID: v?.TransportID ?? "",
+      TransportType: v?.TransportType ?? "",
+      Item: v?.Item ?? "",
+      HandlingUnit: v?.HandlingUnit ?? "",
+      Warehouse: v?.Warehouse ?? "",
+      LocationFrom: v?.LocationFrom ?? "",
+      LocationTo: v?.LocationTo ?? "",
+      VehicleID: v?.VehicleID ?? "",
+      PlannedDeliveryDate: v?.PlannedDeliveryDate ?? "",
+      PlanningGroupTransport: v?.PlanningGroupTransport ?? "",
+      Description: v?.Description ?? "",
+    }));
 
     return json({ ok: true, count, items }, 200);
   } catch {
