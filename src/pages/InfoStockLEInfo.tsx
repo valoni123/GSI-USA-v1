@@ -10,6 +10,7 @@ import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, showSuccess, dismissToast } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import ScreenSpinner from "@/components/ScreenSpinner";
+import HelpMenu from "@/components/HelpMenu";
 
 type HUInfo = {
   handlingUnit?: string | null;
@@ -203,15 +204,18 @@ const InfoStockLEInfo = () => {
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-red-500 hover:text-red-600 hover:bg-white/10"
-            aria-label={trans.signOut}
-            onClick={() => setSignOutOpen(true)}
-          >
-            <LogOut className="h-6 w-6" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <HelpMenu topic="hu-info" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-red-500 hover:text-red-600 hover:bg-white/10"
+              aria-label={trans.signOut}
+              onClick={() => setSignOutOpen(true)}
+            >
+              <LogOut className="h-6 w-6" />
+            </Button>
+          </div>
         </div>
       </div>
 

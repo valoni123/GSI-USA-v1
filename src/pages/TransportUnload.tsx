@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, User, ArrowRight } from "lucide-react";
+import HelpMenu from "@/components/HelpMenu";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -310,15 +311,18 @@ const TransportUnload = () => {
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-red-500 hover:text-red-600 hover:bg-white/10"
-            aria-label={trans.signOut}
-            onClick={() => setSignOutOpen(true)}
-          >
-            <LogOut className="h-6 w-6" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <HelpMenu topic="transport-unload" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-red-500 hover:text-red-600 hover:bg-white/10"
+              aria-label={trans.signOut}
+              onClick={() => setSignOutOpen(true)}
+            >
+              <LogOut className="h-6 w-6" />
+            </Button>
+          </div>
         </div>
       </div>
 

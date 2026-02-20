@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import LoginForm from "@/components/LoginForm";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import HelpMenu from "@/components/HelpMenu";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,6 +76,9 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 pb-12">
       <div className="relative w-full max-w-md flex flex-col items-center">
+        <div className="absolute right-0 -top-10 md:-top-12">
+          <HelpMenu topic="login" />
+        </div>
         <h1 className="sr-only">{trans.title}</h1>
         <LoginForm
           lang={lang}
