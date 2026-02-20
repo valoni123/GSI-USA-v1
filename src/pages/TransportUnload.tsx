@@ -203,7 +203,8 @@ const TransportUnload = () => {
     };
     // For item-only moves, include item and OrderedQuantity
     if (!hu) {
-      const item = (it.Item || "").trim();
+      // IMPORTANT: Do NOT trim the item; LN expects 9 leading spaces
+      const item = (it.Item ?? "");
       const rawQty = (it.OrderedQuantity as unknown) as string | number | undefined;
       const qty =
         typeof rawQty === "number"
