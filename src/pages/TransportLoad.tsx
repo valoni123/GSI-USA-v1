@@ -54,7 +54,7 @@ const TransportLoad = () => {
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
-  const [result, setResult] = useState<{ TransportID?: string; RunNumber?: string; Item?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null>(null);
+  const [result, setResult] = useState<{ TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null>(null);
   // NEW: Quantity and Unit for the scanned Handling Unit
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
@@ -473,6 +473,8 @@ const TransportLoad = () => {
                   <div className="break-all text-gray-900">{result.TransportID ?? "-"}</div>
                   <div className="font-semibold text-gray-700">{trans.itemLabel}:</div>
                   <div className="break-all text-gray-900">{result.Item ?? "-"}</div>
+                  <div className="font-semibold text-gray-700">Handling Unit:</div>
+                  <div className="break-all text-gray-900">{(result.HandlingUnit || "").trim() || "-"}</div>
                   <div className="font-semibold text-gray-700">{trans.warehouseLabel}:</div>
                   <div className="break-all text-gray-900">{result.Warehouse ?? "-"}</div>
                   <div className="font-semibold text-gray-700">{trans.locationFromLabel}:</div>
@@ -615,6 +617,7 @@ const TransportLoad = () => {
                         TransportID: it.TransportID,
                         RunNumber: it.RunNumber,
                         Item: it.Item,
+                        HandlingUnit: it.HandlingUnit,
                         Warehouse: it.Warehouse,
                         LocationFrom: it.LocationFrom,
                         LocationTo: it.LocationTo,
