@@ -55,7 +55,7 @@ const TransportLoad = () => {
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
-  const [result, setResult] = useState<{ TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null>(null);
+  const [result, setResult] = useState<{ TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null>(null);
   // NEW: Quantity and Unit for the scanned Handling Unit
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
@@ -66,7 +66,7 @@ const TransportLoad = () => {
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [etag, setEtag] = useState<string>("");
   const [selectOpen, setSelectOpen] = useState<boolean>(false);
-  const [selectItems, setSelectItems] = useState<Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string }>>([]);
+  const [selectItems, setSelectItems] = useState<Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity: number | null }>>([]);
   const [locationScan, setLocationScan] = useState<string>("");
   const [locationRequired, setLocationRequired] = useState<boolean>(false);
   const [loadedCount, setLoadedCount] = useState<number>(0);
@@ -163,8 +163,8 @@ const TransportLoad = () => {
       return;
     }
 
-    const items = (ordData.items || []) as Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string }>;
-    const first = ordData.first as { TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string } | null;
+    const items = (ordData.items || []) as Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity: number | null }>;
+    const first = ordData.first as { TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null;
 
     // If multiple matches → open selection popup
     if ((ordData.count ?? items.length ?? 0) > 1) {
@@ -222,7 +222,7 @@ const TransportLoad = () => {
       // Item-only path
       setHuItemLabel("Item");
       // Item-only → Location required before proceeding
-      setHuQuantity("");
+      setHuQuantity(first && typeof first.OrderedQuantity === "number" ? String(first.OrderedQuantity) : "");
       setHuUnit("");
       setVehicleEnabled(false);
       setLocationRequired(true);
@@ -621,6 +621,7 @@ const TransportLoad = () => {
                         LocationFrom: it.LocationFrom,
                         LocationTo: it.LocationTo,
                         ETag: it.ETag,
+                        OrderedQuantity: it.OrderedQuantity,
                       });
                       setEtag(it.ETag || "");
                       // Update dynamic label based on presence of Handling Unit in the selected row
@@ -639,7 +640,7 @@ const TransportLoad = () => {
                         if (storedVehicle) setVehicleId(storedVehicle);
                         setTimeout(() => vehicleRef.current?.focus(), 50);
                       } else {
-                        setHuQuantity("");
+                        setHuQuantity(typeof it.OrderedQuantity === "number" ? String(it.OrderedQuantity) : "");
                         setHuUnit("");
                         setVehicleEnabled(false);
                         setLocationRequired(true);

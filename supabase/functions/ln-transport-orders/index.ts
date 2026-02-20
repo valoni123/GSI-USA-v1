@@ -181,6 +181,7 @@ serve(async (req) => {
             LocationFrom: first.LocationFrom,
             LocationTo: first.LocationTo,
             ETag: first["@odata.etag"],
+            OrderedQuantity: typeof first?.OrderedQuantity === "number" ? first.OrderedQuantity : null,
           }
         : null,
       items: arr.map((v: any) => ({
@@ -192,6 +193,7 @@ serve(async (req) => {
         LocationFrom: v?.LocationFrom ?? "",
         LocationTo: v?.LocationTo ?? "",
         ETag: v?.["@odata.etag"] ?? "",
+        OrderedQuantity: typeof v?.OrderedQuantity === "number" ? v.OrderedQuantity : null,
       })),
       raw: odataJson,
     }, 200);
