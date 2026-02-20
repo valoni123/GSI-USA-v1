@@ -15,11 +15,16 @@ import { t } from "@/lib/i18n";
 type HelpMenuProps = {
   topic: string; // e.g., "login", "transport-load", "transport-unload", "hu-info"
   className?: string;
+  colorMode?: "dark" | "light";
 };
 
-const HelpMenu: React.FC<HelpMenuProps> = ({ topic, className }) => {
+const HelpMenu: React.FC<HelpMenuProps> = ({ topic, className, colorMode = "dark" }) => {
   const lang = (localStorage.getItem("app.lang") as LanguageKey) || "en";
   const trans = t(lang);
+  const baseBtn =
+    colorMode === "dark"
+      ? "text-white hover:bg-white/10 h-9 px-2"
+      : "bg-white text-black hover:bg-gray-100 h-9 px-2 rounded-[6px] shadow-sm border border-black/10";
 
   const openDocs = () => {
     const url = `/docs?topic=${encodeURIComponent(topic)}&lang=${encodeURIComponent(lang)}`;
@@ -45,7 +50,7 @@ const HelpMenu: React.FC<HelpMenuProps> = ({ topic, className }) => {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className={["text-white hover:bg-white/10 h-9 px-2", className || ""].join(" ").trim()}
+          className={[baseBtn, className || ""].join(" ").trim()}
         >
           <HelpCircle className="h-5 w-5" />
           <ChevronDown className="h-4 w-4 ml-1 opacity-80" />

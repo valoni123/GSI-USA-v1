@@ -75,10 +75,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 pb-12">
+      <div className="fixed top-3 right-3 z-50">
+        <HelpMenu topic="login" colorMode="light" />
+      </div>
       <div className="relative w-full max-w-md flex flex-col items-center">
-        <div className="absolute right-0 -top-10 md:-top-12">
-          <HelpMenu topic="login" />
-        </div>
         <h1 className="sr-only">{trans.title}</h1>
         <LoginForm
           lang={lang}
