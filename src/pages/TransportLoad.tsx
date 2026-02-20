@@ -257,16 +257,27 @@ const TransportLoad = () => {
         localStorage.getItem("gsi.login") ||
         "") as string
     ).trim();
-    const payload = {
-      handlingUnit: handlingUnit.trim(),
+    // Build payload: HandlingUnit move OR Item move
+    const isHU = (result?.HandlingUnit || "").trim().length > 0;
+    const payload: Record<string, unknown> = {
       fromWarehouse: (result.Warehouse || "").trim(),
       fromLocation: (result.LocationFrom || "").trim(),
       toWarehouse: (result.Warehouse || "").trim(),
       toLocation: vehicleId.trim(),
       employee: employeeCode,
       language: locale,
-      company: "1100",
     };
+    if (isHU) {
+      // Handling Unit move
+      payload.handlingUnit = handlingUnit.trim();
+    } else {
+      // Item move: send Item as returned by LN (preserve leading spaces) and Quantity from OrderedQuantity
+      payload.item = (result.Item || "");
+      const qtyNum = Number((huQuantity || "").trim() || "0");
+      if (!Number.isNaN(qtyNum) && qtyNum > 0) {
+        payload.quantity = qtyNum;
+      }
+    }
     const tid = showLoading(trans.executingMovement);
     const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
     dismissToast(tid as unknown as string);

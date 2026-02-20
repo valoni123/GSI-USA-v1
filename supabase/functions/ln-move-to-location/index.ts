@@ -31,6 +31,8 @@ serve(async (req) => {
 
     let body: {
       handlingUnit?: string;
+      item?: string;
+      quantity?: number | string;
       fromWarehouse?: string;
       fromLocation?: string;
       toWarehouse?: string;
@@ -45,6 +47,12 @@ serve(async (req) => {
     }
 
     const handlingUnit = (body.handlingUnit || "").trim();
+    const itemRaw = typeof body.item === "string" ? body.item : "";
+    const itemTrim = itemRaw.trim();
+    const quantityNum =
+      typeof body.quantity === "number"
+        ? body.quantity
+        : (typeof body.quantity === "string" && body.quantity.trim() ? Number(body.quantity) : undefined);
     const fromWarehouse = (body.fromWarehouse || "").trim();
     const fromLocation = (body.fromLocation || "").trim();
     const toWarehouse = (body.toWarehouse || "").trim();
@@ -134,18 +142,27 @@ serve(async (req) => {
     const path = `/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/GSITransfers`;
     const url = `${base}${path}?$select=*`;
 
-    // Request body for movement
-    const movementBody = {
+    // Request body for movement (send either HandlingUnit OR Item+Quantity)
+    const movementBody: Record<string, unknown> = {
       FromWarehouse: fromWarehouse,
       FromLocation: fromLocation,
       ToWarehouse: toWarehouse,
       ToLocation: toLocation,
-      HandlingUnit: handlingUnit,
       LoginCode: "",
       Employee: employee,
       FromWebserver: "Yes",
       Automatisch: "No",
     };
+    if (handlingUnit) {
+      // Handling Unit move
+      movementBody.HandlingUnit = handlingUnit;
+    } else if (itemTrim) {
+      // Item move (do not send HandlingUnit; send Item exactly as given by caller, including leading spaces)
+      movementBody.Item = itemRaw;
+      if (typeof quantityNum === "number" && !Number.isNaN(quantityNum)) {
+        movementBody.Quantity = quantityNum;
+      }
+    }
 
     let moveRes: Response;
     try {
