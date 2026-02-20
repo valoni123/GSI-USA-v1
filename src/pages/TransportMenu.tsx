@@ -213,7 +213,9 @@ const TransportMenu = () => {
               }
             }}
           >
-            {tile.icon}
+            <div className="h-14 w-14 rounded-md border-2 border-red-700 flex items-center justify-center overflow-hidden">
+              {tile.icon}
+            </div>
             <div className="text-sm font-medium text-gray-700 text-center">{tile.label}</div>
           </Card>
         ))}

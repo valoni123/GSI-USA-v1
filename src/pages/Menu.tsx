@@ -79,7 +79,7 @@ function Menu() {
         {apps.map((app) => (
           <Card
             key={app.key}
-            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99] min-h-[160px]"
             onClick={() => {
               if (app.key === "incoming") {
                 navigate("/menu/incoming");
@@ -96,7 +96,9 @@ function Menu() {
               }
             }}
           >
-            {app.icon}
+            <div className="h-14 w-14 rounded-md border-2 border-red-700 flex items-center justify-center overflow-hidden">
+              {app.icon}
+            </div>
             <div className="text-sm font-medium text-gray-700 text-center">{app.label}</div>
           </Card>
         ))}
