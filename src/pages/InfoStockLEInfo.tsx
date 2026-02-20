@@ -122,7 +122,7 @@ const InfoStockLEInfo = () => {
     // Common raw values mapping
     if (["im bestand", "instock", "in stock"].includes(s)) return "instock";
     if (["staged", "zum versand bereit", "bereit zum versand", "ready to ship"].includes(s)) return "staged";
-    if (["toinspect", "zu prüfen", "zu pruefen", "to inspect", "inspection"].includes(s)) return "toinspect";
+    if (["tobeinspected", "toinspect", "zu prüfen", "zu pruefen", "to be inspected", "to inspect", "inspection"].includes(s)) return "tobeinspected";
     if (["intransit", "in transit"].includes(s)) return "intransit";
     if (["shipped", "versendet"].includes(s)) return "shipped";
     if (["blocked", "gesperrt"].includes(s)) return "blocked";
@@ -139,8 +139,8 @@ const InfoStockLEInfo = () => {
         return lang === "de" ? "Im Bestand" : lang === "es-MX" ? "En inventario" : lang === "pt-BR" ? "Em estoque" : "In Stock";
       case "staged":
         return lang === "de" ? "Zum Versand Bereit" : lang === "es-MX" ? "Preparado para envío" : lang === "pt-BR" ? "Pronto para envio" : "Staged";
-      case "toinspect":
-        return lang === "de" ? "Zu prüfen" : lang === "es-MX" ? "Por inspeccionar" : lang === "pt-BR" ? "A inspecionar" : "To Inspect";
+      case "tobeinspected":
+        return lang === "de" ? "Zu prüfen" : lang === "es-MX" ? "Por inspeccionar" : lang === "pt-BR" ? "A inspecionar" : "To be inspected";
       case "intransit":
         return lang === "de" ? "Unterwegs" : lang === "es-MX" ? "En tránsito" : lang === "pt-BR" ? "Em trânsito" : "In Transit";
       case "shipped":
@@ -164,7 +164,7 @@ const InfoStockLEInfo = () => {
         return "bg-[#78d8a3] text-black";
       case "staged":
         return "bg-[#fcc888] text-black";
-      case "toinspect":
+      case "tobeinspected":
         return "bg-[#a876eb] text-white";
       case "intransit":
         return "bg-[#55a3f3] text-black";
