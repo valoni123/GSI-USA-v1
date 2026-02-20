@@ -82,7 +82,7 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               </label>
             </div>
 
-            <Button type="submit" className="w-full h-12 text-base bg-slate-900 hover:bg-slate-900/90 text-white">
+            <Button id="loginSubmitButton" type="submit" className="w-full h-12 text-base bg-slate-900 hover:bg-slate-900/90 text-white">
               {trans.signIn}
             </Button>
           </form>

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import LoginForm from "@/components/LoginForm";
-import PageDocumentation, { type DocContent } from "@/components/PageDocumentation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import PageDocumentation, { type DocContent } from "@/components/PageDocumentation";
 
 const Index = () => {
   const [lang, setLang] = useState<LanguageKey>(() => {
@@ -91,6 +91,16 @@ const Index = () => {
               `${trans.password}: Enter your password.`,
               `${trans.transportScreen}: When checked, you go directly to Transport selection after signing in; otherwise, you go to the main menu.`,
             ],
+            screenshot: {
+              captureSelector: "#login-doc-capture",
+              highlights: [
+                { selector: "#username", color: "#55a3f3" },
+                { selector: "#password", color: "#55a3f3" },
+                { selector: "#transportScreen", color: "#fcc888" },
+                { selector: "#loginSubmitButton", color: "#78d8a3" },
+                { selector: "#languageSwitcher", color: "#a876eb" },
+              ],
+            },
           },
           {
             title: "Language",
@@ -168,6 +178,16 @@ const Index = () => {
               `${trans.password}: Geben Sie Ihr Passwort ein.`,
               `${trans.transportScreen}: Wenn aktiviert, gelangen Sie nach dem Login direkt zur Transport-Übersicht; sonst zum Hauptmenü.`,
             ],
+            screenshot: {
+              captureSelector: "#login-doc-capture",
+              highlights: [
+                { selector: "#username", color: "#55a3f3" },
+                { selector: "#password", color: "#55a3f3" },
+                { selector: "#transportScreen", color: "#fcc888" },
+                { selector: "#loginSubmitButton", color: "#78d8a3" },
+                { selector: "#languageSwitcher", color: "#a876eb" },
+              ],
+            },
           },
           {
             title: "Sprache",
@@ -242,6 +262,16 @@ const Index = () => {
               `${trans.password}: Ingrese su contraseña.`,
               `${trans.transportScreen}: Si está marcado, irá directamente a la selección de Transporte; de lo contrario, al menú principal.`,
             ],
+            screenshot: {
+              captureSelector: "#login-doc-capture",
+              highlights: [
+                { selector: "#username", color: "#55a3f3" },
+                { selector: "#password", color: "#55a3f3" },
+                { selector: "#transportScreen", color: "#fcc888" },
+                { selector: "#loginSubmitButton", color: "#78d8a3" },
+                { selector: "#languageSwitcher", color: "#a876eb" },
+              ],
+            },
           },
           { title: "Idioma", body: "Cambie el idioma desde el selector ubicado debajo de la tarjeta." },
           {
@@ -281,6 +311,16 @@ const Index = () => {
               `${trans.password}: Informe sua senha.`,
               `${trans.transportScreen}: Marcado → vai direto para seleção de Transporte; caso contrário, para o menu principal.`,
             ],
+            screenshot: {
+              captureSelector: "#login-doc-capture",
+              highlights: [
+                { selector: "#username", color: "#55a3f3" },
+                { selector: "#password", color: "#55a3f3" },
+                { selector: "#transportScreen", color: "#fcc888" },
+                { selector: "#loginSubmitButton", color: "#78d8a3" },
+                { selector: "#languageSwitcher", color: "#a876eb" },
+              ],
+            },
           },
           { title: "Idioma", body: "Use o seletor abaixo do cartão para trocar o idioma." },
           {
@@ -330,12 +370,16 @@ const Index = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 pb-12">
       <div className="relative w-full max-w-md flex flex-col items-center">
         <h1 className="sr-only">{trans.title}</h1>
-        <LoginForm
-          lang={lang}
-          onSubmit={handleLogin}
-          logoSrc="/black_logo_transparent_background.png"
-        />
-        <LanguageSwitcher value={lang} onChange={setLang} mode="overlap" />
+        <div id="login-doc-capture" className="w-full flex flex-col items-center">
+          <LoginForm
+            lang={lang}
+            onSubmit={handleLogin}
+            logoSrc="/black_logo_transparent_background.png"
+          />
+          <div id="languageSwitcher" className="w-full flex justify-center">
+            <LanguageSwitcher value={lang} onChange={setLang} mode="overlap" />
+          </div>
+        </div>
         {/* Documentation Download (visible below the card, aligned right) */}
         <div className="w-full flex justify-end mt-8 pr-1">
           <PageDocumentation userManual={docs.userManual} technicalDoc={docs.technicalDoc} compact />
