@@ -631,7 +631,6 @@ const TransportLoad = () => {
                       });
                       setEtag(it.ETag || "");
                       // Update dynamic label based on presence of Handling Unit in the selected row
-                      const chosenHU = (it.HandlingUnit || "").trim();
                       setHuItemLabel(chosenHU ? "Handling Unit" : "Item");
                       if (chosenHU) {
                         const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
