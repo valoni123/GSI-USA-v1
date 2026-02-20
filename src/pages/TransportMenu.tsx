@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowBigLeft, ArrowBigRight, Forklift, User, LogOut, Search } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -165,18 +166,13 @@ const TransportMenu = () => {
       {/* Top bar */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg-white/10"
-            aria-label={trans.back}
+          <BackButton
+            ariaLabel={trans.back}
             onClick={() => {
               sessionStorage.removeItem("transport.selected");
               navigate("/menu");
             }}
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
+          />
 
           <div className="flex flex-col items-center flex-1">
             <div className="font-bold text-lg tracking-wide text-center">{trans.appTransport}</div>

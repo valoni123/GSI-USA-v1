@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogOut, User, Search } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -883,15 +884,7 @@ const IncomingGoodsReceipt = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg白/10"
-            aria-label={trans.back}
-            onClick={() => navigate("/menu/incoming")}
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
+          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/incoming")} />
 
           <div className="flex flex-col items-center flex-1">
             <div className="font-bold text-lg tracking-wide text-center">{trans.incomingGoodsReceipt.toUpperCase()}</div>
