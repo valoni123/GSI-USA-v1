@@ -58,6 +58,8 @@ const TransportLoad = () => {
   // NEW: Quantity and Unit for the scanned Handling Unit
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
+  // NEW: Item description
+  const [itemDesc, setItemDesc] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
   const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
@@ -175,6 +177,18 @@ const TransportLoad = () => {
     setResult(first || null);
     const etagValue = (first && typeof first?.ETag === "string" ? first.ETag : "");
     setEtag(etagValue);
+
+    // Load item description (if we have an item)
+    const itmCode = (first?.Item || "").trim();
+    if (itmCode) {
+      const { data: itemData } = await supabase.functions.invoke("ln-item-info", {
+        body: { item: itmCode, language: locale },
+      });
+      const desc = itemData && itemData.ok ? String(itemData.description ?? itemData.Description ?? "") : "";
+      setItemDesc(desc);
+    } else {
+      setItemDesc("");
+    }
 
     // If HandlingUnit present → load HU info for qty/unit; else require Location scan
     const chosenHU = (first?.HandlingUnit || "").trim();
@@ -391,6 +405,7 @@ const TransportLoad = () => {
                 setEtag("");
                 setHuQuantity("");
                 setHuUnit("");
+                setItemDesc("");
                 setLocationRequired(false);
                 setLocationScan("");
               }
@@ -473,6 +488,8 @@ const TransportLoad = () => {
                   <div className="break-all text-gray-900">{result.TransportID ?? "-"}</div>
                   <div className="font-semibold text-gray-700">{trans.itemLabel}:</div>
                   <div className="break-all text-gray-900">{result.Item ?? "-"}</div>
+                  <div className="font-semibold text-gray-700">Description:</div>
+                  <div className="break-all text-gray-900">{(itemDesc || "").trim() || "-"}</div>
                   <div className="font-semibold text-gray-700">Handling Unit:</div>
                   <div className="break-all text-gray-900">{(result.HandlingUnit || "").trim() || "-"}</div>
                   <div className="font-semibold text-gray-700">{trans.warehouseLabel}:</div>
@@ -624,6 +641,17 @@ const TransportLoad = () => {
                         ETag: it.ETag,
                       });
                       setEtag(it.ETag || "");
+                      // Load item description for selection case
+                      const itmCodeSel = (it.Item || "").trim();
+                      if (itmCodeSel) {
+                        const { data: itemSel } = await supabase.functions.invoke("ln-item-info", {
+                          body: { item: itmCodeSel, language: locale },
+                        });
+                        const d = itemSel && itemSel.ok ? String(itemSel.description ?? itemSel.Description ?? "") : "";
+                        setItemDesc(d);
+                      } else {
+                        setItemDesc("");
+                      }
                       if (chosenHU) {
                         const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
                           body: { handlingUnit: chosenHU, language: locale },
