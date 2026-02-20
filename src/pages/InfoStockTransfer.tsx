@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, Search, User } from "lucide-react";
+import { LogOut, Search, User } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -119,15 +120,7 @@ const InfoStockTransfer = () => {
       {/* Top bar */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg-white/10"
-            aria-label={trans.back}
-            onClick={() => navigate("/menu/info-stock")}
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
+          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/info-stock")} />
 
           <div className="flex flex-col items-center flex-1">
             <div className="font-bold text-lg tracking-wide text-center">{trans.infoStockTransfer.toUpperCase()}</div>

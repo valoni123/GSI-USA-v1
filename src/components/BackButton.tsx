@@ -18,11 +18,7 @@ const BackButton: React.FC<BackButtonProps> = ({ onClick, ariaLabel = "Back", cl
       size="icon"
       aria-label={ariaLabel}
       onClick={onClick}
-      className={[
-        "h-9 w-9 rounded-full bg-white text-black hover:bg-white/90 shadow-sm",
-        "flex items-center justify-center",
-        className || ""
-      ].join(" ").trim()}
+      className={["text-white hover:bg-white/10", className || ""].join(" ").trim()}
     >
       <ArrowLeft className="h-5 w-5" />
     </Button>
