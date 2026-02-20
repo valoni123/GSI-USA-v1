@@ -16,18 +16,19 @@ type HelpMenuProps = {
   topic: string; // e.g., "login", "transport-load", "transport-unload", "hu-info"
   className?: string;
   colorMode?: "dark" | "light";
+  lang?: LanguageKey;
 };
 
-const HelpMenu: React.FC<HelpMenuProps> = ({ topic, className, colorMode = "dark" }) => {
-  const lang = (localStorage.getItem("app.lang") as LanguageKey) || "en";
-  const trans = t(lang);
+const HelpMenu: React.FC<HelpMenuProps> = ({ topic, className, colorMode = "dark", lang }) => {
+  const currentLang = lang || ((localStorage.getItem("app.lang") as LanguageKey) || "en");
+  const trans = t(currentLang);
   const baseBtn =
     colorMode === "dark"
       ? "text-white hover:bg-white/10 h-9 px-2"
       : "bg-white text-black hover:bg-gray-100 h-9 px-2 rounded-[6px] shadow-sm border border-black/10";
 
   const openDocs = () => {
-    const url = `/docs?topic=${encodeURIComponent(topic)}&lang=${encodeURIComponent(lang)}`;
+    const url = `/docs?topic=${encodeURIComponent(topic)}&lang=${encodeURIComponent(currentLang)}`;
     const features = [
       "noopener",
       "noreferrer",

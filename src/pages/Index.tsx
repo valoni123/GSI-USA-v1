@@ -76,7 +76,7 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 pb-12">
       <div className="fixed top-3 right-3 z-50">
-        <HelpMenu topic="login" colorMode="light" />
+        <HelpMenu topic="login" colorMode="light" lang={lang} />
       </div>
       <div className="relative w-full max-w-md flex flex-col items-center">
         <h1 className="sr-only">{trans.title}</h1>
