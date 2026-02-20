@@ -160,7 +160,7 @@ const translations: Translations = {
     loadHandlingUnit: "Handling Unit",
     loadVehicleId: "Vehicle ID",
     checkingHandlingUnit: "Checking handling unit…",
-    huNotFound: "Handling Unit not found in any Transport Order.",
+    huNotFound: "Handling Unit / Item not found in any transport order.",
     huNotFoundGeneric: "Handling Unit not found",
     itemLabel: "Item",
     locationFromLabel: "Location From",
