@@ -59,6 +59,8 @@ const TransportLoad = () => {
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
+  // NEW: dynamic label for first input
+  const [huItemLabel, setHuItemLabel] = useState<string>("Handling Unit / Item");
   const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [etag, setEtag] = useState<string>("");
@@ -179,6 +181,7 @@ const TransportLoad = () => {
     // If HandlingUnit present → load HU info for qty/unit; else require Location scan
     const chosenHU = (first?.HandlingUnit || "").trim();
     if (chosenHU) {
+      setHuItemLabel("Handling Unit");
       const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
       if (selectedVehicle) {
         const preTid = showLoading(trans.checkingHandlingUnit);
@@ -215,6 +218,8 @@ const TransportLoad = () => {
       setDetailsLoading(false);
       setTimeout(() => vehicleRef.current?.focus(), 50);
     } else {
+      // Item-only path
+      setHuItemLabel("Item");
       // Item-only → Location required before proceeding
       setHuQuantity("");
       setHuUnit("");
@@ -376,7 +381,7 @@ const TransportLoad = () => {
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
           <FloatingLabelInput
             id="handlingUnit"
-            label={"Handling Unit / Item"}
+            label={huItemLabel}
             autoFocus
             ref={huRef}
             value={handlingUnit}
@@ -393,6 +398,7 @@ const TransportLoad = () => {
                 setHuUnit("");
                 setLocationRequired(false);
                 setLocationScan("");
+                setHuItemLabel("Handling Unit / Item");
               }
             }}
             onBlur={onHUBlur}
@@ -410,7 +416,7 @@ const TransportLoad = () => {
           {locationRequired && (
             <FloatingLabelInput
               id="scanLocation"
-              label={trans.locationFromLabel}
+              label={`${trans.locationFromLabel} *`}
               ref={locationRef}
               value={locationScan}
               onChange={(e) => setLocationScan(e.target.value)}
@@ -624,6 +630,9 @@ const TransportLoad = () => {
                         ETag: it.ETag,
                       });
                       setEtag(it.ETag || "");
+                      // Update dynamic label based on presence of Handling Unit in the selected row
+                      const chosenHU = (it.HandlingUnit || "").trim();
+                      setHuItemLabel(chosenHU ? "Handling Unit" : "Item");
                       if (chosenHU) {
                         const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
                           body: { handlingUnit: chosenHU, language: locale },
