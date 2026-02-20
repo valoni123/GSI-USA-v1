@@ -92,7 +92,7 @@ serve(async (req) => {
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders`;
     const filter = `VehicleID eq '${vehicleId.replace(/'/g, "''")}'`;
-    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=TransportID,RunNumber,HandlingUnit,Item,LocationFrom,LocationTo,Warehouse`;
+    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=TransportID,RunNumber,HandlingUnit,Item,LocationFrom,LocationTo,Warehouse,OrderedQuantity`;
 
     const odataRes = await fetch(url, {
       method: "GET",
@@ -122,6 +122,7 @@ serve(async (req) => {
           LocationTo: v?.LocationTo ?? "",
           Warehouse: v?.Warehouse ?? "",
           ETag: v?.["@odata.etag"] ?? "",
+          OrderedQuantity: v?.OrderedQuantity ?? "",
         }))
       : [];
     return json({ ok: true, count, items }, 200);

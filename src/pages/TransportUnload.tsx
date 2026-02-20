@@ -19,6 +19,7 @@ type LoadedItem = {
   LocationTo: string;
   Warehouse?: string;
   ETag?: string;
+  OrderedQuantity?: number | string;
 };
 
 const TransportUnload = () => {
@@ -189,8 +190,9 @@ const TransportUnload = () => {
 
   const unloadSingle = async (it: LoadedItem, attempt = 1): Promise<boolean> => {
     const employeeCode = getEmployeeCode();
-    const payload = {
-      handlingUnit: (it.HandlingUnit || "").trim(),
+    const hu = (it.HandlingUnit || "").trim();
+    const payload: Record<string, unknown> = {
+      handlingUnit: hu,
       fromWarehouse: (it.Warehouse || "").trim(),
       fromLocation: (it.LocationFrom || "").trim(),
       toWarehouse: (it.Warehouse || "").trim(),
@@ -199,6 +201,21 @@ const TransportUnload = () => {
       language: locale,
       company: "1100",
     };
+    // For item-only moves, include item and OrderedQuantity
+    if (!hu) {
+      const item = (it.Item || "").trim();
+      const rawQty = (it.OrderedQuantity as unknown) as string | number | undefined;
+      const qty =
+        typeof rawQty === "number"
+          ? rawQty
+          : (typeof rawQty === "string" && rawQty.trim() ? Number(rawQty) : NaN);
+      if (!item || Number.isNaN(qty)) {
+        showError("Missing OrderedQuantity for item movement.");
+        return false;
+      }
+      payload.item = item;
+      payload.quantity = qty;
+    }
     const tid = showLoading(trans.executingMovement);
     const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
     dismissToast(tid as unknown as string);
@@ -360,13 +377,18 @@ const TransportUnload = () => {
                           <div className="text-sm text-gray-900">
                             {(() => {
                               const key = (it.HandlingUnit || "").trim();
-                              const q = quantities[key] || "-";
-                              const u = units[key] || "";
-                              return (
-                                <>
-                                  {q} {u ? <span className="ml-1 text-gray-700">{u}</span> : ""}
-                                </>
-                              );
+                              if (key) {
+                                const q = quantities[key] || "-";
+                                const u = units[key] || "";
+                                return (
+                                  <>
+                                    {q} {u ? <span className="ml-1 text-gray-700">{u}</span> : ""}
+                                  </>
+                                );
+                              }
+                              // Item-only row: show OrderedQuantity from TransportOrders service
+                              const oq = it.OrderedQuantity;
+                              return oq !== undefined && oq !== null && String(oq).trim() !== "" ? String(oq) : "-";
                             })()}
                           </div>
                         </div>
