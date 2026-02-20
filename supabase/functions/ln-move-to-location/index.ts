@@ -60,7 +60,17 @@ serve(async (req) => {
     const employee = (body.employee || "").trim();
     const language = body.language || "de-DE";
 
-    if (!handlingUnit || !fromWarehouse || !fromLocation || !toWarehouse || !toLocation || !employee) {
+    // Validate: either a HU move (handlingUnit) or an item move (item + quantity),
+    // and always require the common fields.
+    const hasCommon =
+      Boolean(fromWarehouse) &&
+      Boolean(fromLocation) &&
+      Boolean(toWarehouse) &&
+      Boolean(toLocation) &&
+      Boolean(employee);
+    const isHuMove = Boolean(handlingUnit);
+    const isItemMove = !isHuMove && Boolean(itemTrim) && typeof quantityNum === "number" && !Number.isNaN(quantityNum);
+    if (!hasCommon || (!isHuMove && !isItemMove)) {
       return json({ ok: false, error: "missing_fields" }, 400);
     }
 
