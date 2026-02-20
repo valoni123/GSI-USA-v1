@@ -11,79 +11,6 @@ type Section = {
   body?: string;
 };
 
-type DocContent = {
-  title: string;
-  sections: Section[];
-  footerNote?: string;
-};
-
-type PageDocumentationProps = {
-  userManual: DocContent;
-  technicalDoc: DocContent;
-  className?: string;
-};
-
-const addContent = (doc: jsPDF, content: DocContent) => {
-  const marginX = 14;
-  let y = 18;
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(content.title, marginX, y);
-  y += 8;
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-
-  const pageHeight = doc.internal.pageSize.height || 297;
-
-  const addPageIfNeeded = (addY = 8) => {
-    if (y + addY > pageHeight - 16) {
-      doc.addPage();
-      y = 18;
-    }
-  };
-
-  content.sections.forEach((sec, idx) => {
-    addPageIfNeeded(12);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(`${idx + 1}. ${sec.title}`, marginX, y);
-    y += 6;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-
-    if (sec.body) {
-      const lines = doc.splitTextToSize(sec.body, 180);
-      lines.forEach((line) => {
-        addPageIfNeeded(6);
-        doc.textI’ll fetch the Login screen and auth implementation to generate accurate content and place the download buttons in the right spot.
-
-<dyad-read path="src/pages/Index.tsx"></dyad-read>
-<dyad-read path="src/components/LoginForm.tsx"></dyad-read>
-<dyad-read path="supabase/functions/verify-gsi-login/index.ts"></dyad-read>
-<dyad-read path="src/lib/i18n.ts"></dyad-read>
-<dyad-chat-summary>Reading login page and auth function to add downloadable User/Technical PDFs</dyad-chat-summary>I’ll add a reusable PDF generator and place two download buttons on the login page that produce a User Manual and a Technical Documentation PDF with localized content.
-
-I’ll install jsPDF, create a PageDocumentation component, and integrate it on the login (Index) page with language-specific content.
-
-<dyad-add-dependency packages="jspdf"></dyad-add-dependency>
-
-<dyad-write path="src/components/PageDocumentation.tsx" description="Reusable component to generate User Manual and Technical Documentation PDFs using jsPDF.">
-"use client";
-
-import React from "react";
-import { FileText, Wrench } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import jsPDF from "jspdf";
-
-type Section = {
-  title: string;
-  bullets?: string[];
-  body?: string;
-};
-
 export type DocContent = {
   title: string;
   sections: Section[];
@@ -158,7 +85,6 @@ const addContent = (doc: jsPDF, content: DocContent) => {
     doc.setFont("helvetica", "italic");
     doc.setFontSize(10);
     doc.text(content.footerNote, marginX, y);
-    y += 6;
   }
 };
 
