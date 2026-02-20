@@ -60,7 +60,6 @@ const TransportLoad = () => {
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
   // NEW: dynamic label for first input
   const [huItemLabel, setHuItemLabel] = useState<string>("Handling Unit / Item");
   const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
@@ -160,15 +159,6 @@ const TransportLoad = () => {
     const ordData = ordRes.data;
     if (ordRes.error || !ordData || !ordData.ok || (ordData.count ?? 0) === 0) {
       setDetailsLoading(false);
-      // Dynamically determine message: try HU info; if not HU, assume Item
-      const { data: huInfo } = await supabase.functions.invoke("ln-handling-unit-info", {
-        body: { handlingUnit: huRaw, language: locale },
-      });
-      if (huInfo && huInfo.ok) {
-        setErrorMessage(trans.huNotFound || "Handling Unit not found in any Transport Order.");
-      } else {
-        setErrorMessage("Item not found in any Transport Order.");
-      }
       setErrorOpen(true);
       return;
     }
@@ -528,7 +518,7 @@ const TransportLoad = () => {
       <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{errorMessage || trans.huNotFound}</AlertDialogTitle>
+            <AlertDialogTitle>{trans.huNotFound}</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={onErrorConfirm}>OK</AlertDialogAction>
