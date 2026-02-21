@@ -5,14 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 type TopicKey = "login" | "transport-load" | "transport-unload" | "hu-info" | "info-item" | "info-transfer";
 
@@ -383,84 +376,98 @@ const Docs = () => {
           <div className="font-semibold">
             {lang === "de" ? "GSI Dokumen­tation" : lang === "es-MX" ? "Documentación GSI" : lang === "pt-BR" ? "Documentação GSI" : "GSI Documentation"}
           </div>
-          <div className="flex items-center gap-3">
-            {/* Transport dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-white hover:bg-white/10 h-9 px-3">
-                  {t(lang).appTransport}
-                  <ChevronDown className="h-4 w-4 ml-1 opacity-80" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => {
-                    window.location.href = `/docs?topic=transport-load&lang=${encodeURIComponent(lang)}`;
-                  }}
-                >
-                  {t(lang).transportLoad}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => {
-                    window.location.href = `/docs?topic=transport-unload&lang=${encodeURIComponent(lang)}`;
-                  }}
-                >
-                  {t(lang).transportUnload}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Info/Stock dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-white hover:bg-white/10 h-9 px-3">
-                  {t(lang).appInfoStock}
-                  <ChevronDown className="h-4 w-4 ml-1 opacity-80" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => {
-                    window.location.href = `/docs?topic=hu-info&lang=${encodeURIComponent(lang)}`;
-                  }}
-                >
-                  {t(lang).infoStockLEInfo}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => {
-                    window.location.href = `/docs?topic=info-item&lang=${encodeURIComponent(lang)}`;
-                  }}
-                >
-                  {t(lang).infoStockArticle}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => {
-                    window.location.href = `/docs?topic=info-transfer&lang=${encodeURIComponent(lang)}`;
-                  }}
-                >
-                  {t(lang).infoStockTransfer}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <div />
         </div>
       </div>
 
       {/* Body */}
       <div className="mx-auto max-w-6xl px-4 py-4 grid grid-cols-12 gap-4">
-        {/* Left nav */}
+        {/* Left nav with tree (Accordion) */}
         <aside className="col-span-12 md:col-span-4 lg:col-span-3">
           <div className="bg-[#1d4a85] text-white rounded-md p-3">
             <div className="text-xs uppercase tracking-wide opacity-90 mb-2">
               {lang === "de" ? "Themen" : lang === "es-MX" ? "Temas" : lang === "pt-BR" ? "Tópicos" : "Topics"}
             </div>
-            <nav className="space-y-1">
-              {topics.map(navItem)}
+            <nav className="space-y-2">
+              {/* Top-level: Login */}
+              {navItem("login")}
+
+              {/* Determine which sections to open by default */}
+              <Accordion
+                type="multiple"
+                defaultValue={[
+                  (topic === "transport-load" || topic === "transport-unload") ? "transport" : "",
+                  (topic === "hu-info" || topic === "info-item" || topic === "info-transfer") ? "infostock" : "",
+                ].filter(Boolean) as string[]}
+                className="mt-1"
+              >
+                {/* Transport section */}
+                <AccordionItem value="transport" className="border-none">
+                  <AccordionTrigger className="px-3 py-2 rounded-md text-white hover:bg-white/10 hover:no-underline">
+                    {t(lang).appTransport}
+                  </AccordionTrigger>
+                  <AccordionContent className="pl-2">
+                    <div className="flex flex-col gap-1">
+                      <a
+                        href={`/docs?topic=transport-load&lang=${encodeURIComponent(lang)}`}
+                        className={[
+                          "block px-3 py-2 rounded-md text-sm font-medium",
+                          topic === "transport-load" ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
+                        ].join(" ").trim()}
+                      >
+                        {t(lang).transportLoad}
+                      </a>
+                      <a
+                        href={`/docs?topic=transport-unload&lang=${encodeURIComponent(lang)}`}
+                        className={[
+                          "block px-3 py-2 rounded-md text-sm font-medium",
+                          topic === "transport-unload" ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
+                        ].join(" ").trim()}
+                      >
+                        {t(lang).transportUnload}
+                      </a>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Info / Stock section */}
+                <AccordionItem value="infostock" className="border-none">
+                  <AccordionTrigger className="px-3 py-2 rounded-md text-white hover:bg-white/10 hover:no-underline">
+                    {t(lang).appInfoStock}
+                  </AccordionTrigger>
+                  <AccordionContent className="pl-2">
+                    <div className="flex flex-col gap-1">
+                      <a
+                        href={`/docs?topic=hu-info&lang=${encodeURIComponent(lang)}`}
+                        className={[
+                          "block px-3 py-2 rounded-md text-sm font-medium",
+                          topic === "hu-info" ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
+                        ].join(" ").trim()}
+                      >
+                        {t(lang).infoStockLEInfo}
+                      </a>
+                      <a
+                        href={`/docs?topic=info-item&lang=${encodeURIComponent(lang)}`}
+                        className={[
+                          "block px-3 py-2 rounded-md text-sm font-medium",
+                          topic === "info-item" ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
+                        ].join(" ").trim()}
+                      >
+                        {t(lang).infoStockArticle}
+                      </a>
+                      <a
+                        href={`/docs?topic=info-transfer&lang=${encodeURIComponent(lang)}`}
+                        className={[
+                          "block px-3 py-2 rounded-md text-sm font-medium",
+                          topic === "info-transfer" ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
+                        ].join(" ").trim()}
+                      >
+                        {t(lang).infoStockTransfer}
+                      </a>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </nav>
           </div>
         </aside>
