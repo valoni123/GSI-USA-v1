@@ -5,16 +5,26 @@ import { useSearchParams } from "react-router-dom";
 import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
-type TopicKey = "login" | "transport-load" | "transport-unload" | "hu-info";
+type TopicKey = "login" | "transport-load" | "transport-unload" | "hu-info" | "info-item" | "info-transfer";
 
-const topics: TopicKey[] = ["login", "transport-load", "transport-unload", "hu-info"];
+const topics: TopicKey[] = ["login", "transport-load", "transport-unload", "hu-info", "info-item", "info-transfer"];
 
 function normalizeTopic(v: string | null): TopicKey {
   const s = (v || "").toLowerCase();
   if (s === "transport-load") return "transport-load";
   if (s === "transport-unload") return "transport-unload";
   if (s === "hu-info" || s === "le-info" || s === "huinfo") return "hu-info";
+  if (s === "info-item" || s === "item") return "info-item";
+  if (s === "info-transfer" || s === "transfer") return "info-transfer";
   return "login";
 }
 
@@ -29,6 +39,10 @@ function labelForTopic(topic: TopicKey, lang: LanguageKey) {
       return `${trans.appTransport} — ${trans.transportUnload}`;
     case "hu-info":
       return trans.infoStockLEInfo;
+    case "info-item":
+      return trans.infoStockArticle;
+    case "info-transfer":
+      return trans.infoStockTransfer;
   }
 }
 
@@ -307,7 +321,71 @@ const Docs = () => {
           <div className="font-semibold">
             {lang === "de" ? "GSI Dokumen­tation" : lang === "es-MX" ? "Documentación GSI" : lang === "pt-BR" ? "Documentação GSI" : "GSI Documentation"}
           </div>
-          <div className="text-sm opacity-90">{trans.appTransport} · {trans.appInfoStock}</div>
+          <div className="flex items-center gap-3">
+            {/* Transport dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-white hover:bg-white/10 h-9 px-3">
+                  {t(lang).appTransport}
+                  <ChevronDown className="h-4 w-4 ml-1 opacity-80" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => {
+                    window.location.href = `/docs?topic=transport-load&lang=${encodeURIComponent(lang)}`;
+                  }}
+                >
+                  {t(lang).transportLoad}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => {
+                    window.location.href = `/docs?topic=transport-unload&lang=${encodeURIComponent(lang)}`;
+                  }}
+                >
+                  {t(lang).transportUnload}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Info/Stock dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-white hover:bg-white/10 h-9 px-3">
+                  {t(lang).appInfoStock}
+                  <ChevronDown className="h-4 w-4 ml-1 opacity-80" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => {
+                    window.location.href = `/docs?topic=hu-info&lang=${encodeURIComponent(lang)}`;
+                  }}
+                >
+                  {t(lang).infoStockLEInfo}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => {
+                    window.location.href = `/docs?topic=info-item&lang=${encodeURIComponent(lang)}`;
+                  }}
+                >
+                  {t(lang).infoStockArticle}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => {
+                    window.location.href = `/docs?topic=info-transfer&lang=${encodeURIComponent(lang)}`;
+                  }}
+                >
+                  {t(lang).infoStockTransfer}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
@@ -341,3 +419,83 @@ const Docs = () => {
 };
 
 export default Docs;
+
+// EXTRA: Technofunctional docs for Item and Transfer topics
+// Note: The content for "info-item" and "info-transfer" is provided above in DocsContent via topic branching.
+
+// Extend DocsContent with Item and Transfer details
+function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
+  const trans = t(lang);
+  const title = labelForTopic(topic, lang);
+  const Section = ({ heading, children }: { heading: string; children: React.ReactNode }) => (
+    <div className="space-y-2">
+      <h3 className="text-base font-semibold text-gray-900">{heading}</h3>
+      <div className="text-sm text-gray-800 leading-relaxed">{children}</div>
+    </div>
+  );
+
+  if (topic === "info-item") {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold">{title}</h2>
+        <Section heading={lang === "de" ? "Zweck" : lang === "es-MX" ? "Propósito" : lang === "pt-BR" ? "Propósito" : "Purpose"}>
+          <p>
+            {lang === "de"
+              ? "Bestandsübersicht je Artikel und Lager/Platz inkl. Mengen (Vorhanden, Zuge­teilt, Verfügbar)."
+              : lang === "es-MX"
+              ? "Vista de inventario por artículo y almacén/ubicación con cantidades (Existencia, Asignado, Disponible)."
+              : lang === "pt-BR"
+              ? "Visão de estoque por item e armazém/local com quantidades (Em estoque, Alocado, Disponível)."
+              : "Inventory overview per item and warehouse/location with quantities (On hand, Allocated, Available)."}
+          </p>
+        </Section>
+        <Section heading={lang === "de" ? "Feldverhalten" : lang === "es-MX" ? "Comportamiento de campos" : lang === "pt-BR" ? "Comportamento dos campos" : "Field behavior"}>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>{trans.itemLabel}</strong> — {lang === "de" ? "Beim Blur/Enter wird ln-item-inventory-by-warehouse aufgerufen." : lang === "es-MX" ? "En blur/Enter se invoca ln-item-inventory-by-warehouse." : lang === "pt-BR" ? "No blur/Enter, chama ln-item-inventory-by-warehouse." : "On blur/Enter, calls ln-item-inventory-by-warehouse."}</li>
+            <li><strong>{trans.warehouseLabel}</strong> — {lang === "de" ? "Filtert Ansicht; lädt Plätze via ln-stockpoint-inventory." : lang === "es-MX" ? "Filtra la vista; carga ubicaciones vía ln-stockpoint-inventory." : lang === "pt-BR" ? "Filtra a visão; carrega locais via ln-stockpoint-inventory." : "Filters view; loads locations via ln-stockpoint-inventory."}</li>
+            <li><strong>{trans.locationLabel}</strong> — {lang === "de" ? "Lädt detaillierte Bestände zum Lagerplatz." : lang === "es-MX" ? "Carga inventario detallado de la ubicación." : lang === "pt-BR" ? "Carrega estoque detalhado do local." : "Loads detailed stock for the location."}</li>
+          </ul>
+        </Section>
+        <Section heading={lang === "de" ? "Backend-Ablauf" : lang === "es-MX" ? "Flujo backend" : lang === "pt-BR" ? "Fluxo de backend" : "Backend flow"}>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>ln-item-inventory-by-warehouse — {lang === "de" ? "Mengen je Lager" : lang === "es-MX" ? "Cantidades por almacén" : lang === "pt-BR" ? "Quantidades por armazém" : "Quantities per warehouse"}.</li>
+            <li>ln-stockpoint-inventory — {lang === "de" ? "Bestände je Lagerplatz" : lang === "es-MX" ? "Inventario por ubicación" : lang === "pt-BR" ? "Estoque por local" : "Stock per location"}.</li>
+          </ul>
+        </Section>
+      </div>
+    );
+  }
+
+  if (topic === "info-transfer") {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold">{title}</h2>
+        <Section heading={lang === "de" ? "Zweck" : lang === "es-MX" ? "Propósito" : lang === "pt-BR" ? "Propósito" : "Purpose"}>
+          <p>
+            {lang === "de"
+              ? "Schnellsuche für LE oder Artikel und Anzeige der Kerndaten; mit Artikel wird das Ziel-Lager vorbereitet."
+              : lang === "es-MX"
+              ? "Búsqueda rápida de UH o artículo y visualización de datos; con artículo se prepara el almacén destino."
+              : lang === "pt-BR"
+              ? "Busca rápida de UM ou item e exibição dos dados; com item prepara o armazém destino."
+              : "Quick search for HU or item and show key data; with item, prepare target warehouse."}
+          </p>
+        </Section>
+        <Section heading={lang === "de" ? "Feldverhalten" : lang === "es-MX" ? "Comportamiento de campos" : lang === "pt-BR" ? "Comportamento dos campos" : "Field behavior"}>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>{trans.itemOrHandlingUnit}</strong> — {lang === "de" ? "Zuerst ln-handling-unit-info; wenn nicht gefunden → ln-item-info." : lang === "es-MX" ? "Primero ln-handling-unit-info; si no existe → ln-item-info." : lang === "pt-BR" ? "Primeiro ln-handling-unit-info; se não achar → ln-item-info." : "First ln-handling-unit-info; if not found → ln-item-info."}</li>
+            <li><strong>{trans.warehouseLabel}</strong> — {lang === "de" ? "Aktivierbar nach Artikel-Treffer, zur Vorbereitung weiterer Schritte." : lang === "es-MX" ? "Habilitable tras encontrar artículo, para preparar pasos siguientes." : lang === "pt-BR" ? "Habilitável após encontrar item, para preparar próximos passos." : "Enabled after item hit, to prepare next steps."}</li>
+          </ul>
+        </Section>
+        <Section heading={lang === "de" ? "Backend-Ablauf" : lang === "es-MX" ? "Flujo backend" : lang === "pt-BR" ? "Fluxo de backend" : "Backend flow"}>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>ln-handling-unit-info — {lang === "de" ? "LE-Details inkl. Menge/Status" : lang === "es-MX" ? "Detalles de UH incl. cantidad/estado" : lang === "pt-BR" ? "Detalhes da UM incl. quantidade/status" : "HU details incl. quantity/status"}.</li>
+            <li>ln-item-info — {lang === "de" ? "Artikel-Stamminfo (Fallback)" : lang === "es-MX" ? "Información básica de artículo (respaldo)" : lang === "pt-BR" ? "Informação básica do item (fallback)" : "Basic item info (fallback)"}.</li>
+          </ul>
+        </Section>
+      </div>
+    );
+  }
+
+  // Existing branches for login, transport-load, transport-unload, hu-info remain as above
+}
