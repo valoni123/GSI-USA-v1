@@ -50,24 +50,91 @@ function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
         <Section heading={lang === "de" ? "Übersicht" : lang === "es-MX" ? "Visión general" : lang === "pt-BR" ? "Visão geral" : "Overview"}>
           <p>
             {lang === "de"
-              ? "Diese Seite dient zur Anmeldung am System. Nach erfolgreicher Anmeldung können Sie die gewünschten Apps öffnen."
+              ? "Diese Seite dient zur Anmeldung am System und zur Initialisierung der INFOR LN-Verbindung."
               : lang === "es-MX"
-              ? "Esta página sirve para iniciar sesión en el sistema. Tras iniciar sesión, podrá abrir las aplicaciones deseadas."
+              ? "Esta página sirve para iniciar sesión en el sistema e inicializar la conexión con INFOR LN."
               : lang === "pt-BR"
-              ? "Esta página é usada para entrar no sistema. Após entrar, você poderá abrir os aplicativos desejados."
-              : "This page is used to sign in to the system. After signing in, you can open the desired apps."}
+              ? "Esta página é usada para entrar no sistema e inicializar a conexão com o INFOR LN."
+              : "This page is used to sign into the system and initialize the INFOR LN connection."}
           </p>
         </Section>
-        <Section heading={lang === "de" ? "Felder" : lang === "es-MX" ? "Campos" : lang === "pt-BR" ? "Campos" : "Fields"}>
+
+        <Section heading={lang === "de" ? "Feldverhalten" : lang === "es-MX" ? "Comportamiento de campos" : lang === "pt-BR" ? "Comportamento dos campos" : "Field behavior"}>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>{trans.username}</strong> — {lang === "de" ? "Benutzerkennung" : lang === "es-MX" ? "Identificador de usuario" : lang === "pt-BR" ? "Identificador do usuário" : "User identifier"}.</li>
-            <li><strong>{trans.password}</strong> — {lang === "de" ? "Kennwort" : lang === "es-MX" ? "Contraseña" : lang === "pt-BR" ? "Senha" : "Password"}.</li>
-            <li><strong>{trans.transportScreen}</strong> — {lang === "de" ? "Direkt zur Transport-Übersicht navigieren" : lang === "es-MX" ? "Ir directamente a la pantalla de transporte" : lang === "pt-BR" ? "Ir direto para a tela de transporte" : "Navigate directly to the transport overview"}.</li>
+            <li>
+              <strong>{trans.username}</strong> — {lang === "de"
+                ? "Beim Fokus in das Passwortfeld wird der Backend-Service gsi-get-user-name mit dem Benutzernamen aufgerufen, um den Klartext-Namen anzuzeigen."
+                : lang === "es-MX"
+                ? "Al enfocar el campo de contraseña se llama al servicio gsi-get-user-name con el usuario para mostrar el nombre."
+                : lang === "pt-BR"
+                ? "Ao focar o campo de senha o serviço gsi-get-user-name é chamado com o usuário para exibir o nome."
+                : "On focusing the password field, the backend service gsi-get-user-name is called with the username to display the user's full name."}
+            </li>
+            <li>
+              <strong>{trans.password}</strong> — {lang === "de"
+                ? "Beim Klick auf Anmelden wird verify-gsi-login aufgerufen; Passwort wird nicht gespeichert."
+                : lang === "es-MX"
+                ? "Al pulsar Entrar se invoca verify-gsi-login; la contraseña no se guarda."
+                : lang === "pt-BR"
+                ? "Ao clicar em Entrar, verify-gsi-login é chamado; a senha não é armazenada."
+                : "On Sign In, verify-gsi-login is invoked; the password is not stored."}
+            </li>
+            <li>
+              <strong>{trans.transportScreen}</strong> — {lang === "de"
+                ? "Steuert die Zielseite nach der Anmeldung (Transport-Auswahl oder Hauptmenü)."
+                : lang === "es-MX"
+                ? "Controla la página destino tras iniciar sesión (selección de transporte o menú principal)."
+                : lang === "pt-BR"
+                ? "Controla a página destino após o login (seleção de transporte ou menu principal)."
+                : "Controls the destination after sign-in (transport selection or main menu)."}
+            </li>
           </ul>
         </Section>
-        <Section heading={lang === "de" ? "Aktionen" : lang === "es-MX" ? "Acciones" : lang === "pt-BR" ? "Ações" : "Actions"}>
+
+        <Section heading={lang === "de" ? "Backend-Ablauf" : lang === "es-MX" ? "Flujo backend" : lang === "pt-BR" ? "Fluxo de backend" : "Backend flow"}>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>{trans.signIn}</strong> — {lang === "de" ? "Anmeldung durchführen" : lang === "es-MX" ? "Iniciar sesión" : lang === "pt-BR" ? "Entrar" : "Sign in"}.</li>
+            <li>
+              {lang === "de" ? "verify-gsi-login" : lang === "es-MX" ? "verify-gsi-login" : lang === "pt-BR" ? "verify-gsi-login" : "verify-gsi-login"} — {lang === "de"
+                ? "Prüft Benutzer/Passwort und liefert Nutzer-ID, Benutzername, Vollname."
+                : lang === "es-MX"
+                ? "Valida usuario/contraseña y devuelve ID de usuario, usuario y nombre completo."
+                : lang === "pt-BR"
+                ? "Valida usuário/senha e retorna ID do usuário, usuário e nome completo."
+                : "Validates user/password and returns user ID, username, full name."}
+            </li>
+            <li>
+              {lang === "de" ? "ln-get-token" : lang === "es-MX" ? "ln-get-token" : lang === "pt-BR" ? "ln-get-token" : "ln-get-token"} — {lang === "de"
+                ? "Fordert das INFOR LN OAuth2 Token basierend auf aktiver Konfiguration an und speichert es lokal."
+                : lang === "es-MX"
+                ? "Solicita el token OAuth2 de INFOR LN según la configuración activa y lo guarda localmente."
+                : lang === "pt-BR"
+                ? "Solicita o token OAuth2 do INFOR LN com base na configuração ativa e o armazena localmente."
+                : "Requests the INFOR LN OAuth2 token based on the active configuration and stores it locally."}
+            </li>
+            <li>
+              {lang === "de" ? "gsi-get-user-name" : lang === "es-MX" ? "gsi-get-user-name" : lang === "pt-BR" ? "gsi-get-user-name" : "gsi-get-user-name"} — {lang === "de"
+                ? "Liefert den Klartext-Namen zum Benutzer (Anzeigezweck)."
+                : lang === "es-MX"
+                ? "Devuelve el nombre en claro del usuario (propósito visual)."
+                : lang === "pt-BR"
+                ? "Retorna o nome legível do usuário (propósito visual)."
+                : "Returns the user's readable name (for display)."}
+            </li>
+          </ul>
+        </Section>
+
+        <Section heading={lang === "de" ? "Persistenz & Sicherheit" : lang === "es-MX" ? "Persistencia y seguridad" : lang === "pt-BR" ? "Persistência e segurança" : "Persistence & security"}>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>{lang === "de" ? "Lokale Speicherung: gsi.id, gsi.full_name, gsi.username, ln.token;" : lang === "es-MX" ? "Almacenamiento local: gsi.id, gsi.full_name, gsi.username, ln.token;" : lang === "pt-BR" ? "Armazenamento local: gsi.id, gsi.full_name, gsi.username, ln.token;" : "Local storage: gsi.id, gsi.full_name, gsi.username, ln.token;"}</li>
+            <li>{lang === "de" ? "Passwörter werden nie lokal abgelegt." : lang === "es-MX" ? "Las contraseñas nunca se guardan localmente." : lang === "pt-BR" ? "Senhas nunca são armazenadas localmente." : "Passwords are never stored locally."}</li>
+            <li>{lang === "de" ? "RLS-Policies sind aktiv auf allen Tabellen (Sicherheit)." : lang === "es-MX" ? "Las políticas RLS están activas en todas las tablas (seguridad)." : lang === "pt-BR" ? "Políticas de RLS ativas em todas as tabelas (segurança)." : "RLS policies are active on all tables (security)."} </li>
+          </ul>
+        </Section>
+
+        <Section heading={lang === "de" ? "Fehlerbilder" : lang === "es-MX" ? "Escenarios de error" : lang === "pt-BR" ? "Cenários de erro" : "Error scenarios"}>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>{lang === "de" ? "Ungültige Zugangsdaten → Meldung 'Ungültiger Benutzer oder Passwort'." : lang === "es-MX" ? "Credenciales inválidas → mensaje 'Usuario o contraseña inválidos'." : lang === "pt-BR" ? "Credenciais inválidas → mensagem 'Usuário ou senha inválidos'." : "Invalid credentials → 'Invalid username or password'."}</li>
+            <li>{lang === "de" ? "Token-Abruf fehlgeschlagen → Meldung 'Token konnte nicht abgerufen werden'." : lang === "es-MX" ? "Fallo al obtener token → 'No se pudo obtener el token de acceso'." : lang === "pt-BR" ? "Falha ao obter token → 'Falha ao obter token de acesso'." : "Token retrieval failed → 'Failed to retrieve access token'."}</li>
           </ul>
         </Section>
       </div>
@@ -78,29 +145,44 @@ function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
     return (
       <div className="space-y-6">
         <h2 className="text-xl font-bold">{title}</h2>
+
         <Section heading={lang === "de" ? "Zweck" : lang === "es-MX" ? "Propósito" : lang === "pt-BR" ? "Propósito" : "Purpose"}>
           <p>
             {lang === "de"
-              ? "Ladevorgänge für Transportaufträge ausführen. Scannen Sie eine Ladeeinheit oder einen Artikel."
+              ? "Ladevorgänge aus Transportaufträgen: Scannen Sie eine LE oder einen Artikel und laden Sie auf ein Fahrzeug."
               : lang === "es-MX"
-              ? "Ejecutar operaciones de carga para órdenes de transporte. Escanee una unidad de manejo o un artículo."
+              ? "Operaciones de carga desde órdenes de transporte: escanee una UH o un artículo y cargue a un vehículo."
               : lang === "pt-BR"
-              ? "Executar operações de carregamento para ordens de transporte. Escaneie uma unidade de manuseio ou item."
-              : "Execute loading operations for transport orders. Scan a handling unit or an item."}
+              ? "Operações de carregamento de ordens de transporte: leia uma UM ou item e carregue em um veículo."
+              : "Loading operations from transport orders: scan a HU or item and load onto a vehicle."}
           </p>
         </Section>
-        <Section heading={lang === "de" ? "Felder" : lang === "es-MX" ? "Campos" : lang === "pt-BR" ? "Campos" : "Fields"}>
+
+        <Section heading={lang === "de" ? "Feldverhalten" : lang === "es-MX" ? "Comportamiento de campos" : lang === "pt-BR" ? "Comportamento dos campos" : "Field behavior"}>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Handling Unit / Item</strong> — {lang === "de" ? "Scan der LE bzw. Artikel" : lang === "es-MX" ? "Escaneo de la UH o artículo" : lang === "pt-BR" ? "Leitura da UM ou item" : "Scan the HU or item"}.</li>
-            <li><strong>{trans.loadVehicleId}</strong> — {lang === "de" ? "Fahrzeug-ID für das Beladen" : lang === "es-MX" ? "ID del vehículo para la carga" : lang === "pt-BR" ? "ID do veículo para carregamento" : "Vehicle ID to load onto"}.</li>
+            <li>{lang === "de" ? "Handling Unit / Artikel: Auf Blur wird ln-transport-orders aufgerufen, um passende Position(en) zu holen." : lang === "es-MX" ? "UH / Artículo: En blur se invoca ln-transport-orders para obtener la(s) posición(es) coincidente(s)." : lang === "pt-BR" ? "UM / Item: No blur, ln-transport-orders é chamado para obter a(s) posição(ões) correspondente(s)." : "Handling Unit / Item: On blur, ln-transport-orders is called to fetch matching line(s)."} </li>
+            <li>{lang === "de" ? "Mehrfache Treffer → Auswahl-Dialog; Einzeltreffer → Detailanzeige." : lang === "es-MX" ? "Múltiples coincidencias → diálogo de selección; única coincidencia → detalle." : lang === "pt-BR" ? "Múltiplas correspondências → diálogo de seleção; única correspondência → detalhe." : "Multiple matches → selection dialog; single match → details displayed."}</li>
+            <li>{lang === "de" ? "Mit LE: ln-handling-unit-info bestimmt Menge/Einheit; Prüft, ob LE bereits geladen (ln-transport-loaded-check)." : lang === "es-MX" ? "Con UH: ln-handling-unit-info determina cantidad/unidad; verifica si ya está cargada (ln-transport-loaded-check)." : lang === "pt-BR" ? "Com UM: ln-handling-unit-info determina quantidade/unidade; verifica se já está carregada (ln-transport-loaded-check)." : "With HU: ln-handling-unit-info gets quantity/unit; checks if HU already loaded (ln-transport-loaded-check)."} </li>
+            <li>{lang === "de" ? "Nur Artikel: erfordert Scan des 'Ort Von' zur Validierung; Fahrzeug-ID wird danach freigeschaltet." : lang === "es-MX" ? "Solo artículo: requiere escanear 'Ubicación desde' para validar; luego se habilita el ID de vehículo." : lang === "pt-BR" ? "Somente item: requer escanear 'Local de origem' para validar; em seguida habilita o ID do veículo." : "Item-only: requires scanning 'Location From' to validate; then enables Vehicle ID."}</li>
           </ul>
         </Section>
-        <Section heading={lang === "de" ? "Ablauf" : lang === "es-MX" ? "Flujo" : lang === "pt-BR" ? "Fluxo" : "Flow"}>
-          <ol className="list-decimal pl-5 space-y-1">
-            <li>{lang === "de" ? "LE/Artikel scannen" : lang === "es-MX" ? "Escanear UH/Artículo" : lang === "pt-BR" ? "Ler UM/Item" : "Scan HU/Item"}.</li>
-            <li>{lang === "de" ? "Fahrzeug-ID wählen" : lang === "es-MX" ? "Elegir ID del vehículo" : lang === "pt-BR" ? "Escolher ID do veículo" : "Choose vehicle ID"}.</li>
-            <li>{lang === "de" ? "Laden ausführen" : lang === "es-MX" ? "Ejecutar carga" : lang === "pt-BR" ? "Executar carregamento" : "Execute load"}.</li>
-          </ol>
+
+        <Section heading={lang === "de" ? "Backend-Ablauf" : lang === "es-MX" ? "Flujo backend" : lang === "pt-BR" ? "Fluxo de backend" : "Backend flow"}>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>{lang === "de" ? "ln-transport-orders — ermittelt Transportposition(en) zur HU/Artikel." : lang === "es-MX" ? "ln-transport-orders — obtiene posición(es) de transporte por UH/Artículo." : lang === "pt-BR" ? "ln-transport-orders — obtém posição(ões) de transporte por UM/Item." : "ln-transport-orders — get transport line(s) for HU/Item."}</li>
+            <li>{lang === "de" ? "ln-handling-unit-info — liefert Menge/Einheit und Status für die LE." : lang === "es-MX" ? "ln-handling-unit-info — devuelve cantidad/unidad y estado de la UH." : lang === "pt-BR" ? "ln-handling-unit-info — retorna quantidade/unidade e status da UM." : "ln-handling-unit-info — returns quantity/unit and status for the HU."}</li>
+            <li>{lang === "de" ? "ln-transport-loaded-check — prüft, ob die LE schon auf dem Fahrzeug ist." : lang === "es-MX" ? "ln-transport-loaded-check — verifica si la UH ya está en el vehículo." : lang === "pt-BR" ? "ln-transport-loaded-check — verifica se a UM já está no veículo." : "ln-transport-loaded-check — checks if HU is already on the vehicle."}</li>
+            <li>{lang === "de" ? "ln-move-to-location — führt den Ladevorgang aus (HU oder Artikel+Menge)." : lang === "es-MX" ? "ln-move-to-location — ejecuta la carga (UH o artículo+cantidad)." : lang === "pt-BR" ? "ln-move-to-location — executa o carregamento (UM ou item+quantidade)." : "ln-move-to-location — performs the load (HU or item+quantity)."} </li>
+            <li>{lang === "de" ? "ln-update-transport-order — setzt VehicleID/LocationDevice auf den Auftrag." : lang === "es-MX" ? "ln-update-transport-order — establece VehicleID/LocationDevice en la orden." : lang === "pt-BR" ? "ln-update-transport-order — define VehicleID/LocationDevice na ordem." : "ln-update-transport-order — sets VehicleID/LocationDevice on the order."}</li>
+            <li>{lang === "de" ? "ln-transport-count — aktualisiert den Ladezähler (Badge)." : lang === "es-MX" ? "ln-transport-count — actualiza el contador de carga (badge)." : lang === "pt-BR" ? "ln-transport-count — atualiza o contador de carregamento (badge)." : "ln-transport-count — updates the loaded count (badge)."} </li>
+          </ul>
+        </Section>
+
+        <Section heading={lang === "de" ? "Fehlerbilder" : lang === "es-MX" ? "Escenarios de error" : lang === "pt-BR" ? "Cenários de erro" : "Error scenarios"}>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>{lang === "de" ? "LE bereits geladen → Hinweisdialog; erneutes Laden blockiert." : lang === "es-MX" ? "UH ya cargada → diálogo de aviso; recarga bloqueada." : lang === "pt-BR" ? "UM já carregada → diálogo de aviso; novo carregamento bloqueado." : "HU already loaded → notice dialog; re-loading prevented."}</li>
+            <li>{lang === "de" ? "Falscher 'Ort Von' im Artikelpfad → Validierungsfehler, erneuter Scan nötig." : lang === "es-MX" ? "Ubicación 'desde' incorrecta en ruta de artículo → error de validación, escaneo requerido." : lang === "pt-BR" ? "Local 'de' incorreto no fluxo de item → erro de validação, nova leitura necessária." : "Incorrect 'Location From' on item path → validation error, re-scan required."}</li>
+          </ul>
         </Section>
       </div>
     );
@@ -110,29 +192,40 @@ function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
     return (
       <div className="space-y-6">
         <h2 className="text-xl font-bold">{title}</h2>
+
         <Section heading={lang === "de" ? "Zweck" : lang === "es-MX" ? "Propósito" : lang === "pt-BR" ? "Propósito" : "Purpose"}>
           <p>
             {lang === "de"
-              ? "Entladevorgänge aus einem Fahrzeug an den Zielplatz ausführen. Für Artikel ohne LE wird die bestellte Menge genutzt."
+              ? "Entladen von LE/Artikeln am Zielplatz. Bei Artikel-Positionen ohne LE wird die OrderedQuantity genutzt."
               : lang === "es-MX"
-              ? "Ejecutar descargas desde un vehículo al destino. Para artículos sin UH se usa la cantidad pedida."
+              ? "Descargar UH/Artículos en el destino. En posiciones solo de artículo sin UH se usa OrderedQuantity."
               : lang === "pt-BR"
-              ? "Executar descarregamento do veículo para o destino. Para itens sem UM, utiliza-se a quantidade pedida."
-              : "Execute unload to destination. For item-only rows, the ordered quantity is used."}
+              ? "Descarregar UM/Itens no destino. Em posições apenas de item sem UM usa-se OrderedQuantity."
+              : "Unload HU/Items to the destination. For item-only lines without HU, OrderedQuantity is used."}
           </p>
         </Section>
-        <Section heading={lang === "de" ? "Felder" : lang === "es-MX" ? "Campos" : lang === "pt-BR" ? "Campos" : "Fields"}>
+
+        <Section heading={lang === "de" ? "Datenquelle & Felder" : lang === "es-MX" ? "Fuente de datos y campos" : lang === "pt-BR" ? "Fonte de dados e campos" : "Data source & fields"}>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>{t(lang).loadHandlingUnit}</strong> / <strong>{t(lang).itemLabel}</strong></li>
-            <li><strong>{t(lang).locationFromLabel}</strong> → <strong>{t(lang).locationToLabel}</strong></li>
-            <li><strong>{t(lang).quantityLabel}</strong></li>
+            <li>{lang === "de" ? "ln-transport-list — liefert Liste der geladenen Positionen inkl. OrderedQuantity." : lang === "es-MX" ? "ln-transport-list — devuelve lista de posiciones cargadas incluyendo OrderedQuantity." : lang === "pt-BR" ? "ln-transport-list — retorna lista de posições carregadas incluindo OrderedQuantity." : "ln-transport-list — returns loaded lines including OrderedQuantity."}</li>
+            <li>{lang === "de" ? "LE-Positionen: Menge/Einheit via ln-handling-unit-info." : lang === "es-MX" ? "Posiciones con UH: cantidad/unidad vía ln-handling-unit-info." : lang === "pt-BR" ? "Posições com UM: quantidade/unidade via ln-handling-unit-info." : "HU lines: quantity/unit via ln-handling-unit-info."}</li>
+            <li>{lang === "de" ? "Artikel-Positionen: Anzeige und Verwendung von OrderedQuantity." : lang === "es-MX" ? "Posiciones de artículo: mostrar y usar OrderedQuantity." : lang === "pt-BR" ? "Posições de item: exibir e usar OrderedQuantity." : "Item-only lines: show and use OrderedQuantity."}</li>
           </ul>
         </Section>
-        <Section heading={lang === "de" ? "Ablauf" : lang === "es-MX" ? "Flujo" : lang === "pt-BR" ? "Fluxo" : "Flow"}>
-          <ol className="list-decimal pl-5 space-y-1">
-            <li>{lang === "de" ? "Positionen prüfen" : lang === "es-MX" ? "Revisar posiciones" : lang === "pt-BR" ? "Revisar posições" : "Review lines"}.</li>
-            <li>{lang === "de" ? "Entladen auslösen" : lang === "es-MX" ? "Iniciar descarga" : lang === "pt-BR" ? "Iniciar descarga" : "Trigger unload"}.</li>
-          </ol>
+
+        <Section heading={lang === "de" ? "Bewegung & Patch" : lang === "es-MX" ? "Movimiento y patch" : lang === "pt-BR" ? "Movimentação e patch" : "Movement & patch"}>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>{lang === "de" ? "ln-move-to-location — LE: HandlingUnit wird gesendet; Artikel: Item (mit 9 führenden Leerzeichen) + Quantity." : lang === "es-MX" ? "ln-move-to-location — UH: se envía HandlingUnit; Artículo: Item (con 9 espacios iniciales) + Quantity." : lang === "pt-BR" ? "ln-move-to-location — UM: envia HandlingUnit; Item: Item (com 9 espaços à esquerda) + Quantity." : "ln-move-to-location — HU: send HandlingUnit; Item: Item (with 9 leading spaces) + Quantity."}</li>
+            <li>{lang === "de" ? "ln-update-transport-order — setzt Completed='Yes', VehicleID leer und aktualisiert ETag." : lang === "es-MX" ? "ln-update-transport-order — establece Completed='Yes', VehicleID vacío y actualiza ETag." : lang === "pt-BR" ? "ln-update-transport-order — define Completed='Yes', VehicleID vazio e atualiza ETag." : "ln-update-transport-order — sets Completed='Yes', clears VehicleID, updates ETag."}</li>
+            <li>{lang === "de" ? "ln-transport-count — nach Entladen zum Aktualisieren des Zählers." : lang === "es-MX" ? "ln-transport-count — tras descargar para actualizar el contador." : lang === "pt-BR" ? "ln-transport-count — após descarregar para atualizar o contador." : "ln-transport-count — after unload to refresh the count."}</li>
+          </ul>
+        </Section>
+
+        <Section heading={lang === "de" ? "Fehlerbilder & Besonderheiten" : lang === "es-MX" ? "Escenarios de error y particularidades" : lang === "pt-BR" ? "Cenários de erro e particularidades" : "Errors & specifics"}>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>{lang === "de" ? "Zeitliche Mengenfreigabe ('Quantity to issue') → automatischer erneuter Versuch bis zu 3x." : lang === "es-MX" ? "Disponibilidad temporal de cantidad ('Quantity to issue') → reintentos automáticos hasta 3 veces." : lang === "pt-BR" ? "Disponibilidade temporal de quantidade ('Quantity to issue') → novas tentativas automáticas até 3 vezes." : "Temporal quantity availability ('Quantity to issue') → auto-retries up to 3 times."}</li>
+            <li>{lang === "de" ? "Artikel müssen exakt so gesendet werden wie geliefert (inkl. 9 Leerzeichen)." : lang === "es-MX" ? "Los artículos deben enviarse exactamente como se reciben (incl. 9 espacios)." : lang === "pt-BR" ? "Itens devem ser enviados exatamente como recebidos (incl. 9 espaços)." : "Items must be sent exactly as provided (including 9 leading spaces)."} </li>
+          </ul>
         </Section>
       </div>
     );
@@ -142,25 +235,36 @@ function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold">{title}</h2>
+
       <Section heading={lang === "de" ? "Zweck" : lang === "es-MX" ? "Propósito" : lang === "pt-BR" ? "Propósito" : "Purpose"}>
         <p>
           {lang === "de"
-            ? "Informationen zu einer Ladeeinheit anzeigen, inkl. Artikel, Menge, Lager, Status und Sperrkennzeichen."
+            ? "Anzeige der LE-Details aus INFOR LN inkl. Artikel, Menge/Einheit, Lager/Platz, Status und Sperrkennzeichen."
             : lang === "es-MX"
-            ? "Mostrar información de una unidad de manejo, incluyendo artículo, cantidad, almacén, estado y bloqueos."
+            ? "Visualización de detalles de la UH desde INFOR LN incluyendo artículo, cantidad/unidad, almacén/ubicación, estado y bloqueos."
             : lang === "pt-BR"
-            ? "Exibir informações de uma unidade de manuseio, incluindo item, quantidade, armazém, status e bloqueios."
-            : "Show information for a handling unit, including item, quantity, warehouse, status and blocking flags."}
+            ? "Exibição dos detalhes da UM a partir do INFOR LN incluindo item, quantidade/unidade, armazém/local, status e bloqueios."
+            : "Displays HU details from INFOR LN including item, quantity/unit, warehouse/location, status, and blocking flags."}
         </p>
       </Section>
-      <Section heading={lang === "de" ? "Felder" : lang === "es-MX" ? "Campos" : lang === "pt-BR" ? "Campos" : "Fields"}>
+
+      <Section heading={lang === "de" ? "Datenquelle & Felder" : lang === "es-MX" ? "Fuente de datos y campos" : lang === "pt-BR" ? "Fonte de dados e campos" : "Data source & fields"}>
         <ul className="list-disc pl-5 space-y-1">
-          <li><strong>{t(lang).loadHandlingUnit}</strong></li>
-          <li><strong>{t(lang).itemLabel}</strong></li>
-          <li><strong>{t(lang).warehouseLabel}</strong> / <strong>{t(lang).locationLabel}</strong></li>
-          <li><strong>{t(lang).quantityLabel}</strong></li>
-          <li><strong>{t(lang).statusLabel}</strong></li>
-          <li><strong>{t(lang).blockedLabel}</strong></li>
+          <li>{lang === "de" ? "ln-handling-unit-info — liest HandlingUnits(...) mit $select=* und $expand=*." : lang === "es-MX" ? "ln-handling-unit-info — lee HandlingUnits(...) con $select=* y $expand=*." : lang === "pt-BR" ? "ln-handling-unit-info — lê HandlingUnits(...) com $select=* e $expand=*." : "ln-handling-unit-info — reads HandlingUnits(...) with $select=* and $expand=*."}</li>
+          <li>{lang === "de" ? "Status wird als erstes verfügbares Feld aus Status / StatusDesc / HandlingUnitStatus übernommen und als farbiges Label dargestellt." : lang === "es-MX" ? "El estado se toma del primer campo disponible entre Status / StatusDesc / HandlingUnitStatus y se muestra como etiqueta de color." : lang === "pt-BR" ? "O status é obtido do primeiro campo disponível entre Status / StatusDesc / HandlingUnitStatus e exibido como etiqueta colorida." : "Status is taken from the first available of Status / StatusDesc / HandlingUnitStatus and shown as a colored label."}</li>
+          <li>{lang === "de" ? "Sperrkennzeichen: FullyBlocked, BlockedForOutbound, BlockedForTransferIssue, BlockedForCycleCounting, BlockedForAssembly." : lang === "es-MX" ? "Bloqueos: FullyBlocked, BlockedForOutbound, BlockedForTransferIssue, BlockedForCycleCounting, BlockedForAssembly." : lang === "pt-BR" ? "Bloqueios: FullyBlocked, BlockedForOutbound, BlockedForTransferIssue, BlockedForCycleCounting, BlockedForAssembly." : "Blocking flags: FullyBlocked, BlockedForOutbound, BlockedForTransferIssue, BlockedForCycleCounting, BlockedForAssembly."}</li>
+        </ul>
+      </Section>
+
+      <Section heading={lang === "de" ? "Statusfarben & Lokalisierung" : lang === "es-MX" ? "Colores de estado y localización" : lang === "pt-BR" ? "Cores de status e localização" : "Status colors & localization"}>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>{lang === "de" ? "instock (Im Bestand) — #78d8a3" : lang === "es-MX" ? "instock (En inventario) — #78d8a3" : lang === "pt-BR" ? "instock (Em estoque) — #78d8a3" : "instock (In Stock) — #78d8a3"}</li>
+          <li>{lang === "de" ? "staged (Zum Versand Bereit) — #fcc888" : lang === "es-MX" ? "staged (Preparado para envío) — #fcc888" : lang === "pt-BR" ? "staged (Pronto para envio) — #fcc888" : "staged (Staged) — #fcc888"}</li>
+          <li>{lang === "de" ? "tobeinspected (Zu prüfen) — #a876eb" : lang === "es-MX" ? "tobeinspected (Por inspeccionar) — #a876eb" : lang === "pt-BR" ? "tobeinspected (A inspecionar) — #a876eb" : "tobeinspected (To be inspected) — #a876eb"}</li>
+          <li>{lang === "de" ? "inTransit (Unterwegs) — #55a3f3" : lang === "es-MX" ? "inTransit (En tránsito) — #55a3f3" : lang === "pt-BR" ? "inTransit (Em trânsito) — #55a3f3" : "inTransit — #55a3f3"}</li>
+          <li>{lang === "de" ? "shipped (Versendet) — #8e8e95" : lang === "es-MX" ? "shipped (Enviado) — #8e8e95" : lang === "pt-BR" ? "shipped (Enviado) — #8e8e95" : "shipped — #8e8e95"}</li>
+          <li>{lang === "de" ? "blocked / quarantine (Gesperrt / Quarantäne) — #e66467" : lang === "es-MX" ? "blocked / quarantine (Bloqueado / Cuarentena) — #e66467" : lang === "pt-BR" ? "blocked / quarantine (Bloqueado / Quarentena) — #e66467" : "blocked / quarantine — #e66467"}</li>
+          <li>{lang === "de" ? "close (Geschlossen) — #28282a" : lang === "es-MX" ? "close (Cerrado) — #28282a" : lang === "pt-BR" ? "close (Fechado) — #28282a" : "close — #28282a"}</li>
         </ul>
       </Section>
     </div>
