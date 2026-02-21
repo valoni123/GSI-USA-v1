@@ -6,7 +6,7 @@ import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LogIn, ArrowBigLeft, ArrowBigRight, Info, Box, ArrowLeftRight } from "lucide-react";
+import { LogIn, ArrowBigLeft, ArrowBigRight, Info, Box, ArrowLeftRight, Warehouse, Package } from "lucide-react";
 
 type TopicKey = "login" | "transport-load" | "transport-unload" | "hu-info" | "info-item" | "info-transfer";
 
@@ -43,6 +43,25 @@ function labelForTopic(topic: TopicKey, lang: LanguageKey) {
 function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
   const trans = t(lang);
   const title = labelForTopic(topic, lang);
+  const topicIcon = (key: TopicKey) => {
+    switch (key) {
+      case "login":
+        return <LogIn className="h-5 w-5 text-[#1d4a85]" />;
+      case "transport-load":
+        return <ArrowBigLeft className="h-5 w-5 text-[#1d4a85]" />;
+      case "transport-unload":
+        return <ArrowBigRight className="h-5 w-5 text-[#1d4a85]" />;
+      case "hu-info":
+        return <Info className="h-5 w-5 text-[#1d4a85]" />;
+      case "info-item":
+        return <Box className="h-5 w-5 text-[#1d4a85]" />;
+      case "info-transfer":
+        return <ArrowLeftRight className="h-5 w-5 text-[#1d4a85]" />;
+      default:
+        return null;
+    }
+  };
+
   const Section = ({ heading, children }: { heading: string; children: React.ReactNode }) => (
     <div className="space-y-2">
       <h3 className="text-base font-semibold text-gray-900">{heading}</h3>
@@ -53,7 +72,7 @@ function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
   if (topic === "login") {
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-bold">{title}</h2>
+        <h2 className="text-xl font-bold flex items-center gap-2">{topicIcon(topic)} {title}</h2>
         <Section heading={lang === "de" ? "Übersicht" : lang === "es-MX" ? "Visión general" : lang === "pt-BR" ? "Visão geral" : "Overview"}>
           <p>
             {lang === "de"
@@ -151,7 +170,7 @@ function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
   if (topic === "transport-load") {
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-bold">{title}</h2>
+        <h2 className="text-xl font-bold flex items-center gap-2">{topicIcon(topic)} {title}</h2>
 
         <Section heading={lang === "de" ? "Zweck" : lang === "es-MX" ? "Propósito" : lang === "pt-BR" ? "Propósito" : "Purpose"}>
           <p>
@@ -198,7 +217,7 @@ function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
   if (topic === "transport-unload") {
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-bold">{title}</h2>
+        <h2 className="text-xl font-bold flex items-center gap-2">{topicIcon(topic)} {title}</h2>
 
         <Section heading={lang === "de" ? "Zweck" : lang === "es-MX" ? "Propósito" : lang === "pt-BR" ? "Propósito" : "Purpose"}>
           <p>
@@ -241,7 +260,7 @@ function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
   if (topic === "info-item") {
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-bold">{title}</h2>
+        <h2 className="text-xl font-bold flex items-center gap-2">{topicIcon(topic)} {title}</h2>
         <Section heading={lang === "de" ? "Zweck" : lang === "es-MX" ? "Propósito" : lang === "pt-BR" ? "Propósito" : "Purpose"}>
           <p>
             {lang === "de"
@@ -273,7 +292,7 @@ function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
   if (topic === "info-transfer") {
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-bold">{title}</h2>
+        <h2 className="text-xl font-bold flex items-center gap-2">{topicIcon(topic)} {title}</h2>
         <Section heading={lang === "de" ? "Zweck" : lang === "es-MX" ? "Propósito" : lang === "pt-BR" ? "Propósito" : "Purpose"}>
           <p>
             {lang === "de"
@@ -304,7 +323,7 @@ function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
   // hu-info
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold">{title}</h2>
+      <h2 className="text-xl font-bold flex items-center gap-2">{topicIcon(topic)} {title}</h2>
 
       <Section heading={lang === "de" ? "Zweck" : lang === "es-MX" ? "Propósito" : lang === "pt-BR" ? "Propósito" : "Purpose"}>
         <p>
@@ -432,7 +451,10 @@ const Docs = () => {
                 {/* Transport section */}
                 <AccordionItem value="transport" className="border-none">
                   <AccordionTrigger className="px-3 py-2 rounded-md text-white hover:bg-white/10 hover:no-underline">
-                    {t(lang).appTransport}
+                    <span className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-white" />
+                      {t(lang).appTransport}
+                    </span>
                   </AccordionTrigger>
                   <AccordionContent className="pl-2">
                     <div className="flex flex-col gap-1">
@@ -445,7 +467,10 @@ const Docs = () => {
                 {/* Info / Stock section */}
                 <AccordionItem value="infostock" className="border-none">
                   <AccordionTrigger className="px-3 py-2 rounded-md text-white hover:bg-white/10 hover:no-underline">
-                    {t(lang).appInfoStock}
+                    <span className="flex items-center gap-2">
+                      <Warehouse className="h-4 w-4 text-white" />
+                      {t(lang).appInfoStock}
+                    </span>
                   </AccordionTrigger>
                   <AccordionContent className="pl-2">
                     <div className="flex flex-col gap-1">
