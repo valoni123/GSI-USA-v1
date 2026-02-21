@@ -6,6 +6,7 @@ import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { LogIn, ArrowBigLeft, ArrowBigRight, Info, Box, ArrowLeftRight } from "lucide-react";
 
 type TopicKey = "login" | "transport-load" | "transport-unload" | "hu-info" | "info-item" | "info-transfer";
 
@@ -354,15 +355,42 @@ const Docs = () => {
 
   const navItem = (key: TopicKey) => {
     const isActive = key === topic;
+    const activeClasses = "bg-white text-[#1d4a85] shadow";
+    const inactiveClasses = "text-white/90 hover:text-white hover:bg-white/10";
+    // Choose icon per topic
+    let icon: React.ReactNode = null;
+    switch (key) {
+      case "login":
+        icon = <LogIn className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
+        break;
+      case "transport-load":
+        icon = <ArrowBigLeft className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
+        break;
+      case "transport-unload":
+        icon = <ArrowBigRight className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
+        break;
+      case "hu-info":
+        icon = <Info className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
+        break;
+      case "info-item":
+        icon = <Box className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
+        break;
+      case "info-transfer":
+        icon = <ArrowLeftRight className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
+        break;
+      default:
+        icon = null;
+    }
     return (
       <a
         key={key}
         href={`/docs?topic=${encodeURIComponent(key)}&lang=${encodeURIComponent(lang)}`}
         className={[
-          "block px-3 py-2 rounded-md text-sm font-medium",
-          isActive ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
+          "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium",
+          isActive ? activeClasses : inactiveClasses
         ].join(" ").trim()}
       >
+        {icon}
         {labelForTopic(key, lang)}
       </a>
     );
@@ -408,24 +436,8 @@ const Docs = () => {
                   </AccordionTrigger>
                   <AccordionContent className="pl-2">
                     <div className="flex flex-col gap-1">
-                      <a
-                        href={`/docs?topic=transport-load&lang=${encodeURIComponent(lang)}`}
-                        className={[
-                          "block px-3 py-2 rounded-md text-sm font-medium",
-                          topic === "transport-load" ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
-                        ].join(" ").trim()}
-                      >
-                        {t(lang).transportLoad}
-                      </a>
-                      <a
-                        href={`/docs?topic=transport-unload&lang=${encodeURIComponent(lang)}`}
-                        className={[
-                          "block px-3 py-2 rounded-md text-sm font-medium",
-                          topic === "transport-unload" ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
-                        ].join(" ").trim()}
-                      >
-                        {t(lang).transportUnload}
-                      </a>
+                      {navItem("transport-load")}
+                      {navItem("transport-unload")}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -437,33 +449,9 @@ const Docs = () => {
                   </AccordionTrigger>
                   <AccordionContent className="pl-2">
                     <div className="flex flex-col gap-1">
-                      <a
-                        href={`/docs?topic=hu-info&lang=${encodeURIComponent(lang)}`}
-                        className={[
-                          "block px-3 py-2 rounded-md text-sm font-medium",
-                          topic === "hu-info" ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
-                        ].join(" ").trim()}
-                      >
-                        {t(lang).infoStockLEInfo}
-                      </a>
-                      <a
-                        href={`/docs?topic=info-item&lang=${encodeURIComponent(lang)}`}
-                        className={[
-                          "block px-3 py-2 rounded-md text-sm font-medium",
-                          topic === "info-item" ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
-                        ].join(" ").trim()}
-                      >
-                        {t(lang).infoStockArticle}
-                      </a>
-                      <a
-                        href={`/docs?topic=info-transfer&lang=${encodeURIComponent(lang)}`}
-                        className={[
-                          "block px-3 py-2 rounded-md text-sm font-medium",
-                          topic === "info-transfer" ? "bg-white text-gray-900 shadow" : "text-white/90 hover:text-white hover:bg-white/10"
-                        ].join(" ").trim()}
-                      >
-                        {t(lang).infoStockTransfer}
-                      </a>
+                      {navItem("hu-info")}
+                      {navItem("info-item")}
+                      {navItem("info-transfer")}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
