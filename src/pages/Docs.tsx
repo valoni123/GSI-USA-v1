@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LogIn, ArrowBigLeft, ArrowBigRight, Info, Box, ArrowLeftRight, Warehouse, Package } from "lucide-react";
+import { LogIn, ArrowBigLeft, ArrowBigRight, Info, Box, ArrowLeftRight, Warehouse, Package, Home, Search as SearchIcon, FileDown } from "lucide-react";
 
 type TopicKey = "login" | "transport-load" | "transport-unload" | "hu-info" | "info-item" | "info-transfer";
 
@@ -40,34 +40,28 @@ function labelForTopic(topic: TopicKey, lang: LanguageKey) {
   }
 }
 
+function topicIconEl(key: TopicKey, className: string) {
+  switch (key) {
+    case "login": return <LogIn className={className} />;
+    case "transport-load": return <ArrowBigLeft className={className} />;
+    case "transport-unload": return <ArrowBigRight className={className} />;
+    case "hu-info": return <Info className={className} />;
+    case "info-item": return <Box className={className} />;
+    case "info-transfer": return <ArrowLeftRight className={className} />;
+    default: return null;
+  }
+}
+
 function DocsContent({ topic, lang }: { topic: TopicKey; lang: LanguageKey }) {
   const trans = t(lang);
   const title = labelForTopic(topic, lang);
-  const topicIcon = (key: TopicKey) => {
-    switch (key) {
-      case "login":
-        return <LogIn className="h-5 w-5 text-[#1d4a85]" />;
-      case "transport-load":
-        return <ArrowBigLeft className="h-5 w-5 text-[#1d4a85]" />;
-      case "transport-unload":
-        return <ArrowBigRight className="h-5 w-5 text-[#1d4a85]" />;
-      case "hu-info":
-        return <Info className="h-5 w-5 text-[#1d4a85]" />;
-      case "info-item":
-        return <Box className="h-5 w-5 text-[#1d4a85]" />;
-      case "info-transfer":
-        return <ArrowLeftRight className="h-5 w-5 text-[#1d4a85]" />;
-      default:
-        return null;
-    }
-  };
-
   const Section = ({ heading, children }: { heading: string; children: React.ReactNode }) => (
     <div className="space-y-2">
       <h3 className="text-base font-semibold text-gray-900">{heading}</h3>
       <div className="text-sm text-gray-800 leading-relaxed">{children}</div>
     </div>
   );
+  const topicIcon = (key: TopicKey) => topicIconEl(key, "h-5 w-5 text-[#1d4a85]");
 
   if (topic === "login") {
     return (
@@ -366,50 +360,77 @@ const Docs = () => {
   const langParam = (params.get("lang") as LanguageKey | null) || (localStorage.getItem("app.lang") as LanguageKey | null) || "en";
   const lang = (["en", "de", "es-MX", "pt-BR"] as const).includes(langParam) ? langParam : "en";
   const trans = useMemo(() => t(lang), [lang]);
+  const [query, setQuery] = useState<string>("");
+  const [results, setResults] = useState<TopicKey[]>([]);
+  const [showResults, setShowResults] = useState<boolean>(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     document.title = (lang === "de" ? "GSI Dokumentation" : lang === "es-MX" ? "Documentación GSI" : lang === "pt-BR" ? "Documentação GSI" : "GSI Documentation") + " — " + labelForTopic(topic, lang);
     document.documentElement.lang = lang;
   }, [lang, topic]);
 
-  const navItem = (key: TopicKey) => {
-    const isActive = key === topic;
-    const activeClasses = "bg-white text-[#1d4a85] shadow";
-    const inactiveClasses = "text-white/90 hover:text-white hover:bg-white/10";
-    // Choose icon per topic
-    let icon: React.ReactNode = null;
+  // Build a minimal full-text index per topic (localized)
+  const topicText = (key: TopicKey): string => {
+    const L = (s: string) => s; // strings already localized below
     switch (key) {
       case "login":
-        icon = <LogIn className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
-        break;
+        return [
+          labelForTopic("login", lang),
+          trans.username, trans.password, trans.transportScreen, trans.signIn,
+          lang === "de" ? "Anmeldung, INFOR LN Verbindung, verify-gsi-login, ln-get-token" :
+          lang === "es-MX" ? "Inicio de sesión, conexión INFOR LN, verify-gsi-login, ln-get-token" :
+          lang === "pt-BR" ? "Login, conexão INFOR LN, verify-gsi-login, ln-get-token" :
+          "Sign in, INFOR LN connection, verify-gsi-login, ln-get-token"
+        ].join(" ");
       case "transport-load":
-        icon = <ArrowBigLeft className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
-        break;
+        return [labelForTopic(key, lang), trans.loadVehicleId, trans.loadAction, trans.loadHandlingUnit, trans.itemLabel, "ln-transport-orders ln-handling-unit-info ln-move-to-location"].join(" ");
       case "transport-unload":
-        icon = <ArrowBigRight className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
-        break;
+        return [labelForTopic(key, lang), trans.unloadAction, trans.locationFromLabel, trans.locationToLabel, trans.quantityLabel, "OrderedQuantity ln-transport-list ln-move-to-location"].join(" ");
       case "hu-info":
-        icon = <Info className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
-        break;
+        return [labelForTopic(key, lang), trans.statusLabel, trans.blockedLabel, "ln-handling-unit-info"].join(" ");
       case "info-item":
-        icon = <Box className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
-        break;
+        return [labelForTopic(key, lang), trans.onHandLabel, trans.availableLabel, "ln-item-inventory-by-warehouse ln-stockpoint-inventory"].join(" ");
       case "info-transfer":
-        icon = <ArrowLeftRight className={isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-white"} />;
-        break;
-      default:
-        icon = null;
+        return [labelForTopic(key, lang), trans.itemOrHandlingUnit, trans.warehouseLabel, "ln-handling-unit-info ln-item-info"].join(" ");
     }
+  };
+
+  const runSearch = (q: string) => {
+    const v = q.trim().toLowerCase();
+    if (!v) {
+      setResults([]);
+      setShowResults(false);
+      return;
+    }
+    const hits = topics.filter((k) => topicText(k).toLowerCase().includes(v));
+    setResults(hits);
+    setShowResults(true);
+  };
+
+  const goToTopic = (key: TopicKey) => {
+    window.location.href = `/docs?topic=${encodeURIComponent(key)}&lang=${encodeURIComponent(lang)}`;
+  };
+
+  const onPrint = () => {
+    window.print();
+  };
+
+  const navItem = (key: TopicKey) => {
+    const isActive = key === topic;
+    const activeClasses = "bg-[#e9f0fb] text-[#1d4a85] shadow-sm";
+    const inactiveClasses = "text-gray-700 hover:text-[#1d4a85] hover:bg-[#eef4ff]";
+    const iconClass = isActive ? "h-4 w-4 text-[#1d4a85]" : "h-4 w-4 text-gray-600";
     return (
       <a
         key={key}
         href={`/docs?topic=${encodeURIComponent(key)}&lang=${encodeURIComponent(lang)}`}
         className={[
-          "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium",
+          "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
           isActive ? activeClasses : inactiveClasses
         ].join(" ").trim()}
       >
-        {icon}
+        {topicIconEl(key, iconClass)}
         {labelForTopic(key, lang)}
       </a>
     );
@@ -417,22 +438,106 @@ const Docs = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Top header */}
-      <div className="bg-[#163e72] text-white">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <div className="font-semibold">
-            {lang === "de" ? "GSI Dokumen­tation" : lang === "es-MX" ? "Documentación GSI" : lang === "pt-BR" ? "Documentação GSI" : "GSI Documentation"}
+      {/* Top header with Home, centered Search, PDF (print) — hidden in print */}
+      <div className="bg-[#163e72] text-white print:hidden">
+        <div className="mx-auto max-w-6xl px-4 py-3 grid grid-cols-12 items-center gap-4">
+          {/* Left: Home */}
+          <div className="col-span-2 flex items-center">
+            <a
+              href={`/docs?topic=login&lang=${encodeURIComponent(lang)}`}
+              className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-white/10 transition-colors"
+              aria-label="Home"
+              title="Home"
+            >
+              <Home className="h-5 w-5 text-white" />
+            </a>
+            <div className="ml-3 font-semibold hidden sm:block">
+              {lang === "de" ? "GSI Dokumentation" : lang === "es-MX" ? "Documentación GSI" : lang === "pt-BR" ? "Documentação GSI" : "GSI Documentation"}
+            </div>
           </div>
-          <div />
+          {/* Center: Search */}
+          <div className="col-span-8">
+            <div className="relative">
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  runSearch(e.target.value);
+                }}
+                onFocus={() => runSearch(query)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (results.length > 0) goToTopic(results[0]);
+                    else setShowResults(false);
+                  }
+                  if (e.key === "Escape") {
+                    setShowResults(false);
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+                placeholder={
+                  lang === "de" ? "Gesamtsuche" :
+                  lang === "es-MX" ? "Búsqueda global" :
+                  lang === "pt-BR" ? "Busca geral" :
+                  "Global search"
+                }
+                className="w-full h-10 rounded-md bg-white text-gray-900 placeholder:text-gray-500 pl-10 pr-10 shadow-sm border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+              />
+              <SearchIcon
+                className="h-5 w-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              />
+              <button
+                type="button"
+                aria-label="Search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-7 w-7 rounded hover:bg-gray-200/60"
+                onClick={() => {
+                  if (results.length > 0) goToTopic(results[0]);
+                }}
+              >
+                <SearchIcon className="h-4 w-4 text-gray-700" />
+              </button>
+              {/* Results dropdown */}
+              {showResults && results.length > 0 && (
+                <div className="absolute z-50 mt-2 w-full rounded-md bg-white text-gray-900 shadow-lg border border-gray-200">
+                  <div className="py-1 max-h-64 overflow-auto">
+                    {results.map((r) => (
+                      <a
+                        key={r}
+                        href={`/docs?topic=${encodeURIComponent(r)}&lang=${encodeURIComponent(lang)}`}
+                        className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50"
+                        onClick={() => setShowResults(false)}
+                      >
+                        {topicIconEl(r, "h-4 w-4 text-[#1d4a85]")}
+                        <span className="text-sm">{labelForTopic(r, lang)}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Right: PDF (print) */}
+          <div className="col-span-2 flex items-center justify-end">
+            <button
+              type="button"
+              aria-label="Download PDF"
+              title="Download PDF"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-white/10 transition-colors"
+              onClick={onPrint}
+            >
+              <FileDown className="h-5 w-5 text-white" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Body */}
       <div className="mx-auto max-w-6xl px-4 py-4 grid grid-cols-12 gap-4">
-        {/* Left nav with tree (Accordion) */}
-        <aside className="col-span-12 md:col-span-4 lg:col-span-3">
-          <div className="bg-[#1d4a85] text-white rounded-md p-3">
-            <div className="text-xs uppercase tracking-wide opacity-90 mb-2">
+        {/* Left nav with tree (Accordion) — light style, visible in print as TOC */}
+        <aside className="col-span-12 md:col-span-4 lg:col-span-3 print:hidden">
+          <div className="bg-white text-gray-900 rounded-md p-3 border">
+            <div className="text-xs uppercase tracking-wide text-gray-600 mb-2">
               {lang === "de" ? "Themen" : lang === "es-MX" ? "Temas" : lang === "pt-BR" ? "Tópicos" : "Topics"}
             </div>
             <nav className="space-y-2">
@@ -450,9 +555,9 @@ const Docs = () => {
               >
                 {/* Transport section */}
                 <AccordionItem value="transport" className="border-none">
-                  <AccordionTrigger className="px-3 py-2 rounded-md text-white hover:bg-white/10 hover:no-underline">
+                  <AccordionTrigger className="px-3 py-2 rounded-md text-gray-800 hover:bg-gray-50 hover:no-underline">
                     <span className="flex items-center gap-2">
-                      <Package className="h-4 w-4 text-white" />
+                      <Package className="h-4 w-4 text-[#1d4a85]" />
                       {t(lang).appTransport}
                     </span>
                   </AccordionTrigger>
@@ -466,9 +571,9 @@ const Docs = () => {
 
                 {/* Info / Stock section */}
                 <AccordionItem value="infostock" className="border-none">
-                  <AccordionTrigger className="px-3 py-2 rounded-md text-white hover:bg-white/10 hover:no-underline">
+                  <AccordionTrigger className="px-3 py-2 rounded-md text-gray-800 hover:bg-gray-50 hover:no-underline">
                     <span className="flex items-center gap-2">
-                      <Warehouse className="h-4 w-4 text-white" />
+                      <Warehouse className="h-4 w-4 text-[#1d4a85]" />
                       {t(lang).appInfoStock}
                     </span>
                   </AccordionTrigger>
@@ -487,7 +592,7 @@ const Docs = () => {
 
         {/* Content */}
         <main className="col-span-12 md:col-span-8 lg:col-span-9">
-          <div className="bg-white rounded-md border p-5">
+          <div className="bg-white rounded-md border p-5 print:border-0">
             <DocsContent topic={topic} lang={lang} />
             <Separator className="my-6" />
             <div className="text-xs text-gray-500">
