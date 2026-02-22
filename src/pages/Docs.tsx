@@ -448,6 +448,41 @@ const Docs = () => {
     pdf.save(filename);
   };
 
+  // Highlight search terms inside the current document (yellow marks)
+  useEffect(() => {
+    const root = contentRef.current;
+    if (!root) return;
+    // Clear previous highlights
+    const existingMarks = root.querySelectorAll("mark.__doc-highlight");
+    existingMarks.forEach((m) => {
+      const parent = m.parentElement;
+      if (!parent) return;
+      m.replaceWith(document.createTextNode(m.textContent || ""));
+      parent.normalize();
+    });
+    const q = query.trim();
+    if (!q) return;
+    // Split into words and build case-insensitive regex
+    const words = Array.from(new Set(q.split(/\s+/).filter(Boolean)));
+    if (words.length === 0) return;
+    const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = words.map(escapeRegExp).join("|");
+    const re = new RegExp(`(${pattern})`, "gi");
+    // Process common text containers
+    const selectors = ["p", "li", "h2", "h3", "div"];
+    root.querySelectorAll(selectors.join(",")).forEach((el) => {
+      // Skip elements with complex children where replacement may break layout (like code blocks, navs)
+      if (el.closest("nav")) return;
+      const html = el.innerHTML;
+      // Avoid matching inside existing tags by operating on text content via simple HTML replacement
+      // Note: As docs are simple text, this is acceptable here.
+      const replaced = html.replace(re, '<mark class="__doc-highlight bg-yellow-200">$1</mark>');
+      if (replaced !== html) {
+        el.innerHTML = replaced;
+      }
+    });
+  }, [query, topic, lang]);
+
   const navItem = (key: TopicKey) => {
     const isActive = key === topic;
     const activeClasses = "bg-[#e9f0fb] text-[#1d4a85] shadow-sm";
@@ -472,9 +507,9 @@ const Docs = () => {
     <div className="min-h-screen bg-gray-100">
       {/* Top header with Home, centered Search, PDF (print) — hidden in print */}
       <div className="bg-[#163e72] text-white print:hidden">
-        <div className="mx-auto max-w-6xl px-4 py-3 grid grid-cols-12 items-center gap-4">
+        <div className="mx-auto max-w-6xl px-4 py-3 grid grid-cols-12 items-center gap-3">
           {/* Left: Home */}
-          <div className="col-span-2 flex items-center">
+          <div className="col-span-3 flex items-center">
             <a
               href={`/docs?topic=login&lang=${encodeURIComponent(lang)}`}
               className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-white/10 transition-colors"
@@ -483,13 +518,13 @@ const Docs = () => {
             >
               <Home className="h-5 w-5 text-white" />
             </a>
-            <div className="ml-3 font-semibold hidden sm:block">
+            <div className="ml-3 font-semibold">
               {lang === "de" ? "GSI Dokumentation" : lang === "es-MX" ? "Documentación GSI" : lang === "pt-BR" ? "Documentação GSI" : "GSI Documentation"}
             </div>
           </div>
           {/* Center: Search */}
-          <div className="col-span-8">
-            <div className="relative mx-auto max-w-sm">
+          <div className="col-span-6">
+            <div className="relative mx-auto max-w-[220px]">
               <input
                 ref={inputRef}
                 value={query}
@@ -514,20 +549,20 @@ const Docs = () => {
                   lang === "pt-BR" ? "Busca geral" :
                   "Global search"
                 }
-                className="w-full h-9 rounded-md bg-white text-gray-900 placeholder:text-gray-500 pl-9 pr-9 shadow-sm border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+                className="w-full h-8 rounded-md bg-white text-gray-900 placeholder:text-gray-500 pl-8 pr-8 shadow-sm border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
               />
               <SearchIcon
-                className="h-4.5 w-4.5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                className="h-4 w-4 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
               />
               <button
                 type="button"
                 aria-label="Search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-7 w-7 rounded hover:bg-gray-200/60"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-6 w-6 rounded hover:bg-gray-200/60"
                 onClick={() => {
                   if (results.length > 0) goToTopic(results[0]);
                 }}
               >
-                <SearchIcon className="h-4 w-4 text-gray-700" />
+                <SearchIcon className="h-3.5 w-3.5 text-gray-700" />
               </button>
               {/* Results dropdown */}
               {showResults && results.length > 0 && (
@@ -550,7 +585,7 @@ const Docs = () => {
             </div>
           </div>
           {/* Right: PDF (print) */}
-          <div className="col-span-2 flex items-center justify-end gap-1">
+          <div className="col-span-3 flex items-center justify-end gap-1">
             <button
               type="button"
               aria-label="Print"
