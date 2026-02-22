@@ -6,7 +6,9 @@ import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LogIn, ArrowBigLeft, ArrowBigRight, Info, Box, ArrowLeftRight, Warehouse, Package, Home, Search as SearchIcon, FileDown } from "lucide-react";
+import { LogIn, ArrowBigLeft, ArrowBigRight, Info, Box, ArrowLeftRight, Warehouse, Package, Home, Search as SearchIcon, FileDown, Printer } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 type TopicKey = "login" | "transport-load" | "transport-unload" | "hu-info" | "info-item" | "info-transfer";
 
@@ -358,12 +360,13 @@ const Docs = () => {
   const [params] = useSearchParams();
   const topic = normalizeTopic(params.get("topic"));
   const langParam = (params.get("lang") as LanguageKey | null) || (localStorage.getItem("app.lang") as LanguageKey | null) || "en";
-  const lang = (["en", "de", "es-MX", "pt-BR"] as const).includes(langParam) ? langParam : "en";
+  const lang = (["en", "de", "es-MX", "pt-BR" ] as const).includes(langParam) ? langParam : "en";
   const trans = useMemo(() => t(lang), [lang]);
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<TopicKey[]>([]);
   const [showResults, setShowResults] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     document.title = (lang === "de" ? "GSI Dokumentation" : lang === "es-MX" ? "Documentación GSI" : lang === "pt-BR" ? "Documentação GSI" : "GSI Documentation") + " — " + labelForTopic(topic, lang);
@@ -416,6 +419,35 @@ const Docs = () => {
     window.print();
   };
 
+  const onDownloadPdf = async () => {
+    const el = contentRef.current;
+    if (!el) return;
+    
+    // Render the content area to canvas
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff" });
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    
+    const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
+    heightLeft -= pageHeight;
+    while (heightLeft > 0) {
+      pdf.addPage();
+      position = heightLeft - imgHeight;
+      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
+      heightLeft -= pageHeight;
+    }
+    
+    const filename = `${labelForTopic(topic, lang).replace(/\s+/g, "_")}.pdf`;
+    pdf.save(filename);
+  };
+
   const navItem = (key: TopicKey) => {
     const isActive = key === topic;
     const activeClasses = "bg-[#e9f0fb] text-[#1d4a85] shadow-sm";
@@ -457,7 +489,7 @@ const Docs = () => {
           </div>
           {/* Center: Search */}
           <div className="col-span-8">
-            <div className="relative">
+            <div className="relative mx-auto max-w-xl">
               <input
                 ref={inputRef}
                 value={query}
@@ -482,10 +514,10 @@ const Docs = () => {
                   lang === "pt-BR" ? "Busca geral" :
                   "Global search"
                 }
-                className="w-full h-10 rounded-md bg-white text-gray-900 placeholder:text-gray-500 pl-10 pr-10 shadow-sm border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+                className="w-full h-9 rounded-md bg-white text-gray-900 placeholder:text-gray-500 pl-9 pr-9 shadow-sm border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
               />
               <SearchIcon
-                className="h-5 w-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                className="h-4.5 w-4.5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
               />
               <button
                 type="button"
@@ -518,13 +550,22 @@ const Docs = () => {
             </div>
           </div>
           {/* Right: PDF (print) */}
-          <div className="col-span-2 flex items-center justify-end">
+          <div className="col-span-2 flex items-center justify-end gap-1">
+            <button
+              type="button"
+              aria-label="Print"
+              title="Print"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-white/10 transition-colors"
+              onClick={onPrint}
+            >
+              <Printer className="h-5 w-5 text-white" />
+            </button>
             <button
               type="button"
               aria-label="Download PDF"
               title="Download PDF"
               className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-white/10 transition-colors"
-              onClick={onPrint}
+              onClick={onDownloadPdf}
             >
               <FileDown className="h-5 w-5 text-white" />
             </button>
@@ -592,7 +633,7 @@ const Docs = () => {
 
         {/* Content */}
         <main className="col-span-12 md:col-span-8 lg:col-span-9">
-          <div className="bg-white rounded-md border p-5 print:border-0">
+          <div ref={contentRef} className="bg-white rounded-md border p-5 print:border-0">
             <DocsContent topic={topic} lang={lang} />
             <Separator className="my-6" />
             <div className="text-xs text-gray-500">
