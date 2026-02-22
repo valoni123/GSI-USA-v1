@@ -489,7 +489,7 @@ const Docs = () => {
           </div>
           {/* Center: Search */}
           <div className="col-span-8">
-            <div className="relative mx-auto max-w-xl">
+            <div className="relative mx-auto max-w-sm">
               <input
                 ref={inputRef}
                 value={query}
