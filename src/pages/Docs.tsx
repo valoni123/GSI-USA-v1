@@ -468,14 +468,14 @@ const Docs = () => {
     const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = words.map(escapeRegExp).join("|");
     const re = new RegExp(`(${pattern})`, "gi");
-    // Process common text containers
-    const selectors = ["p", "li", "h2", "h3", "div"];
+    // Process only simple text containers (avoid complex nested elements)
+    const selectors = ["p", "li", "h2", "h3"];
     root.querySelectorAll(selectors.join(",")).forEach((el) => {
-      // Skip elements with complex children where replacement may break layout (like code blocks, navs)
-      if (el.closest("nav")) return;
+      // Skip elements inside navigation/sidebars
+      if (el.closest("nav") || el.closest("aside")) return;
+      // Only highlight elements that don't have nested child elements (simple text blocks)
+      if (el.childElementCount > 0) return;
       const html = el.innerHTML;
-      // Avoid matching inside existing tags by operating on text content via simple HTML replacement
-      // Note: As docs are simple text, this is acceptable here.
       const replaced = html.replace(re, '<mark class="__doc-highlight bg-yellow-200">$1</mark>');
       if (replaced !== html) {
         el.innerHTML = replaced;
