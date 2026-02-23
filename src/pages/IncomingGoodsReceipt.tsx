@@ -417,8 +417,29 @@ const IncomingGoodsReceipt = () => {
       }))
       .filter((x) => Number.isFinite(x.Line));
 
-    // NEW: If only order number was provided and no lines were found, show error and refocus Order Number
-    if (!lineTrim && mappedLines.length === 0) {
+    // Fallback: if no open inbound lines were found, try received lines by origin(s) to avoid false "Order not found"
+    if (mappedLines.length === 0) {
+      const tryOrigins = (orderType || lotsOrigin)
+        ? [ (orderType || lotsOrigin).trim() ]
+        : [ "Purchase", "Sales", "Transfer", "TransferManual", "JSCProduction" ];
+      for (const originCandidate of tryOrigins) {
+        if (!originCandidate) continue;
+        const count = await loadReceivedLines(trimmed, originCandidate);
+        if (count > 0) {
+          // We have received lines; show Order Type chip and enable the Received Lines button
+          setOrderType(originCandidate);
+          setShowOrderType(true);
+          setOrderTypeOptions([]);
+          setOrderTypeDisabled(true);
+          setOrderTypeRequired(false);
+          setInboundLinesAll([]);
+          setInboundLinesGrouped([]);
+          setHasMultipleLines(false);
+          setLastCheckedOrder(`${trimmed}|${lineTrim}|${originCandidate}`);
+          return;
+        }
+      }
+      // No open lines and no received lines found for known origins → show not found
       setShowOrderType(false);
       setOrderType("");
       setOrderTypeOptions([]);
