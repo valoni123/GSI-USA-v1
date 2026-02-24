@@ -130,10 +130,10 @@ serve(async (req) => {
     }
     const accessToken = tokenJson.access_token as string
 
-    // OData call: WarehouseInspections filtered by Order/Inspection/HandlingUnit and not Processed
+    // OData call: WarehouseInspections filtered by Order/Inspection/HandlingUnit and status Open
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu
     const escaped = q.replace(/'/g, "''")
-    const filter = `(InspectionStatus ne txgsi.WarehouseInspections.WarehouseInspectionStatus'Processed') and (Order eq '${escaped}' or Inspection eq '${escaped}' or HandlingUnit eq '${escaped}')`
+    const filter = `(InspectionStatus eq txgsi.WarehouseInspections.WarehouseInspectionStatus'Open') and (Order eq '${escaped}' or Inspection eq '${escaped}' or HandlingUnit eq '${escaped}')`
 
     const params = new URLSearchParams({
       "$filter": filter,
