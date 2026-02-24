@@ -1,10 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-// REMOVED: Button import
-// import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
 
 type InspectionRecord = {
   Order?: string;
@@ -27,6 +26,15 @@ type InspectionRecord = {
   Unit?: string;
   QuantityToBeInspectedInStorageUnit?: number;
   StorageUnit?: string;
+  [key: string]: any;
+};
+
+type PositionRecord = {
+  Position?: number;
+  QuantityToBeInspectedInStorageUnit?: number;
+  StorageUnit?: string;
+  Item?: string;
+  ItemRef?: { Item?: string; Description?: string };
   [key: string]: any;
 };
 
@@ -107,6 +115,20 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
   const s = originColorStyle(origin);
   const grouped = groupByLine(records);
 
+  // Track expanded line and its positions
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [positionsByKey, setPositionsByKey] = useState<Record<string, PositionRecord[]>>({});
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+
+  const fetchPositions = async (inspection: string, sequence: number) => {
+    const { data, error } = await supabase.functions.invoke("ln-inspection-lines", {
+      body: { inspection, sequence, language: "en-US" },
+    });
+    if (error || !data || !data.ok) return { count: 0, value: [] as PositionRecord[] };
+    const value = Array.isArray(data.value) ? data.value : [];
+    return { count: Number(data.count || value.length || 0), value };
+  };
+
   return (
     <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : null)}>
       <DialogContent className="sm:max-w-md">
@@ -141,37 +163,109 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                   </div>
                   {grp.items.map((rec, idx) => {
                     const inspection = (rec.Inspection || "").trim();
-                    const seq = getInspectionSequence(rec);
+                    const seq = getInspectionSequence(rec) || 0;
                     const item = getItem(rec);
                     const desc = getItemDesc(rec);
                     const qtySU = getInspectQtySU(rec);
                     const storageUnit = getStorageUnit(rec);
+
+                    const rowKey = `line-${grp.line}-seq-${seq}-${idx}`;
+                    const isExpanded = expandedKey === rowKey;
+                    const positions = positionsByKey[rowKey] || [];
+
                     return (
-                      <button
-                        key={`line-${grp.line}-row-${idx}`}
-                        type="button"
-                        className="w-full text-left rounded-md border border-gray-300 p-3 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black/10"
-                        onClick={() => onSelect(rec)}
-                      >
-                        <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
-                          <div className="flex flex-col">
-                            <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
-                              {(inspection || "-")}{seq != null ? ` - ${seq}` : ""}
+                      <div key={rowKey} className="space-y-2">
+                        <button
+                          type="button"
+                          className="w-full text-left rounded-md border border-gray-300 p-3 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black/10"
+                          onClick={async () => {
+                            // Fetch positions for this inspection+sequence
+                            setLoadingKey(rowKey);
+                            const { count, value } = await fetchPositions(inspection, seq);
+                            setLoadingKey(null);
+
+                            if (count > 1 && value.length > 1) {
+                              setPositionsByKey((prev) => ({ ...prev, [rowKey]: value }));
+                              setExpandedKey(rowKey);
+                            } else {
+                              // Single position or none → select the base record
+                              onSelect(rec);
+                            }
+                          }}
+                        >
+                          <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                            <div className="flex flex-col">
+                              <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
+                                {(inspection || "-")}{seq ? ` - ${seq}` : ""}
+                              </div>
+                              {item && (
+                                <div className="mt-1 text-sm sm:text-base text-gray-900 break-all">
+                                  {item}
+                                </div>
+                              )}
+                              {desc && <div className="text-xs text-gray-700">{desc}</div>}
                             </div>
-                            {item && (
-                              <div className="mt-1 text-sm sm:text-base text-gray-900 break-all">
-                                {item}
+                            {(qtySU || storageUnit) && (
+                              <div className="text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
+                                {qtySU} {storageUnit}
                               </div>
                             )}
-                            {desc && <div className="text-xs text-gray-700">{desc}</div>}
                           </div>
-                          {(qtySU || storageUnit) && (
-                            <div className="text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
-                              {qtySU} {storageUnit}
-                            </div>
-                          )}
-                        </div>
-                      </button>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="space-y-2">
+                            {positions.length === 0 ? (
+                              <div className="px-2 py-2 text-sm text-muted-foreground">
+                                {loadingKey === rowKey ? "Loading..." : "No positions"}
+                              </div>
+                            ) : (
+                              positions.map((pos, pidx) => {
+                                const pnum = Number(pos?.Position ?? 0);
+                                const pQty = Number(pos?.QuantityToBeInspectedInStorageUnit ?? 0) || 0;
+                                const pSU = typeof pos?.StorageUnit === "string" ? pos.StorageUnit : "";
+                                const pItem =
+                                  (typeof pos?.Item === "string" && pos.Item) ||
+                                  (typeof pos?.ItemRef?.Item === "string" && pos.ItemRef.Item) ||
+                                  "";
+                                const pDesc =
+                                  (typeof pos?.ItemRef?.Description === "string" && pos.ItemRef.Description) ||
+                                  "";
+
+                                return (
+                                  <button
+                                    key={`${rowKey}-pos-${pidx}`}
+                                    type="button"
+                                    className="w-full text-left rounded-md border border-gray-300 p-3 bg-gray-50 hover:bg-gray-100 focus:outline-none"
+                                    onClick={() => {
+                                      // Select the specific position record; include base rec info
+                                      const combined = { ...rec, __position: pos };
+                                      onSelect(combined);
+                                    }}
+                                  >
+                                    <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                                      <div className="flex flex-col">
+                                        <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
+                                          {(inspection || "-")}{seq ? ` - ${seq}` : ""}{Number.isFinite(pnum) && pnum !== 0 ? ` - ${pnum}` : ""}
+                                        </div>
+                                        {pItem && (
+                                          <div className="mt-1 text-sm sm:text-base text-gray-900 break-all">
+                                            {pItem}
+                                          </div>
+                                        )}
+                                        {pDesc && <div className="text-xs text-gray-700">{pDesc}</div>}
+                                      </div>
+                                      <div className="text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
+                                        {pQty} {pSU}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
