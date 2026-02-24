@@ -31,7 +31,8 @@ type InspectionRecord = {
 };
 
 type PositionRecord = {
-  Position?: number;
+  InspectionLine?: number;
+  Position?: number; // fallback if present
   QuantityToBeInspectedInStorageUnit?: number;
   StorageUnit?: string;
   Item?: string;
@@ -258,7 +259,7 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                               <div className="px-2 py-2 text-sm text-muted-foreground">No positions</div>
                             ) : (
                               positions.map((pos, pidx) => {
-                                const pnum = Number(pos?.Position ?? 0);
+                                const pnum = Number(pos?.InspectionLine ?? pos?.Position ?? 0);
                                 const pQty = Number(pos?.QuantityToBeInspectedInStorageUnit ?? 0) || 0;
                                 const pSU = typeof pos?.StorageUnit === "string" ? pos.StorageUnit : "";
                                 const pItem =
