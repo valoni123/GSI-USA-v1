@@ -189,11 +189,30 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                             const { value } = await fetchPositions(inspection, strictSeq);
                             setLoadingKey(null);
 
-                            // Always show positions (even if only one)
-                            setPositionsByKey((prev) => ({ ...prev, [rowKey]: value }));
-                            setExpandedKey(rowKey);
-
-                            // Do NOT auto-select; user must pick a position now.
+                            if (Array.isArray(value) && value.length > 1) {
+                              // Multiple positions → keep expanded and render dropdown
+                              setPositionsByKey((prev) => ({ ...prev, [rowKey]: value }));
+                              setExpandedKey(rowKey);
+                            } else if (Array.isArray(value) && value.length === 1) {
+                              // Single position → auto-select and collapse (no dropdown)
+                              setExpandedKey(null);
+                              setPositionsByKey((prev) => {
+                                const next = { ...prev };
+                                delete next[rowKey];
+                                return next;
+                              });
+                              const combined = { ...rec, __position: value[0] };
+                              onSelect(combined);
+                            } else {
+                              // No positions → select base record and collapse
+                              setExpandedKey(null);
+                              setPositionsByKey((prev) => {
+                                const next = { ...prev };
+                                delete next[rowKey];
+                                return next;
+                              });
+                              onSelect(rec);
+                            }
                           }}
                         >
                           <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
