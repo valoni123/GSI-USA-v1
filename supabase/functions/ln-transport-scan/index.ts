@@ -69,7 +69,7 @@ serve(async (req) => {
     const exactFilter = `(HandlingUnit eq '${escTrim}' or Item eq '${escTrim}' or HandlingUnit eq '${escRaw}' or Item eq '${escRaw}')`;
     const fallbackFilter = `(${exactFilter} or endswith(HandlingUnit,'${escTrim}') or endswith(Item,'${escTrim}'))`;
 
-    const exactUrl = `${basePath}?$filter=${encodeURIComponent(exactFilter)}&$count=true&$select=${selectCols}`;
+    const exactUrl = `${basePath}?$filter=${encodeURIComponent(exactFilter)}&$select=${selectCols}&$top=10`;
     let odataRes = await fetchOData(cfg, company, exactUrl, language, lnToken);
     let odataJson: any = await odataRes.json().catch(() => null);
 
@@ -79,11 +79,11 @@ serve(async (req) => {
       return json({ ok: false, error: { message: topMessage, details } }, 200);
     }
 
-    let ordersCount = odataJson["@odata.count"] ?? 0;
-    let ordersArray = Array.isArray(odataJson.value) ? odataJson.value : [];
+    let ordersCount = Array.isArray(odataJson?.value) ? odataJson.value.length : 0;
+    let ordersArray = Array.isArray(odataJson?.value) ? odataJson.value : [];
 
     if (!ordersCount || ordersArray.length === 0) {
-      const fbUrl = `${basePath}?$filter=${encodeURIComponent(fallbackFilter)}&$count=true&$select=${selectCols}`;
+      const fbUrl = `${basePath}?$filter=${encodeURIComponent(fallbackFilter)}&$select=${selectCols}&$top=10`;
       odataRes = await fetchOData(cfg, company, fbUrl, language, lnToken);
       odataJson = await odataRes.json().catch(() => null);
       if (!odataRes.ok || !odataJson) {
@@ -91,8 +91,8 @@ serve(async (req) => {
         const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
         return json({ ok: false, error: { message: topMessage, details } }, 200);
       }
-      ordersCount = odataJson["@odata.count"] ?? 0;
-      ordersArray = Array.isArray(odataJson.value) ? odataJson.value : [];
+      ordersCount = Array.isArray(odataJson?.value) ? odataJson.value.length : 0;
+      ordersArray = Array.isArray(odataJson?.value) ? odataJson.value : [];
     }
 
     const first = ordersArray.length > 0 ? ordersArray[0] : null;
