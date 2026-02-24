@@ -13,7 +13,7 @@ import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { t, type LanguageKey } from "@/lib/i18n";
-import { showSuccess } from "@/utils/toast";
+import { showSuccess, showLoading, dismissToast } from "@/utils/toast";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -180,9 +180,11 @@ const IncomingInspectionPage: React.FC = () => {
       Unit: getOrderUnit(selectedLine) || storageUnit || "",
     };
 
+    const tid = showLoading(trans.pleaseWait);
     const { data, error } = await supabase.functions.invoke("ln-submit-inspection", {
       body: { language: "en-US", company: "1100", payload },
     });
+    dismissToast(tid as unknown as string);
 
     if (error || !data || !data.ok) {
       toast({
@@ -193,7 +195,6 @@ const IncomingInspectionPage: React.FC = () => {
       return;
     }
 
-    // Success → clear all fields except scan input
     showSuccess(trans.receivedSuccessfully);
     clearAfterSubmit();
   };
@@ -248,6 +249,7 @@ const IncomingInspectionPage: React.FC = () => {
     const q = query.trim();
     if (!q) return;
 
+    const tid = showLoading(trans.pleaseWait);
     setLoading(true);
     try {
       const company = "1100";
@@ -265,7 +267,6 @@ const IncomingInspectionPage: React.FC = () => {
           description: data?.error || "Unable to fetch inspections",
           variant: "destructive",
         });
-        setLoading(false);
         return;
       }
 
@@ -298,6 +299,7 @@ const IncomingInspectionPage: React.FC = () => {
         setScanLabel(trans.inspectionQueryLabel);
       }
     } finally {
+      dismissToast(tid as unknown as string);
       setLoading(false);
     }
   };

@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronDown } from "lucide-react";
 import { t, type LanguageKey } from "@/lib/i18n";
+import { showLoading, dismissToast } from "@/utils/toast";
 
 type InspectionRecord = {
   Order?: string;
@@ -185,27 +186,25 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                           className="w-full text-left rounded-xl border border-gray-300 p-2 bg-gray-100 hover:bg-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                           onClick={async () => {
                             const known = positionsByKey[rowKey];
-                            // If already loaded and multiple positions, toggle expand/collapse
                             if (Array.isArray(known) && known.length > 1) {
                               setExpandedKey((prev) => (prev === rowKey ? null : rowKey));
                               return;
                             }
 
-                            // Otherwise fetch positions
                             setExpandedKey(rowKey);
                             setLoadingKey(rowKey);
+                            const tid = showLoading(trans.pleaseWait);
 
                             const strictSeq = Number(rec.InspectionSequence ?? seq ?? 0);
                             const { value } = await fetchPositions(inspection, strictSeq);
 
+                            dismissToast(tid as unknown as string);
                             setLoadingKey(null);
 
                             if (Array.isArray(value) && value.length > 1) {
-                              // Store positions and keep expanded
                               setPositionsByKey((prev) => ({ ...prev, [rowKey]: value }));
                               setExpandedKey(rowKey);
                             } else if (Array.isArray(value) && value.length === 1) {
-                              // Single position → auto-select and collapse
                               setExpandedKey(null);
                               setPositionsByKey((prev) => {
                                 const next = { ...prev };
@@ -215,7 +214,6 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                               const combined = { ...rec, __position: value[0] };
                               onSelect(combined);
                             } else {
-                              // No positions → select base record and collapse
                               setExpandedKey(null);
                               setPositionsByKey((prev) => {
                                 const next = { ...prev };

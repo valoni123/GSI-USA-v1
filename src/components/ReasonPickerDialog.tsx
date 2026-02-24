@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { t, type LanguageKey } from "@/lib/i18n";
+import { showLoading, dismissToast } from "@/utils/toast";
 
 type Reason = {
   Reason: string;
@@ -41,9 +42,11 @@ const ReasonPickerDialog: React.FC<Props> = ({
     if (!open) return;
     const load = async () => {
       setLoading(true);
+      const tid = showLoading(trans.pleaseWait);
       const { data, error } = await supabase.functions.invoke("ln-reasons-list", {
         body: { company, language },
       });
+      dismissToast(tid as unknown as string);
       setLoading(false);
       const list = Array.isArray(data?.value) ? (data?.value as Reason[]) : [];
       setReasons(list);
