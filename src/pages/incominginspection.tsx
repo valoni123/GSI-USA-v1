@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User } from "lucide-react";
+import { ArrowLeft, LogOut, User, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import InspectionResultsDialog from "@/components/InspectionResultsDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import BackButton from "@/components/BackButton";
+import ReasonPickerDialog from "@/components/ReasonPickerDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,6 +32,8 @@ const IncomingInspectionPage: React.FC = () => {
   const [approvedQty, setApprovedQty] = useState<string>("0");
   const [rejectedQty, setRejectedQty] = useState<string>("0");
   const [rejectReason, setRejectReason] = useState<string>("");
+  const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
+  const [allowedReasons, setAllowedReasons] = useState<Array<{ Reason: string; Description?: string }>>([]);
   // Track whether we've already shown the exceed toast to avoid spamming
   const [exceedToastShown, setExceedToastShown] = useState<boolean>(false);
 
@@ -71,12 +75,17 @@ const IncomingInspectionPage: React.FC = () => {
 
   const isRejectReasonVisible = rejectedNum > 0;
 
+  const isReasonValid =
+    !isRejectReasonVisible ||
+    (rejectReason.trim().length > 0 &&
+      allowedReasons.some((r) => r.Reason.toLowerCase() === rejectReason.trim().toLowerCase()));
+
   const isSubmitEnabled =
     selectedLine &&
     Number.isFinite(approvedNum) &&
     Number.isFinite(rejectedNum) &&
     (approvedNum + rejectedNum === totalToInspect) &&
-    (isRejectReasonVisible ? rejectReason.trim().length > 0 : true);
+    isReasonValid;
 
   // Show error toast if the sum exceeds the quantity to inspect
   useEffect(() => {
@@ -340,13 +349,39 @@ const IncomingInspectionPage: React.FC = () => {
             {/* Reject Reason (visible only if rejected > 0) */}
             {isRejectReasonVisible && (
               <div>
-                <label className="text-xs text-gray-600">Reject Reason</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-gray-600">Reject Reason</label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setReasonDialogOpen(true)}
+                    aria-label="Search reason"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Input
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
+                  onFocus={async () => {
+                    if (allowedReasons.length === 0) {
+                      const { data } = await supabase.functions.invoke("ln-reasons-list", {
+                        body: { company: "1100", language: "en-US" },
+                      });
+                      const list = Array.isArray(data?.value) ? data.value : [];
+                      setAllowedReasons(list);
+                    }
+                  }}
                   className="mt-1 h-10"
-                  placeholder="Enter reason"
+                  placeholder="Type or pick a valid reason"
                 />
+                {!isReasonValid && (
+                  <div className="mt-1 text-xs text-red-600">
+                    Reason must match a valid code from the list.
+                  </div>
+                )}
               </div>
             )}
 
@@ -379,6 +414,21 @@ const IncomingInspectionPage: React.FC = () => {
         yesLabel="Sign out"
         noLabel="Cancel"
         onConfirm={handleSignOutConfirm}
+      />
+
+      {/* Reason picker modal */}
+      <ReasonPickerDialog
+        open={reasonDialogOpen}
+        onOpenChange={setReasonDialogOpen}
+        onSelect={(code) => {
+          setRejectReason(code);
+          setReasonDialogOpen(false);
+        }}
+        onLoaded={(list) => {
+          setAllowedReasons(list.map((r: any) => ({ Reason: r.Reason, Description: r.Description })));
+        }}
+        company="1100"
+        language="en-US"
       />
     </div>
   );
