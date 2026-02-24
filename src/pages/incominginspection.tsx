@@ -264,7 +264,7 @@ const IncomingInspectionPage: React.FC = () => {
 
       const data = await resp.json();
       if (!resp.ok) {
-        // bottom-center toast (sonner)
+        // Use error-styled toast from sonner
         showError(data?.error || "Unable to fetch inspections");
         return;
       }
@@ -343,17 +343,15 @@ const IncomingInspectionPage: React.FC = () => {
     setRejectAll(false);
   }, [selectedLine]);
 
-  // Prefill from ?hu=<HandlingUnit> and auto-run the lookup
+  // NEW: If navigated with ?hu=, prefill and auto-load the inspection immediately
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const hu = params.get("hu");
     if (hu && hu.trim()) {
       setQuery(hu.trim());
       setScanLabel(trans.loadHandlingUnit);
-      // Trigger the scan immediately
-      void (async () => {
-        await handleBlurScan();
-      })();
+      // Trigger the scan instantly (no need to blur)
+      void handleBlurScan();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
