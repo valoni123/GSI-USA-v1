@@ -30,6 +30,8 @@ const IncomingInspectionPage: React.FC = () => {
   const [approvedQty, setApprovedQty] = useState<string>("0");
   const [rejectedQty, setRejectedQty] = useState<string>("0");
   const [rejectReason, setRejectReason] = useState<string>("");
+  // Track whether we've already shown the exceed toast to avoid spamming
+  const [exceedToastShown, setExceedToastShown] = useState<boolean>(false);
 
   // Helper to extract quantities/units from selected line
   const getInspectQtySU = (r: any) => {
@@ -75,6 +77,28 @@ const IncomingInspectionPage: React.FC = () => {
     Number.isFinite(rejectedNum) &&
     (approvedNum + rejectedNum === totalToInspect) &&
     (isRejectReasonVisible ? rejectReason.trim().length > 0 : true);
+
+  // Show error toast if the sum exceeds the quantity to inspect
+  useEffect(() => {
+    if (!selectedLine) {
+      setExceedToastShown(false);
+      return;
+    }
+    const sum = approvedNum + rejectedNum;
+    if (Number.isFinite(sum) && sum > totalToInspect) {
+      if (!exceedToastShown) {
+        toast({
+          title: "Quantity exceeded",
+          description: "Approved + Rejected exceeds the quantity to be inspected.",
+          variant: "destructive",
+        });
+        setExceedToastShown(true);
+      }
+    } else {
+      // Reset once user corrects values
+      if (exceedToastShown) setExceedToastShown(false);
+    }
+  }, [selectedLine, approvedNum, rejectedNum, totalToInspect]);
 
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
