@@ -443,7 +443,7 @@ const IncomingInspectionPage: React.FC = () => {
                 resetAllForNewScan();
               }
             }}
-            onBlur={handleBlurScan}
+            onBlur={() => handleBlurScan()}
             onFocus={(e) => e.currentTarget.select()}
             onClick={(e) => e.currentTarget.select()}
             onClear={() => {
