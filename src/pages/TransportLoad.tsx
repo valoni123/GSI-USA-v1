@@ -528,6 +528,7 @@ const TransportLoad = () => {
       {/* Blocking spinner while processing */}
       {listLoading && <ScreenSpinner message={trans.loadingList} />}
       {processing && <ScreenSpinner message={trans.pleaseWait} />}
+      {detailsLoading && <ScreenSpinner message={trans.loadingDetails} />}
 
       {/* Error dialog: HU not found */}
       <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
