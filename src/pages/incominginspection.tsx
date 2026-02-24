@@ -25,6 +25,8 @@ const IncomingInspectionPage: React.FC = () => {
   const [fullName, setFullName] = useState<string>("");
   const [headerOrder, setHeaderOrder] = useState<string>("");
   const [headerOrigin, setHeaderOrigin] = useState<string>("");
+  // Dynamic label for the scan field
+  const [scanLabel, setScanLabel] = useState<string>("Order Number / Inspection / Handling Unit");
 
   // Selected inspection line (from dialog selection); may include __position payload
   const [selectedLine, setSelectedLine] = useState<any | null>(null);
@@ -163,6 +165,16 @@ const IncomingInspectionPage: React.FC = () => {
 
       const count = data?.["@odata.count"] ?? 0;
       const value = Array.isArray(data?.value) ? data.value : [];
+
+      // Decide which label to show based on the scanned value
+      const hasInspectionMatch = value.some((v: any) => typeof v?.Inspection === "string" && v.Inspection === q);
+      const hasOrderMatch = value.some((v: any) => typeof v?.Order === "string" && v.Order === q);
+      const hasHandlingUnitMatch = value.some((v: any) => typeof v?.HandlingUnit === "string" && v.HandlingUnit === q);
+      if (hasInspectionMatch) setScanLabel("Inspection");
+      else if (hasOrderMatch) setScanLabel("Order Number");
+      else if (hasHandlingUnitMatch) setScanLabel("Handling Unit");
+      else setScanLabel("Order Number / Inspection / Handling Unit");
+
       if (count > 1 && value.length > 1) {
         // Prepare header info from first result
         const first = value[0] || {};
@@ -180,6 +192,8 @@ const IncomingInspectionPage: React.FC = () => {
           title: "No active inspections found",
           description: "The scanned code did not match any open inspections.",
         });
+        // Reset label if nothing matched
+        setScanLabel("Order Number / Inspection / Handling Unit");
       }
     } finally {
       setLoading(false);
@@ -292,11 +306,13 @@ const IncomingInspectionPage: React.FC = () => {
         <div>
           <FloatingLabelInput
             id="inspectionScan"
-            label="Order Number / Inspection / Handling Unit"
+            label={scanLabel}
             value={query}
             onChange={(e) => {
               const v = e.target.value;
               setQuery(v);
+              // Reset dynamic label when starting a new entry
+              setScanLabel("Order Number / Inspection / Handling Unit");
               if (
                 selectedLine ||
                 records.length > 0 ||
@@ -312,6 +328,7 @@ const IncomingInspectionPage: React.FC = () => {
             onClick={(e) => e.currentTarget.select()}
             onClear={() => {
               setQuery("");
+              setScanLabel("Order Number / Inspection / Handling Unit");
               resetAllForNewScan();
             }}
           />
