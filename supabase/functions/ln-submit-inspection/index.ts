@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getSupabaseAdmin, getActiveConfig, getAccessTokenCached, buildODataBase } from "../_shared/ionapi.ts";
 import { getCompanyFromParams } from "../_shared/company.ts";
 
 const corsHeaders = {
@@ -15,11 +15,6 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function buildTokenUrl(pu: string, ot: string) {
-  const base = pu.endsWith("/") ? pu : pu + "/";
-  return base + ot.replace(/^\//, "");
-}
-
 serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -29,29 +24,10 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    // Expected payload from client
     let body: {
       language?: string;
       company?: string;
-      payload: {
-        TransactionID: string; // always ""
-        Inspection: string;
-        InspectionSequence: number;
-        InspectionLine: number;
-        OrderOrigin: string;
-        Order: string;
-        Position: number;
-        Sequence: number;
-        Set: number;
-        Quantity: number;
-        QuantityApproved: number;
-        QuantityRejected: number;
-        RejectReason?: string;
-        Approve: string; // "Yes"
-        Employee: string;
-        FromAPI: string; // "Yes"
-        Unit: string;
-      };
+      payload: Record<string, unknown>;
     } = {} as any;
     try {
       body = await req.json();
@@ -66,27 +42,7 @@ serve(async (req) => {
       return json({ ok: false, error: "missing_payload" }, 200);
     }
 
-    // Basic validation
-    const required = [
-      "Inspection","InspectionSequence","InspectionLine",
-      "OrderOrigin","Order","Position","Sequence","Set",
-      "Quantity","QuantityApproved","QuantityRejected",
-      "Approve","Employee","FromAPI","Unit"
-    ];
-    const missing = required.filter((k) => (payload as any)[k] === undefined || (payload as any)[k] === null);
-    if (missing.length) {
-      return json({ ok: false, error: "missing_fields", fields: missing }, 200);
-    }
-
-    // Supabase admin client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !serviceRoleKey) {
-      return json({ ok: false, error: "env_missing" }, 200);
-    }
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-    // Company: override or from params
+    const supabase = getSupabaseAdmin();
     let company = companyOverride;
     if (!company) {
       try {
@@ -96,52 +52,10 @@ serve(async (req) => {
       }
     }
 
-    // Decrypted active config
-    const { data: cfgData } = await supabase.rpc("get_active_ionapi");
-    const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
-    if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
-
-    const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
-      ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
-    };
-    const grantType = grant_type === "password_credentials" ? "password" : grant_type;
-
-    // iu and ti
-    const { data: activeRow } = await supabase
-      .from("ionapi_oauth2")
-      .select("iu, ti")
-      .eq("active", true)
-      .limit(1)
-      .maybeSingle();
-    if (!activeRow) return json({ ok: false, error: "no_active_config_row" }, 200);
-    const iu: string = activeRow.iu;
-    const ti: string = activeRow.ti;
-
-    // Token
-    const basic = btoa(`${ci}:${cs}`);
-    const tokenParams = new URLSearchParams();
-    tokenParams.set("grant_type", grantType);
-    tokenParams.set("username", saak);
-    tokenParams.set("password", sask);
-
-    const tokenRes = await fetch(buildTokenUrl(pu, ot), {
-      method: "POST",
-      headers: {
-        "Authorization": `Basic ${basic}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: tokenParams.toString(),
-    }).catch(() => null as unknown as Response);
-    if (!tokenRes) return json({ ok: false, error: "token_network_error" }, 200);
-    const tokenJson = await tokenRes.json().catch(() => null) as any;
-    if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
-      return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
-    }
-    const accessToken = tokenJson.access_token as string;
-
-    // LN POST to GSIInspections
-    const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const url = `${base}/${ti}/LN/lnapi/odata/txgsi.GSIInspection/GSIInspections?$select=*`;
+    const cfg = await getActiveConfig(supabase);
+    const token = await getAccessTokenCached(cfg);
+    const base = buildODataBase(cfg);
+    const url = `${base}/txgsi.GSIInspection/GSIInspections?$select=*`;
 
     const postRes = await fetch(url, {
       method: "POST",
@@ -149,16 +63,18 @@ serve(async (req) => {
         accept: "application/json",
         "Content-Language": language,
         "X-Infor-LnCompany": company,
-        "Authorization": `Bearer ${accessToken}`,
+        "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json",
+        "Connection": "keep-alive",
       },
       body: JSON.stringify(payload),
+      keepalive: true,
     }).catch(() => null as unknown as Response);
 
     if (!postRes) return json({ ok: false, error: "post_network_error" }, 200);
 
-    const contentType = postRes.headers.get("Content-Type") || "";
-    const responseBody = contentType.includes("application/json")
+    const ct = postRes.headers.get("Content-Type") || "";
+    const responseBody = ct.includes("application/json")
       ? await postRes.json().catch(() => null)
       : await postRes.text().catch(() => null);
 

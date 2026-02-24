@@ -111,21 +111,28 @@ serve(async (req) => {
     const escaped = orderNumber.replace(/'/g, "''");
     const filterParts = [`Order eq '${escaped}'`];
     if (originRaw) {
-      // OData enum literal format: Namespace.EnumType'Value'
       filterParts.unshift(`OrderOrigin eq whapi.inhWarehousingOrder.OrderOrigin'${originRaw.replace(/'/g, "''")}'`);
     }
-    if (line !== null) {
-      filterParts.push(`Line eq ${line}`);
-    }
-    // Always require lines with a positive 'ToBeReceivedQuantity'
+    if (line !== null) filterParts.push(`Line eq ${line}`);
     filterParts.push(`ToBeReceivedQuantity gt 0`);
-    // Optional LineStatus filter only when provided explicitly
-    const lineStatusValue = (body as any)?.lineStatus ? String((body as any).lineStatus).trim() : "";
-    if (lineStatusValue) {
-      filterParts.push(`LineStatus eq whapi.inhWarehousingOrder.InboundOrderLineStatus'${lineStatusValue.replace(/'/g, "''")}'`);
-    }
     const filter = filterParts.join(" and ");
-    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=%2A&$orderby=OrderOrigin&$expand=%2A`;
+
+    const qs = new URLSearchParams();
+    qs.set("$filter", filter);
+    qs.set("$count", "true");
+    qs.set("$select", [
+      "Line",
+      "OrderOrigin",
+      "Item",
+      "ItemRef/Item",
+      "ItemRef/Description",
+      "ToBeReceivedQuantity",
+      "OrderUnit",
+      "OrderUnitRef/Unit",
+    ].join(","));
+    qs.set("$expand", "ItemRef,OrderUnitRef");
+    qs.set("$orderby", "OrderOrigin");
+    const url = `${base}${path}?${qs.toString()}`;
 
     const odataRes = await fetch(url, {
       method: "GET",
