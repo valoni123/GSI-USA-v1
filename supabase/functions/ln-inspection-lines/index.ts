@@ -122,7 +122,6 @@ serve(async (req) => {
     qs.set("$filter", filter);
     qs.set("$count", "true");
     qs.set("$select", "*");
-    qs.set("$orderby", "Position");
 
     const url = `${base}/${ti}/LN/lnapi/odata/txgsi.InspectionLines/InspectionLines?${qs.toString()}`;
 
