@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import InspectionResultsDialog from "@/components/InspectionResultsDialog";
+import InspectionLinePickerDialog from "@/components/InspectionLinePickerDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import BackButton from "@/components/BackButton";
 import ReasonPickerDialog from "@/components/ReasonPickerDialog";
@@ -51,6 +52,9 @@ const IncomingInspectionPage: React.FC = () => {
   // NEW: toggle to approve entire quantity
   const [approveAll, setApproveAll] = useState<boolean>(false);
   const [rejectAll, setRejectAll] = useState<boolean>(false);
+  // ADD: line picker state
+  const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
+  const [lineOptions, setLineOptions] = useState<any[]>([]);
 
   // Reset all form and fetched state when starting a new scan
   const resetAllForNewScan = () => {
@@ -106,9 +110,9 @@ const IncomingInspectionPage: React.FC = () => {
   const getOrderPosition = (r: any) => {
     const src = r?.__position || r;
     const n = Number(
-      src?.OrderLine ??
-      src?.Position ??
-      r?.OrderLine ??
+      src?.OrderLine ?? 
+      src?.Position ?? 
+      r?.OrderLine ?? 
       r?.Line ?? 0
     );
     return Number.isFinite(n) ? n : 0;
@@ -313,16 +317,20 @@ const IncomingInspectionPage: React.FC = () => {
     setRejectReason("");
   };
 
-  // NEW: When a line is selected without an explicit __position, fetch positions;
-  // if exactly one is returned, attach it and mark singleLineOnly=true
+  // If a selected record has multiple Inspection Lines, open the popup to pick one
   useEffect(() => {
     const run = async () => {
       if (!selectedLine || selectedLine.__position) {
         setSingleLineOnly(Boolean(selectedLine?.__position));
         return;
       }
-      const insp = getInspection(selectedLine);
-      const seq = getSequence(selectedLine);
+      const insp = (selectedLine?.Inspection || "").toString().trim();
+      const seq = Number(
+        selectedLine?.InspectionSequence ??
+        selectedLine?.Sequence ??
+        selectedLine?.OrderSequence ??
+        0
+      );
       if (!insp || !seq) {
         setSingleLineOnly(false);
         return;
@@ -334,8 +342,17 @@ const IncomingInspectionPage: React.FC = () => {
       if (!error && list.length === 1) {
         setSelectedLine({ ...selectedLine, __position: list[0] });
         setSingleLineOnly(true);
+        setLinePickerOpen(false);
+        setLineOptions([]);
+      } else if (!error && list.length > 1) {
+        // Show the old beautiful popup for line picking
+        setLineOptions(list);
+        setLinePickerOpen(true);
+        setSingleLineOnly(false);
       } else {
         setSingleLineOnly(false);
+        setLinePickerOpen(false);
+        setLineOptions([]);
       }
     };
     void run();
@@ -451,6 +468,24 @@ const IncomingInspectionPage: React.FC = () => {
           onClose={() => setDialogOpen(false)}
           headerOrder={headerOrder}
           headerOrigin={headerOrigin}
+        />
+
+        {/* Old-style line picker popup when a single record has multiple Inspection Lines */}
+        <InspectionLinePickerDialog
+          open={linePickerOpen}
+          lines={lineOptions}
+          order={headerOrder || (selectedLine?.Order || "")}
+          origin={headerOrigin || (selectedLine?.OrderOrigin || "")}
+          onSelect={(ln) => {
+            setSelectedLine((prev) => (prev ? { ...prev, __position: ln } : prev));
+            setSingleLineOnly(true);
+            setLinePickerOpen(false);
+            setLineOptions([]);
+          }}
+          onClose={() => {
+            setLinePickerOpen(false);
+            setLineOptions([]);
+          }}
         />
 
         {/* Dynamic details when one line is selected */}
