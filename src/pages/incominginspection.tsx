@@ -380,7 +380,11 @@ const IncomingInspectionPage: React.FC = () => {
             })()}
 
             {/* Inspection - Sequence - Line */}
-            <div className="rounded-md border bg-gray-100 px-3 py-2">
+            <div className="rounded-md border bg-gray-100 px-3 pt-5 pb-2 relative">
+              {/* Inline labels */}
+              <span className="absolute left-3 top-1 text-[11px] leading-none text-gray-600">Inspection</span>
+              <span className="absolute right-3 top-1 text-[11px] leading-none text-gray-600">Quantity</span>
+
               <div className="grid grid-cols-[1fr_auto] items-center">
                 <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
                   {(getInspection(selectedLine) || "-")}
