@@ -186,11 +186,13 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                             const { count, value } = await fetchPositions(inspection, seq);
                             setLoadingKey(null);
 
-                            if (count > 1 && value.length > 1) {
-                              // Keep expanded; show positions
+                            // Always show positions (even if only one), so the dropdown is visible.
+                            if (Array.isArray(value) && value.length > 0) {
                               setPositionsByKey((prev) => ({ ...prev, [rowKey]: value }));
+                              // Keep expanded to show the positions list
+                              setExpandedKey(rowKey);
                             } else {
-                              // Single position or none → select the base record and collapse
+                              // No positions → select the base record and collapse
                               setExpandedKey(null);
                               setPositionsByKey((prev) => {
                                 const next = { ...prev };
@@ -223,10 +225,10 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
 
                         {isExpanded && (
                           <div className="space-y-2">
-                            {positions.length === 0 ? (
-                              <div className="px-2 py-2 text-sm text-muted-foreground">
-                                {loadingKey === rowKey ? "Loading..." : "No positions"}
-                              </div>
+                            {loadingKey === rowKey ? (
+                              <div className="px-2 py-2 text-sm text-muted-foreground">Loading...</div>
+                            ) : positions.length === 0 ? (
+                              <div className="px-2 py-2 text-sm text-muted-foreground">No positions</div>
                             ) : (
                               positions.map((pos, pidx) => {
                                 const pnum = Number(pos?.Position ?? 0);
@@ -246,7 +248,6 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                                     type="button"
                                     className="w-full text-left rounded-md border border-gray-300 p-3 bg-gray-50 hover:bg-gray-100 focus:outline-none"
                                     onClick={() => {
-                                      // Select the specific position record; include base rec info
                                       const combined = { ...rec, __position: pos };
                                       onSelect(combined);
                                     }}
