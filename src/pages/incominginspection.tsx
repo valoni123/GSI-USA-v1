@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
 import InspectionResultsDialog from "@/components/InspectionResultsDialog";
 import InspectionLinePickerDialog from "@/components/InspectionLinePickerDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -14,11 +13,10 @@ import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { t, type LanguageKey } from "@/lib/i18n";
-import { showSuccess, showLoading, dismissToast } from "@/utils/toast";
+import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
@@ -191,11 +189,7 @@ const IncomingInspectionPage: React.FC = () => {
     dismissToast(tid as unknown as string);
 
     if (error || !data || !data.ok) {
-      toast({
-        title: trans.loadingDetails,
-        description: (data && (data.error?.message || data.error)) || "Submission failed",
-        variant: "destructive",
-      });
+      showError((data && (data.error?.message || data.error)) || "Submission failed");
       return;
     }
 
@@ -229,15 +223,10 @@ const IncomingInspectionPage: React.FC = () => {
     const sum = approvedNum + rejectedNum;
     if (Number.isFinite(sum) && sum > totalToInspect) {
       if (!exceedToastShown) {
-        toast({
-          title: "Quantity exceeded",
-          description: "Approved + Rejected exceeds the quantity to be inspected.",
-          variant: "destructive",
-        });
+        showError("Approved + Rejected exceeds the quantity to be inspected.");
         setExceedToastShown(true);
       }
     } else {
-      // Reset once user corrects values
       if (exceedToastShown) setExceedToastShown(false);
     }
   }, [selectedLine, approvedNum, rejectedNum, totalToInspect]);
@@ -266,11 +255,7 @@ const IncomingInspectionPage: React.FC = () => {
 
       const data = await resp.json();
       if (!resp.ok) {
-        toast({
-          title: trans.loadingDetails,
-          description: data?.error || "Unable to fetch inspections",
-          variant: "destructive",
-        });
+        showError(data?.error || "Unable to fetch inspections");
         return;
       }
 
@@ -296,10 +281,7 @@ const IncomingInspectionPage: React.FC = () => {
       } else if (count === 1 && value.length === 1) {
         handleSelectRecord(value[0]);
       } else {
-        toast({
-          title: trans.noEntries,
-          description: trans.loadingDetails,
-        });
+        showError(trans.noEntries);
         setScanLabel(trans.inspectionQueryLabel);
       }
     } finally {
@@ -326,9 +308,9 @@ const IncomingInspectionPage: React.FC = () => {
       }
       const insp = (selectedLine?.Inspection || "").toString().trim();
       const seq = Number(
-        selectedLine?.InspectionSequence ??
-        selectedLine?.Sequence ??
-        selectedLine?.OrderSequence ??
+        selectedLine?.InspectionSequence ?? 
+        selectedLine?.Sequence ?? 
+        selectedLine?.OrderSequence ?? 
         0
       );
       if (!insp || !seq) {
@@ -395,11 +377,8 @@ const IncomingInspectionPage: React.FC = () => {
       localStorage.removeItem("gsi.employee");
       localStorage.removeItem("gsi.login");
     } catch {}
+    showSuccess(trans.signedOut);
     setShowSignOut(false);
-    toast({
-      title: "Signed out",
-      description: "You have been signed out.",
-    });
     navigate("/");
   };
 
