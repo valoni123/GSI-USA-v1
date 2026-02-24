@@ -24,6 +24,8 @@ type InspectionRecord = {
   ReceiptUnit?: string;
   OrderUnit?: string;
   Unit?: string;
+  QuantityToBeInspectedInStorageUnit?: number;
+  StorageUnit?: string;
   [key: string]: any;
 };
 
@@ -70,6 +72,12 @@ const getUnit = (r: InspectionRecord) =>
   (typeof r.ReceiptUnit === "string" && r.ReceiptUnit) ||
   (typeof r.OrderUnit === "string" && r.OrderUnit) ||
   "";
+const getInspectQtySU = (r: InspectionRecord) => {
+  const n = Number(r.QuantityToBeInspectedInStorageUnit ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+const getStorageUnit = (r: InspectionRecord) =>
+  (typeof r.StorageUnit === "string" && r.StorageUnit) || "";
 
 const groupByLine = (records: InspectionRecord[]) => {
   const map = new Map<number, InspectionRecord[]>();
@@ -131,38 +139,32 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                     const seq = getSequence(rec);
                     const item = getItem(rec);
                     const desc = getItemDesc(rec);
-                    const qty = getQty(rec);
-                    const unit = getUnit(rec);
+                    const qtySU = getInspectQtySU(rec);
+                    const storageUnit = getStorageUnit(rec);
                     return (
-                      <div
+                      <button
                         key={`line-${grp.line}-row-${idx}`}
-                        className="grid grid-cols-[1fr_auto] gap-3 items-start rounded-md border p-3 bg-white"
+                        type="button"
+                        className="w-full text-left rounded-md border p-3 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black/10"
+                        onClick={() => onSelect(rec)}
                       >
                         <div className="flex flex-col">
-                          <div className="text-sm">
-                            Inspection: <span className="font-mono">{inspection || "-"}</span>
-                            {!!seq && <span className="ml-2">Seq: <span className="font-mono">{seq}</span></span>}
+                          <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                            {(inspection || "-")}{seq ? ` - ${seq}` : ""}
                           </div>
-                          <div className="mt-1 font-mono text-sm sm:text-base text-gray-900 break-all">
-                            {item || "-"}
-                          </div>
+                          {item && (
+                            <div className="mt-1 font-mono text-sm sm:text-base text-gray-900 break-all">
+                              {item}
+                            </div>
+                          )}
                           {desc && <div className="text-xs text-gray-700">{desc}</div>}
-                          {(qty || unit) && (
+                          {(qtySU || storageUnit) && (
                             <div className="mt-1 text-xs text-gray-600">
-                              To inspect: {qty} {unit}
+                              {qtySU} {storageUnit}
                             </div>
                           )}
                         </div>
-                        <div className="flex items-start">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => onSelect(rec)}
-                          >
-                            Select
-                          </Button>
-                        </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
