@@ -140,6 +140,8 @@ serve(async (req) => {
       "$count": "true",
       "$select": "*",
     })
+    params.set("$orderby", "Line")
+
     const fullUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseInspections/WarehouseInspections?${params.toString()}`
 
     console.log("[ln-warehouse-inspections] calling OData", { fullUrl, company })
