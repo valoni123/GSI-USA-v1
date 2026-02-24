@@ -15,7 +15,7 @@ type Props = {
 
 const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
   const [username, setUsername] = useState("");
-  const [usernameDisplay, setUsernameDisplay] = useState("");
+  const [resolvedFullName, setResolvedFullName] = useState("");
   const [password, setPassword] = useState("");
   const [transportScreen, setTransportScreen] = useState(false);
   const trans = t(lang);
@@ -41,34 +41,43 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex items-center gap-1 text-xs text-gray-700">
+              <span>{trans.username}</span>
+              {resolvedFullName.trim().length > 0 && (
+                <span className="text-gray-900">- {resolvedFullName}</span>
+              )}
+            </div>
+
             <FloatingLabelInput
               id="username"
               label={trans.username}
               autoFocus
-              value={usernameDisplay}
+              value={username}
               onChange={(e) => {
-                setUsername(e.target.value);
-                setUsernameDisplay(e.target.value);
+                const v = e.target.value;
+                setUsername(v);
+                // Clear previously resolved full name when editing
+                if (resolvedFullName) setResolvedFullName("");
+              }}
+              onBlur={async () => {
+                const raw = username.trim();
+                if (!raw) return;
+                const { data } = await supabase.functions.invoke("gsi-get-user-name", {
+                  body: { username: raw },
+                });
+                const full = data && data.ok ? data.full_name : null;
+                if (typeof full === "string" && full.trim().length > 0) {
+                  setResolvedFullName(full.trim());
+                }
               }}
             />
+
             <FloatingLabelInput
               id="password"
               label={trans.password}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onFocus={async () => {
-                const raw = username.trim();
-                if (!raw) return;
-                if (usernameDisplay.includes(" - ")) return;
-                const { data } = await supabase.functions.invoke("gsi-get-user-name", {
-                  body: { username: raw },
-                });
-                const full = data && data.ok ? data.full_name : null;
-                if (typeof full === "string" && full.trim().length > 0) {
-                  setUsernameDisplay(`${raw} - ${full.trim()}`);
-                }
-              }}
             />
 
             <div className="flex items-center justify-center gap-2 py-2">
