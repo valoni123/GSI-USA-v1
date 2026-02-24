@@ -443,8 +443,6 @@ const IncomingInspectionPage: React.FC = () => {
                       setAllowedReasons(list);
                     }
                   }}
-                  onClear={() => setRejectReason("")}
-                  // leave inputMode default (text)
                 />
                 {/* Search icon inside input */}
                 <Button
