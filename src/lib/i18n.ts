@@ -108,7 +108,16 @@ type TranslationKeys =
   | "receivedSuccessfully"
   | "inspectionQueryLabel"
   | "helpLabel"
-  | "propertiesLabel";
+  | "propertiesLabel"
+  | "orderLabel"
+  | "inspectionLabel"
+  | "approvedQuantityLabel"
+  | "rejectedQuantityLabel"
+  | "rejectReasonLabel"
+  | "submitLabel"
+  | "selectInspectionTitle"
+  | "searchReasonPlaceholder"
+  | "noReasonsLabel";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -215,6 +224,15 @@ const translations: Translations = {
     inspectionQueryLabel: "Order Number / Inspection / Handling Unit",
     helpLabel: "Help",
     propertiesLabel: "Properties",
+    orderLabel: "Order",
+    inspectionLabel: "Inspection",
+    approvedQuantityLabel: "Approved Quantity",
+    rejectedQuantityLabel: "Rejected Quantity",
+    rejectReasonLabel: "Reject Reason",
+    submitLabel: "SUBMIT",
+    selectInspectionTitle: "Select an inspection",
+    searchReasonPlaceholder: "Search reason...",
+    noReasonsLabel: "No reasons",
   },
   de: {
     title: "Anmelden",
@@ -318,6 +336,15 @@ const translations: Translations = {
     inspectionQueryLabel: "Auftragsnummer / Prüfung / Ladeeinheit",
     helpLabel: "Hilfe",
     propertiesLabel: "Eigenschaften",
+    orderLabel: "Auftrag",
+    inspectionLabel: "Prüfung",
+    approvedQuantityLabel: "Genehmigte Menge",
+    rejectedQuantityLabel: "Abgelehnte Menge",
+    rejectReasonLabel: "Ablehnungsgrund",
+    submitLabel: "SENDEN",
+    selectInspectionTitle: "Prüfung auswählen",
+    searchReasonPlaceholder: "Grund suchen...",
+    noReasonsLabel: "Keine Gründe",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -421,6 +448,15 @@ const translations: Translations = {
     inspectionQueryLabel: "Número de orden / Inspección / Unidad de manejo",
     helpLabel: "Ayuda",
     propertiesLabel: "Propiedades",
+    orderLabel: "Orden",
+    inspectionLabel: "Inspección",
+    approvedQuantityLabel: "Cantidad aprobada",
+    rejectedQuantityLabel: "Cantidad rechazada",
+    rejectReasonLabel: "Motivo de rechazo",
+    submitLabel: "ENVIAR",
+    selectInspectionTitle: "Seleccionar inspección",
+    searchReasonPlaceholder: "Buscar motivo...",
+    noReasonsLabel: "Sin motivos",
   },
   "pt-BR": {
     title: "Entrar",
@@ -524,6 +560,15 @@ const translations: Translations = {
     inspectionQueryLabel: "Número do pedido / Inspeção / Unidade de manuseio",
     helpLabel: "Ajuda",
     propertiesLabel: "Propriedades",
+    orderLabel: "Pedido",
+    inspectionLabel: "Inspeção",
+    approvedQuantityLabel: "Quantidade aprovada",
+    rejectedQuantityLabel: "Quantidade rejeitada",
+    rejectReasonLabel: "Motivo da rejeição",
+    submitLabel: "ENVIAR",
+    selectInspectionTitle: "Selecionar inspeção",
+    searchReasonPlaceholder: "Buscar motivo...",
+    noReasonsLabel: "Sem motivos",
   },
 };
 
