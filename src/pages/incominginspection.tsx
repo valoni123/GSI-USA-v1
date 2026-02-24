@@ -10,6 +10,7 @@ import InspectionResultsDialog from "@/components/InspectionResultsDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import BackButton from "@/components/BackButton";
 import ReasonPickerDialog from "@/components/ReasonPickerDialog";
+import InspectionLinePickerDialog from "@/components/InspectionLinePickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { t, type LanguageKey } from "@/lib/i18n";
@@ -54,6 +55,9 @@ const IncomingInspectionPage: React.FC = () => {
   const [approveAll, setApproveAll] = useState<boolean>(false);
   const [rejectAll, setRejectAll] = useState<boolean>(false);
   const [screenLoading, setScreenLoading] = useState<boolean>(false);
+  // NEW: line picker state
+  const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
+  const [lineOptions, setLineOptions] = useState<any[]>([]);
 
   // Reset all form and fetched state when starting a new scan
   const resetAllForNewScan = () => {
@@ -331,6 +335,11 @@ const IncomingInspectionPage: React.FC = () => {
       if (!error && list.length === 1) {
         setSelectedLine({ ...selectedLine, __position: list[0] });
         setSingleLineOnly(true);
+      } else if (!error && list.length > 1) {
+        // OPEN: let user pick the exact InspectionLine
+        setLineOptions(list);
+        setLinePickerOpen(true);
+        setSingleLineOnly(false);
       } else {
         setSingleLineOnly(false);
       }
@@ -462,6 +471,18 @@ const IncomingInspectionPage: React.FC = () => {
           onClose={() => setDialogOpen(false)}
           headerOrder={headerOrder}
           headerOrigin={headerOrigin}
+        />
+
+        {/* NEW: Inspection Line picker dialog */}
+        <InspectionLinePickerDialog
+          open={linePickerOpen}
+          lines={lineOptions}
+          onSelect={(ln) => {
+            setSelectedLine((prev) => (prev ? { ...prev, __position: ln } : prev));
+            setSingleLineOnly(true);
+            setLinePickerOpen(false);
+          }}
+          onClose={() => setLinePickerOpen(false)}
         />
 
         {/* Dynamic details when one line is selected */}
