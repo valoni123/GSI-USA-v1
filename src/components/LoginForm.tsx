@@ -15,7 +15,7 @@ type Props = {
 
 const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
   const [username, setUsername] = useState("");
-  const [resolvedFullName, setResolvedFullName] = useState("");
+  const [usernameLabel, setUsernameLabel] = useState(t(lang).username);
   const [password, setPassword] = useState("");
   const [transportScreen, setTransportScreen] = useState(false);
   const trans = t(lang);
@@ -41,23 +41,18 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center gap-1 text-xs text-gray-700">
-              <span>{trans.username}</span>
-              {resolvedFullName.trim().length > 0 && (
-                <span className="text-gray-900">- {resolvedFullName}</span>
-              )}
-            </div>
-
             <FloatingLabelInput
               id="username"
-              label={trans.username}
+              label={usernameLabel}
               autoFocus
               value={username}
               onChange={(e) => {
                 const v = e.target.value;
                 setUsername(v);
-                // Clear previously resolved full name when editing
-                if (resolvedFullName) setResolvedFullName("");
+                // Reset label to default while editing
+                if (usernameLabel !== trans.username) {
+                  setUsernameLabel(trans.username);
+                }
               }}
               onBlur={async () => {
                 const raw = username.trim();
@@ -67,7 +62,9 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
                 });
                 const full = data && data.ok ? data.full_name : null;
                 if (typeof full === "string" && full.trim().length > 0) {
-                  setResolvedFullName(full.trim());
+                  setUsernameLabel(`${trans.username} - ${full.trim()}`);
+                } else {
+                  setUsernameLabel(trans.username);
                 }
               }}
             />
