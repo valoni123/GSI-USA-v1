@@ -36,12 +36,29 @@ const TestLN: React.FC = () => {
       showError("Please enter the LN OData base URL (e.g., https://{IU}/{TI}/LN/lnapi/odata).");
       return false;
     }
+    // Normalize and persist base URL to include /LN/lnapi/odata
+    const needsSegment = !/\/LN\/lnapi\/odata\/?$/.test(base);
+    const normalizedBase = needsSegment
+      ? (base.replace(/\/+$/, "") + "/LN/lnapi/odata")
+      : base.replace(/\/+$/, "");
+    setBaseUrl(normalizedBase);
     try {
-      localStorage.setItem("ln.odataBase", base);
+      localStorage.setItem("ln.odataBase", normalizedBase);
       localStorage.setItem("ln.company", (company || "").trim());
       localStorage.setItem("ln.language", (language || "").trim());
     } catch {}
     return true;
+  };
+
+  // Helper: get access_token from ln.token (supports raw token or JSON string)
+  const getAccessToken = (): string => {
+    try {
+      const parsed = JSON.parse(lnToken);
+      if (parsed && typeof parsed.access_token === "string") {
+        return parsed.access_token;
+      }
+    } catch {}
+    return lnToken;
   };
 
   const callLN = async (fullUrl: string) => {
@@ -54,7 +71,7 @@ const TestLN: React.FC = () => {
           accept: "application/json",
           "Content-Language": language,
           "X-Infor-LnCompany": (company || "").trim(),
-          Authorization: `Bearer ${lnToken}`,
+          Authorization: `Bearer ${getAccessToken()}`,
         },
       });
       const text = await res.text();
@@ -77,7 +94,7 @@ const TestLN: React.FC = () => {
     const selectCols = "TransportID,RunNumber,Item,HandlingUnit,Warehouse,LocationFrom,LocationTo,OrderedQuantity";
     const filter = `(HandlingUnit eq '${esc}' or Item eq '${esc}' or endswith(HandlingUnit,'${esc}') or endswith(Item,'${esc}'))`;
     const path = `/txgwi.TransportOrders/TransportOrders?$filter=${encodeURIComponent(filter)}&$select=${selectCols}&$top=10`;
-    const base = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    const base = (baseUrl || "").replace(/\/+$/, "");
     return `${base}${path}`;
   };
 
@@ -89,7 +106,7 @@ const TestLN: React.FC = () => {
     const path = `/txgwi.TransportOrders/TransportOrders?$filter=${encodeURIComponent(
       `HandlingUnit eq '${escHU}' and VehicleID eq '${escVID}'`
     )}&$select=TransportID&$count=true`;
-    const base = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    const base = (baseUrl || "").replace(/\/+$/, "");
     return `${base}${path}`;
   };
 
