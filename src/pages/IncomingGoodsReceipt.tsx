@@ -94,6 +94,45 @@ const IncomingGoodsReceipt = () => {
   // NEW: control whether the line picker can auto-open
   const [allowLinePickerAutoOpen, setAllowLinePickerAutoOpen] = useState<boolean>(true);
 
+  // After hooks and before functions, add a helper to clear everything and focus Order Number
+  const clearAllAndFocusOrder = () => {
+    setShowOrderType(false);
+    setOrderType("");
+    setOrderTypeOptions([]);
+    setOrderTypeDisabled(true);
+    setOrderTypeRequired(false);
+
+    setLastCheckedOrder(null);
+    setSuppressAutoFillLine(false);
+    setInboundLinesAll([]);
+    setInboundLinesGrouped([]);
+    setHasMultipleLines(false);
+    setAllowLinePickerAutoOpen(true);
+    setLinePickerOpen(false);
+
+    setOrderPos("");
+    setGrItem("");
+    setGrItemDesc("");
+    setQty("");
+    setOrderUnit("");
+    setGrItemRaw("");
+
+    setLot("");
+    setBpLot("");
+    setDeliveryNote("");
+    setLotTracking(false);
+    setBuyFromBusinessPartner("");
+    setLotsAvailableCount(0);
+    setExistingLots([]);
+    setLotsOrigin("");
+
+    setReceivedLinesCount(0);
+    setReceivedLines([]);
+    setReceivedLinesOpen(false);
+
+    setTimeout(() => orderNoRef.current?.focus(), 0);
+  };
+
   // Handle QR scans like "200000066/10", "200000066|10", "200000066-10", "200000066\\10", "200000066,10", "200000066;10"
   const splitSeparators = /[\/|\\,;\-]/;
   const parseOrderLinePair = (input: string): { order: string; line: string } | null => {
@@ -388,13 +427,7 @@ const IncomingGoodsReceipt = () => {
     });
     dismissToast(tid as unknown as string);
     if (error || !data || !data.ok) {
-      setShowOrderType(false);
-      setOrderType("");
-      setOrderTypeOptions([]);
-      setOrderTypeDisabled(true);
-      setOrderTypeRequired(false);
-      setLastCheckedOrder(null);
-      setInboundLinesAll([]);
+      clearAllAndFocusOrder();
       return;
     }
 
@@ -440,17 +473,8 @@ const IncomingGoodsReceipt = () => {
         }
       }
       // No open lines and no received lines found for known origins → show not found
-      setShowOrderType(false);
-      setOrderType("");
-      setOrderTypeOptions([]);
-      setOrderTypeDisabled(true);
-      setOrderTypeRequired(false);
-      setInboundLinesAll([]);
-      setInboundLinesGrouped([]);
-      setHasMultipleLines(false);
-      setLastCheckedOrder(null);
       showError("Order not found");
-      setTimeout(() => orderNoRef.current?.focus(), 0);
+      clearAllAndFocusOrder();
       return;
     }
 
