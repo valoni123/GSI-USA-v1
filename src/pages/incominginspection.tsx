@@ -13,6 +13,7 @@ import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { t, type LanguageKey } from "@/lib/i18n";
+import { showSuccess } from "@/utils/toast";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -193,7 +194,7 @@ const IncomingInspectionPage: React.FC = () => {
     }
 
     // Success → clear all fields except scan input
-    toast({ title: trans.receivedSuccessfully });
+    showSuccess(trans.receivedSuccessfully);
     clearAfterSubmit();
   };
 
