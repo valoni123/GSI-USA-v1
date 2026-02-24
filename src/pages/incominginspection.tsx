@@ -20,6 +20,8 @@ const IncomingInspectionPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [records, setRecords] = useState<any[]>([]);
   const [fullName, setFullName] = useState<string>("");
+  const [headerOrder, setHeaderOrder] = useState<string>("");
+  const [headerOrigin, setHeaderOrigin] = useState<string>("");
 
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
@@ -59,6 +61,12 @@ const IncomingInspectionPage: React.FC = () => {
       const count = data?.["@odata.count"] ?? 0;
       const value = Array.isArray(data?.value) ? data.value : [];
       if (count > 1 && value.length > 1) {
+        // Prepare header info from first result
+        const first = value[0] || {};
+        const ord = typeof first?.Order === "string" ? first.Order : query.trim();
+        const origin = typeof first?.OrderOrigin === "string" ? first.OrderOrigin : "";
+        setHeaderOrder(ord || "");
+        setHeaderOrigin(origin || "");
         setRecords(value);
         setDialogOpen(true);
       } else if (count === 1 && value.length === 1) {
@@ -148,6 +156,8 @@ const IncomingInspectionPage: React.FC = () => {
           records={records}
           onSelect={handleSelectRecord}
           onClose={() => setDialogOpen(false)}
+          headerOrder={headerOrder}
+          headerOrigin={headerOrigin}
         />
       </div>
 
