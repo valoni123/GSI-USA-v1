@@ -279,8 +279,32 @@ const IncomingInspectionPage: React.FC = () => {
             <div>
               <label className="text-xs text-gray-600">Approved Quantity</label>
               <Input
+                type="number"
+                min={0}
+                step="any"
                 value={approvedQty}
-                onChange={(e) => setApprovedQty(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    setApprovedQty("");
+                    return;
+                  }
+                  const num = Number(v);
+                  setApprovedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "-" || e.key === "e" || e.key === "+") {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  const text = e.clipboardData.getData("text");
+                  const num = Number(text);
+                  if (text.includes("-") || (!Number.isNaN(num) && num < 0)) {
+                    e.preventDefault();
+                    setApprovedQty("0");
+                  }
+                }}
                 inputMode="decimal"
                 className="mt-1 h-10"
               />
@@ -290,8 +314,32 @@ const IncomingInspectionPage: React.FC = () => {
             <div>
               <label className="text-xs text-gray-600">Rejected Quantity</label>
               <Input
+                type="number"
+                min={0}
+                step="any"
                 value={rejectedQty}
-                onChange={(e) => setRejectedQty(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    setRejectedQty("");
+                    return;
+                  }
+                  const num = Number(v);
+                  setRejectedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "-" || e.key === "e" || e.key === "+") {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  const text = e.clipboardData.getData("text");
+                  const num = Number(text);
+                  if (text.includes("-") || (!Number.isNaN(num) && num < 0)) {
+                    e.preventDefault();
+                    setRejectedQty("0");
+                  }
+                }}
                 inputMode="decimal"
                 className="mt-1 h-10"
               />
