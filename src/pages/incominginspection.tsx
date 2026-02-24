@@ -11,6 +11,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import BackButton from "@/components/BackButton";
 import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -289,13 +290,13 @@ const IncomingInspectionPage: React.FC = () => {
       <div className="mx-auto max-w-md px-4 py-4 space-y-4">
         {/* Scan input */}
         <div>
-          <label className="text-sm text-gray-600">Order Number / Inspection / Handling Unit</label>
-          <Input
+          <FloatingLabelInput
+            id="inspectionScan"
+            label="Order Number / Inspection / Handling Unit"
             value={query}
             onChange={(e) => {
               const v = e.target.value;
               setQuery(v);
-              // If any previous data exists, clear it to allow fresh fetch for the new entry
               if (
                 selectedLine ||
                 records.length > 0 ||
@@ -307,10 +308,12 @@ const IncomingInspectionPage: React.FC = () => {
               }
             }}
             onBlur={handleBlurScan}
-            placeholder=""
-            className={`mt-2 h-12 text-lg w-full ${loading ? "opacity-60" : ""}`}
-            disabled={loading}
-            autoFocus
+            onFocus={(e) => e.currentTarget.select()}
+            onClick={(e) => e.currentTarget.select()}
+            onClear={() => {
+              setQuery("");
+              resetAllForNewScan();
+            }}
           />
         </div>
 
@@ -327,7 +330,7 @@ const IncomingInspectionPage: React.FC = () => {
         {/* Dynamic details when one line is selected */}
         {selectedLine && (
           <div className="space-y-3">
-            {/* Order type chip + Order number on one line */}
+            {/* Order header (same line) */}
             {(() => {
               const ord = (selectedLine?.Order || headerOrder || "").trim();
               const originRaw = (selectedLine?.OrderOrigin || headerOrigin || "").trim();
@@ -386,106 +389,72 @@ const IncomingInspectionPage: React.FC = () => {
             </div>
 
             {/* Approved Quantity input */}
-            <div>
-              <label className="text-xs text-gray-600">Approved Quantity</label>
-              <Input
-                type="number"
-                min={0}
-                step="any"
-                value={approvedQty}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === "") {
-                    setApprovedQty("");
-                    return;
-                  }
-                  const num = Number(v);
-                  setApprovedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "-" || e.key === "e" || e.key === "+") {
-                    e.preventDefault();
-                  }
-                }}
-                onPaste={(e) => {
-                  const text = e.clipboardData.getData("text");
-                  const num = Number(text);
-                  if (text.includes("-") || (!Number.isNaN(num) && num < 0)) {
-                    e.preventDefault();
-                    setApprovedQty("0");
-                  }
-                }}
-                inputMode="decimal"
-                className="mt-1 h-10"
-              />
-            </div>
+            <FloatingLabelInput
+              id="approvedQty"
+              label="Approved Quantity"
+              value={approvedQty}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "") {
+                  setApprovedQty("");
+                  return;
+                }
+                const num = Number(v);
+                setApprovedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
+              }}
+              onClear={() => setApprovedQty("0")}
+              inputMode="decimal"
+            />
 
             {/* Rejected Quantity input */}
-            <div>
-              <label className="text-xs text-gray-600">Rejected Quantity</label>
-              <Input
-                type="number"
-                min={0}
-                step="any"
-                value={rejectedQty}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === "") {
-                    setRejectedQty("");
-                    return;
-                  }
-                  const num = Number(v);
-                  setRejectedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "-" || e.key === "e" || e.key === "+") {
-                    e.preventDefault();
-                  }
-                }}
-                onPaste={(e) => {
-                  const text = e.clipboardData.getData("text");
-                  const num = Number(text);
-                  if (text.includes("-") || (!Number.isNaN(num) && num < 0)) {
-                    e.preventDefault();
-                    setRejectedQty("0");
-                  }
-                }}
-                inputMode="decimal"
-                className="mt-1 h-10"
-              />
-            </div>
+            <FloatingLabelInput
+              id="rejectedQty"
+              label="Rejected Quantity"
+              value={rejectedQty}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "") {
+                  setRejectedQty("");
+                  return;
+                }
+                const num = Number(v);
+                setRejectedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
+              }}
+              onClear={() => setRejectedQty("0")}
+              inputMode="decimal"
+            />
 
             {/* Reject Reason (visible only if rejected > 0) */}
             {isRejectReasonVisible && (
-              <div>
-                <label className="text-xs text-gray-600">Reject Reason</label>
-                <div className="relative mt-1">
-                  <Input
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                    onFocus={async () => {
-                      if (allowedReasons.length === 0) {
-                        const { data } = await supabase.functions.invoke("ln-reasons-list", {
-                          body: { company: "1100", language: "en-US" },
-                        });
-                        const list = Array.isArray(data?.value) ? data.value : [];
-                        setAllowedReasons(list);
-                      }
-                    }}
-                    className="h-10 pr-10"
-                    placeholder="Type or pick a valid reason"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                    onClick={() => setReasonDialogOpen(true)}
-                    aria-label="Search reason"
-                  >
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </div>
+              <div className="relative">
+                <FloatingLabelInput
+                  id="rejectReason"
+                  label="Reject Reason"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  onFocus={async () => {
+                    if (allowedReasons.length === 0) {
+                      const { data } = await supabase.functions.invoke("ln-reasons-list", {
+                        body: { company: "1100", language: "en-US" },
+                      });
+                      const list = Array.isArray(data?.value) ? data.value : [];
+                      setAllowedReasons(list);
+                    }
+                  }}
+                  onClear={() => setRejectReason("")}
+                  // leave inputMode default (text)
+                />
+                {/* Search icon inside input */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                  onClick={() => setReasonDialogOpen(true)}
+                  aria-label="Search reason"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
               </div>
             )}
 
