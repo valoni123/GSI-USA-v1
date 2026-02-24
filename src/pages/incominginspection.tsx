@@ -222,6 +222,28 @@ const IncomingInspectionPage: React.FC = () => {
     void run();
   }, [selectedLine]);
 
+  // Helpers to render origin chip like Goods Receipt
+  const formatOriginLabel = (origin: string) => {
+    const o = (origin || "").trim();
+    if (!o) return "-";
+    const lower = o.toLowerCase();
+    if (lower.includes("production")) return "Production";
+    if (lower.includes("purchase")) return "Purchase";
+    if (lower.includes("sales")) return "Sales";
+    if (lower.includes("transfermanual")) return "Transfer (manual)";
+    if (lower.includes("transfer")) return "Transfer";
+    return o;
+  };
+
+  const originColorStyle = (origin: string) => {
+    const o = (origin || "").toLowerCase();
+    if (o.includes("production")) return { bg: "#2db329", text: "#ffffff" };
+    if (o.includes("purchase")) return { bg: "#9ed927", text: "#1a1a1a" };
+    if (o.includes("sales")) return { bg: "#1d5f8a", text: "#ffffff" };
+    if (o.includes("transfer")) return { bg: "#ffd500", text: "#1a1a1a" };
+    return { bg: "#2db329", text: "#ffffff" };
+  };
+
   const handleSignOutConfirm = () => {
     try {
       localStorage.removeItem("ln.token");
@@ -305,6 +327,35 @@ const IncomingInspectionPage: React.FC = () => {
         {/* Dynamic details when one line is selected */}
         {selectedLine && (
           <div className="space-y-3">
+            {/* Order type chip + Order number */}
+            {(() => {
+              const ord = (selectedLine?.Order || headerOrder || "").trim();
+              const originRaw = (selectedLine?.OrderOrigin || headerOrigin || "").trim();
+              if (!ord && !originRaw) return null;
+              const s = originColorStyle(originRaw);
+              return (
+                <div className="rounded-md border bg-white px-3 py-2 space-y-3">
+                  {originRaw && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-700">Order type</div>
+                      <span
+                        className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                        style={{ backgroundColor: s.bg, color: s.text }}
+                      >
+                        {formatOriginLabel(originRaw)}
+                      </span>
+                    </div>
+                  )}
+                  {ord && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-700">Order number</div>
+                      <div className="text-sm sm:text-base text-gray-900 break-all">{ord}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Inspection - Sequence - Line */}
             <div className="rounded-md border bg-gray-100 px-3 py-2">
               <div className="grid grid-cols-[1fr_auto] items-center">
@@ -444,11 +495,7 @@ const IncomingInspectionPage: React.FC = () => {
                 variant={isSubmitEnabled ? "destructive" : "secondary"}
                 disabled={!isSubmitEnabled}
                 onClick={() => {
-                  // Submit handler placeholder; integrate with LN post if needed
-                  toast({
-                    title: "Submitted",
-                    description: "Your inspection quantities have been submitted.",
-                  });
+                  // Submit handler placeholder
                 }}
               >
                 SUBMIT
