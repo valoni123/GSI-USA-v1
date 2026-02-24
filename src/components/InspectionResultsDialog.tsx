@@ -56,6 +56,10 @@ const getSequence = (r: InspectionRecord) => {
   const n = Number(r.Sequence ?? r.OrderSequence ?? r.InspectionSequence ?? 0);
   return Number.isFinite(n) && n > 0 ? n : null;
 };
+const getInspectionSequence = (r: InspectionRecord) => {
+  const n = Number(r.InspectionSequence ?? r.Sequence ?? r.OrderSequence ?? 0);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
 const getItem = (r: InspectionRecord) =>
   (typeof r.Item === "string" && r.Item) ||
   (typeof r.ItemRef?.Item === "string" && r.ItemRef.Item) ||
@@ -92,7 +96,7 @@ const groupByLine = (records: InspectionRecord[]) => {
   return Array.from(map.entries())
     .sort((a, b) => a[0] - b[0])
     .map(([line, list]) => {
-      const sorted = list.sort((x, y) => (getSequence(x) || 0) - (getSequence(y) || 0));
+      const sorted = list.sort((x, y) => (getInspectionSequence(x) || 0) - (getInspectionSequence(y) || 0));
       return { line, items: sorted };
     });
 };
@@ -136,8 +140,7 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                     Line {grp.line}
                   </div>
                   {grp.items.map((rec, idx) => {
-                    const inspection = (rec.Inspection || "").trim();
-                    const seq = getSequence(rec);
+                    const seq = getInspectionSequence(rec);
                     const item = getItem(rec);
                     const desc = getItemDesc(rec);
                     const qtySU = getInspectQtySU(rec);
@@ -152,7 +155,7 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                         <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
                           <div className="flex flex-col">
                             <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
-                              {(inspection || "-")}{seq ? ` - ${seq}` : ""}
+                              {seq != null ? String(seq) : "-"}
                             </div>
                             {item && (
                               <div className="mt-1 text-sm sm:text-base text-gray-900 break-all">
