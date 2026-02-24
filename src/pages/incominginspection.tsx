@@ -247,13 +247,13 @@ const IncomingInspectionPage: React.FC = () => {
 
   const handleBack = () => navigate("/menu/incoming");
 
-  const handleBlurScan = async (override?: string) => {
+  const handleBlurScan = async (override?: string, showSpinner = false) => {
     const q = (override ?? query).trim();
     if (!q) return;
 
     const tid = showLoading(trans.pleaseWait);
     setLoading(true);
-    setScreenLoading(true);
+    if (showSpinner) setScreenLoading(true);
     try {
       const company = "1100";
       const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
@@ -265,7 +265,6 @@ const IncomingInspectionPage: React.FC = () => {
 
       const data = await resp.json();
       if (!resp.ok) {
-        // Use error-styled toast from sonner
         showError(data?.error || "Unable to fetch inspections");
         return;
       }
@@ -298,7 +297,7 @@ const IncomingInspectionPage: React.FC = () => {
     } finally {
       dismissToast(tid as unknown as string);
       setLoading(false);
-      setScreenLoading(false);
+      if (showSpinner) setScreenLoading(false);
     }
   };
 
@@ -345,15 +344,16 @@ const IncomingInspectionPage: React.FC = () => {
     setRejectAll(false);
   }, [selectedLine]);
 
-  // NEW: If navigated with ?hu=, prefill and auto-load the inspection immediately
+  // Only auto-load when arriving from HU Info (has ?hu= param)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const hu = params.get("hu");
     if (hu && hu.trim()) {
-      setQuery(hu.trim());
+      const val = hu.trim();
+      setQuery(val);
       setScanLabel(trans.loadHandlingUnit);
-      // Trigger the scan instantly using the HU override
-      void handleBlurScan(hu.trim());
+      // Trigger scan immediately with spinner for HU Info flow
+      void handleBlurScan(val, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
