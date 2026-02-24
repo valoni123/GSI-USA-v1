@@ -113,7 +113,7 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
         {/* Order header with origin chip */}
         <div className="rounded-md border bg-gray-50 p-3">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium">Order: <span className="font-mono">{order || "-"}</span></div>
+            <div className="text-sm font-medium text-gray-900">Order: {order || "-"}</div>
             <span
               className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
               style={{ backgroundColor: s.bg, color: s.text }}
@@ -149,7 +149,7 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                         className="w-full text-left rounded-md border border-gray-300 p-3 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black/10"
                         onClick={() => onSelect(rec)}
                       >
-                        <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                        <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
                           <div className="flex flex-col">
                             <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
                               {(inspection || "-")}{seq ? ` - ${seq}` : ""}
