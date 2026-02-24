@@ -327,16 +327,16 @@ const IncomingInspectionPage: React.FC = () => {
         {/* Dynamic details when one line is selected */}
         {selectedLine && (
           <div className="space-y-3">
-            {/* Order type chip + Order number */}
+            {/* Order type chip + Order number on one line */}
             {(() => {
               const ord = (selectedLine?.Order || headerOrder || "").trim();
               const originRaw = (selectedLine?.OrderOrigin || headerOrigin || "").trim();
               if (!ord && !originRaw) return null;
               const s = originColorStyle(originRaw);
               return (
-                <div className="rounded-md border bg-white px-3 py-2 space-y-3">
-                  {originRaw && (
-                    <div className="space-y-1">
+                <div className="rounded-md border bg-white px-3 py-2">
+                  <div className="grid grid-cols-2 items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <div className="text-xs font-medium text-gray-700">Order type</div>
                       <span
                         className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
@@ -345,13 +345,11 @@ const IncomingInspectionPage: React.FC = () => {
                         {formatOriginLabel(originRaw)}
                       </span>
                     </div>
-                  )}
-                  {ord && (
-                    <div className="space-y-1">
+                    <div className="flex items-center gap-2 justify-end">
                       <div className="text-xs font-medium text-gray-700">Order number</div>
                       <div className="text-sm sm:text-base text-gray-900 break-all">{ord}</div>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })()}
