@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import InspectionResultsDialog from "@/components/InspectionResultsDialog";
-import { SignOutConfirm } from "@/components/SignOutConfirm";
+import SignOutConfirm from "@/components/SignOutConfirm";
 import { supabase } from "@/integrations/supabase/client";
 
 const IncomingInspectionPage: React.FC = () => {
@@ -83,6 +83,16 @@ const IncomingInspectionPage: React.FC = () => {
     });
   };
 
+  const handleSignOutConfirm = async () => {
+    await supabase.auth.signOut();
+    setShowSignOut(false);
+    toast({
+      title: "Signed out",
+      description: "You have been signed out.",
+    });
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-black text-white">
@@ -120,7 +130,7 @@ const IncomingInspectionPage: React.FC = () => {
         />
       </div>
 
-      <SignOutConfirm open={showSignOut} onOpenChange={setShowSignOut} />
+      <SignOutConfirm open={showSignOut} onOpenChange={setShowSignOut} title="Sign out" question="Are you sure you want to sign out?" yesLabel="Sign out" noLabel="Cancel" onConfirm={handleSignOutConfirm} />
     </div>
   );
 };
