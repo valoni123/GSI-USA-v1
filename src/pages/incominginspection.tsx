@@ -1,110 +1,128 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BackButton from "@/components/BackButton";
+import { ArrowLeft, LogOut } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import FloatingLabelInput from "@/components/FloatingLabelInput";
-import SignOutConfirm from "@/components/SignOutConfirm";
-import { type LanguageKey, t } from "@/lib/i18n";
-import { showSuccess } from "@/utils/toast";
-import { LogOut, User } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import InspectionResultsDialog from "@/components/InspectionResultsDialog";
+import { SignOutConfirm } from "@/components/SignOutConfirm";
+import { supabase } from "@/integrations/supabase/client";
 
-const IncomingInspection = () => {
+const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const [lang] = useState<LanguageKey>(() => {
-    const saved = localStorage.getItem("app.lang") as LanguageKey | null;
-    return saved || "en";
-  });
-  const trans = useMemo(() => t(lang), [lang]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showSignOut, setShowSignOut] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [records, setRecords] = useState<any[]>([]);
 
-  const [fullName, setFullName] = useState<string>("");
-  useEffect(() => {
-    const name = localStorage.getItem("gsi.full_name");
-    if (name) setFullName(name);
-  }, []);
+  const handleBack = () => navigate(-1);
 
-  const [signOutOpen, setSignOutOpen] = useState(false);
-  const onConfirmSignOut = () => {
+  const handleBlurScan = async () => {
+    const q = query.trim();
+    if (!q) return;
+
+    setLoading(true);
     try {
-      localStorage.removeItem("ln.token");
-      localStorage.removeItem("gsi.id");
-      localStorage.removeItem("gsi.full_name");
-    } catch {}
-    showSuccess(trans.signedOut);
-    setSignOutOpen(false);
-    navigate("/");
+      // Optionally derive company server-side; allow client override if needed.
+      const company = "1100";
+
+      // Invoke edge function that securely gets token and calls OData
+      const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
+      const params = new URLSearchParams({ q, company });
+      const resp = await fetch(`${url}?${params.toString()}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await resp.json();
+      if (!resp.ok) {
+        toast({
+          title: "Lookup failed",
+          description: data?.error || "Unable to fetch inspections",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const count = data?.["@odata.count"] ?? 0;
+      const value = Array.isArray(data?.value) ? data.value : [];
+      if (count > 1 && value.length > 1) {
+        setRecords(value);
+        setDialogOpen(true);
+      } else if (count === 1 && value.length === 1) {
+        // Proceed with single record
+        handleSelectRecord(value[0]);
+      } else {
+        toast({
+          title: "No active inspections found",
+          description: "The scanned code did not match any open inspections.",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const queryRef = useRef<HTMLInputElement | null>(null);
-  const [query, setQuery] = useState<string>("");
-
-  useEffect(() => {
-    queryRef.current?.focus();
-  }, []);
+  const handleSelectRecord = (rec: any) => {
+    setDialogOpen(false);
+    // Navigate to next step (placeholder: pass record via state)
+    navigate("/menu/incoming/inspection", { state: { inspection: rec } });
+    toast({
+      title: "Inspection selected",
+      description: [
+        rec?.Order ? `Order ${rec.Order}` : null,
+        rec?.Inspection ? `Inspection ${rec.Inspection}` : null,
+        rec?.HandlingUnit ? `HU ${rec.HandlingUnit}` : null,
+      ].filter(Boolean).join(" • "),
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top bar */}
-      <div className="sticky top-0 z-10 bg-black text-white">
-        <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/incoming")} />
-
-          <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center">{trans.incomingWarehouseInspection || "Inspection"}</div>
-            <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
-              <User className="h-4 w-4" />
-              <span className="line-clamp-1">{fullName || ""}</span>
-            </div>
+      <div className="bg-black text-white">
+        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between">
+          <Button variant="ghost" size="icon" onClick={handleBack} className="text-white hover:bg-white/10">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="text-center">
+            <h1 className="text-lg font-bold">Warehouse Inspection</h1>
+            <div className="text-xs opacity-75">Scan Order / Inspection / Handling Unit</div>
           </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-red-500 hover:text-red-600 hover:bg-white/10"
-            aria-label={trans.signOut}
-            onClick={() => setSignOutOpen(true)}
-          >
-            <LogOut className="h-6 w-6" />
+          <Button variant="ghost" size="icon" onClick={() => setShowSignOut(true)} className="text-red-400 hover:bg-white/10">
+            <LogOut className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="mx-auto max-w-md px-4 py-6 pb-24">
-        <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
-          <FloatingLabelInput
-            id="inspectionQuery"
-            label={trans.inspectionQueryLabel}
-            ref={queryRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={(e) => {
-              if (e.currentTarget.value.length > 0) e.currentTarget.select();
-            }}
-            onClick={(e) => {
-              if (e.currentTarget.value.length > 0) e.currentTarget.select();
-            }}
-            onClear={() => setQuery("")}
-            autoFocus
-          />
-        </Card>
+      <div className="mx-auto max-w-3xl px-4 py-6">
+        <label className="text-sm text-gray-600">Order Number / Inspection / Handling Unit</label>
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onBlur={handleBlurScan}
+          placeholder=""
+          className={`mt-2 h-12 text-lg ${loading ? "opacity-60" : ""}`}
+          disabled={loading}
+          autoFocus
+        />
+
+        <InspectionResultsDialog
+          open={dialogOpen}
+          records={records}
+          onSelect={handleSelectRecord}
+          onClose={() => setDialogOpen(false)}
+        />
       </div>
 
-      {/* Sign-out confirmation dialog */}
-      <SignOutConfirm
-        open={signOutOpen}
-        onOpenChange={setSignOutOpen}
-        title={trans.signOutTitle}
-        question={trans.signOutQuestion}
-        yesLabel={trans.yes}
-        noLabel={trans.no}
-        onConfirm={onConfirmSignOut}
-      />
+      <SignOutConfirm open={showSignOut} onOpenChange={setShowSignOut} />
     </div>
   );
 };
 
-export default IncomingInspection;
+export default IncomingInspectionPage;
