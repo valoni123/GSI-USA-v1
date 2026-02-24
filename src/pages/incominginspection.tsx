@@ -99,6 +99,104 @@ const IncomingInspectionPage: React.FC = () => {
   const totalToInspect = selectedLine ? getInspectQtySU(selectedLine) : 0;
   const storageUnit = selectedLine ? getStorageUnit(selectedLine) : "";
 
+  // Helpers to extract order-related fields from selectedLine
+  const getOrderOrigin = (r: any) => (r?.OrderOrigin || headerOrigin || "").toString();
+  const getOrderNumber = (r: any) => (r?.Order || headerOrder || "").toString();
+  const getOrderPosition = (r: any) => {
+    const src = r?.__position || r;
+    const n = Number(
+      src?.OrderLine ??
+      src?.Position ??
+      r?.OrderLine ??
+      r?.Line ?? 0
+    );
+    return Number.isFinite(n) ? n : 0;
+  };
+  const getOrderSequence = (r: any) => {
+    const src = r?.__position || r;
+    const n = Number(src?.OrderSequence ?? r?.OrderSequence ?? 1);
+    return Number.isFinite(n) ? n : 1;
+  };
+  const getOrderSet = (r: any) => {
+    const src = r?.__position || r;
+    const n = Number(src?.OrderSet ?? r?.OrderSet ?? 1);
+    return Number.isFinite(n) ? n : 1;
+  };
+  const getOrderUnit = (r: any) => {
+    const src = r?.__position || r;
+    return (
+      (src?.StorageUnit || "").toString() ||
+      (src?.ReceiptUnit || "").toString() ||
+      (src?.OrderUnit || "").toString() ||
+      (r?.Unit || "").toString()
+    );
+  };
+
+  const clearAfterSubmit = () => {
+    // Keep scan input intact, clear the rest
+    setSelectedLine(null);
+    setRecords([]);
+    setDialogOpen(false);
+    setHeaderOrder("");
+    setHeaderOrigin("");
+    setApprovedQty("0");
+    setRejectedQty("0");
+    setRejectReason("");
+    setReasonDialogOpen(false);
+    setAllowedReasons([]);
+    setExceedToastShown(false);
+    setApproveAll(false);
+    setRejectAll(false);
+    setSingleLineOnly(false);
+  };
+
+  const doSubmit = async () => {
+    if (!isSubmitEnabled || !selectedLine) return;
+
+    const inspection = getInspection(selectedLine);
+    const inspectionSeq = getSequence(selectedLine);
+    const inspectionLine = getInspectionLine(selectedLine) || (singleLineOnly ? 1 : 0);
+
+    const emp = (localStorage.getItem("gsi.employee") || "").toString();
+
+    const payload = {
+      TransactionID: "",
+      Inspection: inspection,
+      InspectionSequence: inspectionSeq,
+      InspectionLine: inspectionLine,
+      OrderOrigin: getOrderOrigin(selectedLine),
+      Order: getOrderNumber(selectedLine),
+      Position: getOrderPosition(selectedLine),
+      Sequence: getOrderSequence(selectedLine),
+      Set: getOrderSet(selectedLine),
+      Quantity: totalToInspect,
+      QuantityApproved: Number(approvedQty || "0"),
+      QuantityRejected: Number(rejectedQty || "0"),
+      RejectReason: (rejectReason || "").trim(),
+      Approve: "Yes",
+      Employee: emp || "",
+      FromAPI: "Yes",
+      Unit: getOrderUnit(selectedLine) || storageUnit || "",
+    };
+
+    const { data, error } = await supabase.functions.invoke("ln-submit-inspection", {
+      body: { language: "en-US", company: "1100", payload },
+    });
+
+    if (error || !data || !data.ok) {
+      toast({
+        title: trans.loadingDetails,
+        description: (data && (data.error?.message || data.error)) || "Submission failed",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Success → clear all fields except scan input
+    toast({ title: trans.receivedSuccessfully });
+    clearAfterSubmit();
+  };
+
   const approvedNum = Number(approvedQty);
   const rejectedNum = Number(rejectedQty);
 
@@ -557,9 +655,7 @@ const IncomingInspectionPage: React.FC = () => {
                 className="h-12 w-full"
                 variant={isSubmitEnabled ? "destructive" : "secondary"}
                 disabled={!isSubmitEnabled}
-                onClick={() => {
-                  // Submit handler placeholder
-                }}
+                onClick={doSubmit}
               >
                 {trans.submitLabel}
               </Button>
