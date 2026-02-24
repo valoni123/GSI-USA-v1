@@ -450,8 +450,8 @@ const IncomingInspectionPage: React.FC = () => {
                 variant="ghost"
                 size="icon"
                 className={[
-                  "absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded",
-                  approveAll ? "bg-green-600 text-white hover:bg-green-700" : "text-green-600 hover:text-green-700"
+                  "absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md border border-gray-300 shadow-sm",
+                  approveAll ? "bg-green-600 text-white hover:bg-green-700" : "bg-white text-green-600 hover:text-green-700"
                 ].join(" ").trim()}
                 aria-label="Approve all quantity"
                 onClick={() => {
