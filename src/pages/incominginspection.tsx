@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, Search } from "lucide-react";
+import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -40,6 +40,8 @@ const IncomingInspectionPage: React.FC = () => {
   const [exceedToastShown, setExceedToastShown] = useState<boolean>(false);
   // NEW: track if only one inspection line exists (to show '- 1' when needed)
   const [singleLineOnly, setSingleLineOnly] = useState<boolean>(false);
+  // NEW: toggle to approve entire quantity
+  const [approveAll, setApproveAll] = useState<boolean>(false);
 
   // Reset all form and fetched state when starting a new scan
   const resetAllForNewScan = () => {
@@ -237,6 +239,11 @@ const IncomingInspectionPage: React.FC = () => {
     void run();
   }, [selectedLine]);
 
+  // Reset approveAll whenever a new line is selected or quantities change incompatibly
+  useEffect(() => {
+    setApproveAll(false);
+  }, [selectedLine]);
+
   // Helpers to render origin chip like Goods Receipt
   const formatOriginLabel = (origin: string) => {
     const o = (origin || "").trim();
@@ -411,41 +418,79 @@ const IncomingInspectionPage: React.FC = () => {
               )}
             </div>
 
-            {/* Approved Quantity input */}
-            <FloatingLabelInput
-              id="approvedQty"
-              label="Approved Quantity"
-              value={approvedQty}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "") {
-                  setApprovedQty("");
-                  return;
-                }
-                const num = Number(v);
-                setApprovedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
-              }}
-              onClear={() => setApprovedQty("0")}
-              inputMode="decimal"
-            />
+            {/* Approved Quantity input → with green check toggle */}
+            <div className="relative">
+              <FloatingLabelInput
+                id="approvedQty"
+                label="Approved Quantity"
+                value={approvedQty}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    setApprovedQty("");
+                    setApproveAll(false);
+                    return;
+                  }
+                  const num = Number(v);
+                  setApprovedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
+                  // If user edits manually, disable approve-all mode
+                  const allStr = String(totalToInspect || 0);
+                  if (v !== allStr) setApproveAll(false);
+                }}
+                onClear={() => {
+                  setApprovedQty("0");
+                  setApproveAll(false);
+                }}
+                inputMode="decimal"
+              />
 
-            {/* Rejected Quantity input */}
-            <FloatingLabelInput
-              id="rejectedQty"
-              label="Rejected Quantity"
-              value={rejectedQty}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "") {
-                  setRejectedQty("");
-                  return;
-                }
-                const num = Number(v);
-                setRejectedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
-              }}
-              onClear={() => setRejectedQty("0")}
-              inputMode="decimal"
-            />
+              {/* Green check toggle inside the input */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={[
+                  "absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded",
+                  approveAll ? "bg-green-600 text-white hover:bg-green-700" : "text-green-600 hover:text-green-700"
+                ].join(" ").trim()}
+                aria-label="Approve all quantity"
+                onClick={() => {
+                  if (!approveAll) {
+                    // Fill Approved with entire quantity; hide Rejected
+                    const all = String(totalToInspect || 0);
+                    setApprovedQty(all);
+                    setRejectedQty("0");
+                    setApproveAll(true);
+                  } else {
+                    // Reset Approved to 0; show Rejected again
+                    setApprovedQty("0");
+                    setApproveAll(false);
+                  }
+                }}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Rejected Quantity input → hidden when approveAll is active */}
+            {!approveAll && (
+              <FloatingLabelInput
+                id="rejectedQty"
+                label="Rejected Quantity"
+                value={rejectedQty}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    setRejectedQty("");
+                    return;
+                  }
+                  const num = Number(v);
+                  setRejectedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
+                }}
+                onClear={() => setRejectedQty("0")}
+                inputMode="decimal"
+              />
+            )}
 
             {/* Reject Reason (visible only if rejected > 0) */}
             {isRejectReasonVisible && (
