@@ -34,8 +34,22 @@ const IncomingInspectionPage: React.FC = () => {
   const [rejectReason, setRejectReason] = useState<string>("");
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [allowedReasons, setAllowedReasons] = useState<Array<{ Reason: string; Description?: string }>>([]);
-  // Track whether we've already shown the exceed toast to avoid spamming
   const [exceedToastShown, setExceedToastShown] = useState<boolean>(false);
+
+  // Reset all form and fetched state when starting a new scan
+  const resetAllForNewScan = () => {
+    setSelectedLine(null);
+    setRecords([]);
+    setDialogOpen(false);
+    setHeaderOrder("");
+    setHeaderOrigin("");
+    setApprovedQty("0");
+    setRejectedQty("0");
+    setRejectReason("");
+    setReasonDialogOpen(false);
+    setAllowedReasons([]);
+    setExceedToastShown(false);
+  };
 
   // Helper to extract quantities/units from selected line
   const getInspectQtySU = (r: any) => {
@@ -226,7 +240,20 @@ const IncomingInspectionPage: React.FC = () => {
           <label className="text-sm text-gray-600">Order Number / Inspection / Handling Unit</label>
           <Input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setQuery(v);
+              // If any previous data exists, clear it to allow fresh fetch for the new entry
+              if (
+                selectedLine ||
+                records.length > 0 ||
+                approvedQty !== "0" ||
+                rejectedQty !== "0" ||
+                rejectReason.trim().length > 0
+              ) {
+                resetAllForNewScan();
+              }
+            }}
             onBlur={handleBlurScan}
             placeholder=""
             className={`mt-2 h-12 text-lg w-full ${loading ? "opacity-60" : ""}`}
