@@ -335,20 +335,23 @@ const IncomingInspectionPage: React.FC = () => {
               const s = originColorStyle(originRaw);
               return (
                 <div className="rounded-md border bg-white px-3 py-2">
-                  <div className="grid grid-cols-2 items-center gap-3">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <div className="text-xs font-medium text-gray-700">Order type</div>
-                      <span
-                        className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
-                        style={{ backgroundColor: s.bg, color: s.text }}
-                      >
-                        {formatOriginLabel(originRaw)}
-                      </span>
+                      <div className="text-xs font-medium text-gray-700">Order</div>
+                      {originRaw && (
+                        <span
+                          className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                          style={{ backgroundColor: s.bg, color: s.text }}
+                        >
+                          {formatOriginLabel(originRaw)}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 justify-end">
-                      <div className="text-xs font-medium text-gray-700">Order number</div>
-                      <div className="text-sm sm:text-base text-gray-900 break-all">{ord}</div>
-                    </div>
+                    {ord && (
+                      <div className="text-sm sm:text-base text-gray-900 break-all">
+                        {ord}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
