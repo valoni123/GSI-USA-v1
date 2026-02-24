@@ -62,9 +62,6 @@ const TransportUnload = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [processing, setProcessing] = useState<boolean>(false);
-  // NEW: map HU → Quantity and Unit
-  const [quantities, setQuantities] = useState<Record<string, string>>({});
-  const [units, setUnits] = useState<Record<string, string>>({});
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -83,7 +80,6 @@ const TransportUnload = () => {
       navigate("/menu/transport");
       return;
     }
-    // Show overlay while loading
     setLoading(true);
     const tid = showLoading(trans.loadingEntries);
     const { data } = await supabase.functions.invoke("ln-transport-list", {
@@ -95,20 +91,11 @@ const TransportUnload = () => {
       setItems(list);
       const nextCount = Number(data.count ?? list.length ?? 0);
       setLoadedCount(nextCount);
-      try {
-        localStorage.setItem("transport.count", String(nextCount));
-      } catch {}
-      // Ensure quantities/units are loaded before showing the list
-      await fetchQuantities(list);
+      try { localStorage.setItem("transport.count", String(nextCount)); } catch {}
     } else {
       setItems([]);
       setLoadedCount(0);
-      try {
-        localStorage.setItem("transport.count", "0");
-      } catch {}
-      // Clear quantities/units
-      setQuantities({});
-      setUnits({});
+      try { localStorage.setItem("transport.count", "0"); } catch {}
     }
     setLoading(false);
   };
@@ -128,37 +115,6 @@ const TransportUnload = () => {
     try {
       localStorage.setItem("transport.count", String(next));
     } catch {}
-  };
-
-  // NEW: fetch quantities and units for current items
-  const fetchQuantities = async (list: LoadedItem[]) => {
-    if (!list || list.length === 0) {
-      setQuantities({});
-      setUnits({});
-      return;
-    }
-    const entries = await Promise.all(
-      list.map(async (it) => {
-        const hu = (it.HandlingUnit || "").trim();
-        if (!hu) return [hu, "", ""] as const;
-        const { data } = await supabase.functions.invoke("ln-handling-unit-info", {
-          body: { handlingUnit: hu, language: locale, company: "1100" },
-        });
-        const qty = data && data.ok ? String(data.quantity ?? "") : "";
-        const unit = data && data.ok ? String(data.unit ?? "") : "";
-        return [hu, qty, unit] as const;
-      })
-    );
-    const qtyMap: Record<string, string> = {};
-    const unitMap: Record<string, string> = {};
-    for (const [hu, qty, unit] of entries) {
-      if (hu) {
-        qtyMap[hu] = qty;
-        unitMap[hu] = unit;
-      }
-    }
-    setQuantities(qtyMap);
-    setUnits(unitMap);
   };
 
   useEffect(() => {
@@ -374,17 +330,6 @@ const TransportUnload = () => {
                           <div className="text-[11px] font-semibold text-gray-700">{trans.quantityLabel}</div>
                           <div className="text-sm text-gray-900">
                             {(() => {
-                              const key = (it.HandlingUnit || "").trim();
-                              if (key) {
-                                const q = quantities[key] || "-";
-                                const u = units[key] || "";
-                                return (
-                                  <>
-                                    {q} {u ? <span className="ml-1 text-gray-700">{u}</span> : ""}
-                                  </>
-                                );
-                              }
-                              // Item-only row: show OrderedQuantity from TransportOrders service
                               const oq = it.OrderedQuantity;
                               return oq !== undefined && oq !== null && String(oq).trim() !== "" ? String(oq) : "-";
                             })()}

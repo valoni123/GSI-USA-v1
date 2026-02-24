@@ -144,26 +144,7 @@ serve(async (req) => {
     }
 
     // 3) Handling Unit info (quantity/unit) if HU present
-    let huInfo: { quantity?: string | number; unit?: string } | null = null;
-    if (chosenHU) {
-      // Match existing ln-handling-unit-info behavior:
-      // Typically path is /txgwi.HandlingUnits/HandlingUnits?$filter=HandlingUnit eq '...'&$select=Quantity,Unit
-      const huFilter = `HandlingUnit eq '${chosenHU.replace(/'/g, "''")}'`;
-      const huUrl = `/txgwi.HandlingUnits/HandlingUnits?$filter=${encodeURIComponent(huFilter)}&$select=Quantity,Unit`;
-      const huRes = await fetchOData(cfg, company, huUrl, language);
-      const huJson: any = await huRes.json().catch(() => null);
-      if (huRes.ok && huJson && Array.isArray(huJson.value) && huJson.value.length > 0) {
-        const row = huJson.value[0];
-        const qty = row?.Quantity;
-        const unit = row?.Unit;
-        huInfo = {
-          quantity: typeof qty === "number" ? qty : qty ?? "",
-          unit: typeof unit === "string" ? unit : unit ?? "",
-        };
-      } else {
-        huInfo = { quantity: "", unit: "" };
-      }
-    }
+    const huInfo = null;
 
     return json({
       ok: true,

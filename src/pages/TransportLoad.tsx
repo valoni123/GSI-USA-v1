@@ -196,11 +196,9 @@ const TransportLoad = () => {
         setTimeout(() => huRef.current?.focus(), 50);
         return;
       }
-      // HU info
-      const qty = scanData.huInfo?.quantity ?? "";
-      const unit = scanData.huInfo?.unit ?? "";
-      setHuQuantity(String(qty));
-      setHuUnit(String(unit));
+      // Quantity: always from OrderedQuantity
+      setHuQuantity(first && typeof first.OrderedQuantity === "number" ? String(first.OrderedQuantity) : "");
+      setHuUnit("");
       setHuItemLabel("Handling Unit");
       setVehicleEnabled(true);
       const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
@@ -649,10 +647,9 @@ const TransportLoad = () => {
                             setTimeout(() => huRef.current?.focus(), 50);
                             return;
                           }
-                          const qty = scanData.huInfo?.quantity ?? "";
-                          const unit = scanData.huInfo?.unit ?? "";
-                          setHuQuantity(String(qty));
-                          setHuUnit(String(unit));
+                          // Quantity: always from selected item's OrderedQuantity
+                          setHuQuantity(typeof it.OrderedQuantity === "number" ? String(it.OrderedQuantity) : "");
+                          setHuUnit("");
                           setVehicleEnabled(true);
                           const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
                           if (storedVehicle) setVehicleId(storedVehicle);
@@ -660,7 +657,9 @@ const TransportLoad = () => {
                           setDetailsLoading(false);
                           setTimeout(() => vehicleRef.current?.focus(), 50);
                         } else {
-                          // Fallback minimal: enable vehicle, keep quantity empty
+                          // Fallback minimal: enable vehicle; quantity from OrderedQuantity
+                          setHuQuantity(typeof it.OrderedQuantity === "number" ? String(it.OrderedQuantity) : "");
+                          setHuUnit("");
                           setVehicleEnabled(true);
                           const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
                           if (storedVehicle) setVehicleId(storedVehicle);
