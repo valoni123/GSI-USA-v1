@@ -338,22 +338,24 @@ const IncomingInspectionPage: React.FC = () => {
               const s = originColorStyle(originRaw);
               return (
                 <div className="rounded-md border bg-white px-3 py-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs font-medium text-gray-700">Order</div>
-                      {originRaw && (
-                        <span
-                          className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
-                          style={{ backgroundColor: s.bg, color: s.text }}
-                        >
-                          {formatOriginLabel(originRaw)}
-                        </span>
-                      )}
-                    </div>
-                    {ord && (
-                      <div className="text-sm sm:text-base text-gray-900 break-all">
-                        {ord}
-                      </div>
+                  <div className="relative">
+                    {/* Floating label input with the order value */}
+                    <FloatingLabelInput
+                      id="orderHeader"
+                      label="Order"
+                      value={ord}
+                      disabled
+                      className="pl-28 pr-3"
+                    />
+                    {/* Origin chip inside the field, aligned left */}
+                    {originRaw && (
+                      <span
+                        className="absolute left-4 top-1/2 -translate-y-1/2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                        style={{ backgroundColor: s.bg, color: s.text }}
+                        title={originRaw}
+                      >
+                        {formatOriginLabel(originRaw)}
+                      </span>
                     )}
                   </div>
                 </div>
