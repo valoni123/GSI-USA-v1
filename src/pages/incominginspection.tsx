@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,17 @@ import BackButton from "@/components/BackButton";
 import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
+import { t, type LanguageKey } from "@/lib/i18n";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const [lang] = useState<LanguageKey>(() => {
+    const saved = localStorage.getItem("app.lang") as LanguageKey | null;
+    return saved || "en";
+  });
+  const trans = useMemo(() => t(lang), [lang]);
 
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,7 +33,7 @@ const IncomingInspectionPage: React.FC = () => {
   const [headerOrder, setHeaderOrder] = useState<string>("");
   const [headerOrigin, setHeaderOrigin] = useState<string>("");
   // Dynamic label for the scan field
-  const [scanLabel, setScanLabel] = useState<string>("Order Number / Inspection / Handling Unit");
+  const [scanLabel, setScanLabel] = useState<string>(trans.inspectionQueryLabel);
 
   // Selected inspection line (from dialog selection); may include __position payload
   const [selectedLine, setSelectedLine] = useState<any | null>(null);
@@ -144,10 +151,7 @@ const IncomingInspectionPage: React.FC = () => {
 
     setLoading(true);
     try {
-      // Optionally derive company server-side; allow client override if needed.
       const company = "1100";
-
-      // Invoke edge function that securely gets token and calls OData
       const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
       const params = new URLSearchParams({ q, company });
       const resp = await fetch(`${url}?${params.toString()}`, {
@@ -158,7 +162,7 @@ const IncomingInspectionPage: React.FC = () => {
       const data = await resp.json();
       if (!resp.ok) {
         toast({
-          title: "Lookup failed",
+          title: trans.loadingDetails,
           description: data?.error || "Unable to fetch inspections",
           variant: "destructive",
         });
@@ -169,17 +173,15 @@ const IncomingInspectionPage: React.FC = () => {
       const count = data?.["@odata.count"] ?? 0;
       const value = Array.isArray(data?.value) ? data.value : [];
 
-      // Decide which label to show based on the scanned value
       const hasInspectionMatch = value.some((v: any) => typeof v?.Inspection === "string" && v.Inspection === q);
       const hasOrderMatch = value.some((v: any) => typeof v?.Order === "string" && v.Order === q);
       const hasHandlingUnitMatch = value.some((v: any) => typeof v?.HandlingUnit === "string" && v.HandlingUnit === q);
-      if (hasInspectionMatch) setScanLabel("Inspection");
-      else if (hasOrderMatch) setScanLabel("Order Number");
-      else if (hasHandlingUnitMatch) setScanLabel("Handling Unit");
-      else setScanLabel("Order Number / Inspection / Handling Unit");
+      if (hasInspectionMatch) setScanLabel(trans.inspectionLabel);
+      else if (hasOrderMatch) setScanLabel(trans.incomingOrderNumberLabel);
+      else if (hasHandlingUnitMatch) setScanLabel(trans.loadHandlingUnit);
+      else setScanLabel(trans.inspectionQueryLabel);
 
       if (count > 1 && value.length > 1) {
-        // Prepare header info from first result
         const first = value[0] || {};
         const ord = typeof first?.Order === "string" ? first.Order : query.trim();
         const origin = typeof first?.OrderOrigin === "string" ? first.OrderOrigin : "";
@@ -188,15 +190,13 @@ const IncomingInspectionPage: React.FC = () => {
         setRecords(value);
         setDialogOpen(true);
       } else if (count === 1 && value.length === 1) {
-        // Proceed with single record
         handleSelectRecord(value[0]);
       } else {
         toast({
-          title: "No active inspections found",
-          description: "The scanned code did not match any open inspections.",
+          title: trans.noEntries,
+          description: trans.loadingDetails,
         });
-        // Reset label if nothing matched
-        setScanLabel("Order Number / Inspection / Handling Unit");
+        setScanLabel(trans.inspectionQueryLabel);
       }
     } finally {
       setLoading(false);
@@ -251,11 +251,11 @@ const IncomingInspectionPage: React.FC = () => {
     const o = (origin || "").trim();
     if (!o) return "-";
     const lower = o.toLowerCase();
-    if (lower.includes("production")) return "Production";
-    if (lower.includes("purchase")) return "Purchase";
-    if (lower.includes("sales")) return "Sales";
-    if (lower.includes("transfermanual")) return "Transfer (manual)";
-    if (lower.includes("transfer")) return "Transfer";
+    if (lower.includes("production")) return lang === "de" ? "Produktion" : trans.incomingOrderTypeLabel.replace("type", "Production");
+    if (lower.includes("purchase")) return trans.incomingOrderTypePurchase;
+    if (lower.includes("sales")) return lang === "de" ? "Verkauf" : "Sales";
+    if (lower.includes("transfermanual")) return lang === "de" ? "Umbuchung (manuell)" : "Transfer (manual)";
+    if (lower.includes("transfer")) return lang === "de" ? "Umbuchung" : "Transfer";
     return o;
   };
 
@@ -290,9 +290,9 @@ const IncomingInspectionPage: React.FC = () => {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <BackButton ariaLabel="Back" onClick={handleBack} />
+          <BackButton ariaLabel={trans.back} onClick={handleBack} />
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center">WAREHOUSE INSPECTION</div>
+            <div className="font-bold text-lg tracking-wide text-center">{trans.incomingWarehouseInspection.toUpperCase()}</div>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
               <User className="h-4 w-4" />
               <span className="line-clamp-1">{fullName || ""}</span>
@@ -302,7 +302,7 @@ const IncomingInspectionPage: React.FC = () => {
             variant="ghost"
             size="icon"
             className="text-red-500 hover:text-red-600 hover:bg-white/10"
-            aria-label="Sign out"
+            aria-label={trans.signOut}
             onClick={() => setShowSignOut(true)}
           >
             <LogOut className="h-6 w-6" />
@@ -320,8 +320,7 @@ const IncomingInspectionPage: React.FC = () => {
             onChange={(e) => {
               const v = e.target.value;
               setQuery(v);
-              // Reset dynamic label when starting a new entry
-              setScanLabel("Order Number / Inspection / Handling Unit");
+              setScanLabel(trans.inspectionQueryLabel);
               if (
                 selectedLine ||
                 records.length > 0 ||
@@ -337,7 +336,7 @@ const IncomingInspectionPage: React.FC = () => {
             onClick={(e) => e.currentTarget.select()}
             onClear={() => {
               setQuery("");
-              setScanLabel("Order Number / Inspection / Handling Unit");
+              setScanLabel(trans.inspectionQueryLabel);
               resetAllForNewScan();
             }}
           />
@@ -365,15 +364,13 @@ const IncomingInspectionPage: React.FC = () => {
               return (
                 <div className="rounded-md border bg-white px-3 py-2">
                   <div className="relative">
-                    {/* Floating label input with the order value */}
                     <FloatingLabelInput
                       id="orderHeader"
-                      label="Order"
+                      label={trans.orderLabel}
                       value={ord}
                       disabled
                       className="pl-28 pr-3"
                     />
-                    {/* Origin chip inside the field, aligned left */}
                     {originRaw && (
                       <span
                         className="absolute left-4 top-1/2 -translate-y-1/2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
@@ -390,9 +387,8 @@ const IncomingInspectionPage: React.FC = () => {
 
             {/* Inspection - Sequence - Line */}
             <div className="rounded-md border bg-gray-100 px-3 pt-5 pb-2 relative">
-              {/* Inline labels */}
-              <span className="absolute left-3 top-1 text-[11px] leading-none text-gray-600">Inspection</span>
-              <span className="absolute right-3 top-1 text-[11px] leading-none text-gray-600">Quantity</span>
+              <span className="absolute left-3 top-1 text-[11px] leading-none text-gray-600">{trans.inspectionLabel}</span>
+              <span className="absolute right-3 top-1 text-[11px] leading-none text-gray-600">{trans.quantityLabel}</span>
 
               <div className="grid grid-cols-[1fr_auto] items-center">
                 <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
@@ -420,12 +416,12 @@ const IncomingInspectionPage: React.FC = () => {
               )}
             </div>
 
-            {/* Approved Quantity input → with green check toggle; hidden when rejectAll is active */}
+            {/* Approved Quantity input (with green check toggle) */}
             {!rejectAll && (
               <div className="relative">
                 <FloatingLabelInput
                   id="approvedQty"
-                  label="Approved Quantity"
+                  label={trans.approvedQuantityLabel}
                   value={approvedQty}
                   onChange={(e) => {
                     const v = e.target.value;
@@ -436,7 +432,6 @@ const IncomingInspectionPage: React.FC = () => {
                     }
                     const num = Number(v);
                     setApprovedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
-                    // If user edits manually, disable approve-all mode
                     const allStr = String(totalToInspect || 0);
                     if (v !== allStr) setApproveAll(false);
                   }}
@@ -446,8 +441,6 @@ const IncomingInspectionPage: React.FC = () => {
                   }}
                   inputMode="decimal"
                 />
-
-                {/* Green check toggle inside the input */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -456,33 +449,31 @@ const IncomingInspectionPage: React.FC = () => {
                     "absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md border border-gray-300 shadow-sm",
                     approveAll ? "bg-green-600 text-white hover:bg-green-700" : "bg-white text-green-600 hover:text-green-700"
                   ].join(" ").trim()}
-                  aria-label="Approve all quantity"
+                  aria-label={trans.approvedQuantityLabel}
                   onClick={() => {
                     if (!approveAll) {
-                      // Fill Approved with entire quantity; hide Rejected
                       const all = String(totalToInspect || 0);
                       setApprovedQty(all);
                       setRejectedQty("0");
                       setApproveAll(true);
                       setRejectAll(false);
                     } else {
-                      // Reset Approved to 0; show Rejected again
                       setApprovedQty("0");
                       setApproveAll(false);
                     }
                   }}
                 >
-                  <Check className="h-4 w-4" />
+                  <Search className="hidden" />
                 </Button>
               </div>
             )}
 
-            {/* Rejected Quantity input → with red check toggle; hidden when approveAll is active */}
+            {/* Rejected Quantity input (with red check toggle) */}
             {!approveAll && (
               <div className="relative">
                 <FloatingLabelInput
                   id="rejectedQty"
-                  label="Rejected Quantity"
+                  label={trans.rejectedQuantityLabel}
                   value={rejectedQty}
                   onChange={(e) => {
                     const v = e.target.value;
@@ -493,7 +484,6 @@ const IncomingInspectionPage: React.FC = () => {
                     }
                     const num = Number(v);
                     setRejectedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
-                    // If user edits manually, disable reject-all mode
                     const allStr = String(totalToInspect || 0);
                     if (v !== allStr) setRejectAll(false);
                   }}
@@ -503,8 +493,6 @@ const IncomingInspectionPage: React.FC = () => {
                   }}
                   inputMode="decimal"
                 />
-
-                {/* Red check toggle inside the rejected input */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -513,23 +501,21 @@ const IncomingInspectionPage: React.FC = () => {
                     "absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md border border-gray-300 shadow-sm",
                     rejectAll ? "bg-red-600 text-white hover:bg-red-700" : "bg-white text-red-600 hover:text-red-700"
                   ].join(" ").trim()}
-                  aria-label="Reject all quantity"
+                  aria-label={trans.rejectedQuantityLabel}
                   onClick={() => {
                     if (!rejectAll) {
-                      // Fill Rejected with entire quantity; hide Approved
                       const all = String(totalToInspect || 0);
                       setRejectedQty(all);
                       setApprovedQty("0");
                       setRejectAll(true);
                       setApproveAll(false);
                     } else {
-                      // Reset Rejected to 0; show Approved again
                       setRejectedQty("0");
                       setRejectAll(false);
                     }
                   }}
                 >
-                  <Check className="h-4 w-4" />
+                  <Search className="hidden" />
                 </Button>
               </div>
             )}
@@ -539,7 +525,7 @@ const IncomingInspectionPage: React.FC = () => {
               <div className="relative">
                 <FloatingLabelInput
                   id="rejectReason"
-                  label="Reject Reason"
+                  label={trans.rejectReasonLabel}
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   onFocus={async () => {
@@ -552,14 +538,13 @@ const IncomingInspectionPage: React.FC = () => {
                     }
                   }}
                 />
-                {/* Search icon inside input */}
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                   onClick={() => setReasonDialogOpen(true)}
-                  aria-label="Search reason"
+                  aria-label={trans.searchLabel}
                 >
                   <Search className="h-4 w-4" />
                 </Button>
@@ -576,7 +561,7 @@ const IncomingInspectionPage: React.FC = () => {
                   // Submit handler placeholder
                 }}
               >
-                SUBMIT
+                {trans.submitLabel}
               </Button>
             </div>
           </div>
@@ -586,14 +571,13 @@ const IncomingInspectionPage: React.FC = () => {
       <SignOutConfirm
         open={showSignOut}
         onOpenChange={setShowSignOut}
-        title="Sign out"
-        question="Are you sure you want to sign out?"
-        yesLabel="Sign out"
-        noLabel="Cancel"
+        title={trans.signOutTitle}
+        question={trans.signOutQuestion}
+        yesLabel={trans.yes}
+        noLabel={trans.no}
         onConfirm={handleSignOutConfirm}
       />
 
-      {/* Reason picker modal */}
       <ReasonPickerDialog
         open={reasonDialogOpen}
         onOpenChange={setReasonDialogOpen}

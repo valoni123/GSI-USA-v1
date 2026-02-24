@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { t, type LanguageKey } from "@/lib/i18n";
 
 type Reason = {
   Reason: string;
@@ -33,6 +34,9 @@ const ReasonPickerDialog: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("");
 
+  const currentLang = (localStorage.getItem("app.lang") as LanguageKey) || "en";
+  const trans = t(currentLang);
+
   useEffect(() => {
     if (!open) return;
     const load = async () => {
@@ -60,20 +64,20 @@ const ReasonPickerDialog: React.FC<Props> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Select Reject Reason</DialogTitle>
+          <DialogTitle>{trans.rejectReasonLabel}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <Input
-            placeholder="Search reason..."
+            placeholder={trans.searchReasonPlaceholder}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="h-10"
           />
           <ScrollArea className="max-h-80">
             {loading ? (
-              <div className="px-2 py-3 text-sm text-muted-foreground">Loading...</div>
+              <div className="px-2 py-3 text-sm text-muted-foreground">{trans.loadingEntries}</div>
             ) : filtered.length === 0 ? (
-              <div className="px-2 py-3 text-sm text-muted-foreground">No reasons</div>
+              <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noReasonsLabel}</div>
             ) : (
               <div className="space-y-2">
                 {filtered.map((r, idx) => (
