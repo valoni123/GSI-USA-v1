@@ -31,7 +31,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { inspection?: string; sequence?: number | string; language?: string } = {};
+    let body: { inspection?: string; sequence?: number | string; language?: string; company?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -44,6 +44,7 @@ serve(async (req) => {
       ? seqRaw
       : (typeof seqRaw === "string" ? Number(seqRaw.trim()) : NaN);
     const language = body.language || "en-US";
+    const companyOverride = (body.company || "").toString().trim();
 
     if (!inspection || !Number.isFinite(sequence)) {
       return json({ ok: false, error: "missing_inputs" }, 200);
@@ -56,12 +57,14 @@ serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Company
-    let company = "";
-    try {
-      company = await getCompanyFromParams(supabase);
-    } catch {
-      return json({ ok: false, error: "no_company_config" }, 200);
+    // Company: use override if provided, else read from params
+    let company = companyOverride;
+    if (!company) {
+      try {
+        company = await getCompanyFromParams(supabase);
+      } catch {
+        return json({ ok: false, error: "no_company_config" }, 200);
+      }
     }
 
     // Decrypted config

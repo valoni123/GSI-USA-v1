@@ -122,11 +122,11 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
 
   const fetchPositions = async (inspection: string, sequence: number) => {
     const { data, error } = await supabase.functions.invoke("ln-inspection-lines", {
-      body: { inspection, sequence, language: "en-US" },
+      body: { inspection, sequence, language: "en-US", company: "1100" },
     });
     if (error || !data || !data.ok) return { count: 0, value: [] as PositionRecord[] };
     const value = Array.isArray(data.value) ? data.value : [];
-    return { count: Number(data.count || value.length || 0), value };
+    return { count: Number(data.count ?? value.length ?? 0), value };
   };
 
   return (
@@ -183,24 +183,17 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                             setExpandedKey(rowKey);
                             setLoadingKey(rowKey);
 
-                            const { count, value } = await fetchPositions(inspection, seq);
+                            // Use strict sequence from record to avoid 0
+                            const strictSeq = Number(rec.InspectionSequence ?? seq ?? 0);
+
+                            const { value } = await fetchPositions(inspection, strictSeq);
                             setLoadingKey(null);
 
-                            // Always show positions (even if only one), so the dropdown is visible.
-                            if (Array.isArray(value) && value.length > 0) {
-                              setPositionsByKey((prev) => ({ ...prev, [rowKey]: value }));
-                              // Keep expanded to show the positions list
-                              setExpandedKey(rowKey);
-                            } else {
-                              // No positions → select the base record and collapse
-                              setExpandedKey(null);
-                              setPositionsByKey((prev) => {
-                                const next = { ...prev };
-                                delete next[rowKey];
-                                return next;
-                              });
-                              onSelect(rec);
-                            }
+                            // Always show positions (even if only one)
+                            setPositionsByKey((prev) => ({ ...prev, [rowKey]: value }));
+                            setExpandedKey(rowKey);
+
+                            // Do NOT auto-select; user must pick a position now.
                           }}
                         >
                           <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
