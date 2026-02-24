@@ -140,6 +140,7 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                     Line {grp.line}
                   </div>
                   {grp.items.map((rec, idx) => {
+                    const inspection = (rec.Inspection || "").trim();
                     const seq = getInspectionSequence(rec);
                     const item = getItem(rec);
                     const desc = getItemDesc(rec);
@@ -155,7 +156,7 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                         <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
                           <div className="flex flex-col">
                             <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
-                              {seq != null ? String(seq) : "-"}
+                              {(inspection || "-")}{seq != null ? ` - ${seq}` : ""}
                             </div>
                             {item && (
                               <div className="mt-1 text-sm sm:text-base text-gray-900 break-all">
