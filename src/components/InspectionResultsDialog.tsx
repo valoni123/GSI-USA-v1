@@ -179,16 +179,24 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                           type="button"
                           className="w-full text-left rounded-md border border-gray-300 p-3 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black/10"
                           onClick={async () => {
-                            // Fetch positions for this inspection+sequence
+                            // Expand row immediately and show loading
+                            setExpandedKey(rowKey);
                             setLoadingKey(rowKey);
+
                             const { count, value } = await fetchPositions(inspection, seq);
                             setLoadingKey(null);
 
                             if (count > 1 && value.length > 1) {
+                              // Keep expanded; show positions
                               setPositionsByKey((prev) => ({ ...prev, [rowKey]: value }));
-                              setExpandedKey(rowKey);
                             } else {
-                              // Single position or none → select the base record
+                              // Single position or none → select the base record and collapse
+                              setExpandedKey(null);
+                              setPositionsByKey((prev) => {
+                                const next = { ...prev };
+                                delete next[rowKey];
+                                return next;
+                              });
                               onSelect(rec);
                             }
                           }}
