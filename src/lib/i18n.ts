@@ -106,6 +106,7 @@ type TranslationKeys =
   | "blockedCycleCountingLabel"
   | "blockedAssemblyLabel"
   | "receivedSuccessfully"
+  | "inspectionQueryLabel"
   | "helpLabel"
   | "propertiesLabel";
 
@@ -211,6 +212,7 @@ const translations: Translations = {
     blockedCycleCountingLabel: "For Cycle Counting",
     blockedAssemblyLabel: "For Assembly",
     receivedSuccessfully: "Received successfully...",
+    inspectionQueryLabel: "Order Number / Inspection / Handling Unit",
     helpLabel: "Help",
     propertiesLabel: "Properties",
   },
@@ -313,6 +315,7 @@ const translations: Translations = {
     blockedCycleCountingLabel: "Für Inventur",
     blockedAssemblyLabel: "Für Zusammenstellung",
     receivedSuccessfully: "Erfolgreich empfangen...",
+    inspectionQueryLabel: "Auftragsnummer / Prüfung / Ladeeinheit",
     helpLabel: "Hilfe",
     propertiesLabel: "Eigenschaften",
   },
@@ -415,6 +418,7 @@ const translations: Translations = {
     blockedCycleCountingLabel: "Para conteo cíclico",
     blockedAssemblyLabel: "Para ensamblaje",
     receivedSuccessfully: "Recibido correctamente...",
+    inspectionQueryLabel: "Número de orden / Inspección / Unidad de manejo",
     helpLabel: "Ayuda",
     propertiesLabel: "Propiedades",
   },
@@ -517,6 +521,7 @@ const translations: Translations = {
     blockedCycleCountingLabel: "Para contagem cíclica",
     blockedAssemblyLabel: "Para montagem",
     receivedSuccessfully: "Recebido com sucesso...",
+    inspectionQueryLabel: "Número do pedido / Inspeção / Unidade de manuseio",
     helpLabel: "Ajuda",
     propertiesLabel: "Propriedades",
   },

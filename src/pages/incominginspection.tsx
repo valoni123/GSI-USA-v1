@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowDown, Box, Clock, LogOut, Search, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
+import { LogOut, User } from "lucide-react";
 
-const IncomingMenu = () => {
+const IncomingInspection = () => {
   const navigate = useNavigate();
 
   const [lang] = useState<LanguageKey>(() => {
@@ -35,38 +38,22 @@ const IncomingMenu = () => {
     navigate("/");
   };
 
-  const tiles = [
-    {
-      key: "goodsReceipt",
-      label: trans.incomingGoodsReceipt,
-      icon: <ArrowDown className="h-10 w-10 text-red-700" />,
-    },
-    {
-      key: "warehouseInspection",
-      label: "Inspection",
-      icon: <Search className="h-10 w-10 text-red-700" />,
-    },
-    {
-      key: "putawaySuggestions",
-      label: "Putaway",
-      icon: <Box className="h-10 w-10 text-red-700" />,
-    },
-    {
-      key: "deliveryNotice",
-      label: trans.incomingDeliveryNotice,
-      icon: <Clock className="h-10 w-10 text-red-700" />,
-    },
-  ] as const;
+  const queryRef = useRef<HTMLInputElement | null>(null);
+  const [query, setQuery] = useState<string>("");
+
+  useEffect(() => {
+    queryRef.current?.focus();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu")} />
+          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/incoming")} />
 
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center">{trans.appIncoming.toUpperCase()}</div>
+            <div className="font-bold text-lg tracking-wide text-center">{trans.incomingWarehouseInspection || "Inspection"}</div>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
               <User className="h-4 w-4" />
               <span className="line-clamp-1">{fullName || ""}</span>
@@ -85,29 +72,28 @@ const IncomingMenu = () => {
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="mx-auto max-w-md px-4 py-6 grid grid-cols-2 gap-4">
-        {tiles.map((tile) => (
-          <Card
-            key={tile.key}
-            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center gap-3 shadow-sm cursor-pointer active:scale-[0.99] min-h-[160px]"
-            onClick={() => {
-              if (tile.key === "goodsReceipt") {
-                navigate("/menu/incoming/goods-receipt");
-              }
-              if (tile.key === "warehouseInspection") {
-                navigate("/menu/incoming/inspection");
-              }
+      {/* Content */}
+      <div className="mx-auto max-w-md px-4 py-6 pb-24">
+        <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
+          <FloatingLabelInput
+            id="inspectionQuery"
+            label={trans.inspectionQueryLabel}
+            ref={queryRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={(e) => {
+              if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
-          >
-            <div className="h-14 w-14 rounded-md border-2 border-red-700 flex items-center justify-center">
-              {tile.icon}
-            </div>
-            <div className="text-sm font-medium text-gray-700 text-center">{tile.label}</div>
-          </Card>
-        ))}
+            onClick={(e) => {
+              if (e.currentTarget.value.length > 0) e.currentTarget.select();
+            }}
+            onClear={() => setQuery("")}
+            autoFocus
+          />
+        </Card>
       </div>
 
+      {/* Sign-out confirmation dialog */}
       <SignOutConfirm
         open={signOutOpen}
         onOpenChange={setSignOutOpen}
@@ -121,4 +107,4 @@ const IncomingMenu = () => {
   );
 };
 
-export default IncomingMenu;
+export default IncomingInspection;
