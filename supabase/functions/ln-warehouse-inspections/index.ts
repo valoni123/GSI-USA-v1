@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { getCompanyFromParams } from "../_shared/company.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,49 +17,9 @@ type ActiveIonapi = {
   sask: string | null
 }
 
-async function getAccessToken(supabase: any): Promise<string> {
-  console.log("[ln-warehouse-inspections] fetching active ionapi config")
-  const { data, error } = await supabase.rpc('get_active_ionapi')
-  if (error) {
-    console.error("[ln-warehouse-inspections] get_active_ionapi error", { error })
-    throw new Error("Unable to load Infor OAuth configuration")
-  }
-  const cfg = (Array.isArray(data) && data.length > 0 ? data[0] : null) as ActiveIonapi | null
-  if (!cfg || !cfg.ot || !cfg.pu) {
-    console.error("[ln-warehouse-inspections] missing OAuth endpoints", { cfg })
-    throw new Error("OAuth endpoints not configured")
-  }
-
-  console.log("[ln-warehouse-inspections] requesting token")
-  const form = new URLSearchParams({
-    grant_type: cfg.grant_type || 'client_credentials',
-    client_id: cfg.saak || '',
-    client_secret: cfg.sask || '',
-  })
-
-  const tokenResp = await fetch(cfg.ot, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Accept": "application/json",
-    },
-    body: form.toString(),
-  })
-
-  if (!tokenResp.ok) {
-    const body = await tokenResp.text()
-    console.error("[ln-warehouse-inspections] token request failed", { status: tokenResp.status, body })
-    throw new Error("Failed to obtain access token")
-  }
-
-  const tokenJson = await tokenResp.json()
-  const accessToken = tokenJson.access_token as string
-  if (!accessToken) {
-    console.error("[ln-warehouse-inspections] no access_token in response", { tokenJson })
-    throw new Error("No access token returned")
-  }
-
-  return accessToken
+function buildTokenUrl(pu: string, ot: string) {
+  const base = pu.endsWith("/") ? pu : pu + "/";
+  return base + ot.replace(/^\//, "");
 }
 
 serve(async (req) => {
@@ -68,10 +29,7 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url)
-    // Input value to search against Order, Inspection or HandlingUnit
     const q = url.searchParams.get('q') || ''
-    // Company header; default to 1100 if not provided
-    const company = url.searchParams.get('company') || '1100'
 
     if (!q) {
       console.error("[ln-warehouse-inspections] missing q parameter")
@@ -81,41 +39,108 @@ serve(async (req) => {
       })
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    )
-
-    const accessToken = await getAccessToken(supabase)
-    // Also load config once to get base URL (pu)
-    const { data: confData, error: confErr } = await supabase.rpc('get_active_ionapi')
-    if (confErr) {
-      console.error("[ln-warehouse-inspections] get_active_ionapi error", { confErr })
-      return new Response(JSON.stringify({ error: "Unable to load Infor OAuth configuration" }), {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("[ln-warehouse-inspections] env missing")
+      return new Response(JSON.stringify({ error: "env_missing" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
-    const cfg = (Array.isArray(confData) && confData.length > 0 ? confData[0] : null) as ActiveIonapi | null
-    if (!cfg?.pu) {
-      console.error("[ln-warehouse-inspections] missing pu base URL", { cfg })
-      return new Response(JSON.stringify({ error: "OData base URL not configured" }), {
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+    // Company from params (server-side)
+    let company: string
+    try {
+      company = await getCompanyFromParams(supabase)
+    } catch (e) {
+      console.error("[ln-warehouse-inspections] company config error", { error: String(e) })
+      return new Response(JSON.stringify({ error: "no_company_config" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
 
-    // Build OData query as specified with correct precedence:
-    // (InspectionStatus ne ...Processed) and (Order eq 'q' or Inspection eq 'q' or HandlingUnit eq 'q')
-    const filter = `(InspectionStatus ne txgsi.WarehouseInspections.WarehouseInspectionStatus'Processed') and (Order eq '${q}' or Inspection eq '${q}' or HandlingUnit eq '${q}')`
+    // Active ionapi config (decrypted)
+    const { data: cfgData, error: cfgErr } = await supabase.rpc('get_active_ionapi')
+    if (cfgErr) {
+      console.error("[ln-warehouse-inspections] get_active_ionapi error", { error: cfgErr })
+      return new Response(JSON.stringify({ error: "config_error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+    const cfg = (Array.isArray(cfgData) && cfgData.length > 0 ? cfgData[0] : cfgData) as ActiveIonapi | null
+    if (!cfg || !cfg.pu || !cfg.ot || !cfg.ci || !cfg.cs || !cfg.saak || !cfg.sask) {
+      console.error("[ln-warehouse-inspections] incomplete ionapi config", { cfg })
+      return new Response(JSON.stringify({ error: "config_incomplete" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    // iu and ti from active row
+    const { data: activeRow, error: rowErr } = await supabase
+      .from("ionapi_oauth2")
+      .select("iu, ti")
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle()
+    if (rowErr || !activeRow) {
+      console.error("[ln-warehouse-inspections] missing active row", { error: rowErr })
+      return new Response(JSON.stringify({ error: "no_active_config_row" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+    const iu: string = String(activeRow.iu || "")
+    const ti: string = String(activeRow.ti || "")
+
+    // Token using Basic and username/password
+    const basic = btoa(`${cfg.ci}:${cfg.cs}`)
+    const grantType = cfg.grant_type === "password_credentials" ? "password" : (cfg.grant_type || "password")
+    const form = new URLSearchParams()
+    form.set("grant_type", grantType)
+    form.set("username", cfg.saak)
+    form.set("password", cfg.sask)
+
+    const tokenResp = await fetch(buildTokenUrl(cfg.pu, cfg.ot), {
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${basic}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: form.toString(),
+    }).catch(() => null as unknown as Response)
+    if (!tokenResp) {
+      console.error("[ln-warehouse-inspections] token network error")
+      return new Response(JSON.stringify({ error: "token_network_error" }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+    const tokenJson = await tokenResp.json().catch(() => null) as any
+    if (!tokenResp.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
+      console.error("[ln-warehouse-inspections] token error", { status: tokenResp.status, body: tokenJson })
+      return new Response(JSON.stringify({ error: "token_error", details: tokenJson }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+    const accessToken = tokenJson.access_token as string
+
+    // OData call: WarehouseInspections filtered by Order/Inspection/HandlingUnit and not Processed
+    const base = iu.endsWith("/") ? iu.slice(0, -1) : iu
+    const escaped = q.replace(/'/g, "''")
+    const filter = `(InspectionStatus ne txgsi.WarehouseInspections.WarehouseInspectionStatus'Processed') and (Order eq '${escaped}' or Inspection eq '${escaped}' or HandlingUnit eq '${escaped}')`
+
     const params = new URLSearchParams({
       "$filter": filter,
       "$count": "true",
       "$select": "*",
     })
-
-    const base = new URL('/LN/lnapi/odata/txgsi.WarehouseInspections/WarehouseInspections', cfg.pu!)
-    const fullUrl = `${base.toString()}?${params.toString()}`
+    const fullUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseInspections/WarehouseInspections?${params.toString()}`
 
     console.log("[ln-warehouse-inspections] calling OData", { fullUrl, company })
 
@@ -127,21 +152,23 @@ serve(async (req) => {
         "X-Infor-LnCompany": company,
         "Authorization": `Bearer ${accessToken}`,
       },
-    })
+    }).catch(() => null as unknown as Response)
 
-    const text = await resp.text()
-    let payload: any = null
-    try {
-      payload = JSON.parse(text)
-    } catch {
-      console.error("[ln-warehouse-inspections] non-JSON response", { text })
-      return new Response(JSON.stringify({ error: "Invalid JSON from OData" }), {
+    if (!resp) {
+      console.error("[ln-warehouse-inspections] OData network error")
+      return new Response(JSON.stringify({ error: "odata_network_error" }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
 
-    if (!resp.ok) {
+    const payload = await resp.json().catch(async () => {
+      const txt = await resp.text().catch(() => "")
+      console.error("[ln-warehouse-inspections] non-JSON response", { text: txt })
+      return null
+    })
+
+    if (!resp.ok || !payload) {
       console.error("[ln-warehouse-inspections] OData error", { status: resp.status, payload })
       return new Response(JSON.stringify({ error: "OData request failed", details: payload }), {
         status: resp.status,
