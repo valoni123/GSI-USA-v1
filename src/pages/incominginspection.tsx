@@ -1,205 +1,730 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, ScanLine, Info } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import InspectionResultsDialog from "@/components/InspectionResultsDialog";
 import InspectionLinePickerDialog from "@/components/InspectionLinePickerDialog";
-import { cn } from "@/lib/utils";
-
-type InspectionRow = {
-  Order?: string;
-  Inspection?: string;
-  HandlingUnit?: string;
-  Line?: number;
-  Item?: string;
-  Warehouse?: string;
-  Location?: string;
-  Quantity?: number;
-  Unit?: string;
-  Reason?: string;
-  Remarks?: string;
-  ["@odata.etag"]?: string;
-};
+import SignOutConfirm from "@/components/SignOutConfirm";
+import BackButton from "@/components/BackButton";
+import ReasonPickerDialog from "@/components/ReasonPickerDialog";
+import { supabase } from "@/integrations/supabase/client";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
+import { t, type LanguageKey } from "@/lib/i18n";
+import { showSuccess, showLoading, dismissToast } from "@/utils/toast";
 
 const IncomingInspectionPage: React.FC = () => {
-  const [query, setQuery] = useState("");
-  const [company, setCompany] = useState("1100");
-  const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<InspectionRow[]>([]);
-  const [openDetails, setOpenDetails] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<InspectionRow | null>(null);
-  const [openLinePicker, setOpenLinePicker] = useState(false);
-  const [scanValue, setScanValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Autofocus on mount for quicker scanning
-    inputRef.current?.focus();
-  }, []);
+  const [lang] = useState<LanguageKey>(() => {
+    const saved = localStorage.getItem("app.lang") as LanguageKey | null;
+    return saved || "en";
+  });
+  const trans = useMemo(() => t(lang), [lang]);
 
-  const hasRows = rows.length > 0;
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showSignOut, setShowSignOut] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [records, setRecords] = useState<any[]>([]);
+  const [fullName, setFullName] = useState<string>("");
+  const [headerOrder, setHeaderOrder] = useState<string>("");
+  const [headerOrigin, setHeaderOrigin] = useState<string>("");
+  // Dynamic label for the scan field
+  const [scanLabel, setScanLabel] = useState<string>(trans.inspectionQueryLabel);
 
-  const handleScan = async () => {
-    const q = query.trim();
-    if (!q) {
-      showError("Bitte eine Nummer scannen oder eingeben.");
+  // Selected inspection line (from dialog selection); may include __position payload
+  const [selectedLine, setSelectedLine] = useState<any | null>(null);
+
+  // Inputs for approval flow
+  const [approvedQty, setApprovedQty] = useState<string>("0");
+  const [rejectedQty, setRejectedQty] = useState<string>("0");
+  const [rejectReason, setRejectReason] = useState<string>("");
+  const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
+  const [allowedReasons, setAllowedReasons] = useState<Array<{ Reason: string; Description?: string }>>([]);
+  const [exceedToastShown, setExceedToastShown] = useState<boolean>(false);
+  // NEW: track if only one inspection line exists (to show '- 1' when needed)
+  const [singleLineOnly, setSingleLineOnly] = useState<boolean>(false);
+  // NEW: toggle to approve entire quantity
+  const [approveAll, setApproveAll] = useState<boolean>(false);
+  const [rejectAll, setRejectAll] = useState<boolean>(false);
+  // ADD: line picker state
+  const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
+  const [lineOptions, setLineOptions] = useState<any[]>([]);
+
+  // Reset all form and fetched state when starting a new scan
+  const resetAllForNewScan = () => {
+    setSelectedLine(null);
+    setRecords([]);
+    setDialogOpen(false);
+    setHeaderOrder("");
+    setHeaderOrigin("");
+    setApprovedQty("0");
+    setRejectedQty("0");
+    setRejectReason("");
+    setReasonDialogOpen(false);
+    setAllowedReasons([]);
+    setExceedToastShown(false);
+  };
+
+  // Helper to extract quantities/units from selected line
+  const getInspectQtySU = (r: any) => {
+    const src = r?.__position || r;
+    const n = Number(src?.QuantityToBeInspectedInStorageUnit ?? r?.QuantityToBeInspectedInStorageUnit ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const getStorageUnit = (r: any) => {
+    const src = r?.__position || r;
+    return (src?.StorageUnit || r?.StorageUnit || "").toString();
+  };
+  const getInspection = (r: any) => (r?.Inspection || "").toString();
+  const getSequence = (r: any) => {
+    const src = r?.__position ? r : r;
+    const n = Number(src?.InspectionSequence ?? src?.Sequence ?? src?.OrderSequence ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const getInspectionLine = (r: any) => {
+    const src = r?.__position || {};
+    const n = Number(src?.InspectionLine ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const getItem = (r: any) => {
+    const src = r?.__position || r;
+    return (src?.Item || src?.ItemRef?.Item || r?.Item || r?.ItemRef?.Item || "").toString();
+  };
+  const getItemDesc = (r: any) => {
+    const src = r?.__position || r;
+    return (src?.ItemRef?.Description || r?.ItemRef?.Description || "").toString();
+  };
+
+  const totalToInspect = selectedLine ? getInspectQtySU(selectedLine) : 0;
+  const storageUnit = selectedLine ? getStorageUnit(selectedLine) : "";
+
+  // Helpers to extract order-related fields from selectedLine
+  const getOrderOrigin = (r: any) => (r?.OrderOrigin || headerOrigin || "").toString();
+  const getOrderNumber = (r: any) => (r?.Order || headerOrder || "").toString();
+  const getOrderPosition = (r: any) => {
+    const src = r?.__position || r;
+    const n = Number(
+      src?.OrderLine ?? 
+      src?.Position ?? 
+      r?.OrderLine ?? 
+      r?.Line ?? 0
+    );
+    return Number.isFinite(n) ? n : 0;
+  };
+  const getOrderSequence = (r: any) => {
+    const src = r?.__position || r;
+    const n = Number(src?.OrderSequence ?? r?.OrderSequence ?? 1);
+    return Number.isFinite(n) ? n : 1;
+  };
+  const getOrderSet = (r: any) => {
+    const src = r?.__position || r;
+    const n = Number(src?.OrderSet ?? r?.OrderSet ?? 1);
+    return Number.isFinite(n) ? n : 1;
+  };
+  const getOrderUnit = (r: any) => {
+    const src = r?.__position || r;
+    return (
+      (src?.StorageUnit || "").toString() ||
+      (src?.ReceiptUnit || "").toString() ||
+      (src?.OrderUnit || "").toString() ||
+      (r?.Unit || "").toString()
+    );
+  };
+
+  const clearAfterSubmit = () => {
+    // Keep scan input intact, clear the rest
+    setSelectedLine(null);
+    setRecords([]);
+    setDialogOpen(false);
+    setHeaderOrder("");
+    setHeaderOrigin("");
+    setApprovedQty("0");
+    setRejectedQty("0");
+    setRejectReason("");
+    setReasonDialogOpen(false);
+    setAllowedReasons([]);
+    setExceedToastShown(false);
+    setApproveAll(false);
+    setRejectAll(false);
+    setSingleLineOnly(false);
+  };
+
+  const doSubmit = async () => {
+    if (!isSubmitEnabled || !selectedLine) return;
+
+    const inspection = getInspection(selectedLine);
+    const inspectionSeq = getSequence(selectedLine);
+    const inspectionLine = getInspectionLine(selectedLine) || (singleLineOnly ? 1 : 0);
+
+    const emp = (localStorage.getItem("gsi.employee") || "").toString();
+
+    const payload = {
+      TransactionID: "",
+      Inspection: inspection,
+      InspectionSequence: inspectionSeq,
+      InspectionLine: inspectionLine,
+      OrderOrigin: getOrderOrigin(selectedLine),
+      Order: getOrderNumber(selectedLine),
+      Position: getOrderPosition(selectedLine),
+      Sequence: getOrderSequence(selectedLine),
+      Set: getOrderSet(selectedLine),
+      Quantity: totalToInspect,
+      QuantityApproved: Number(approvedQty || "0"),
+      QuantityRejected: Number(rejectedQty || "0"),
+      RejectReason: (rejectReason || "").trim(),
+      Approve: "Yes",
+      Employee: emp || "",
+      FromAPI: "Yes",
+      Unit: getOrderUnit(selectedLine) || storageUnit || "",
+    };
+
+    const tid = showLoading(trans.pleaseWait);
+    const { data, error } = await supabase.functions.invoke("ln-submit-inspection", {
+      body: { language: "en-US", company: "1100", payload },
+    });
+    dismissToast(tid as unknown as string);
+
+    if (error || !data || !data.ok) {
+      toast({
+        title: trans.loadingDetails,
+        description: (data && (data.error?.message || data.error)) || "Submission failed",
+        variant: "destructive",
+      });
       return;
     }
 
-    setScanValue(q);
+    showSuccess(trans.receivedSuccessfully);
+    clearAfterSubmit();
+  };
+
+  const approvedNum = Number(approvedQty);
+  const rejectedNum = Number(rejectedQty);
+
+  const isRejectReasonVisible = rejectedNum > 0;
+
+  const isReasonValid =
+    !isRejectReasonVisible ||
+    (rejectReason.trim().length > 0 &&
+      allowedReasons.some((r) => r.Reason.toLowerCase() === rejectReason.trim().toLowerCase()));
+
+  const isSubmitEnabled =
+    selectedLine &&
+    Number.isFinite(approvedNum) &&
+    Number.isFinite(rejectedNum) &&
+    (approvedNum + rejectedNum === totalToInspect) &&
+    isReasonValid;
+
+  // Show error toast if the sum exceeds the quantity to inspect
+  useEffect(() => {
+    if (!selectedLine) {
+      setExceedToastShown(false);
+      return;
+    }
+    const sum = approvedNum + rejectedNum;
+    if (Number.isFinite(sum) && sum > totalToInspect) {
+      if (!exceedToastShown) {
+        toast({
+          title: "Quantity exceeded",
+          description: "Approved + Rejected exceeds the quantity to be inspected.",
+          variant: "destructive",
+        });
+        setExceedToastShown(true);
+      }
+    } else {
+      // Reset once user corrects values
+      if (exceedToastShown) setExceedToastShown(false);
+    }
+  }, [selectedLine, approvedNum, rejectedNum, totalToInspect]);
+
+  useEffect(() => {
+    const name = localStorage.getItem("gsi.full_name");
+    if (name) setFullName(name);
+  }, []);
+
+  const handleBack = () => navigate("/menu/incoming");
+
+  const handleBlurScan = async () => {
+    const q = query.trim();
+    if (!q) return;
+
+    const tid = showLoading(trans.pleaseWait);
     setLoading(true);
-
     try {
-      // Call ln-warehouse-inspections directly (the page already uses hardcoded URL elsewhere)
+      const company = "1100";
       const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
-      const params = new URLSearchParams();
-      params.set("q", q);
-      params.set("company", company);
-
-      const res = await fetch(`${url}?${params.toString()}`, {
+      const params = new URLSearchParams({ q, company });
+      const resp = await fetch(`${url}?${params.toString()}`, {
         method: "GET",
-        headers: {
-          accept: "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
-      const data = await res.json();
-
-      if (!res.ok || data?.error) {
-        const msg =
-          typeof data?.error === "string"
-            ? data.error
-            : typeof data?.message === "string"
-            ? data.message
-            : "Serverfehler bei der Abfrage";
-        showError(msg);
-        setRows([]);
-        setLoading(false);
+      const data = await resp.json();
+      if (!resp.ok) {
+        toast({
+          title: trans.loadingDetails,
+          description: data?.error || "Unable to fetch inspections",
+          variant: "destructive",
+        });
         return;
       }
 
+      const count = data?.["@odata.count"] ?? 0;
       const value = Array.isArray(data?.value) ? data.value : [];
-      setRows(value);
 
-      if (value.length === 0) {
-        showError("Keine Einträge gefunden.");
+      const hasInspectionMatch = value.some((v: any) => typeof v?.Inspection === "string" && v.Inspection === q);
+      const hasOrderMatch = value.some((v: any) => typeof v?.Order === "string" && v.Order === q);
+      const hasHandlingUnitMatch = value.some((v: any) => typeof v?.HandlingUnit === "string" && v.HandlingUnit === q);
+      if (hasInspectionMatch) setScanLabel(trans.inspectionLabel);
+      else if (hasOrderMatch) setScanLabel(trans.incomingOrderNumberLabel);
+      else if (hasHandlingUnitMatch) setScanLabel(trans.loadHandlingUnit);
+      else setScanLabel(trans.inspectionQueryLabel);
+
+      if (count > 1 && value.length > 1) {
+        const first = value[0] || {};
+        const ord = typeof first?.Order === "string" ? first.Order : query.trim();
+        const origin = typeof first?.OrderOrigin === "string" ? first.OrderOrigin : "";
+        setHeaderOrder(ord || "");
+        setHeaderOrigin(origin || "");
+        setRecords(value);
+        setDialogOpen(true);
+      } else if (count === 1 && value.length === 1) {
+        handleSelectRecord(value[0]);
       } else {
-        showSuccess(`${value.length} Einträge gefunden.`);
+        toast({
+          title: trans.noEntries,
+          description: trans.loadingDetails,
+        });
+        setScanLabel(trans.inspectionQueryLabel);
       }
-    } catch (e: any) {
-      showError("Netzwerkfehler. Bitte erneut versuchen.");
-      setRows([]);
     } finally {
+      dismissToast(tid as unknown as string);
       setLoading(false);
     }
   };
 
-  const handleOpenDetails = (row: InspectionRow) => {
-    setSelectedRow(row);
-    setOpenDetails(true);
+  // When a record is selected from dialog, show details inline
+  const handleSelectRecord = (rec: any) => {
+    setDialogOpen(false);
+    setSelectedLine(rec);
+    setApprovedQty("0");
+    setRejectedQty("0");
+    setRejectReason("");
   };
 
-  const handleSelectLine = () => {
-    setOpenLinePicker(true);
+  // If a selected record has multiple Inspection Lines, open the popup to pick one
+  useEffect(() => {
+    const run = async () => {
+      if (!selectedLine || selectedLine.__position) {
+        setSingleLineOnly(Boolean(selectedLine?.__position));
+        return;
+      }
+      const insp = (selectedLine?.Inspection || "").toString().trim();
+      const seq = Number(
+        selectedLine?.InspectionSequence ??
+        selectedLine?.Sequence ??
+        selectedLine?.OrderSequence ??
+        0
+      );
+      if (!insp || !seq) {
+        setSingleLineOnly(false);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("ln-inspection-lines", {
+        body: { inspection: insp, sequence: seq, language: "en-US", company: "1100" },
+      });
+      const list = Array.isArray(data?.value) ? data.value : [];
+      if (!error && list.length === 1) {
+        setSelectedLine({ ...selectedLine, __position: list[0] });
+        setSingleLineOnly(true);
+        setLinePickerOpen(false);
+        setLineOptions([]);
+      } else if (!error && list.length > 1) {
+        // Show the old beautiful popup for line picking
+        setLineOptions(list);
+        setLinePickerOpen(true);
+        setSingleLineOnly(false);
+      } else {
+        setSingleLineOnly(false);
+        setLinePickerOpen(false);
+        setLineOptions([]);
+      }
+    };
+    void run();
+  }, [selectedLine]);
+
+  // Reset toggles when a new line is selected
+  useEffect(() => {
+    setApproveAll(false);
+    setRejectAll(false);
+  }, [selectedLine]);
+
+  // Helpers to render origin chip like Goods Receipt
+  const formatOriginLabel = (origin: string) => {
+    const o = (origin || "").trim();
+    if (!o) return "-";
+    const lower = o.toLowerCase();
+    if (lower.includes("production")) return lang === "de" ? "Produktion" : trans.incomingOrderTypeLabel.replace("type", "Production");
+    if (lower.includes("purchase")) return trans.incomingOrderTypePurchase;
+    if (lower.includes("sales")) return lang === "de" ? "Verkauf" : "Sales";
+    if (lower.includes("transfermanual")) return lang === "de" ? "Umbuchung (manuell)" : "Transfer (manual)";
+    if (lower.includes("transfer")) return lang === "de" ? "Umbuchung" : "Transfer";
+    return o;
   };
 
-  const onCloseDetails = () => {
-    setOpenDetails(false);
-    setSelectedRow(null);
+  const originColorStyle = (origin: string) => {
+    const o = (origin || "").toLowerCase();
+    if (o.includes("production")) return { bg: "#2db329", text: "#ffffff" };
+    if (o.includes("purchase")) return { bg: "#9ed927", text: "#1a1a1a" };
+    if (o.includes("sales")) return { bg: "#1d5f8a", text: "#ffffff" };
+    if (o.includes("transfer")) return { bg: "#ffd500", text: "#1a1a1a" };
+    return { bg: "#2db329", text: "#ffffff" };
   };
 
-  const onCloseLinePicker = () => {
-    setOpenLinePicker(false);
+  const handleSignOutConfirm = () => {
+    try {
+      localStorage.removeItem("ln.token");
+      localStorage.removeItem("gsi.id");
+      localStorage.removeItem("gsi.full_name");
+      localStorage.removeItem("gsi.username");
+      localStorage.removeItem("gsi.employee");
+      localStorage.removeItem("gsi.login");
+    } catch {}
+    setShowSignOut(false);
+    toast({
+      title: "Signed out",
+      description: "You have been signed out.",
+    });
+    navigate("/");
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <Input
-          ref={inputRef}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="HU, Auftrag oder Prüfnummer scannen"
-          className="flex-1"
-        />
-        <Button onClick={handleScan} disabled={loading}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ScanLine className="mr-2 h-4 w-4" />}
-          Suchen
-        </Button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-black text-white">
+        <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
+          <BackButton ariaLabel={trans.back} onClick={handleBack} />
+          <div className="flex flex-col items-center flex-1">
+            <div className="font-bold text-lg tracking-wide text-center">{trans.incomingWarehouseInspection.toUpperCase()}</div>
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
+              <User className="h-4 w-4" />
+              <span className="line-clamp-1">{fullName || ""}</span>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-red-500 hover:text-red-600 hover:bg-white/10"
+            aria-label={trans.signOut}
+            onClick={() => setShowSignOut(true)}
+          >
+            <LogOut className="h-6 w-6" />
+          </Button>
+        </div>
       </div>
 
-      {/* Results list */}
-      <Card className="shadow-sm">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-4 text-sm text-muted-foreground flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Daten werden geladen…
-            </div>
-          ) : hasRows ? (
-            <div className="divide-y">
-              {rows.map((r, idx) => {
-                const title = r.Item ? `${r.Item}` : r.Order || r.Inspection || r.HandlingUnit || "Eintrag";
-                const sub = [
-                  r.Order ? `Auftrag: ${r.Order}` : null,
-                  r.Inspection ? `Prüfung: ${r.Inspection}` : null,
-                  r.HandlingUnit ? `HU: ${r.HandlingUnit}` : null,
-                  r.Location ? `Lokation: ${r.Location}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ");
+      <div className="mx-auto max-w-md px-4 py-4 space-y-4">
+        {/* Scan input */}
+        <div>
+          <FloatingLabelInput
+            id="inspectionScan"
+            label={scanLabel}
+            value={query}
+            onChange={(e) => {
+              const v = e.target.value;
+              setQuery(v);
+              setScanLabel(trans.inspectionQueryLabel);
+              if (
+                selectedLine ||
+                records.length > 0 ||
+                approvedQty !== "0" ||
+                rejectedQty !== "0" ||
+                rejectReason.trim().length > 0
+              ) {
+                resetAllForNewScan();
+              }
+            }}
+            onBlur={handleBlurScan}
+            onFocus={(e) => e.currentTarget.select()}
+            onClick={(e) => e.currentTarget.select()}
+            onClear={() => {
+              setQuery("");
+              setScanLabel(trans.inspectionQueryLabel);
+              resetAllForNewScan();
+            }}
+          />
+        </div>
 
-                return (
-                  <button
-                    key={`${r.Inspection || r.Order || r.HandlingUnit || "row"}-${idx}`}
-                    className="w-full text-left p-4 hover:bg-muted/50 transition-colors"
-                    onClick={() => handleOpenDetails(r)}
-                  >
-                    <div className="text-sm font-medium">{title}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{sub}</div>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="p-4 text-sm text-muted-foreground flex items-center gap-2">
-              <Info className="h-4 w-4" />
-              Keine Einträge
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* Selection dialog */}
+        <InspectionResultsDialog
+          open={dialogOpen}
+          records={records}
+          onSelect={handleSelectRecord}
+          onClose={() => setDialogOpen(false)}
+          headerOrder={headerOrder}
+          headerOrigin={headerOrigin}
+        />
 
-      {/* Details dialog */}
-      <Dialog open={openDetails} onOpenChange={setOpenDetails}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Prüfdetails</DialogTitle>
-          </DialogHeader>
-          {selectedRow && (
-            <InspectionResultsDialog
-              row={selectedRow}
-              onClose={onCloseDetails}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        {/* Old-style line picker popup when a single record has multiple Inspection Lines */}
+        <InspectionLinePickerDialog
+          open={linePickerOpen}
+          lines={lineOptions}
+          order={headerOrder || (selectedLine?.Order || "")}
+          origin={headerOrigin || (selectedLine?.OrderOrigin || "")}
+          onSelect={(ln) => {
+            setSelectedLine((prev) => (prev ? { ...prev, __position: ln } : prev));
+            setSingleLineOnly(true);
+            setLinePickerOpen(false);
+            setLineOptions([]);
+          }}
+          onClose={() => {
+            setLinePickerOpen(false);
+            setLineOptions([]);
+          }}
+        />
 
-      {/* Line picker dialog */}
-      <Dialog open={openLinePicker} onOpenChange={setOpenLinePicker}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Zeile auswählen</DialogTitle>
-          </DialogHeader>
-          <InspectionLinePickerDialog onClose={onCloseLinePicker} />
-        </DialogContent>
-      </Dialog>
+        {/* Dynamic details when one line is selected */}
+        {selectedLine && (
+          <div className="space-y-3">
+            {/* Order header (same line) */}
+            {(() => {
+              const ord = (selectedLine?.Order || headerOrder || "").trim();
+              const originRaw = (selectedLine?.OrderOrigin || headerOrigin || "").trim();
+              if (!ord && !originRaw) return null;
+              const s = originColorStyle(originRaw);
+              return (
+                <div className="rounded-md border bg-white px-3 py-2">
+                  <div className="relative">
+                    <FloatingLabelInput
+                      id="orderHeader"
+                      label={trans.orderLabel}
+                      value={ord}
+                      disabled
+                      className="pl-28 pr-3"
+                    />
+                    {originRaw && (
+                      <span
+                        className="absolute left-4 top-1/2 -translate-y-1/2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                        style={{ backgroundColor: s.bg, color: s.text }}
+                        title={originRaw}
+                      >
+                        {formatOriginLabel(originRaw)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Inspection - Sequence - Line */}
+            <div className="rounded-md border bg-gray-100 px-3 pt-5 pb-2 relative">
+              <span className="absolute left-3 top-1 text-[11px] leading-none text-gray-600">{trans.inspectionLabel}</span>
+              <span className="absolute right-3 top-1 text-[11px] leading-none text-gray-600">{trans.quantityLabel}</span>
+
+              <div className="grid grid-cols-[1fr_auto] items-center">
+                <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
+                  {(getInspection(selectedLine) || "-")}
+                  {(() => {
+                    const seq = getSequence(selectedLine);
+                    return seq ? ` - ${seq}` : "";
+                  })()}
+                  {(() => {
+                    const ln = getInspectionLine(selectedLine);
+                    return ln ? ` - ${ln}` : (singleLineOnly ? " - 1" : "");
+                  })()}
+                </div>
+                <div className="text-sm text-gray-900 text-right whitespace-nowrap font-medium">
+                  {totalToInspect} {storageUnit}
+                </div>
+              </div>
+            </div>
+
+            {/* Item and description */}
+            <div className="rounded-md border bg-white px-3 py-2">
+              <div className="text-sm sm:text-base text-gray-900 break-all">{getItem(selectedLine) || "-"}</div>
+              {getItemDesc(selectedLine) && (
+                <div className="text-xs text-gray-700">{getItemDesc(selectedLine)}</div>
+              )}
+            </div>
+
+            {/* Approved Quantity input (with green check toggle) */}
+            {!rejectAll && (
+              <div className="relative">
+                <FloatingLabelInput
+                  id="approvedQty"
+                  label={trans.approvedQuantityLabel}
+                  value={approvedQty}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setApprovedQty("");
+                      setApproveAll(false);
+                      return;
+                    }
+                    const num = Number(v);
+                    setApprovedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
+                    const allStr = String(totalToInspect || 0);
+                    if (v !== allStr) setApproveAll(false);
+                  }}
+                  onClear={() => {
+                    setApprovedQty("0");
+                    setApproveAll(false);
+                  }}
+                  inputMode="decimal"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={[
+                    "absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md border border-gray-300 shadow-sm",
+                    approveAll ? "bg-green-600 text-white hover:bg-green-700" : "bg-white text-green-600 hover:text-green-700"
+                  ].join(" ").trim()}
+                  aria-label={trans.approvedQuantityLabel}
+                  onClick={() => {
+                    if (!approveAll) {
+                      const all = String(totalToInspect || 0);
+                      setApprovedQty(all);
+                      setRejectedQty("0");
+                      setApproveAll(true);
+                      setRejectAll(false);
+                    } else {
+                      setApprovedQty("0");
+                      setApproveAll(false);
+                    }
+                  }}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Rejected Quantity input (with red check toggle) */}
+            {!approveAll && (
+              <div className="relative">
+                <FloatingLabelInput
+                  id="rejectedQty"
+                  label={trans.rejectedQuantityLabel}
+                  value={rejectedQty}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setRejectedQty("");
+                      setRejectAll(false);
+                      return;
+                    }
+                    const num = Number(v);
+                    setRejectedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
+                    const allStr = String(totalToInspect || 0);
+                    if (v !== allStr) setRejectAll(false);
+                  }}
+                  onClear={() => {
+                    setRejectedQty("0");
+                    setRejectAll(false);
+                  }}
+                  inputMode="decimal"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={[
+                    "absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md border border-gray-300 shadow-sm",
+                    rejectAll ? "bg-red-600 text-white hover:bg-red-700" : "bg-white text-red-600 hover:text-red-700"
+                  ].join(" ").trim()}
+                  aria-label={trans.rejectedQuantityLabel}
+                  onClick={() => {
+                    if (!rejectAll) {
+                      const all = String(totalToInspect || 0);
+                      setRejectedQty(all);
+                      setApprovedQty("0");
+                      setRejectAll(true);
+                      setApproveAll(false);
+                    } else {
+                      setRejectedQty("0");
+                      setRejectAll(false);
+                    }
+                  }}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Reject Reason (visible only if rejected > 0) */}
+            {isRejectReasonVisible && (
+              <div className="relative">
+                <FloatingLabelInput
+                  id="rejectReason"
+                  label={trans.rejectReasonLabel}
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  onFocus={async () => {
+                    if (allowedReasons.length === 0) {
+                      const { data } = await supabase.functions.invoke("ln-reasons-list", {
+                        body: { company: "1100", language: "en-US" },
+                      });
+                      const list = Array.isArray(data?.value) ? data.value : [];
+                      setAllowedReasons(list);
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                  onClick={() => setReasonDialogOpen(true)}
+                  aria-label={trans.searchLabel}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Submit button */}
+            <div className="pt-2">
+              <Button
+                className="h-12 w-full"
+                variant={isSubmitEnabled ? "destructive" : "secondary"}
+                disabled={!isSubmitEnabled}
+                onClick={doSubmit}
+              >
+                {trans.submitLabel}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <SignOutConfirm
+        open={showSignOut}
+        onOpenChange={setShowSignOut}
+        title={trans.signOutTitle}
+        question={trans.signOutQuestion}
+        yesLabel={trans.yes}
+        noLabel={trans.no}
+        onConfirm={handleSignOutConfirm}
+      />
+
+      <ReasonPickerDialog
+        open={reasonDialogOpen}
+        onOpenChange={setReasonDialogOpen}
+        onSelect={(code) => {
+          setRejectReason(code);
+          setReasonDialogOpen(false);
+        }}
+        onLoaded={(list) => {
+          setAllowedReasons(list.map((r: any) => ({ Reason: r.Reason, Description: r.Description })));
+        }}
+        company="1100"
+        language="en-US"
+      />
     </div>
   );
 };
