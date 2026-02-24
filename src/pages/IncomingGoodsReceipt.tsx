@@ -93,6 +93,7 @@ const IncomingGoodsReceipt = () => {
 
   // NEW: control whether the line picker can auto-open
   const [allowLinePickerAutoOpen, setAllowLinePickerAutoOpen] = useState<boolean>(true);
+  const [screenLoading, setScreenLoading] = useState<boolean>(false);
 
   // After hooks and before functions, add a helper to clear everything and focus Order Number
   const clearAllAndFocusOrder = () => {
@@ -418,212 +419,213 @@ const IncomingGoodsReceipt = () => {
     if (lastCheckedOrder === `${trimmed}|${lineTrim}|${originKey}`) return;
 
     const tid = showLoading(trans.loadingDetails);
-    const originForFilter = (orderType || "").trim() ? orderType : undefined;
-    const { data, error } = await supabase.functions.invoke("ln-warehousing-orders", {
-      body: {
-        orderNumber: trimmed,
-        line: lineTrim ? Number(lineTrim) : undefined,
-        orderOrigin: originForFilter,
-        language: locale,
-        company: "4000",
-      },
-    });
-    dismissToast(tid as unknown as string);
-    if (error || !data || !data.ok) {
-      clearAllAndFocusOrder();
-      return;
-    }
-
-    // Abort if user changed/cleared the order while we were loading
-    const ordNow = (orderNo || "").trim();
-    const lnNow = (orderPos || "").trim();
-    // Abort only if the order number changed; allow line mismatches (React state may not have flushed yet)
-    if (ordNow !== trimmed) {
-      return;
-    }
-
-    const rawValues = Array.isArray(data.raw?.value) ? data.raw.value : [];
-    const mappedLines: Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }> =
-      rawValues.map((v: any) => ({
-        Line: Number(v?.Line ?? 0),
-        Item: typeof v?.Item === "string" ? v.Item : (typeof v?.ItemRef?.Item === "string" ? v.ItemRef.Item : undefined),
-        ItemDesc: typeof v?.ItemRef?.Description === "string" ? v.ItemRef.Description : undefined,
-        tbrQty: typeof v?.ToBeReceivedQuantity === "number" ? v.ToBeReceivedQuantity : undefined,
-        orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
-      }))
-      .filter((x) => Number.isFinite(x.Line));
-
-    // Fallback: if no open inbound lines were found, try received lines by origin(s) to avoid false "Order not found"
-    if (mappedLines.length === 0) {
-      const tryOrigins = (orderType || lotsOrigin)
-        ? [ (orderType || lotsOrigin).trim() ]
-        : [ "Purchase", "Sales", "Transfer", "TransferManual", "JSCProduction" ];
-      for (const originCandidate of tryOrigins) {
-        if (!originCandidate) continue;
-        const count = await loadReceivedLines(trimmed, originCandidate);
-        if (count > 0) {
-          // We have received lines; show Order Type chip and enable the Received Lines button
-          setOrderType(originCandidate);
-          setShowOrderType(true);
-          setOrderTypeOptions([]);
-          setOrderTypeDisabled(true);
-          setOrderTypeRequired(false);
-          setInboundLinesAll([]);
-          setInboundLinesGrouped([]);
-          setHasMultipleLines(false);
-          setLastCheckedOrder(`${trimmed}|${lineTrim}|${originCandidate}`);
-          return;
-        }
+    setScreenLoading(true);
+    try {
+      const originForFilter = (orderType || "").trim() ? orderType : undefined;
+      const { data, error } = await supabase.functions.invoke("ln-warehousing-orders", {
+        body: {
+          orderNumber: trimmed,
+          line: lineTrim ? Number(lineTrim) : undefined,
+          orderOrigin: originForFilter,
+          language: locale,
+          company: "4000",
+        },
+      });
+      dismissToast(tid as unknown as string);
+      if (error || !data || !data.ok) {
+        clearAllAndFocusOrder();
+        return;
       }
-      // No open lines and no received lines found for known origins → show not found
-      showError("Order not found");
-      clearAllAndFocusOrder();
-      return;
-    }
 
-    if (!lineTrim) {
-      setInboundLinesAll(mappedLines);
-      setHasMultipleLines(mappedLines.length > 1);
-    }
-
-    if (lineTrim) {
-      const lnNum = Number(lineTrim);
-      const picked = mappedLines.find((x) => x.Line === lnNum) || mappedLines[0];
-      const pickedRaw = rawValues.find((rv: any) => Number(rv?.Line) === lnNum) || rawValues[0];
-      if (picked) {
-        const itemCode = (picked.Item || "").trim();
-        const itemRaw = (picked.Item || "");
-        setGrItem(itemCode);
-        setQty(picked.tbrQty != null ? String(picked.tbrQty) : "");
-        setOrderUnit(picked.orderUnit || "");
-        setGrItemDesc(picked.ItemDesc || "");
-        setGrItemRaw(itemRaw);
-
-        const bpCode =
-          (() => {
-            const candidates = [
-              pickedRaw?.BuyfromBusinessPartner,
-              pickedRaw?.BuyFromBusinessPartner,
-              pickedRaw?.ShipfromBusinessPartner,
-              pickedRaw?.ShipFromBusinessPartner,
-              pickedRaw?.ShipfromBusinessPartnerRef?.BusinessPartner,
-              pickedRaw?.ShipFromBusinessPartnerRef?.BusinessPartner,
-            ];
-            const first = candidates.find((v: any) => typeof v === "string" && v.trim().length > 0);
-            return (first || "").trim();
-          })();
-        setBuyFromBusinessPartner(bpCode);
-
-        const isTracked = await fetchLotTracking(itemRaw || "");
-        const originCandidate =
-          (typeof pickedRaw?.OrderOrigin === "string" && pickedRaw.OrderOrigin) || orderType || "";
-
-        if (isTracked) {
-          const originLower = (originCandidate || "").toLowerCase();
-          if (originLower.includes("purchase")) {
-            if ((bpCode || "").trim()) {
-              await checkExistingLots(itemRaw, originCandidate, bpCode);
-            } else {
-              setLotsAvailableCount(0);
-              setExistingLots([]);
-              setLotsOrigin(originCandidate);
-            }
-          } else {
-            await checkExistingLots(itemRaw, originCandidate);
-          }
-        } else {
-          setLotsAvailableCount(0);
-          setExistingLots([]);
-          setLotsOrigin("");
-        }
-
-        setTimeout(() => {
-          if (isTracked) {
-            lotRef.current?.focus();
-          } else {
-            deliveryNoteRef.current?.focus();
-          }
-        }, 50);
+      // Abort if user changed/cleared the order while we were loading
+      const ordNow = (orderNo || "").trim();
+      const lnNow = (orderPos || "").trim();
+      if (ordNow !== trimmed) {
+        return;
       }
-    }
 
-    if (!lineTrim) {
-      setInboundLinesAll(mappedLines);
-    }
+      const rawValues = Array.isArray(data.raw?.value) ? data.raw.value : [];
+      const mappedLines: Array<{ Line: number; Item?: string; ItemDesc?: string; tbrQty?: number; orderUnit?: string }> =
+        rawValues.map((v: any) => ({
+          Line: Number(v?.Line ?? 0),
+          Item: typeof v?.Item === "string" ? v.Item : (typeof v?.ItemRef?.Item === "string" ? v.ItemRef.Item : undefined),
+          ItemDesc: typeof v?.ItemRef?.Description === "string" ? v.ItemRef.Description : undefined,
+          tbrQty: typeof v?.ToBeReceivedQuantity === "number" ? v.ToBeReceivedQuantity : undefined,
+          orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
+        }))
+        .filter((x) => Number.isFinite(x.Line));
 
-    if (!lineTrim && mappedLines.length === 1 && !suppressAutoFillLine) {
-      const singleLineStr = String(mappedLines[0].Line);
-      setOrderPos(singleLineStr);
-      setLastCheckedOrder(`${trimmed}|${singleLineStr}|${originKey}`);
-      await checkOrder(trimmed, singleLineStr);
-      return;
-    }
-
-    const origins: string[] = rawValues
-      .map((v: any) => (v?.OrderOrigin ? String(v.OrderOrigin) : null))
-      .filter((v: string | null): v is string => !!v);
-    const uniqueOrigins = Array.from(new Set(origins.length ? origins : (data.origin ? [String(data.origin)] : [])));
-
-    if (uniqueOrigins.length === 1) {
-      const origin = uniqueOrigins[0] || (data.origin ? String(data.origin) : "");
-      setOrderType(origin || "");
-      setOrderTypeOptions([]);
-      setOrderTypeDisabled(true);
-      setOrderTypeRequired(false);
-      setShowOrderType(true);
+      if (mappedLines.length === 0) {
+        const tryOrigins = (orderType || lotsOrigin)
+          ? [ (orderType || lotsOrigin).trim() ]
+          : [ "Purchase", "Sales", "Transfer", "TransferManual", "JSCProduction" ];
+        for (const originCandidate of tryOrigins) {
+          if (!originCandidate) continue;
+          const count = await loadReceivedLines(trimmed, originCandidate);
+          if (count > 0) {
+            setOrderType(originCandidate);
+            setShowOrderType(true);
+            setOrderTypeOptions([]);
+            setOrderTypeDisabled(true);
+            setOrderTypeRequired(false);
+            setInboundLinesAll([]);
+            setInboundLinesGrouped([]);
+            setHasMultipleLines(false);
+            setLastCheckedOrder(`${trimmed}|${lineTrim}|${originCandidate}`);
+            return;
+          }
+        }
+        showError("Order not found");
+        clearAllAndFocusOrder();
+        return;
+      }
 
       if (!lineTrim) {
         setInboundLinesAll(mappedLines);
         setHasMultipleLines(mappedLines.length > 1);
-        // Only auto-open the picker if allowed
-        if (mappedLines.length > 1 && allowLinePickerAutoOpen) {
-          setLinePickerOpen(true);
+      }
+
+      if (lineTrim) {
+        const lnNum = Number(lineTrim);
+        const picked = mappedLines.find((x) => x.Line === lnNum) || mappedLines[0];
+        const pickedRaw = rawValues.find((rv: any) => Number(rv?.Line) === lnNum) || rawValues[0];
+        if (picked) {
+          const itemCode = (picked.Item || "").trim();
+          const itemRaw = (picked.Item || "");
+          setGrItem(itemCode);
+          setQty(picked.tbrQty != null ? String(picked.tbrQty) : "");
+          setOrderUnit(picked.orderUnit || "");
+          setGrItemDesc(picked.ItemDesc || "");
+          setGrItemRaw(itemRaw);
+
+          const bpCode =
+            (() => {
+              const candidates = [
+                pickedRaw?.BuyfromBusinessPartner,
+                pickedRaw?.BuyFromBusinessPartner,
+                pickedRaw?.ShipfromBusinessPartner,
+                pickedRaw?.ShipFromBusinessPartner,
+                pickedRaw?.ShipfromBusinessPartnerRef?.BusinessPartner,
+                pickedRaw?.ShipFromBusinessPartnerRef?.BusinessPartner,
+              ];
+              const first = candidates.find((v: any) => typeof v === "string" && v.trim().length > 0);
+              return (first || "").trim();
+            })();
+          setBuyFromBusinessPartner(bpCode);
+
+          const isTracked = await fetchLotTracking(itemRaw || "");
+          const originCandidate =
+            (typeof pickedRaw?.OrderOrigin === "string" && pickedRaw.OrderOrigin) || orderType || "";
+
+          if (isTracked) {
+            const originLower = (originCandidate || "").toLowerCase();
+            if (originLower.includes("purchase")) {
+              if ((bpCode || "").trim()) {
+                await checkExistingLots(itemRaw, originCandidate, bpCode);
+              } else {
+                setLotsAvailableCount(0);
+                setExistingLots([]);
+                setLotsOrigin(originCandidate);
+              }
+            } else {
+              await checkExistingLots(itemRaw, originCandidate);
+            }
+          } else {
+            setLotsAvailableCount(0);
+            setExistingLots([]);
+            setLotsOrigin("");
+          }
+
+          setTimeout(() => {
+            if (isTracked) {
+              lotRef.current?.focus();
+            } else {
+              deliveryNoteRef.current?.focus();
+            }
+          }, 50);
         }
       }
 
-      setLastCheckedOrder(`${trimmed}|${lineTrim}|${origin || ""}`);
-      return;
-    }
+      if (!lineTrim) {
+        setInboundLinesAll(mappedLines);
+      }
 
-    if (uniqueOrigins.length > 1) {
-      const grouped = uniqueOrigins.map((org) => {
-        const linesForOrigin = rawValues
-          .filter((rv: any) => String(rv?.OrderOrigin || "") === org)
-          .map((v: any) => ({
-            Line: Number(v?.Line ?? 0),
-            Item: typeof v?.Item === "string" ? v.Item : (typeof v?.ItemRef?.Item === "string" ? v.ItemRef.Item : undefined),
-            ItemDesc: typeof v?.ItemRef?.Description === "string" ? v.ItemRef.Description : undefined,
-            tbrQty: typeof v?.ToBeReceivedQuantity === "number" ? v.ToBeReceivedQuantity : undefined,
-            orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
-          }))
-          .filter((x) => Number.isFinite(x.Line));
-        return { origin: org, lines: linesForOrigin };
-      });
+      if (!lineTrim && mappedLines.length === 1 && !suppressAutoFillLine) {
+        const singleLineStr = String(mappedLines[0].Line);
+        setOrderPos(singleLineStr);
+        setLastCheckedOrder(`${trimmed}|${singleLineStr}|${originKey}`);
+        await checkOrder(trimmed, singleLineStr);
+        return;
+      }
 
-      setInboundLinesGrouped(grouped);
-      setInboundLinesAll(mappedLines);
-      setHasMultipleLines(mappedLines.length > 1);
+      const origins: string[] = rawValues
+        .map((v: any) => (v?.OrderOrigin ? String(v.OrderOrigin) : null))
+        .filter((v: string | null): v is string => !!v);
+      const uniqueOrigins = Array.from(new Set(origins.length ? origins : (data.origin ? [String(data.origin)] : [])));
+
+      if (uniqueOrigins.length === 1) {
+        const origin = uniqueOrigins[0] || (data.origin ? String(data.origin) : "");
+        setOrderType(origin || "");
+        setOrderTypeOptions([]);
+        setOrderTypeDisabled(true);
+        setOrderTypeRequired(false);
+        setShowOrderType(true);
+
+        if (!lineTrim) {
+          setInboundLinesAll(mappedLines);
+          setHasMultipleLines(mappedLines.length > 1);
+          // Only auto-open the picker if allowed
+          if (mappedLines.length > 1 && allowLinePickerAutoOpen) {
+            setLinePickerOpen(true);
+          }
+        }
+
+        setLastCheckedOrder(`${trimmed}|${lineTrim}|${origin || ""}`);
+        return;
+      }
+
+      if (uniqueOrigins.length > 1) {
+        const grouped = uniqueOrigins.map((org) => {
+          const linesForOrigin = rawValues
+            .filter((rv: any) => String(rv?.OrderOrigin || "") === org)
+            .map((v: any) => ({
+              Line: Number(v?.Line ?? 0),
+              Item: typeof v?.Item === "string" ? v.Item : (typeof v?.ItemRef?.Item === "string" ? v.ItemRef.Item : undefined),
+              ItemDesc: typeof v?.ItemRef?.Description === "string" ? v.ItemRef.Description : undefined,
+              tbrQty: typeof v?.ToBeReceivedQuantity === "number" ? v.ToBeReceivedQuantity : undefined,
+              orderUnit: typeof v?.OrderUnit === "string" ? v.OrderUnit : (typeof v?.OrderUnitRef?.Unit === "string" ? v.OrderUnitRef.Unit : undefined),
+            }))
+            .filter((x) => Number.isFinite(x.Line));
+          return { origin: org, lines: linesForOrigin };
+        });
+
+        setInboundLinesGrouped(grouped);
+        setInboundLinesAll(mappedLines);
+        setHasMultipleLines(mappedLines.length > 1);
+
+        setShowOrderType(false);
+        setOrderType("");
+        setOrderTypeOptions([]);
+        setOrderTypeDisabled(true);
+        setOrderTypeRequired(false);
+
+        // Only auto-open the grouped picker if allowed
+        if (!lineTrim && allowLinePickerAutoOpen) {
+          setLinePickerOpen(true);
+        }
+        setLastCheckedOrder(`${trimmed}|${lineTrim}|`);
+        return;
+      }
 
       setShowOrderType(false);
       setOrderType("");
       setOrderTypeOptions([]);
       setOrderTypeDisabled(true);
       setOrderTypeRequired(false);
-
-      // Only auto-open the grouped picker if allowed
-      if (!lineTrim && allowLinePickerAutoOpen) {
-        setLinePickerOpen(true);
-      }
-      setLastCheckedOrder(`${trimmed}|${lineTrim}|`);
-      return;
+      setLastCheckedOrder(`${trimmed}|${lineTrim}|${originKey}`);
+    } finally {
+      setScreenLoading(false);
     }
-
-    setShowOrderType(false);
-    setOrderType("");
-    setOrderTypeOptions([]);
-    setOrderTypeDisabled(true);
-    setOrderTypeRequired(false);
-    setLastCheckedOrder(`${trimmed}|${lineTrim}|${originKey}`);
   };
 
   const checkExistingLots = async (itm: string, originStr: string, bp?: string) => {
@@ -1707,7 +1709,7 @@ const IncomingGoodsReceipt = () => {
         </div>
       </div>
 
-      {isSubmitting && <ScreenSpinner backdropBlur />}
+      {(isSubmitting || screenLoading) && <ScreenSpinner backdropBlur />}
 
       <SignOutConfirm
         open={signOutOpen}

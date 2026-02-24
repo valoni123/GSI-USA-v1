@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { t, type LanguageKey } from "@/lib/i18n";
 import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast";
+import ScreenSpinner from "@/components/ScreenSpinner";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ const IncomingInspectionPage: React.FC = () => {
   // NEW: toggle to approve entire quantity
   const [approveAll, setApproveAll] = useState<boolean>(false);
   const [rejectAll, setRejectAll] = useState<boolean>(false);
+  const [screenLoading, setScreenLoading] = useState<boolean>(false);
 
   // Reset all form and fetched state when starting a new scan
   const resetAllForNewScan = () => {
@@ -181,10 +183,12 @@ const IncomingInspectionPage: React.FC = () => {
     };
 
     const tid = showLoading(trans.pleaseWait);
+    setScreenLoading(true);
     const { data, error } = await supabase.functions.invoke("ln-submit-inspection", {
       body: { language: "en-US", company: "1100", payload },
     });
     dismissToast(tid as unknown as string);
+    setScreenLoading(false);
 
     if (error || !data || !data.ok) {
       const msg = (data && (data.error?.message || data.error)) || "Submission failed";
@@ -248,6 +252,7 @@ const IncomingInspectionPage: React.FC = () => {
 
     const tid = showLoading(trans.pleaseWait);
     setLoading(true);
+    setScreenLoading(true);
     try {
       const company = "1100";
       const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
@@ -259,8 +264,8 @@ const IncomingInspectionPage: React.FC = () => {
 
       const data = await resp.json();
       if (!resp.ok) {
-        const msg = (data?.error || "Unable to fetch inspections") as string;
-        showError(msg);
+        // bottom-center toast (sonner)
+        showError(data?.error || "Unable to fetch inspections");
         return;
       }
 
@@ -286,16 +291,13 @@ const IncomingInspectionPage: React.FC = () => {
       } else if (count === 1 && value.length === 1) {
         handleSelectRecord(value[0]);
       } else {
-        // Localized, error-styled bottom toast
-        const msg = trans.noInspectionFound || trans.noEntries;
-        // Prefer Sonner toast for consistent bottom-center positioning
-        // eslint-disable-next-line no-console
-        showError(msg);
+        showError(trans.noInspectionFound || trans.noEntries);
         setScanLabel(trans.inspectionQueryLabel);
       }
     } finally {
       dismissToast(tid as unknown as string);
       setLoading(false);
+      setScreenLoading(false);
     }
   };
 
@@ -685,6 +687,8 @@ const IncomingInspectionPage: React.FC = () => {
         company="1100"
         language="en-US"
       />
+
+      {screenLoading && <ScreenSpinner message={trans.pleaseWait} />}
     </div>
   );
 };
