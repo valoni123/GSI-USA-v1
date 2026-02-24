@@ -5,8 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronDown } from "lucide-react";
-import { t, type LanguageKey } from "@/lib/i18n";
-import { showLoading, dismissToast } from "@/utils/toast";
 
 type InspectionRecord = {
   Order?: string;
@@ -119,9 +117,6 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
   const s = originColorStyle(origin);
   const grouped = groupByLine(records);
 
-  const currentLang = (localStorage.getItem("app.lang") as LanguageKey) || "en";
-  const trans = t(currentLang);
-
   // Track expanded line and its positions
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [positionsByKey, setPositionsByKey] = useState<Record<string, PositionRecord[]>>({});
@@ -140,13 +135,13 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
     <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : null)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{trans.selectInspectionTitle}</DialogTitle>
+          <DialogTitle>Select an inspection</DialogTitle>
         </DialogHeader>
 
         {/* Order header with origin chip */}
         <div className="rounded-md border bg-gray-50 p-3">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-gray-900">{trans.incomingOrderNumberLabel}: {order || "-"}</div>
+            <div className="text-sm font-medium text-gray-900">Order: {order || "-"}</div>
             <span
               className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
               style={{ backgroundColor: s.bg, color: s.text }}
@@ -157,16 +152,14 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
           </div>
         </div>
 
+        {/* Lines + sequences list */}
         <ScrollArea className="max-h-80 mt-3">
           <div className="space-y-3">
             {grouped.length === 0 ? (
-              <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
+              <div className="px-2 py-3 text-sm text-muted-foreground">No entries</div>
             ) : (
               grouped.map((grp) => (
                 <div key={`line-${grp.line}`} className="space-y-3">
-                  <div className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold">
-                    {trans.incomingOrderPositionLabel} {grp.line}
-                  </div>
                   {grp.items.map((rec, idx) => {
                     const inspection = (rec.Inspection || "").trim();
                     const seq = getInspectionSequence(rec) || 0;
@@ -186,25 +179,27 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                           className="w-full text-left rounded-xl border border-gray-300 p-2 bg-gray-100 hover:bg-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                           onClick={async () => {
                             const known = positionsByKey[rowKey];
+                            // If already loaded and multiple positions, toggle expand/collapse
                             if (Array.isArray(known) && known.length > 1) {
                               setExpandedKey((prev) => (prev === rowKey ? null : rowKey));
                               return;
                             }
 
+                            // Otherwise fetch positions
                             setExpandedKey(rowKey);
                             setLoadingKey(rowKey);
-                            const tid = showLoading(trans.pleaseWait);
 
                             const strictSeq = Number(rec.InspectionSequence ?? seq ?? 0);
                             const { value } = await fetchPositions(inspection, strictSeq);
 
-                            dismissToast(tid as unknown as string);
                             setLoadingKey(null);
 
                             if (Array.isArray(value) && value.length > 1) {
+                              // Store positions and keep expanded
                               setPositionsByKey((prev) => ({ ...prev, [rowKey]: value }));
                               setExpandedKey(rowKey);
                             } else if (Array.isArray(value) && value.length === 1) {
+                              // Single position → auto-select and collapse
                               setExpandedKey(null);
                               setPositionsByKey((prev) => {
                                 const next = { ...prev };
@@ -214,6 +209,7 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                               const combined = { ...rec, __position: value[0] };
                               onSelect(combined);
                             } else {
+                              // No positions → select base record and collapse
                               setExpandedKey(null);
                               setPositionsByKey((prev) => {
                                 const next = { ...prev };

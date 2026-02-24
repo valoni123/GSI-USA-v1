@@ -1,30 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
+import { ArrowLeft, LogOut, User, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import InspectionResultsDialog from "@/components/InspectionResultsDialog";
-import InspectionLinePickerDialog from "@/components/InspectionLinePickerDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import BackButton from "@/components/BackButton";
 import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
-import FloatingLabelInput from "@/components/FloatingLabelInput";
-import { t, type LanguageKey } from "@/lib/i18n";
-import { showSuccess, showLoading, dismissToast } from "@/utils/toast";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const [lang] = useState<LanguageKey>(() => {
-    const saved = localStorage.getItem("app.lang") as LanguageKey | null;
-    return saved || "en";
-  });
-  const trans = useMemo(() => t(lang), [lang]);
 
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,8 +24,6 @@ const IncomingInspectionPage: React.FC = () => {
   const [fullName, setFullName] = useState<string>("");
   const [headerOrder, setHeaderOrder] = useState<string>("");
   const [headerOrigin, setHeaderOrigin] = useState<string>("");
-  // Dynamic label for the scan field
-  const [scanLabel, setScanLabel] = useState<string>(trans.inspectionQueryLabel);
 
   // Selected inspection line (from dialog selection); may include __position payload
   const [selectedLine, setSelectedLine] = useState<any | null>(null);
@@ -49,12 +37,6 @@ const IncomingInspectionPage: React.FC = () => {
   const [exceedToastShown, setExceedToastShown] = useState<boolean>(false);
   // NEW: track if only one inspection line exists (to show '- 1' when needed)
   const [singleLineOnly, setSingleLineOnly] = useState<boolean>(false);
-  // NEW: toggle to approve entire quantity
-  const [approveAll, setApproveAll] = useState<boolean>(false);
-  const [rejectAll, setRejectAll] = useState<boolean>(false);
-  // ADD: line picker state
-  const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
-  const [lineOptions, setLineOptions] = useState<any[]>([]);
 
   // Reset all form and fetched state when starting a new scan
   const resetAllForNewScan = () => {
@@ -103,105 +85,6 @@ const IncomingInspectionPage: React.FC = () => {
 
   const totalToInspect = selectedLine ? getInspectQtySU(selectedLine) : 0;
   const storageUnit = selectedLine ? getStorageUnit(selectedLine) : "";
-
-  // Helpers to extract order-related fields from selectedLine
-  const getOrderOrigin = (r: any) => (r?.OrderOrigin || headerOrigin || "").toString();
-  const getOrderNumber = (r: any) => (r?.Order || headerOrder || "").toString();
-  const getOrderPosition = (r: any) => {
-    const src = r?.__position || r;
-    const n = Number(
-      src?.OrderLine ?? 
-      src?.Position ?? 
-      r?.OrderLine ?? 
-      r?.Line ?? 0
-    );
-    return Number.isFinite(n) ? n : 0;
-  };
-  const getOrderSequence = (r: any) => {
-    const src = r?.__position || r;
-    const n = Number(src?.OrderSequence ?? r?.OrderSequence ?? 1);
-    return Number.isFinite(n) ? n : 1;
-  };
-  const getOrderSet = (r: any) => {
-    const src = r?.__position || r;
-    const n = Number(src?.OrderSet ?? r?.OrderSet ?? 1);
-    return Number.isFinite(n) ? n : 1;
-  };
-  const getOrderUnit = (r: any) => {
-    const src = r?.__position || r;
-    return (
-      (src?.StorageUnit || "").toString() ||
-      (src?.ReceiptUnit || "").toString() ||
-      (src?.OrderUnit || "").toString() ||
-      (r?.Unit || "").toString()
-    );
-  };
-
-  const clearAfterSubmit = () => {
-    // Keep scan input intact, clear the rest
-    setSelectedLine(null);
-    setRecords([]);
-    setDialogOpen(false);
-    setHeaderOrder("");
-    setHeaderOrigin("");
-    setApprovedQty("0");
-    setRejectedQty("0");
-    setRejectReason("");
-    setReasonDialogOpen(false);
-    setAllowedReasons([]);
-    setExceedToastShown(false);
-    setApproveAll(false);
-    setRejectAll(false);
-    setSingleLineOnly(false);
-  };
-
-  const doSubmit = async () => {
-    if (!isSubmitEnabled || !selectedLine) return;
-
-    const inspection = getInspection(selectedLine);
-    const inspectionSeq = getSequence(selectedLine);
-    const inspectionLine = getInspectionLine(selectedLine) || (singleLineOnly ? 1 : 0);
-
-    const emp = (localStorage.getItem("gsi.employee") || "").toString();
-
-    const payload = {
-      TransactionID: "",
-      Inspection: inspection,
-      InspectionSequence: inspectionSeq,
-      InspectionLine: inspectionLine,
-      OrderOrigin: getOrderOrigin(selectedLine),
-      Order: getOrderNumber(selectedLine),
-      Position: getOrderPosition(selectedLine),
-      Sequence: getOrderSequence(selectedLine),
-      Set: getOrderSet(selectedLine),
-      Quantity: totalToInspect,
-      QuantityApproved: Number(approvedQty || "0"),
-      QuantityRejected: Number(rejectedQty || "0"),
-      RejectReason: (rejectReason || "").trim(),
-      Approve: "Yes",
-      Employee: emp || "",
-      FromAPI: "Yes",
-      Unit: getOrderUnit(selectedLine) || storageUnit || "",
-    };
-
-    const tid = showLoading(trans.pleaseWait);
-    const { data, error } = await supabase.functions.invoke("ln-submit-inspection", {
-      body: { language: "en-US", company: "1100", payload },
-    });
-    dismissToast(tid as unknown as string);
-
-    if (error || !data || !data.ok) {
-      toast({
-        title: trans.loadingDetails,
-        description: (data && (data.error?.message || data.error)) || "Submission failed",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    showSuccess(trans.receivedSuccessfully);
-    clearAfterSubmit();
-  };
 
   const approvedNum = Number(approvedQty);
   const rejectedNum = Number(rejectedQty);
@@ -253,10 +136,12 @@ const IncomingInspectionPage: React.FC = () => {
     const q = query.trim();
     if (!q) return;
 
-    const tid = showLoading(trans.pleaseWait);
     setLoading(true);
     try {
+      // Optionally derive company server-side; allow client override if needed.
       const company = "1100";
+
+      // Invoke edge function that securely gets token and calls OData
       const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
       const params = new URLSearchParams({ q, company });
       const resp = await fetch(`${url}?${params.toString()}`, {
@@ -267,25 +152,18 @@ const IncomingInspectionPage: React.FC = () => {
       const data = await resp.json();
       if (!resp.ok) {
         toast({
-          title: trans.loadingDetails,
+          title: "Lookup failed",
           description: data?.error || "Unable to fetch inspections",
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
       const count = data?.["@odata.count"] ?? 0;
       const value = Array.isArray(data?.value) ? data.value : [];
-
-      const hasInspectionMatch = value.some((v: any) => typeof v?.Inspection === "string" && v.Inspection === q);
-      const hasOrderMatch = value.some((v: any) => typeof v?.Order === "string" && v.Order === q);
-      const hasHandlingUnitMatch = value.some((v: any) => typeof v?.HandlingUnit === "string" && v.HandlingUnit === q);
-      if (hasInspectionMatch) setScanLabel(trans.inspectionLabel);
-      else if (hasOrderMatch) setScanLabel(trans.incomingOrderNumberLabel);
-      else if (hasHandlingUnitMatch) setScanLabel(trans.loadHandlingUnit);
-      else setScanLabel(trans.inspectionQueryLabel);
-
       if (count > 1 && value.length > 1) {
+        // Prepare header info from first result
         const first = value[0] || {};
         const ord = typeof first?.Order === "string" ? first.Order : query.trim();
         const origin = typeof first?.OrderOrigin === "string" ? first.OrderOrigin : "";
@@ -294,16 +172,15 @@ const IncomingInspectionPage: React.FC = () => {
         setRecords(value);
         setDialogOpen(true);
       } else if (count === 1 && value.length === 1) {
+        // Proceed with single record
         handleSelectRecord(value[0]);
       } else {
         toast({
-          title: trans.noEntries,
-          description: trans.loadingDetails,
+          title: "No active inspections found",
+          description: "The scanned code did not match any open inspections.",
         });
-        setScanLabel(trans.inspectionQueryLabel);
       }
     } finally {
-      dismissToast(tid as unknown as string);
       setLoading(false);
     }
   };
@@ -317,20 +194,16 @@ const IncomingInspectionPage: React.FC = () => {
     setRejectReason("");
   };
 
-  // If a selected record has multiple Inspection Lines, open the popup to pick one
+  // NEW: When a line is selected without an explicit __position, fetch positions;
+  // if exactly one is returned, attach it and mark singleLineOnly=true
   useEffect(() => {
     const run = async () => {
       if (!selectedLine || selectedLine.__position) {
         setSingleLineOnly(Boolean(selectedLine?.__position));
         return;
       }
-      const insp = (selectedLine?.Inspection || "").toString().trim();
-      const seq = Number(
-        selectedLine?.InspectionSequence ??
-        selectedLine?.Sequence ??
-        selectedLine?.OrderSequence ??
-        0
-      );
+      const insp = getInspection(selectedLine);
+      const seq = getSequence(selectedLine);
       if (!insp || !seq) {
         setSingleLineOnly(false);
         return;
@@ -342,26 +215,11 @@ const IncomingInspectionPage: React.FC = () => {
       if (!error && list.length === 1) {
         setSelectedLine({ ...selectedLine, __position: list[0] });
         setSingleLineOnly(true);
-        setLinePickerOpen(false);
-        setLineOptions([]);
-      } else if (!error && list.length > 1) {
-        // Show the old beautiful popup for line picking
-        setLineOptions(list);
-        setLinePickerOpen(true);
-        setSingleLineOnly(false);
       } else {
         setSingleLineOnly(false);
-        setLinePickerOpen(false);
-        setLineOptions([]);
       }
     };
     void run();
-  }, [selectedLine]);
-
-  // Reset toggles when a new line is selected
-  useEffect(() => {
-    setApproveAll(false);
-    setRejectAll(false);
   }, [selectedLine]);
 
   // Helpers to render origin chip like Goods Receipt
@@ -369,11 +227,11 @@ const IncomingInspectionPage: React.FC = () => {
     const o = (origin || "").trim();
     if (!o) return "-";
     const lower = o.toLowerCase();
-    if (lower.includes("production")) return lang === "de" ? "Produktion" : trans.incomingOrderTypeLabel.replace("type", "Production");
-    if (lower.includes("purchase")) return trans.incomingOrderTypePurchase;
-    if (lower.includes("sales")) return lang === "de" ? "Verkauf" : "Sales";
-    if (lower.includes("transfermanual")) return lang === "de" ? "Umbuchung (manuell)" : "Transfer (manual)";
-    if (lower.includes("transfer")) return lang === "de" ? "Umbuchung" : "Transfer";
+    if (lower.includes("production")) return "Production";
+    if (lower.includes("purchase")) return "Purchase";
+    if (lower.includes("sales")) return "Sales";
+    if (lower.includes("transfermanual")) return "Transfer (manual)";
+    if (lower.includes("transfer")) return "Transfer";
     return o;
   };
 
@@ -408,9 +266,9 @@ const IncomingInspectionPage: React.FC = () => {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <BackButton ariaLabel={trans.back} onClick={handleBack} />
+          <BackButton ariaLabel="Back" onClick={handleBack} />
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center">{trans.incomingWarehouseInspection.toUpperCase()}</div>
+            <div className="font-bold text-lg tracking-wide text-center">WAREHOUSE INSPECTION</div>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
               <User className="h-4 w-4" />
               <span className="line-clamp-1">{fullName || ""}</span>
@@ -420,7 +278,7 @@ const IncomingInspectionPage: React.FC = () => {
             variant="ghost"
             size="icon"
             className="text-red-500 hover:text-red-600 hover:bg-white/10"
-            aria-label={trans.signOut}
+            aria-label="Sign out"
             onClick={() => setShowSignOut(true)}
           >
             <LogOut className="h-6 w-6" />
@@ -431,14 +289,13 @@ const IncomingInspectionPage: React.FC = () => {
       <div className="mx-auto max-w-md px-4 py-4 space-y-4">
         {/* Scan input */}
         <div>
-          <FloatingLabelInput
-            id="inspectionScan"
-            label={scanLabel}
+          <label className="text-sm text-gray-600">Order Number / Inspection / Handling Unit</label>
+          <Input
             value={query}
             onChange={(e) => {
               const v = e.target.value;
               setQuery(v);
-              setScanLabel(trans.inspectionQueryLabel);
+              // If any previous data exists, clear it to allow fresh fetch for the new entry
               if (
                 selectedLine ||
                 records.length > 0 ||
@@ -450,13 +307,10 @@ const IncomingInspectionPage: React.FC = () => {
               }
             }}
             onBlur={handleBlurScan}
-            onFocus={(e) => e.currentTarget.select()}
-            onClick={(e) => e.currentTarget.select()}
-            onClear={() => {
-              setQuery("");
-              setScanLabel(trans.inspectionQueryLabel);
-              resetAllForNewScan();
-            }}
+            placeholder=""
+            className={`mt-2 h-12 text-lg w-full ${loading ? "opacity-60" : ""}`}
+            disabled={loading}
+            autoFocus
           />
         </div>
 
@@ -470,62 +324,40 @@ const IncomingInspectionPage: React.FC = () => {
           headerOrigin={headerOrigin}
         />
 
-        {/* Old-style line picker popup when a single record has multiple Inspection Lines */}
-        <InspectionLinePickerDialog
-          open={linePickerOpen}
-          lines={lineOptions}
-          order={headerOrder || (selectedLine?.Order || "")}
-          origin={headerOrigin || (selectedLine?.OrderOrigin || "")}
-          onSelect={(ln) => {
-            setSelectedLine((prev) => (prev ? { ...prev, __position: ln } : prev));
-            setSingleLineOnly(true);
-            setLinePickerOpen(false);
-            setLineOptions([]);
-          }}
-          onClose={() => {
-            setLinePickerOpen(false);
-            setLineOptions([]);
-          }}
-        />
-
         {/* Dynamic details when one line is selected */}
         {selectedLine && (
           <div className="space-y-3">
-            {/* Order header (same line) */}
+            {/* Order type chip + Order number */}
             {(() => {
               const ord = (selectedLine?.Order || headerOrder || "").trim();
               const originRaw = (selectedLine?.OrderOrigin || headerOrigin || "").trim();
               if (!ord && !originRaw) return null;
               const s = originColorStyle(originRaw);
               return (
-                <div className="rounded-md border bg-white px-3 py-2">
-                  <div className="relative">
-                    <FloatingLabelInput
-                      id="orderHeader"
-                      label={trans.orderLabel}
-                      value={ord}
-                      disabled
-                      className="pl-28 pr-3"
-                    />
-                    {originRaw && (
+                <div className="rounded-md border bg-white px-3 py-2 space-y-3">
+                  {originRaw && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-700">Order type</div>
                       <span
-                        className="absolute left-4 top-1/2 -translate-y-1/2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                        className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
                         style={{ backgroundColor: s.bg, color: s.text }}
-                        title={originRaw}
                       >
                         {formatOriginLabel(originRaw)}
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
+                  {ord && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-700">Order number</div>
+                      <div className="text-sm sm:text-base text-gray-900 break-all">{ord}</div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
 
             {/* Inspection - Sequence - Line */}
-            <div className="rounded-md border bg-gray-100 px-3 pt-5 pb-2 relative">
-              <span className="absolute left-3 top-1 text-[11px] leading-none text-gray-600">{trans.inspectionLabel}</span>
-              <span className="absolute right-3 top-1 text-[11px] leading-none text-gray-600">{trans.quantityLabel}</span>
-
+            <div className="rounded-md border bg-gray-100 px-3 py-2">
               <div className="grid grid-cols-[1fr_auto] items-center">
                 <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
                   {(getInspection(selectedLine) || "-")}
@@ -552,138 +384,107 @@ const IncomingInspectionPage: React.FC = () => {
               )}
             </div>
 
-            {/* Approved Quantity input (with green check toggle) */}
-            {!rejectAll && (
-              <div className="relative">
-                <FloatingLabelInput
-                  id="approvedQty"
-                  label={trans.approvedQuantityLabel}
-                  value={approvedQty}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === "") {
-                      setApprovedQty("");
-                      setApproveAll(false);
-                      return;
-                    }
-                    const num = Number(v);
-                    setApprovedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
-                    const allStr = String(totalToInspect || 0);
-                    if (v !== allStr) setApproveAll(false);
-                  }}
-                  onClear={() => {
+            {/* Approved Quantity input */}
+            <div>
+              <label className="text-xs text-gray-600">Approved Quantity</label>
+              <Input
+                type="number"
+                min={0}
+                step="any"
+                value={approvedQty}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    setApprovedQty("");
+                    return;
+                  }
+                  const num = Number(v);
+                  setApprovedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "-" || e.key === "e" || e.key === "+") {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  const text = e.clipboardData.getData("text");
+                  const num = Number(text);
+                  if (text.includes("-") || (!Number.isNaN(num) && num < 0)) {
+                    e.preventDefault();
                     setApprovedQty("0");
-                    setApproveAll(false);
-                  }}
-                  inputMode="decimal"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={[
-                    "absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md border border-gray-300 shadow-sm",
-                    approveAll ? "bg-green-600 text-white hover:bg-green-700" : "bg-white text-green-600 hover:text-green-700"
-                  ].join(" ").trim()}
-                  aria-label={trans.approvedQuantityLabel}
-                  onClick={() => {
-                    if (!approveAll) {
-                      const all = String(totalToInspect || 0);
-                      setApprovedQty(all);
-                      setRejectedQty("0");
-                      setApproveAll(true);
-                      setRejectAll(false);
-                    } else {
-                      setApprovedQty("0");
-                      setApproveAll(false);
-                    }
-                  }}
-                >
-                  <Check className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+                  }
+                }}
+                inputMode="decimal"
+                className="mt-1 h-10"
+              />
+            </div>
 
-            {/* Rejected Quantity input (with red check toggle) */}
-            {!approveAll && (
-              <div className="relative">
-                <FloatingLabelInput
-                  id="rejectedQty"
-                  label={trans.rejectedQuantityLabel}
-                  value={rejectedQty}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === "") {
-                      setRejectedQty("");
-                      setRejectAll(false);
-                      return;
-                    }
-                    const num = Number(v);
-                    setRejectedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
-                    const allStr = String(totalToInspect || 0);
-                    if (v !== allStr) setRejectAll(false);
-                  }}
-                  onClear={() => {
+            {/* Rejected Quantity input */}
+            <div>
+              <label className="text-xs text-gray-600">Rejected Quantity</label>
+              <Input
+                type="number"
+                min={0}
+                step="any"
+                value={rejectedQty}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    setRejectedQty("");
+                    return;
+                  }
+                  const num = Number(v);
+                  setRejectedQty(!Number.isNaN(num) && num >= 0 ? v : "0");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "-" || e.key === "e" || e.key === "+") {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  const text = e.clipboardData.getData("text");
+                  const num = Number(text);
+                  if (text.includes("-") || (!Number.isNaN(num) && num < 0)) {
+                    e.preventDefault();
                     setRejectedQty("0");
-                    setRejectAll(false);
-                  }}
-                  inputMode="decimal"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={[
-                    "absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md border border-gray-300 shadow-sm",
-                    rejectAll ? "bg-red-600 text-white hover:bg-red-700" : "bg-white text-red-600 hover:text-red-700"
-                  ].join(" ").trim()}
-                  aria-label={trans.rejectedQuantityLabel}
-                  onClick={() => {
-                    if (!rejectAll) {
-                      const all = String(totalToInspect || 0);
-                      setRejectedQty(all);
-                      setApprovedQty("0");
-                      setRejectAll(true);
-                      setApproveAll(false);
-                    } else {
-                      setRejectedQty("0");
-                      setRejectAll(false);
-                    }
-                  }}
-                >
-                  <Check className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+                  }
+                }}
+                inputMode="decimal"
+                className="mt-1 h-10"
+              />
+            </div>
 
             {/* Reject Reason (visible only if rejected > 0) */}
             {isRejectReasonVisible && (
-              <div className="relative">
-                <FloatingLabelInput
-                  id="rejectReason"
-                  label={trans.rejectReasonLabel}
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  onFocus={async () => {
-                    if (allowedReasons.length === 0) {
-                      const { data } = await supabase.functions.invoke("ln-reasons-list", {
-                        body: { company: "1100", language: "en-US" },
-                      });
-                      const list = Array.isArray(data?.value) ? data.value : [];
-                      setAllowedReasons(list);
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                  onClick={() => setReasonDialogOpen(true)}
-                  aria-label={trans.searchLabel}
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
+              <div>
+                <label className="text-xs text-gray-600">Reject Reason</label>
+                <div className="relative mt-1">
+                  <Input
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    onFocus={async () => {
+                      if (allowedReasons.length === 0) {
+                        const { data } = await supabase.functions.invoke("ln-reasons-list", {
+                          body: { company: "1100", language: "en-US" },
+                        });
+                        const list = Array.isArray(data?.value) ? data.value : [];
+                        setAllowedReasons(list);
+                      }
+                    }}
+                    className="h-10 pr-10"
+                    placeholder="Type or pick a valid reason"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                    onClick={() => setReasonDialogOpen(true)}
+                    aria-label="Search reason"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -693,9 +494,11 @@ const IncomingInspectionPage: React.FC = () => {
                 className="h-12 w-full"
                 variant={isSubmitEnabled ? "destructive" : "secondary"}
                 disabled={!isSubmitEnabled}
-                onClick={doSubmit}
+                onClick={() => {
+                  // Submit handler placeholder
+                }}
               >
-                {trans.submitLabel}
+                SUBMIT
               </Button>
             </div>
           </div>
@@ -705,13 +508,14 @@ const IncomingInspectionPage: React.FC = () => {
       <SignOutConfirm
         open={showSignOut}
         onOpenChange={setShowSignOut}
-        title={trans.signOutTitle}
-        question={trans.signOutQuestion}
-        yesLabel={trans.yes}
-        noLabel={trans.no}
+        title="Sign out"
+        question="Are you sure you want to sign out?"
+        yesLabel="Sign out"
+        noLabel="Cancel"
         onConfirm={handleSignOutConfirm}
       />
 
+      {/* Reason picker modal */}
       <ReasonPickerDialog
         open={reasonDialogOpen}
         onOpenChange={setReasonDialogOpen}
