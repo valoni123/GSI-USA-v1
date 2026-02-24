@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { t, type LanguageKey } from "@/lib/i18n";
 import { showSuccess, showLoading, dismissToast } from "@/utils/toast";
+import ScreenSpinner from "@/components/ScreenSpinner";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -51,6 +52,8 @@ const IncomingInspectionPage: React.FC = () => {
   // NEW: toggle to approve entire quantity
   const [approveAll, setApproveAll] = useState<boolean>(false);
   const [rejectAll, setRejectAll] = useState<boolean>(false);
+  // NEW: screen-blocking loading flag
+  const [screenLoading, setScreenLoading] = useState<boolean>(false);
 
   // Reset all form and fetched state when starting a new scan
   const resetAllForNewScan = () => {
@@ -181,13 +184,15 @@ const IncomingInspectionPage: React.FC = () => {
     };
 
     const tid = showLoading(trans.pleaseWait);
+    setScreenLoading(true);
     const { data, error } = await supabase.functions.invoke("ln-submit-inspection", {
       body: { language: "en-US", company: "1100", payload },
     });
     dismissToast(tid as unknown as string);
+    setScreenLoading(false);
 
     if (error || !data || !data.ok) {
-      toast({
+      (useToast()).toast({
         title: trans.loadingDetails,
         description: (data && (data.error?.message || data.error)) || "Submission failed",
         variant: "destructive",
@@ -250,6 +255,7 @@ const IncomingInspectionPage: React.FC = () => {
     if (!q) return;
 
     const tid = showLoading(trans.pleaseWait);
+    setScreenLoading(true);
     setLoading(true);
     try {
       const company = "1100";
@@ -262,7 +268,8 @@ const IncomingInspectionPage: React.FC = () => {
 
       const data = await resp.json();
       if (!resp.ok) {
-        toast({
+        // Use existing error toast
+        (useToast()).toast({
           title: trans.loadingDetails,
           description: data?.error || "Unable to fetch inspections",
           variant: "destructive",
@@ -292,7 +299,7 @@ const IncomingInspectionPage: React.FC = () => {
       } else if (count === 1 && value.length === 1) {
         handleSelectRecord(value[0]);
       } else {
-        toast({
+        (useToast()).toast({
           title: trans.noEntries,
           description: trans.loadingDetails,
         });
@@ -300,6 +307,7 @@ const IncomingInspectionPage: React.FC = () => {
       }
     } finally {
       dismissToast(tid as unknown as string);
+      setScreenLoading(false);
       setLoading(false);
     }
   };
@@ -690,6 +698,9 @@ const IncomingInspectionPage: React.FC = () => {
         company="1100"
         language="en-US"
       />
+
+      {/* Blocking spinner overlay */}
+      {screenLoading && <ScreenSpinner backdropBlur />}
     </div>
   );
 };
