@@ -167,14 +167,6 @@ const IncomingInspectionPage: React.FC = () => {
     setApprovedQty("0");
     setRejectedQty("0");
     setRejectReason("");
-    toast({
-      title: "Inspection selected",
-      description: [
-        rec?.Inspection ? `Inspection ${rec.Inspection}` : null,
-        Number(rec?.InspectionSequence) ? `Sequence ${rec.InspectionSequence}` : null,
-        rec?.__position?.InspectionLine ? `Line ${rec.__position.InspectionLine}` : null,
-      ].filter(Boolean).join(" • "),
-    });
   };
 
   const handleSignOutConfirm = () => {
