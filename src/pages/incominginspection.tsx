@@ -349,39 +349,34 @@ const IncomingInspectionPage: React.FC = () => {
             {/* Reject Reason (visible only if rejected > 0) */}
             {isRejectReasonVisible && (
               <div>
-                <div className="flex items-center justify-between">
-                  <label className="text-xs text-gray-600">Reject Reason</label>
+                <label className="text-xs text-gray-600">Reject Reason</label>
+                <div className="relative mt-1">
+                  <Input
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    onFocus={async () => {
+                      if (allowedReasons.length === 0) {
+                        const { data } = await supabase.functions.invoke("ln-reasons-list", {
+                          body: { company: "1100", language: "en-US" },
+                        });
+                        const list = Array.isArray(data?.value) ? data.value : [];
+                        setAllowedReasons(list);
+                      }
+                    }}
+                    className="h-10 pr-10"
+                    placeholder="Type or pick a valid reason"
+                  />
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                     onClick={() => setReasonDialogOpen(true)}
                     aria-label="Search reason"
                   >
                     <Search className="h-4 w-4" />
                   </Button>
                 </div>
-                <Input
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  onFocus={async () => {
-                    if (allowedReasons.length === 0) {
-                      const { data } = await supabase.functions.invoke("ln-reasons-list", {
-                        body: { company: "1100", language: "en-US" },
-                      });
-                      const list = Array.isArray(data?.value) ? data.value : [];
-                      setAllowedReasons(list);
-                    }
-                  }}
-                  className="mt-1 h-10"
-                  placeholder="Type or pick a valid reason"
-                />
-                {!isReasonValid && (
-                  <div className="mt-1 text-xs text-red-600">
-                    Reason must match a valid code from the list.
-                  </div>
-                )}
               </div>
             )}
 
