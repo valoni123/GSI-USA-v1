@@ -23,6 +23,59 @@ const IncomingInspectionPage: React.FC = () => {
   const [headerOrder, setHeaderOrder] = useState<string>("");
   const [headerOrigin, setHeaderOrigin] = useState<string>("");
 
+  // Selected inspection line (from dialog selection); may include __position payload
+  const [selectedLine, setSelectedLine] = useState<any | null>(null);
+
+  // Inputs for approval flow
+  const [approvedQty, setApprovedQty] = useState<string>("0");
+  const [rejectedQty, setRejectedQty] = useState<string>("0");
+  const [rejectReason, setRejectReason] = useState<string>("");
+
+  // Helper to extract quantities/units from selected line
+  const getInspectQtySU = (r: any) => {
+    const src = r?.__position || r;
+    const n = Number(src?.QuantityToBeInspectedInStorageUnit ?? r?.QuantityToBeInspectedInStorageUnit ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const getStorageUnit = (r: any) => {
+    const src = r?.__position || r;
+    return (src?.StorageUnit || r?.StorageUnit || "").toString();
+  };
+  const getInspection = (r: any) => (r?.Inspection || "").toString();
+  const getSequence = (r: any) => {
+    const src = r?.__position ? r : r;
+    const n = Number(src?.InspectionSequence ?? src?.Sequence ?? src?.OrderSequence ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const getInspectionLine = (r: any) => {
+    const src = r?.__position || {};
+    const n = Number(src?.InspectionLine ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const getItem = (r: any) => {
+    const src = r?.__position || r;
+    return (src?.Item || src?.ItemRef?.Item || r?.Item || r?.ItemRef?.Item || "").toString();
+  };
+  const getItemDesc = (r: any) => {
+    const src = r?.__position || r;
+    return (src?.ItemRef?.Description || r?.ItemRef?.Description || "").toString();
+  };
+
+  const totalToInspect = selectedLine ? getInspectQtySU(selectedLine) : 0;
+  const storageUnit = selectedLine ? getStorageUnit(selectedLine) : "";
+
+  const approvedNum = Number(approvedQty);
+  const rejectedNum = Number(rejectedQty);
+
+  const isRejectReasonVisible = rejectedNum > 0;
+
+  const isSubmitEnabled =
+    selectedLine &&
+    Number.isFinite(approvedNum) &&
+    Number.isFinite(rejectedNum) &&
+    (approvedNum + rejectedNum === totalToInspect) &&
+    (isRejectReasonVisible ? rejectReason.trim().length > 0 : true);
+
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
     if (name) setFullName(name);
@@ -83,15 +136,19 @@ const IncomingInspectionPage: React.FC = () => {
     }
   };
 
+  // When a record is selected from dialog, show details inline
   const handleSelectRecord = (rec: any) => {
     setDialogOpen(false);
-    navigate("/menu/incoming/inspection", { state: { inspection: rec } });
+    setSelectedLine(rec);
+    setApprovedQty("0");
+    setRejectedQty("0");
+    setRejectReason("");
     toast({
       title: "Inspection selected",
       description: [
-        rec?.Order ? `Order ${rec.Order}` : null,
         rec?.Inspection ? `Inspection ${rec.Inspection}` : null,
-        rec?.HandlingUnit ? `HU ${rec.HandlingUnit}` : null,
+        Number(rec?.InspectionSequence) ? `Sequence ${rec.InspectionSequence}` : null,
+        rec?.__position?.InspectionLine ? `Line ${rec.__position.InspectionLine}` : null,
       ].filter(Boolean).join(" • "),
     });
   };
@@ -115,10 +172,10 @@ const IncomingInspectionPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
           <BackButton ariaLabel="Back" onClick={handleBack} />
-
           <div className="flex flex-col items-center flex-1">
             <div className="font-bold text-lg tracking-wide text-center">WAREHOUSE INSPECTION</div>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
@@ -126,7 +183,6 @@ const IncomingInspectionPage: React.FC = () => {
               <span className="line-clamp-1">{fullName || ""}</span>
             </div>
           </div>
-
           <Button
             variant="ghost"
             size="icon"
@@ -139,18 +195,22 @@ const IncomingInspectionPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 py-4">
-        <label className="text-sm text-gray-600">Order Number / Inspection / Handling Unit</label>
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onBlur={handleBlurScan}
-          placeholder=""
-          className={`mt-2 h-12 text-lg w-full ${loading ? "opacity-60" : ""}`}
-          disabled={loading}
-          autoFocus
-        />
+      <div className="mx-auto max-w-md px-4 py-4 space-y-4">
+        {/* Scan input */}
+        <div>
+          <label className="text-sm text-gray-600">Order Number / Inspection / Handling Unit</label>
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onBlur={handleBlurScan}
+            placeholder=""
+            className={`mt-2 h-12 text-lg w-full ${loading ? "opacity-60" : ""}`}
+            disabled={loading}
+            autoFocus
+          />
+        </div>
 
+        {/* Selection dialog */}
         <InspectionResultsDialog
           open={dialogOpen}
           records={records}
@@ -159,6 +219,92 @@ const IncomingInspectionPage: React.FC = () => {
           headerOrder={headerOrder}
           headerOrigin={headerOrigin}
         />
+
+        {/* Dynamic details when one line is selected */}
+        {selectedLine && (
+          <div className="space-y-3">
+            {/* Inspection - Sequence - Line */}
+            <div className="rounded-md border bg-gray-100 px-3 py-2">
+              <div className="grid grid-cols-[1fr_auto] items-center">
+                <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
+                  {(getInspection(selectedLine) || "-")}
+                  {(() => {
+                    const seq = getSequence(selectedLine);
+                    return seq ? ` - ${seq}` : "";
+                  })()}
+                  {(() => {
+                    const ln = getInspectionLine(selectedLine);
+                    return ln ? ` - ${ln}` : "";
+                  })()}
+                </div>
+                <div className="text-sm text-gray-900 text-right whitespace-nowrap font-medium">
+                  {totalToInspect} {storageUnit}
+                </div>
+              </div>
+            </div>
+
+            {/* Item and description */}
+            <div className="rounded-md border bg-white px-3 py-2">
+              <div className="text-sm sm:text-base text-gray-900 break-all">{getItem(selectedLine) || "-"}</div>
+              {getItemDesc(selectedLine) && (
+                <div className="text-xs text-gray-700">{getItemDesc(selectedLine)}</div>
+              )}
+            </div>
+
+            {/* Approved Quantity input */}
+            <div>
+              <label className="text-xs text-gray-600">Approved Quantity</label>
+              <Input
+                value={approvedQty}
+                onChange={(e) => setApprovedQty(e.target.value)}
+                inputMode="decimal"
+                className="mt-1 h-10"
+              />
+            </div>
+
+            {/* Rejected Quantity input */}
+            <div>
+              <label className="text-xs text-gray-600">Rejected Quantity</label>
+              <Input
+                value={rejectedQty}
+                onChange={(e) => setRejectedQty(e.target.value)}
+                inputMode="decimal"
+                className="mt-1 h-10"
+              />
+            </div>
+
+            {/* Reject Reason (visible only if rejected > 0) */}
+            {isRejectReasonVisible && (
+              <div>
+                <label className="text-xs text-gray-600">Reject Reason</label>
+                <Input
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="mt-1 h-10"
+                  placeholder="Enter reason"
+                />
+              </div>
+            )}
+
+            {/* Submit button */}
+            <div className="pt-2">
+              <Button
+                className="h-12 w-full"
+                variant={isSubmitEnabled ? "destructive" : "secondary"}
+                disabled={!isSubmitEnabled}
+                onClick={() => {
+                  // Submit handler placeholder; integrate with LN post if needed
+                  toast({
+                    title: "Submitted",
+                    description: "Your inspection quantities have been submitted.",
+                  });
+                }}
+              >
+                SUBMIT
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <SignOutConfirm
