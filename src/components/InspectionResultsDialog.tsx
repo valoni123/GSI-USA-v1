@@ -104,20 +104,10 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
 
   return (
     <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : null)}>
-      <DialogContent className="sm:max-w-md relative">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Select an inspection</DialogTitle>
         </DialogHeader>
-
-        {/* Close button (top-right) */}
-        <button
-          type="button"
-          className="absolute right-3 top-2 text-gray-600 hover:text-gray-900"
-          aria-label="Close"
-          onClick={onClose}
-        >
-          ×
-        </button>
 
         {/* Order header with origin chip */}
         <div className="rounded-md border bg-gray-50 p-3">
@@ -155,28 +145,24 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                       <button
                         key={`line-${grp.line}-row-${idx}`}
                         type="button"
-                        className="w-full text-left rounded-md border border-gray-300 bg-white shadow-sm p-3 hover:bg-gray-100 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-black/10 transition-colors"
+                        className="w-full text-left rounded-md border p-3 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black/10"
                         onClick={() => onSelect(rec)}
                       >
-                        <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
-                          <div className="flex flex-col">
-                            <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
-                              {(inspection || "-")}{seq ? ` - ${seq}` : ""}
+                        <div className="flex flex-col">
+                          <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                            {(inspection || "-")}{seq ? ` - ${seq}` : ""}
+                          </div>
+                          {item && (
+                            <div className="mt-1 font-mono text-sm sm:text-base text-gray-900 break-all">
+                              {item}
                             </div>
-                            {item && (
-                              <div className="mt-1 font-mono text-sm sm:text-base text-gray-900 break-all">
-                                {item}
-                              </div>
-                            )}
-                            {desc && <div className="text-xs text-gray-700">{desc}</div>}
-                          </div>
-                          <div className="flex items-start">
-                            {(qtySU || storageUnit) && (
-                              <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
-                                {qtySU} {storageUnit}
-                              </div>
-                            )}
-                          </div>
+                          )}
+                          {desc && <div className="text-xs text-gray-700">{desc}</div>}
+                          {(qtySU || storageUnit) && (
+                            <div className="mt-1 text-xs text-gray-600">
+                              {qtySU} {storageUnit}
+                            </div>
+                          )}
                         </div>
                       </button>
                     );
@@ -186,6 +172,10 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
             )}
           </div>
         </ScrollArea>
+
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
