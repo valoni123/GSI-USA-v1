@@ -1048,7 +1048,6 @@ const IncomingGoodsReceipt = () => {
                 setOrderNo(parsed.order);
                 setOrderPos(parsed.line);
                 setSuppressAutoFillLine(false);
-                void checkOrder(parsed.order, parsed.line);
               } else {
                 setOrderNo(v);
               }
@@ -1062,7 +1061,6 @@ const IncomingGoodsReceipt = () => {
                 setOrderNo(parsed.order);
                 setOrderPos(parsed.line);
                 setSuppressAutoFillLine(false);
-                void checkOrder(parsed.order, parsed.line);
               }
             }}
             onBlur={() => {
@@ -1070,10 +1068,6 @@ const IncomingGoodsReceipt = () => {
               if (v) checkOrder(v);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                const v = orderNo.trim();
-                if (v) checkOrder(v);
-              }
             }}
             onFocus={(e) => e.currentTarget.select()}
             onClick={(e) => e.currentTarget.select()}
@@ -1115,7 +1109,6 @@ const IncomingGoodsReceipt = () => {
                     setOrderNo(parsed.order);
                     setOrderPos(parsed.line);
                     setSuppressAutoFillLine(false);
-                    void checkOrder(parsed.order, parsed.line);
                   } else {
                     setOrderPos(v);
                   }
@@ -1128,7 +1121,6 @@ const IncomingGoodsReceipt = () => {
                     setOrderNo(parsed.order);
                     setOrderPos(parsed.line);
                     setSuppressAutoFillLine(false);
-                    void checkOrder(parsed.order, parsed.line);
                   }
                 }}
                 onBlur={() => {
@@ -1141,15 +1133,6 @@ const IncomingGoodsReceipt = () => {
                   }
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    const ord = orderNo.trim();
-                    const ln = orderPos.trim();
-                    if (ord && ln) {
-                      void checkOrder(ord, ln);
-                    } else if (ord) {
-                      void checkOrder(ord);
-                    }
-                  }
                 }}
                 onClear={() => {
                   setOrderPos("");
