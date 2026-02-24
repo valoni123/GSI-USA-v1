@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,13 @@ import InspectionResultsDialog from "@/components/InspectionResultsDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import BackButton from "@/components/BackButton";
 import ReasonPickerDialog from "@/components/ReasonPickerDialog";
-import InspectionLinePickerDialog from "@/components/InspectionLinePickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { t, type LanguageKey } from "@/lib/i18n";
-import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast";
-import ScreenSpinner from "@/components/ScreenSpinner";
+import { showSuccess, showLoading, dismissToast } from "@/utils/toast";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
 
   const [lang] = useState<LanguageKey>(() => {
@@ -54,10 +51,6 @@ const IncomingInspectionPage: React.FC = () => {
   // NEW: toggle to approve entire quantity
   const [approveAll, setApproveAll] = useState<boolean>(false);
   const [rejectAll, setRejectAll] = useState<boolean>(false);
-  const [screenLoading, setScreenLoading] = useState<boolean>(false);
-  // NEW: line picker state
-  const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
-  const [lineOptions, setLineOptions] = useState<any[]>([]);
 
   // Reset all form and fetched state when starting a new scan
   const resetAllForNewScan = () => {
@@ -188,16 +181,17 @@ const IncomingInspectionPage: React.FC = () => {
     };
 
     const tid = showLoading(trans.pleaseWait);
-    setScreenLoading(true);
     const { data, error } = await supabase.functions.invoke("ln-submit-inspection", {
       body: { language: "en-US", company: "1100", payload },
     });
     dismissToast(tid as unknown as string);
-    setScreenLoading(false);
 
     if (error || !data || !data.ok) {
-      const msg = (data && (data.error?.message || data.error)) || "Submission failed";
-      showError(String(msg));
+      toast({
+        title: trans.loadingDetails,
+        description: (data && (data.error?.message || data.error)) || "Submission failed",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -251,13 +245,12 @@ const IncomingInspectionPage: React.FC = () => {
 
   const handleBack = () => navigate("/menu/incoming");
 
-  const handleBlurScan = async (override?: string, showSpinner = false) => {
-    const q = (override ?? query).trim();
+  const handleBlurScan = async () => {
+    const q = query.trim();
     if (!q) return;
 
     const tid = showLoading(trans.pleaseWait);
     setLoading(true);
-    if (showSpinner) setScreenLoading(true);
     try {
       const company = "1100";
       const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
@@ -269,7 +262,11 @@ const IncomingInspectionPage: React.FC = () => {
 
       const data = await resp.json();
       if (!resp.ok) {
-        showError(data?.error || "Unable to fetch inspections");
+        toast({
+          title: trans.loadingDetails,
+          description: data?.error || "Unable to fetch inspections",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -286,7 +283,7 @@ const IncomingInspectionPage: React.FC = () => {
 
       if (count > 1 && value.length > 1) {
         const first = value[0] || {};
-        const ord = typeof first?.Order === "string" ? first.Order : q;
+        const ord = typeof first?.Order === "string" ? first.Order : query.trim();
         const origin = typeof first?.OrderOrigin === "string" ? first.OrderOrigin : "";
         setHeaderOrder(ord || "");
         setHeaderOrigin(origin || "");
@@ -295,13 +292,15 @@ const IncomingInspectionPage: React.FC = () => {
       } else if (count === 1 && value.length === 1) {
         handleSelectRecord(value[0]);
       } else {
-        showError(trans.noInspectionFound || trans.noEntries);
+        toast({
+          title: trans.noEntries,
+          description: trans.loadingDetails,
+        });
         setScanLabel(trans.inspectionQueryLabel);
       }
     } finally {
       dismissToast(tid as unknown as string);
       setLoading(false);
-      if (showSpinner) setScreenLoading(false);
     }
   };
 
@@ -335,11 +334,6 @@ const IncomingInspectionPage: React.FC = () => {
       if (!error && list.length === 1) {
         setSelectedLine({ ...selectedLine, __position: list[0] });
         setSingleLineOnly(true);
-      } else if (!error && list.length > 1) {
-        // OPEN: let user pick the exact InspectionLine
-        setLineOptions(list);
-        setLinePickerOpen(true);
-        setSingleLineOnly(false);
       } else {
         setSingleLineOnly(false);
       }
@@ -352,20 +346,6 @@ const IncomingInspectionPage: React.FC = () => {
     setApproveAll(false);
     setRejectAll(false);
   }, [selectedLine]);
-
-  // Only auto-load when arriving from HU Info (has ?hu= param)
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const hu = params.get("hu");
-    if (hu && hu.trim()) {
-      const val = hu.trim();
-      setQuery(val);
-      setScanLabel(trans.loadHandlingUnit);
-      // Trigger scan immediately with spinner for HU Info flow
-      void handleBlurScan(val, true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search]);
 
   // Helpers to render origin chip like Goods Receipt
   const formatOriginLabel = (origin: string) => {
@@ -452,7 +432,7 @@ const IncomingInspectionPage: React.FC = () => {
                 resetAllForNewScan();
               }
             }}
-            onBlur={() => handleBlurScan()}
+            onBlur={handleBlurScan}
             onFocus={(e) => e.currentTarget.select()}
             onClick={(e) => e.currentTarget.select()}
             onClear={() => {
@@ -471,18 +451,6 @@ const IncomingInspectionPage: React.FC = () => {
           onClose={() => setDialogOpen(false)}
           headerOrder={headerOrder}
           headerOrigin={headerOrigin}
-        />
-
-        {/* NEW: Inspection Line picker dialog */}
-        <InspectionLinePickerDialog
-          open={linePickerOpen}
-          lines={lineOptions}
-          onSelect={(ln) => {
-            setSelectedLine((prev) => (prev ? { ...prev, __position: ln } : prev));
-            setSingleLineOnly(true);
-            setLinePickerOpen(false);
-          }}
-          onClose={() => setLinePickerOpen(false)}
         />
 
         {/* Dynamic details when one line is selected */}
@@ -722,8 +690,6 @@ const IncomingInspectionPage: React.FC = () => {
         company="1100"
         language="en-US"
       />
-
-      {screenLoading && <ScreenSpinner message={trans.pleaseWait} />}
     </div>
   );
 };
