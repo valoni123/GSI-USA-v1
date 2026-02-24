@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, ArrowRight } from "lucide-react";
+import { ArrowLeft, LogOut, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -528,7 +528,6 @@ const TransportLoad = () => {
       {/* Blocking spinner while processing */}
       {listLoading && <ScreenSpinner message={trans.loadingList} />}
       {processing && <ScreenSpinner message={trans.pleaseWait} />}
-      {detailsLoading && <ScreenSpinner message={trans.loadingDetails} />}
 
       {/* Error dialog: HU not found */}
       <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
@@ -577,25 +576,10 @@ const TransportLoad = () => {
       <Dialog open={listOpen} onOpenChange={setListOpen}>
         <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">
           <div className="text-sm">
-            <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 px-3 py-2 border-b rounded-t-lg bg-black text-white">
+            <div className="grid grid-cols-[1fr_1fr_1fr] gap-2 px-3 py-2 border-b rounded-t-lg bg-black text-white">
               <div className="font-semibold">{trans.loadHandlingUnit}</div>
               <div className="font-semibold">{trans.locationFromLabel}</div>
               <div className="font-semibold">{trans.locationToLabel}</div>
-              <div className="flex items-center justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="bg-red-600 hover:bg-red-700 text-white h-6 w-6 sm:h-7 sm:w-7 rounded-[3px] p-0 shadow"
-                  aria-label={trans.unloadAction}
-                  onClick={() => {
-                    setListOpen(false);
-                    navigate("/menu/transport/unload");
-                  }}
-                >
-                  <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </Button>
-              </div>
             </div>
             <div className="max-h-64 overflow-auto mt-0 space-y-2 px-2 py-2">
               {listItems.length === 0 ? (

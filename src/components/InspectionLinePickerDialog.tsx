@@ -1,73 +1,110 @@
 "use client";
 
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { type LanguageKey, t } from "@/lib/i18n";
 
-type InspectionLinePickerDialogProps = {
+type LineRecord = {
+  InspectionLine?: number;
+  Position?: number;
+  QuantityToBeInspectedInStorageUnit?: number;
+  StorageUnit?: string;
+  Item?: string;
+  ItemRef?: { Item?: string; Description?: string };
+};
+
+type Props = {
   open: boolean;
-  lines: any[];
-  onSelect: (line: any) => void;
+  lines: LineRecord[];
+  order?: string;
+  origin?: string;
+  onSelect: (line: LineRecord) => void;
   onClose: () => void;
 };
 
-const InspectionLinePickerDialog: React.FC<InspectionLinePickerDialogProps> = ({
-  open,
-  lines,
-  onSelect,
-  onClose,
-}) => {
-  const count = Array.isArray(lines) ? lines.length : 0;
+const originStyle = (origin?: string) => {
+  const o = (origin || "").toLowerCase();
+  if (o.includes("production")) return { bg: "#2db329", text: "#ffffff", label: "Production" };
+  if (o.includes("purchase") || o.includes("einkauf")) return { bg: "#9ed927", text: "#1a1a1a", label: "Purchase" };
+  if (o.includes("sales") || o.includes("verkauf")) return { bg: "#1d5f8a", text: "#ffffff", label: "Sales" };
+  if (o.includes("transfer")) return { bg: "#ffd500", text: "#1a1a1a", label: "Transfer" };
+  return { bg: "#2db329", text: "#ffffff", label: origin || "-" };
+};
+
+const InspectionLinePickerDialog: React.FC<Props> = ({ open, lines, order, origin, onSelect, onClose }) => {
+  const currentLang = (localStorage.getItem("app.lang") as LanguageKey) || "en";
+  const trans = t(currentLang);
+  const s = originStyle(origin);
+
+  const safeNum = (n: any, def = 0) => {
+    const v = Number(n);
+    return Number.isFinite(v) ? v : def;
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? undefined : onClose())}>
+    <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : undefined)}>
       <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">
-        {/* Black header bar */}
+        {/* Header */}
         <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
           <div className="flex items-center justify-between pr-2">
-            <span>Inspection Lines</span>
-            <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-xs">
-              {count} {count === 1 ? "line" : "lines"}
+            <span>{trans.selectInspectionTitle}</span>
+          </div>
+        </div>
+
+        {/* Order header with origin chip */}
+        <div className="rounded-none border-b bg-white px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-gray-900">
+              {trans.incomingOrderNumberLabel}: {order || "-"}
+            </div>
+            <span
+              className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+              style={{ backgroundColor: s.bg, color: s.text }}
+              title={origin || ""}
+            >
+              {s.label}
             </span>
           </div>
         </div>
 
-        {/* List area */}
-        <div className="max-h-64 overflow-auto p-2">
-          {!lines || lines.length === 0 ? (
-            <div className="px-2 py-3 text-sm text-muted-foreground">No entries</div>
+        {/* Lines list */}
+        <ScrollArea className="max-h-72 p-2">
+          {(!lines || lines.length === 0) ? (
+            <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
           ) : (
-            lines.map((ln: any, idx: number) => {
-              const lineNum = Number(ln?.InspectionLine ?? ln?.Line ?? 0);
-              const item =
-                typeof ln?.Item === "string"
-                  ? ln.Item
-                  : typeof ln?.ItemRef?.Item === "string"
-                  ? ln.ItemRef.Item
-                  : "";
-              const desc = typeof ln?.ItemRef?.Description === "string" ? ln.ItemRef.Description : "";
-              const qty = Number(ln?.QuantityToBeInspectedInStorageUnit ?? 0);
+            lines.map((ln, idx) => {
+              const lineNum = safeNum(ln?.InspectionLine ?? ln?.Position);
+              const qty = safeNum(ln?.QuantityToBeInspectedInStorageUnit);
               const su = typeof ln?.StorageUnit === "string" ? ln.StorageUnit : "";
+              const item =
+                (typeof ln?.Item === "string" && ln.Item) ||
+                (typeof ln?.ItemRef?.Item === "string" && ln.ItemRef.Item) ||
+                "";
+              const desc =
+                (typeof ln?.ItemRef?.Description === "string" && ln.ItemRef.Description) ||
+                "";
 
               return (
                 <button
-                  key={`${lineNum}-${idx}`}
+                  key={`${lineNum || "line"}-${idx}`}
                   type="button"
                   className="w-full text-left mb-2"
                   onClick={() => onSelect(ln)}
                 >
                   <div className="rounded-md bg-gray-100/80 px-3 py-2 border shadow-sm">
-                    <div className="grid grid-cols-[60px_1fr_auto] gap-3 items-center">
-                      <div className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold justify-center">
-                        {lineNum || "-"}
-                      </div>
+                    <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
                       <div className="flex flex-col">
-                        <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                        <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
                           {(item || "").trim() || "-"}
+                          {Number.isFinite(lineNum) && lineNum > 0 ? (
+                            <span className="ml-1 text-gray-600 font-normal">- {lineNum}</span>
+                          ) : null}
                         </div>
                         {desc && <div className="text-xs text-gray-700">{desc}</div>}
                       </div>
-                      <div className="font-mono text-xs sm:text-sm text-gray-900 text-right whitespace-nowrap">
+                      <div className="text-sm text-gray-900 text-right whitespace-nowrap font-medium">
                         {qty} {su}
                       </div>
                     </div>
@@ -76,9 +113,9 @@ const InspectionLinePickerDialog: React.FC<InspectionLinePickerDialogProps> = ({
               );
             })
           )}
-        </div>
+        </ScrollArea>
 
-        {/* Footer action */}
+        {/* Footer */}
         <div className="px-4 pb-3">
           <Button variant="outline" className="w-full h-10" onClick={onClose}>
             Close
