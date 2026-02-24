@@ -186,11 +186,17 @@ const TransportLoad = () => {
       setHuItemLabel("Handling Unit");
       const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
       if (selectedVehicle) {
-        const preTid = showLoading(trans.checkingHandlingUnit);
-        const { data: loadedData } = await supabase.functions.invoke("ln-transport-loaded-check", {
-          body: { handlingUnit: chosenHU, vehicleId: selectedVehicle, language: locale },
-        });
-        dismissToast(preTid as unknown as string);
+        setDetailsLoading(true);
+        const [loadedCheckRes, infoRes] = await Promise.all([
+          supabase.functions.invoke("ln-transport-loaded-check", {
+            body: { handlingUnit: chosenHU, vehicleId: selectedVehicle, language: locale },
+          }),
+          supabase.functions.invoke("ln-handling-unit-info", {
+            body: { handlingUnit: chosenHU, language: locale },
+          }),
+        ]);
+
+        const loadedData = loadedCheckRes.data;
         if (loadedData && loadedData.ok && Number(loadedData.count || 0) > 0) {
           setLoadedErrorOpen(true);
           // Clear and reset
@@ -204,15 +210,24 @@ const TransportLoad = () => {
           setTimeout(() => huRef.current?.focus(), 50);
           return;
         }
+
+        const qtyData = infoRes.data;
+        const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+        const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
+        setHuQuantity(qty);
+        setHuUnit(unit);
+      } else {
+        // No vehicle selected yet → fetch only HU info
+        const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
+          body: { handlingUnit: chosenHU, language: locale },
+        });
+        const qtyData = infoRes.data;
+        const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+        const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
+        setHuQuantity(qty);
+        setHuUnit(unit);
       }
-      const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
-        body: { handlingUnit: chosenHU, language: locale },
-      });
-      const qtyData = infoRes.data;
-      const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
-      const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
-      setHuQuantity(qty);
-      setHuUnit(unit);
+
       setVehicleEnabled(true);
       const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
       if (storedVehicle) setVehicleId(storedVehicle);
