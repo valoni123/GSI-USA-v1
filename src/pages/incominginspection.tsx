@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import ScreenSpinner from "@/components/ScreenSpinner";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const [lang] = useState<LanguageKey>(() => {
@@ -252,7 +253,6 @@ const IncomingInspectionPage: React.FC = () => {
 
     const tid = showLoading(trans.pleaseWait);
     setLoading(true);
-    setScreenLoading(true);
     try {
       const company = "1100";
       const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
@@ -297,7 +297,6 @@ const IncomingInspectionPage: React.FC = () => {
     } finally {
       dismissToast(tid as unknown as string);
       setLoading(false);
-      setScreenLoading(false);
     }
   };
 
@@ -343,6 +342,21 @@ const IncomingInspectionPage: React.FC = () => {
     setApproveAll(false);
     setRejectAll(false);
   }, [selectedLine]);
+
+  // Prefill from ?hu=<HandlingUnit> and auto-run the lookup
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const hu = params.get("hu");
+    if (hu && hu.trim()) {
+      setQuery(hu.trim());
+      setScanLabel(trans.loadHandlingUnit);
+      // Trigger the scan immediately
+      void (async () => {
+        await handleBlurScan();
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   // Helpers to render origin chip like Goods Receipt
   const formatOriginLabel = (origin: string) => {
