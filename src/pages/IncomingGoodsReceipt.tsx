@@ -96,6 +96,9 @@ const IncomingGoodsReceipt = () => {
 
   // After hooks and before functions, add a helper to clear everything and focus Order Number
   const clearAllAndFocusOrder = () => {
+    // Clear the Order Number so user must re-enter
+    setOrderNo("");
+
     setShowOrderType(false);
     setOrderType("");
     setOrderTypeOptions([]);
