@@ -299,9 +299,9 @@ const IncomingInspectionPage: React.FC = () => {
       } else if (count === 1 && value.length === 1) {
         handleSelectRecord(value[0]);
       } else {
-        (useToast()).toast({
-          title: trans.noEntries,
-          description: trans.loadingDetails,
+        toast({
+          title: trans.noInspectionFound,
+          variant: "destructive",
         });
         setScanLabel(trans.inspectionQueryLabel);
       }
