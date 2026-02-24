@@ -13,6 +13,11 @@ type LineRecord = {
   StorageUnit?: string;
   Item?: string;
   ItemRef?: { Item?: string; Description?: string };
+  // Added optional fields that commonly exist on the inspection line payload
+  Inspection?: string;
+  InspectionSequence?: number;
+  Sequence?: number;
+  OrderSequence?: number;
 };
 
 type Props = {
@@ -78,6 +83,15 @@ const InspectionLinePickerDialog: React.FC<Props> = ({ open, lines, order, origi
               const lineNum = safeNum(ln?.InspectionLine ?? ln?.Position);
               const qty = safeNum(ln?.QuantityToBeInspectedInStorageUnit);
               const su = typeof ln?.StorageUnit === "string" ? ln.StorageUnit : "";
+
+              const inspection = (typeof ln?.Inspection === "string" && ln.Inspection) || "";
+              const sequenceNum = safeNum(
+                ln?.InspectionSequence ??
+                ln?.Sequence ??
+                ln?.OrderSequence,
+                0
+              );
+
               const item =
                 (typeof ln?.Item === "string" && ln.Item) ||
                 (typeof ln?.ItemRef?.Item === "string" && ln.ItemRef.Item) ||
@@ -96,14 +110,24 @@ const InspectionLinePickerDialog: React.FC<Props> = ({ open, lines, order, origi
                   <div className="rounded-md bg-gray-100/80 px-3 py-2 border shadow-sm">
                     <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
                       <div className="flex flex-col">
+                        {/* Primary: Inspection - Sequence - Line */}
                         <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
-                          {(item || "").trim() || "-"}
+                          {inspection || "-"}
+                          {sequenceNum ? <span className="ml-1 text-gray-900 font-medium">- {sequenceNum}</span> : null}
                           {Number.isFinite(lineNum) && lineNum > 0 ? (
-                            <span className="ml-1 text-gray-600 font-normal">- {lineNum}</span>
+                            <span className="ml-1 text-gray-900 font-medium">- {lineNum}</span>
                           ) : null}
                         </div>
+
+                        {/* Secondary: Item beneath */}
+                        <div className="font-mono text-xs sm:text-sm text-gray-800 break-all mt-0.5">
+                          {(item || "").trim() || "-"}
+                        </div>
+
+                        {/* Optional description */}
                         {desc && <div className="text-xs text-gray-700">{desc}</div>}
                       </div>
+
                       <div className="text-sm text-gray-900 text-right whitespace-nowrap font-medium">
                         {qty} {su}
                       </div>
