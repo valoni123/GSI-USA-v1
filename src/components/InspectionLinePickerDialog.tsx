@@ -120,7 +120,7 @@ const InspectionLinePickerDialog: React.FC<Props> = ({ open, lines, order, origi
                         </div>
 
                         {/* Secondary: Item beneath */}
-                        <div className="font-mono text-xs sm:text-sm text-gray-800 break-all mt-0.5">
+                        <div className="text-sm sm:text-base text-gray-900 font-medium break-all mt-0.5">
                           {(item || "").trim() || "-"}
                         </div>
 
