@@ -152,23 +152,23 @@ const TransportLoad = () => {
 
     const tid = showLoading(trans.checkingHandlingUnit);
     setDetailsLoading(true);
-    const scanRes = await supabase.functions.invoke("ln-transport-scan", {
-      body: { code: huRaw, vehicleId: (localStorage.getItem("vehicle.id") || "").trim(), language: locale, company: "1100" },
+    const ordRes = await supabase.functions.invoke("ln-transport-orders", {
+      body: { handlingUnit: huRaw, language: locale },
     });
     dismissToast(tid as unknown as string);
 
-    const scanData = scanRes.data as any;
-    if (scanRes.error || !scanData || !scanData.ok || (scanData.orders?.count ?? 0) === 0) {
+    const ordData = ordRes.data;
+    if (ordRes.error || !ordData || !ordData.ok || (ordData.count ?? 0) === 0) {
       setDetailsLoading(false);
       setErrorOpen(true);
       return;
     }
 
-    const items = (scanData.orders?.items || []) as Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity: number | null }>;
-    const first = scanData.orders?.first as { TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null;
+    const items = (ordData.items || []) as Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity: number | null }>;
+    const first = ordData.first as { TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null;
 
-    // Multiple matches → open selection
-    if ((scanData.orders?.count ?? items.length ?? 0) > 1) {
+    // If multiple matches → open selection popup
+    if ((ordData.count ?? items.length ?? 0) > 1) {
       setSelectItems(items);
       setSelectOpen(true);
       setDetailsLoading(false);
@@ -180,26 +180,39 @@ const TransportLoad = () => {
     const etagValue = (first && typeof first?.ETag === "string" ? first.ETag : "");
     setEtag(etagValue);
 
+    // If HandlingUnit present → load HU info for qty/unit; else require Location scan
     const chosenHU = (first?.HandlingUnit || "").trim();
     if (chosenHU) {
-      // Already loaded?
-      if (Number(scanData.loadedCount || 0) > 0) {
-        setLoadedErrorOpen(true);
-        // Clear and reset
-        setResult(null);
-        setVehicleEnabled(false);
-        setHandlingUnit("");
-        setVehicleId("");
-        setLastFetchedHu(null);
-        setEtag("");
-        setDetailsLoading(false);
-        setTimeout(() => huRef.current?.focus(), 50);
-        return;
-      }
-      // Quantity: always from OrderedQuantity
-      setHuQuantity(first && typeof first.OrderedQuantity === "number" ? String(first.OrderedQuantity) : "");
-      setHuUnit("");
       setHuItemLabel("Handling Unit");
+      const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+      if (selectedVehicle) {
+        const preTid = showLoading(trans.checkingHandlingUnit);
+        const { data: loadedData } = await supabase.functions.invoke("ln-transport-loaded-check", {
+          body: { handlingUnit: chosenHU, vehicleId: selectedVehicle, language: locale },
+        });
+        dismissToast(preTid as unknown as string);
+        if (loadedData && loadedData.ok && Number(loadedData.count || 0) > 0) {
+          setLoadedErrorOpen(true);
+          // Clear and reset
+          setResult(null);
+          setVehicleEnabled(false);
+          setHandlingUnit("");
+          setVehicleId("");
+          setLastFetchedHu(null);
+          setEtag("");
+          setDetailsLoading(false);
+          setTimeout(() => huRef.current?.focus(), 50);
+          return;
+        }
+      }
+      const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
+        body: { handlingUnit: chosenHU, language: locale },
+      });
+      const qtyData = infoRes.data;
+      const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+      const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
+      setHuQuantity(qty);
+      setHuUnit(unit);
       setVehicleEnabled(true);
       const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
       if (storedVehicle) setVehicleId(storedVehicle);
@@ -209,6 +222,7 @@ const TransportLoad = () => {
     } else {
       // Item-only path
       setHuItemLabel("Item");
+      // Item-only → Location required before proceeding
       setHuQuantity(first && typeof first.OrderedQuantity === "number" ? String(first.OrderedQuantity) : "");
       setHuUnit("");
       setVehicleEnabled(false);
@@ -625,48 +639,21 @@ const TransportLoad = () => {
                         OrderedQuantity: it.OrderedQuantity,
                       });
                       setEtag(it.ETag || "");
+                      // Update dynamic label based on presence of Handling Unit in the selected row
                       setHuItemLabel(chosenHU ? "Handling Unit" : "Item");
-
                       if (chosenHU) {
-                        setDetailsLoading(true);
-                        const scanRes = await supabase.functions.invoke("ln-transport-scan", {
-                          body: { code: chosenHU, vehicleId: (localStorage.getItem("vehicle.id") || "").trim(), language: locale, company: "1100" },
+                        const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
+                          body: { handlingUnit: chosenHU, language: locale },
                         });
-                        const scanData = scanRes.data as any;
-                        if (scanData && scanData.ok) {
-                          if (Number(scanData.loadedCount || 0) > 0) {
-                            setLoadedErrorOpen(true);
-                            // Clear and reset
-                            setResult(null);
-                            setVehicleEnabled(false);
-                            setHandlingUnit("");
-                            setVehicleId("");
-                            setLastFetchedHu(null);
-                            setEtag("");
-                            setDetailsLoading(false);
-                            setTimeout(() => huRef.current?.focus(), 50);
-                            return;
-                          }
-                          // Quantity: always from selected item's OrderedQuantity
-                          setHuQuantity(typeof it.OrderedQuantity === "number" ? String(it.OrderedQuantity) : "");
-                          setHuUnit("");
-                          setVehicleEnabled(true);
-                          const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
-                          if (storedVehicle) setVehicleId(storedVehicle);
-                          setLastFetchedHu(chosenHU);
-                          setDetailsLoading(false);
-                          setTimeout(() => vehicleRef.current?.focus(), 50);
-                        } else {
-                          // Fallback minimal: enable vehicle; quantity from OrderedQuantity
-                          setHuQuantity(typeof it.OrderedQuantity === "number" ? String(it.OrderedQuantity) : "");
-                          setHuUnit("");
-                          setVehicleEnabled(true);
-                          const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
-                          if (storedVehicle) setVehicleId(storedVehicle);
-                          setLastFetchedHu(chosenHU);
-                          setDetailsLoading(false);
-                          setTimeout(() => vehicleRef.current?.focus(), 50);
-                        }
+                        const qtyData = infoRes.data;
+                        const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+                        const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
+                        setHuQuantity(qty);
+                        setHuUnit(unit);
+                        setVehicleEnabled(true);
+                        const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+                        if (storedVehicle) setVehicleId(storedVehicle);
+                        setTimeout(() => vehicleRef.current?.focus(), 50);
                       } else {
                         setHuQuantity(typeof it.OrderedQuantity === "number" ? String(it.OrderedQuantity) : "");
                         setHuUnit("");

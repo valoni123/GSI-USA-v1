@@ -123,26 +123,9 @@ serve(async (req) => {
     const qs = new URLSearchParams();
     qs.set("$filter", filter);
     qs.set("$count", "true");
-    qs.set("$select", [
-      "Receipt",
-      "ReceiptLine",
-      "Order",
-      "OrderLine",
-      "OrderOrigin",
-      "Item",
-      "ItemRef/Item",
-      "ItemRef/Description",
-      "ReceivedQuantityInReceiptUnit",
-      "ReceiptUnit",
-      "Lot",
-      "LotByWarehouseRef/Lot",
-      "BusinessPartnersLotCode",
-      "PackingSlip",
-      "OrderSequence",
-      "OrderSet",
-    ].join(","));
-    qs.set("$expand", "ItemRef,LotByWarehouseRef");
+    qs.set("$select", "*");
     qs.set("$orderby", "Receipt");
+    qs.set("$expand", "*");
     qs.set("$top", "200");
 
     const initialUrl = `${base}/${ti}/LN/lnapi/odata/whapi.inhReceipt/Lines?${qs.toString()}`;

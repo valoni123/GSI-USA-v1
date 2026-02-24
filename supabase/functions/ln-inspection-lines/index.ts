@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { getSupabaseAdmin, getActiveConfig, fetchOData } from "../_shared/ionapi.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCompanyFromParams } from "../_shared/company.ts";
 
 const corsHeaders = {
@@ -14,6 +14,13 @@ function json(body: unknown, status = 200) {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
+
+function buildTokenUrl(pu: string, ot: string) {
+  const base = pu.endsWith("/") ? pu : pu + "/";
+  return base + ot.replace(/^\//, "");
+}
+
+const escOdataString = (s: string) => s.replace(/'/g, "''");
 
 serve(async (req) => {
   try {
@@ -33,7 +40,9 @@ serve(async (req) => {
 
     const inspection = (body.inspection || "").toString().trim();
     const seqRaw = body.sequence;
-    const sequence = typeof seqRaw === "number" ? seqRaw : (typeof seqRaw === "string" ? Number(seqRaw.trim()) : NaN);
+    const sequence = typeof seqRaw === "number"
+      ? seqRaw
+      : (typeof seqRaw === "string" ? Number(seqRaw.trim()) : NaN);
     const language = body.language || "en-US";
     const companyOverride = (body.company || "").toString().trim();
 
@@ -41,7 +50,14 @@ serve(async (req) => {
       return json({ ok: false, error: "missing_inputs" }, 200);
     }
 
-    const supabase = getSupabaseAdmin();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      return json({ ok: false, error: "env_missing" }, 200);
+    }
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Company: use override if provided, else read from params
     let company = companyOverride;
     if (!company) {
       try {
@@ -51,27 +67,73 @@ serve(async (req) => {
       }
     }
 
-    const cfg = await getActiveConfig(supabase);
+    // Decrypted config
+    const { data: cfgData } = await supabase.rpc("get_active_ionapi");
+    const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
+    if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
 
-    const escInspection = inspection.replace(/'/g, "''");
-    const filter = `Inspection eq '${escInspection}' and InspectionSequence eq ${sequence}`;
+    const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
+      ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
+    };
+    const grantType = grant_type === "password_credentials" ? "password" : grant_type;
+
+    // iu and ti
+    const { data: activeRow } = await supabase
+      .from("ionapi_oauth2")
+      .select("iu, ti")
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle();
+    if (!activeRow) return json({ ok: false, error: "no_active_config_row" }, 200);
+    const iu: string = activeRow.iu;
+    const ti: string = activeRow.ti;
+
+    // Token
+    const basic = btoa(`${ci}:${cs}`);
+    const tokenParams = new URLSearchParams();
+    tokenParams.set("grant_type", grantType);
+    tokenParams.set("username", saak);
+    tokenParams.set("password", sask);
+
+    const tokenRes = await fetch(buildTokenUrl(pu, ot), {
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${basic}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: tokenParams.toString(),
+    }).catch(() => null as unknown as Response);
+    if (!tokenRes) return json({ ok: false, error: "token_network_error" }, 200);
+    const tokenJson = await tokenRes.json().catch(() => null) as any;
+    if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
+      return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
+    }
+    const accessToken = tokenJson.access_token as string;
+
+    // OData query: InspectionLines by inspection + sequence
+    const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
+    const escapedInspection = escOdataString(inspection);
+    const filter = [
+      `Inspection eq '${escapedInspection}'`,
+      `InspectionSequence eq ${sequence}`
+    ].join(" and ");
 
     const qs = new URLSearchParams();
     qs.set("$filter", filter);
     qs.set("$count", "true");
-    qs.set("$select", [
-      "Inspection",
-      "InspectionSequence",
-      "InspectionLine",
-      "Item",
-      "ItemRef/Item",
-      "ItemRef/Description",
-      "QuantityToBeInspectedInStorageUnit",
-      "StorageUnit",
-    ].join(","));
-    qs.set("$expand", "ItemRef");
+    qs.set("$select", "*");
 
-    const res = await fetchOData(cfg, company, `/txgsi.InspectionLines/InspectionLines?${qs.toString()}`, language);
+    const url = `${base}/${ti}/LN/lnapi/odata/txgsi.InspectionLines/InspectionLines?${qs.toString()}`;
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "accept": "application/json",
+        "Content-Language": language,
+        "X-Infor-LnCompany": company,
+        "Authorization": `Bearer ${accessToken}`,
+      },
+    }).catch(() => null as unknown as Response);
     if (!res) return json({ ok: false, error: "odata_network_error" }, 200);
     const ojson = await res.json().catch(() => null) as any;
     if (!res.ok || !ojson) {
@@ -81,7 +143,10 @@ serve(async (req) => {
     }
 
     const value = Array.isArray(ojson?.value) ? ojson.value : [];
-    const count = typeof ojson?.["@odata.count"] === "number" ? ojson["@odata.count"] : value.length;
+    const count =
+      typeof ojson?.["@odata.count"] === "number"
+        ? ojson["@odata.count"]
+        : value.length;
 
     return json({ ok: true, count, value }, 200);
   } catch {

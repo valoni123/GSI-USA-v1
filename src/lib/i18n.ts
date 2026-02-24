@@ -117,8 +117,7 @@ type TranslationKeys =
   | "submitLabel"
   | "selectInspectionTitle"
   | "searchReasonPlaceholder"
-  | "noReasonsLabel"
-  | "noInspectionFound";
+  | "noReasonsLabel";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -234,7 +233,6 @@ const translations: Translations = {
     selectInspectionTitle: "Select an inspection",
     searchReasonPlaceholder: "Search reason...",
     noReasonsLabel: "No reasons",
-    noInspectionFound: "No inspection found",
   },
   de: {
     title: "Anmelden",
@@ -347,7 +345,6 @@ const translations: Translations = {
     selectInspectionTitle: "Prüfung auswählen",
     searchReasonPlaceholder: "Grund suchen...",
     noReasonsLabel: "Keine Gründe",
-    noInspectionFound: "Keine Prüfung gefunden",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -460,7 +457,6 @@ const translations: Translations = {
     selectInspectionTitle: "Seleccionar inspección",
     searchReasonPlaceholder: "Buscar motivo...",
     noReasonsLabel: "Sin motivos",
-    noInspectionFound: "No se encontró inspección",
   },
   "pt-BR": {
     title: "Entrar",
@@ -573,7 +569,6 @@ const translations: Translations = {
     selectInspectionTitle: "Selecionar inspeção",
     searchReasonPlaceholder: "Buscar motivo...",
     noReasonsLabel: "Sem motivos",
-    noInspectionFound: "Nenhuma inspeção encontrada",
   },
 };
 

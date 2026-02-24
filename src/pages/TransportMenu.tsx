@@ -87,7 +87,6 @@ const TransportMenu = () => {
     );
   });
   const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState<boolean>(false);
-  const [vehicleDropdownLoading, setVehicleDropdownLoading] = useState<boolean>(false);
 
   // Helper to fetch count for a given vehicle (called only after load/unload)
   const fetchCount = async (vid: string) => {
@@ -307,38 +306,14 @@ const TransportMenu = () => {
               className="absolute right-2 top-1 text-gray-700 hover:text-gray-900 h-8 w-8 flex items-center justify-center"
               aria-label="Search vehicles"
               onClick={async () => {
-                if (!vehicleDropdownOpen) {
-                  setVehicleDropdownOpen(true);
-                  setVehicleDropdownLoading(true);
-                  // Try session cache first (10 minutes TTL)
-                  try {
-                    const cachedStr = sessionStorage.getItem("vehicles.list");
-                    const cachedTs = Number(sessionStorage.getItem("vehicles.list.ts") || "0");
-                    const fresh = cachedStr && cachedTs && Date.now() - cachedTs < 10 * 60 * 1000;
-                    if (fresh) {
-                      const cachedItems = JSON.parse(cachedStr || "[]") as Array<{ VehicleID: string; Description: string }>;
-                      setVehicleList(cachedItems);
-                      setVehicleQuery("");
-                      setVehicleDropdownLoading(false);
-                      return;
-                    }
-                  } catch {}
-                  const { data } = await supabase.functions.invoke("ln-vehicles-list", { body: { language: "en-US" } });
-                  if (data && data.ok) {
-                    const items = (data.items || []) as Array<{ VehicleID: string; Description: string }>;
-                    setVehicleList(items);
-                    setVehicleQuery("");
-                    try {
-                      sessionStorage.setItem("vehicles.list", JSON.stringify(items));
-                      sessionStorage.setItem("vehicles.list.ts", String(Date.now()));
-                    } catch {}
-                  } else {
-                    setVehicleList([]);
-                  }
-                  setVehicleDropdownLoading(false);
+                const { data } = await supabase.functions.invoke("ln-vehicles-list", { body: {} });
+                if (data && data.ok) {
+                  setVehicleList(data.items || []);
+                  setVehicleQuery("");
                 } else {
-                  setVehicleDropdownOpen(false);
+                  setVehicleList([]);
                 }
+                setVehicleDropdownOpen((o) => !o);
               }}
             >
               <Search className="h-6 w-6" />
@@ -354,9 +329,7 @@ const TransportMenu = () => {
                     className="h-9 text-sm"
                   />
                   <div className="max-h-56 overflow-auto space-y-1">
-                    {vehicleDropdownLoading ? (
-                      <div className="text-xs text-muted-foreground px-1">Loading…</div>
-                    ) : filteredVehicles.length === 0 ? (
+                    {filteredVehicles.length === 0 ? (
                       <div className="text-xs text-muted-foreground px-1">No vehicles</div>
                     ) : (
                       filteredVehicles.map((v, idx) => (

@@ -193,9 +193,7 @@ serve(async (req) => {
           "Content-Language": language,
           "X-Infor-LnCompany": company,
           Authorization: `Bearer ${accessToken}`,
-          "Connection": "keep-alive",
         },
-        keepalive: true,
       }).catch(() => null as unknown as Response);
       if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
       const odataJson = await odataRes.json().catch(() => null) as any;
