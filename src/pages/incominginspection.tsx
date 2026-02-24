@@ -35,6 +35,8 @@ const IncomingInspectionPage: React.FC = () => {
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [allowedReasons, setAllowedReasons] = useState<Array<{ Reason: string; Description?: string }>>([]);
   const [exceedToastShown, setExceedToastShown] = useState<boolean>(false);
+  // NEW: track if only one inspection line exists (to show '- 1' when needed)
+  const [singleLineOnly, setSingleLineOnly] = useState<boolean>(false);
 
   // Reset all form and fetched state when starting a new scan
   const resetAllForNewScan = () => {
@@ -192,6 +194,34 @@ const IncomingInspectionPage: React.FC = () => {
     setRejectReason("");
   };
 
+  // NEW: When a line is selected without an explicit __position, fetch positions;
+  // if exactly one is returned, attach it and mark singleLineOnly=true
+  useEffect(() => {
+    const run = async () => {
+      if (!selectedLine || selectedLine.__position) {
+        setSingleLineOnly(Boolean(selectedLine?.__position));
+        return;
+      }
+      const insp = getInspection(selectedLine);
+      const seq = getSequence(selectedLine);
+      if (!insp || !seq) {
+        setSingleLineOnly(false);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("ln-inspection-lines", {
+        body: { inspection: insp, sequence: seq, language: "en-US", company: "1100" },
+      });
+      const list = Array.isArray(data?.value) ? data.value : [];
+      if (!error && list.length === 1) {
+        setSelectedLine({ ...selectedLine, __position: list[0] });
+        setSingleLineOnly(true);
+      } else {
+        setSingleLineOnly(false);
+      }
+    };
+    void run();
+  }, [selectedLine]);
+
   const handleSignOutConfirm = () => {
     try {
       localStorage.removeItem("ln.token");
@@ -286,7 +316,7 @@ const IncomingInspectionPage: React.FC = () => {
                   })()}
                   {(() => {
                     const ln = getInspectionLine(selectedLine);
-                    return ln ? ` - ${ln}` : "";
+                    return ln ? ` - ${ln}` : (singleLineOnly ? " - 1" : "");
                   })()}
                 </div>
                 <div className="text-sm text-gray-900 text-right whitespace-nowrap font-medium">
