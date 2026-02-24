@@ -13,7 +13,7 @@ import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { t, type LanguageKey } from "@/lib/i18n";
-import { showSuccess, showLoading, dismissToast } from "@/utils/toast";
+import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -187,11 +187,8 @@ const IncomingInspectionPage: React.FC = () => {
     dismissToast(tid as unknown as string);
 
     if (error || !data || !data.ok) {
-      toast({
-        title: trans.loadingDetails,
-        description: (data && (data.error?.message || data.error)) || "Submission failed",
-        variant: "destructive",
-      });
+      const msg = (data && (data.error?.message || data.error)) || "Submission failed";
+      showError(String(msg));
       return;
     }
 
@@ -262,11 +259,8 @@ const IncomingInspectionPage: React.FC = () => {
 
       const data = await resp.json();
       if (!resp.ok) {
-        toast({
-          title: trans.loadingDetails,
-          description: data?.error || "Unable to fetch inspections",
-          variant: "destructive",
-        });
+        const msg = (data?.error || "Unable to fetch inspections") as string;
+        showError(msg);
         return;
       }
 
@@ -292,10 +286,11 @@ const IncomingInspectionPage: React.FC = () => {
       } else if (count === 1 && value.length === 1) {
         handleSelectRecord(value[0]);
       } else {
-        toast({
-          title: trans.noEntries,
-          description: trans.loadingDetails,
-        });
+        // Localized, error-styled bottom toast
+        const msg = trans.noInspectionFound || trans.noEntries;
+        // Prefer Sonner toast for consistent bottom-center positioning
+        // eslint-disable-next-line no-console
+        showError(msg);
         setScanLabel(trans.inspectionQueryLabel);
       }
     } finally {
