@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { ChevronDown } from "lucide-react";
 
 type InspectionRecord = {
   Order?: string;
@@ -174,20 +175,30 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                       <div key={rowKey} className="space-y-2">
                         <button
                           type="button"
-                          className="w-full text-left rounded-xl border border-gray-300 p-3 bg-gray-100 hover:bg-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-black/10 border-l-4 border-l-gray-300"
+                          className="w-full text-left rounded-xl border border-gray-300 p-2 bg-gray-100 hover:bg-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                           onClick={async () => {
-                            // Expand row and show loading
+                            const known = positionsByKey[rowKey];
+                            // If already loaded and multiple positions, toggle expand/collapse
+                            if (Array.isArray(known) && known.length > 1) {
+                              setExpandedKey((prev) => (prev === rowKey ? null : rowKey));
+                              return;
+                            }
+
+                            // Otherwise fetch positions
                             setExpandedKey(rowKey);
                             setLoadingKey(rowKey);
 
                             const strictSeq = Number(rec.InspectionSequence ?? seq ?? 0);
                             const { value } = await fetchPositions(inspection, strictSeq);
+
                             setLoadingKey(null);
 
                             if (Array.isArray(value) && value.length > 1) {
+                              // Store positions and keep expanded
                               setPositionsByKey((prev) => ({ ...prev, [rowKey]: value }));
                               setExpandedKey(rowKey);
                             } else if (Array.isArray(value) && value.length === 1) {
+                              // Single position → auto-select and collapse
                               setExpandedKey(null);
                               setPositionsByKey((prev) => {
                                 const next = { ...prev };
@@ -197,6 +208,7 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                               const combined = { ...rec, __position: value[0] };
                               onSelect(combined);
                             } else {
+                              // No positions → select base record and collapse
                               setExpandedKey(null);
                               setPositionsByKey((prev) => {
                                 const next = { ...prev };
@@ -207,28 +219,39 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                             }
                           }}
                         >
-                          <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                          <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
                             <div className="flex flex-col">
-                              <div className="text-base text-gray-900 font-semibold break-all">
+                              <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
                                 {(inspection || "-")}{seq ? ` - ${seq}` : ""}
                               </div>
                               {item && (
-                                <div className="mt-1 text-sm text-gray-900 break-all">
+                                <div className="mt-0.5 text-sm text-gray-900 break-all">
                                   {item}
                                 </div>
                               )}
                               {desc && <div className="text-xs text-gray-700">{desc}</div>}
                             </div>
-                            {(qtySU || storageUnit) && (
-                              <div className="text-sm text-gray-900 text-right whitespace-nowrap font-medium">
-                                {qtySU} {storageUnit}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {(qtySU || storageUnit) && (
+                                <div className="text-sm text-gray-900 text-right whitespace-nowrap font-medium">
+                                  {qtySU} {storageUnit}
+                                </div>
+                              )}
+                              {/* Show small arrow if multiple positions are available (after first fetch) */}
+                              {Array.isArray(positionsByKey[rowKey]) && positionsByKey[rowKey].length > 1 && (
+                                <ChevronDown
+                                  className={[
+                                    "h-4 w-4 text-gray-600 transition-transform",
+                                    isExpanded ? "rotate-180" : "rotate-0"
+                                  ].join(" ").trim()}
+                                />
+                              )}
+                            </div>
                           </div>
                         </button>
 
                         {isExpanded && (
-                          <div className="space-y-2 pl-3">
+                          <div className="space-y-2 ml-8">
                             {loadingKey === rowKey ? (
                               <div className="px-2 py-2 text-sm text-muted-foreground">Loading...</div>
                             ) : positions.length === 0 ? (
@@ -250,19 +273,19 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                                   <button
                                     key={`${rowKey}-pos-${pidx}`}
                                     type="button"
-                                    className="w-full text-left rounded-lg border border-gray-200 p-3 bg-white hover:bg-gray-50 shadow-sm focus:outline-none border-l-4 border-l-gray-200"
+                                    className="w-full text-left rounded-lg border border-gray-200 p-2 bg-white hover:bg-gray-50 shadow-sm focus:outline-none"
                                     onClick={() => {
                                       const combined = { ...rec, __position: pos };
                                       onSelect(combined);
                                     }}
                                   >
-                                    <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                                    <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
                                       <div className="flex flex-col">
-                                        <div className="text-base text-gray-900 font-semibold break-all">
+                                        <div className="text-sm text-gray-900 font-medium break-all">
                                           {(inspection || "-")}{seq ? ` - ${seq}` : ""}{Number.isFinite(pnum) && pnum !== 0 ? ` - ${pnum}` : ""}
                                         </div>
                                         {pItem && (
-                                          <div className="mt-1 text-sm text-gray-900 break-all">
+                                          <div className="mt-0.5 text-sm text-gray-900 break-all">
                                             {pItem}
                                           </div>
                                         )}
