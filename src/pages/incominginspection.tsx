@@ -53,6 +53,8 @@ const IncomingInspectionPage: React.FC = () => {
   // ADD: line picker state
   const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
   const [lineOptions, setLineOptions] = useState<any[]>([]);
+  // NEW: lock details until a specific inspection line is chosen
+  const [detailsLocked, setDetailsLocked] = useState<boolean>(false);
 
   // Reset all form and fetched state when starting a new scan
   const resetAllForNewScan = () => {
@@ -67,6 +69,8 @@ const IncomingInspectionPage: React.FC = () => {
     setReasonDialogOpen(false);
     setAllowedReasons([]);
     setExceedToastShown(false);
+    // Ensure details are unlocked for a fresh scan
+    setDetailsLocked(false);
   };
 
   // Helper to extract quantities/units from selected line
@@ -151,6 +155,8 @@ const IncomingInspectionPage: React.FC = () => {
     setApproveAll(false);
     setRejectAll(false);
     setSingleLineOnly(false);
+    // Unlock details after submission
+    setDetailsLocked(false);
   };
 
   const doSubmit = async () => {
@@ -294,6 +300,8 @@ const IncomingInspectionPage: React.FC = () => {
   const handleSelectRecord = (rec: any) => {
     setDialogOpen(false);
     setSelectedLine(rec);
+    // Lock details until we know if there's 1 line or multiple
+    setDetailsLocked(true);
     setApprovedQty("0");
     setRejectedQty("0");
     setRejectReason("");
@@ -304,17 +312,20 @@ const IncomingInspectionPage: React.FC = () => {
     const run = async () => {
       if (!selectedLine || selectedLine.__position) {
         setSingleLineOnly(Boolean(selectedLine?.__position));
+        // If position is already chosen, unlock details
+        if (selectedLine?.__position) setDetailsLocked(false);
         return;
       }
       const insp = (selectedLine?.Inspection || "").toString().trim();
       const seq = Number(
-        selectedLine?.InspectionSequence ?? 
-        selectedLine?.Sequence ?? 
-        selectedLine?.OrderSequence ?? 
+        selectedLine?.InspectionSequence ??
+        selectedLine?.Sequence ??
+        selectedLine?.OrderSequence ??
         0
       );
       if (!insp || !seq) {
         setSingleLineOnly(false);
+        setDetailsLocked(false);
         return;
       }
       const { data, error } = await supabase.functions.invoke("ln-inspection-lines", {
@@ -322,19 +333,24 @@ const IncomingInspectionPage: React.FC = () => {
       });
       const list = Array.isArray(data?.value) ? data.value : [];
       if (!error && list.length === 1) {
+        // Exactly one line → attach and unlock details
         setSelectedLine({ ...selectedLine, __position: list[0] });
         setSingleLineOnly(true);
         setLinePickerOpen(false);
         setLineOptions([]);
+        setDetailsLocked(false);
       } else if (!error && list.length > 1) {
-        // Show the old beautiful popup for line picking
+        // Multiple lines → open picker; keep details locked until user selects
         setLineOptions(list);
         setLinePickerOpen(true);
         setSingleLineOnly(false);
+        setDetailsLocked(true);
       } else {
+        // On error or no lines, unlock to show basic info
         setSingleLineOnly(false);
         setLinePickerOpen(false);
         setLineOptions([]);
+        setDetailsLocked(false);
       }
     };
     void run();
@@ -460,6 +476,8 @@ const IncomingInspectionPage: React.FC = () => {
             setSingleLineOnly(true);
             setLinePickerOpen(false);
             setLineOptions([]);
+            // Unlock details after user chooses a specific line
+            setDetailsLocked(false);
           }}
           onClose={() => {
             setLinePickerOpen(false);
@@ -468,7 +486,7 @@ const IncomingInspectionPage: React.FC = () => {
         />
 
         {/* Dynamic details when one line is selected */}
-        {selectedLine && (
+        {selectedLine && !detailsLocked && (
           <div className="space-y-3">
             {/* Order header (same line) */}
             {(() => {
