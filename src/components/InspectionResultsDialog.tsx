@@ -2,6 +2,8 @@
 
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+// REMOVED: Button import
+// import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type InspectionRecord = {
@@ -147,20 +149,20 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                         className="w-full text-left rounded-md border border-gray-300 p-3 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black/10"
                         onClick={() => onSelect(rec)}
                       >
-                        <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                        <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
                           <div className="flex flex-col">
-                            <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                            <div className="text-sm sm:text-base text-gray-900 font-medium break-all">
                               {(inspection || "-")}{seq ? ` - ${seq}` : ""}
                             </div>
                             {item && (
-                              <div className="mt-1 font-mono text-sm sm:text-base text-gray-900 break-all">
+                              <div className="mt-1 text-sm sm:text-base text-gray-900 break-all">
                                 {item}
                               </div>
                             )}
                             {desc && <div className="text-xs text-gray-700">{desc}</div>}
                           </div>
                           {(qtySU || storageUnit) && (
-                            <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
+                            <div className="text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
                               {qtySU} {storageUnit}
                             </div>
                           )}
