@@ -2,7 +2,6 @@
 
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type InspectionRecord = {
@@ -145,21 +144,23 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
                       <button
                         key={`line-${grp.line}-row-${idx}`}
                         type="button"
-                        className="w-full text-left rounded-md border p-3 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black/10"
+                        className="w-full text-left rounded-md border border-gray-300 p-3 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black/10"
                         onClick={() => onSelect(rec)}
                       >
-                        <div className="flex flex-col">
-                          <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
-                            {(inspection || "-")}{seq ? ` - ${seq}` : ""}
-                          </div>
-                          {item && (
-                            <div className="mt-1 font-mono text-sm sm:text-base text-gray-900 break-all">
-                              {item}
+                        <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                          <div className="flex flex-col">
+                            <div className="font-mono text-sm sm:text-base text-gray-900 break-all">
+                              {(inspection || "-")}{seq ? ` - ${seq}` : ""}
                             </div>
-                          )}
-                          {desc && <div className="text-xs text-gray-700">{desc}</div>}
+                            {item && (
+                              <div className="mt-1 font-mono text-sm sm:text-base text-gray-900 break-all">
+                                {item}
+                              </div>
+                            )}
+                            {desc && <div className="text-xs text-gray-700">{desc}</div>}
+                          </div>
                           {(qtySU || storageUnit) && (
-                            <div className="mt-1 text-xs text-gray-600">
+                            <div className="font-mono text-sm sm:text-base text-gray-900 text-right whitespace-nowrap">
                               {qtySU} {storageUnit}
                             </div>
                           )}
@@ -172,10 +173,6 @@ const InspectionResultsDialog: React.FC<Props> = ({ open, records, onSelect, onC
             )}
           </div>
         </ScrollArea>
-
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-        </div>
       </DialogContent>
     </Dialog>
   );
