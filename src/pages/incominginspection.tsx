@@ -110,14 +110,14 @@ const IncomingInspectionPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl px-4 py-6">
+      <div className="mx-auto max-w-md px-4 py-6">
         <label className="text-sm text-gray-600">Order Number / Inspection / Handling Unit</label>
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onBlur={handleBlurScan}
           placeholder=""
-          className={`mt-2 h-12 text-lg ${loading ? "opacity-60" : ""}`}
+          className={`mt-2 h-12 text-lg w-full ${loading ? "opacity-60" : ""}`}
           disabled={loading}
           autoFocus
         />

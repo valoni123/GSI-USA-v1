@@ -87,20 +87,34 @@ serve(async (req) => {
     )
 
     const accessToken = await getAccessToken(supabase)
+    // Also load config once to get base URL (pu)
+    const { data: confData, error: confErr } = await supabase.rpc('get_active_ionapi')
+    if (confErr) {
+      console.error("[ln-warehouse-inspections] get_active_ionapi error", { confErr })
+      return new Response(JSON.stringify({ error: "Unable to load Infor OAuth configuration" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+    const cfg = (Array.isArray(confData) && confData.length > 0 ? confData[0] : null) as ActiveIonapi | null
+    if (!cfg?.pu) {
+      console.error("[ln-warehouse-inspections] missing pu base URL", { cfg })
+      return new Response(JSON.stringify({ error: "OData base URL not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
 
-    // Build OData query as specified
-    // %24filter=(InspectionStatus ne txgsi.WarehouseInspections.WarehouseInspectionStatus'Processed') and Order eq 'q' or Inspection eq 'q' or HandlingUnit eq 'q'
-    // %24count=true&%24select=*
-    const filter = `(InspectionStatus ne txgsi.WarehouseInspections.WarehouseInspectionStatus'Processed') and Order eq '${q}' or Inspection eq '${q}' or HandlingUnit eq '${q}'`
+    // Build OData query as specified with correct precedence:
+    // (InspectionStatus ne ...Processed) and (Order eq 'q' or Inspection eq 'q' or HandlingUnit eq 'q')
+    const filter = `(InspectionStatus ne txgsi.WarehouseInspections.WarehouseInspectionStatus'Processed') and (Order eq '${q}' or Inspection eq '${q}' or HandlingUnit eq '${q}')`
     const params = new URLSearchParams({
       "$filter": filter,
       "$count": "true",
       "$select": "*",
     })
 
-    // Base path from active ionapi 'pu' which points to the OData API base
-    // Then append the full path to WarehouseInspections
-    const base = new URL('/LN/lnapi/odata/txgsi.WarehouseInspections/WarehouseInspections', (await supabase.rpc('get_active_ionapi')).data?.[0]?.pu ?? '')
+    const base = new URL('/LN/lnapi/odata/txgsi.WarehouseInspections/WarehouseInspections', cfg.pu!)
     const fullUrl = `${base.toString()}?${params.toString()}`
 
     console.log("[ln-warehouse-inspections] calling OData", { fullUrl, company })
