@@ -19,6 +19,7 @@ import TransportUnload from "./pages/TransportUnload";
 import TransportSelect from "./pages/TransportSelect";
 import TransportGroup from "./pages/TransportGroup";
 import Docs from "./pages/Docs";
+import TestLN from "./pages/TestLN";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
           <Route path="/transport/select" element={<TransportSelect />} />
           <Route path="/transportgroup/:group" element={<TransportGroup />} />
           <Route path="/docs" element={<Docs />} />
+          <Route path="/test-ln" element={<TestLN />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
