@@ -177,63 +177,48 @@ serve(async (req) => {
     }
 
     // Fetch TransactionID + @odata.etag from txgsi310 using ReceiptNumber + ReceiptLine
-    // (group by receipt number to avoid one request per line)
-    const receiptGroups = new Map<string, number[]>();
+    // NOTE: intentionally one request per line (reverted batching/grouping behavior)
+    const gsiMap = new Map<string, { TransactionID?: string; etag?: string }>();
+
     for (const ln of items) {
       const receipt = typeof ln?.Receipt === "string" ? ln.Receipt.trim() : "";
       const rLine = Number(ln?.ReceiptLine ?? 0);
       if (!receipt || !Number.isFinite(rLine) || rLine <= 0) continue;
-      const list = receiptGroups.get(receipt) || [];
-      if (!list.includes(rLine)) list.push(rLine);
-      receiptGroups.set(receipt, list);
-    }
 
-    const gsiMap = new Map<string, { TransactionID?: string; etag?: string }>();
+      const filter = `ReceiptNumber eq '${escOdataString(receipt)}' and ReceiptLine eq ${rLine}`;
 
-    const fetchGsiForReceipt = async (receipt: string, lines: number[]) => {
-      // chunk lines to keep query size reasonable
-      const unique = Array.from(new Set(lines)).filter((n) => Number.isFinite(n) && n > 0);
-      const chunks: number[][] = [];
-      for (let i = 0; i < unique.length; i += 40) chunks.push(unique.slice(i, i + 40));
+      const gsiQs = new URLSearchParams();
+      gsiQs.set("$filter", filter);
+      gsiQs.set("$select", "TransactionID,ReceiptNumber,ReceiptLine");
+      gsiQs.set("$top", "1");
 
-      for (const chunk of chunks) {
-        const lineFilter = chunk.map((n) => `ReceiptLine eq ${n}`).join(" or ");
-        const filter = `ReceiptNumber eq '${escOdataString(receipt)}' and (${lineFilter})`;
+      const gsiUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts?${gsiQs.toString()}`;
+      const gsiRes = await fetch(gsiUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          "Content-Language": language,
+          "X-Infor-LnCompany": company,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }).catch(() => null as unknown as Response);
 
-        const gsiQs = new URLSearchParams();
-        gsiQs.set("$filter", filter);
-        gsiQs.set("$select", "TransactionID,ReceiptNumber,ReceiptLine");
-        gsiQs.set("$top", "200");
+      if (!gsiRes) continue;
+      const gsiJson = (await gsiRes.json().catch(() => null)) as any;
+      const first = gsiRes.ok && Array.isArray(gsiJson?.value) && gsiJson.value.length > 0 ? gsiJson.value[0] : null;
+      if (!first) continue;
 
-        const gsiUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseReceipts/GSIReceipts?${gsiQs.toString()}`;
-        const gsiRes = await fetch(gsiUrl, {
-          method: "GET",
-          headers: {
-            accept: "application/json",
-            "Content-Language": language,
-            "X-Infor-LnCompany": company,
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }).catch(() => null as unknown as Response);
+      const rn = typeof first?.ReceiptNumber === "string" ? first.ReceiptNumber.trim() : receipt;
+      const rl = Number(first?.ReceiptLine ?? rLine);
+      const key = `${rn}|${rl}`;
 
-        if (!gsiRes) continue;
-        const gsiJson = (await gsiRes.json().catch(() => null)) as any;
-        const values: any[] = gsiRes.ok && Array.isArray(gsiJson?.value) ? gsiJson.value : [];
-
-        for (const g of values) {
-          const rn = typeof g?.ReceiptNumber === "string" ? g.ReceiptNumber.trim() : receipt.trim();
-          const rl = Number(g?.ReceiptLine ?? 0);
-          const key = `${rn}|${rl}`;
-          gsiMap.set(key, {
-            TransactionID: typeof g?.TransactionID === "string" ? g.TransactionID : (g?.TransactionID != null ? String(g.TransactionID) : undefined),
-            etag: typeof g?.["@odata.etag"] === "string" ? g["@odata.etag"] : undefined,
-          });
-        }
-      }
-    };
-
-    for (const [receipt, lines] of receiptGroups.entries()) {
-      await fetchGsiForReceipt(receipt, lines);
+      gsiMap.set(key, {
+        TransactionID:
+          typeof first?.TransactionID === "string"
+            ? first.TransactionID
+            : (first?.TransactionID != null ? String(first.TransactionID) : undefined),
+        etag: typeof first?.["@odata.etag"] === "string" ? first["@odata.etag"] : undefined,
+      });
     }
 
     // Attach TransactionID and etag to each received line if found
