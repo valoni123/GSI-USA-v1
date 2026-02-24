@@ -11,6 +11,15 @@ import { showError, showLoading, showSuccess, dismissToast } from "@/utils/toast
 import { supabase } from "@/integrations/supabase/client";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import HelpMenu from "@/components/HelpMenu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel
+} from "@/components/ui/alert-dialog";
 
 type HUInfo = {
   handlingUnit?: string | null;
@@ -70,6 +79,8 @@ const InfoStockLEInfo = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [data, setData] = useState<HUInfo | null>(null);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
+  // NEW: confirmation dialog state
+  const [startConfirmOpen, setStartConfirmOpen] = useState<boolean>(false);
 
   useEffect(() => {
     huRef.current?.focus();
@@ -361,25 +372,47 @@ const InfoStockLEInfo = () => {
         if (!isToBeInspected) return null;
         const barClasses = statusStyle(key); // reuse same color classes
         return (
-          <div className={`fixed inset-x-0 bottom-0 z-20 border-t ${barClasses}`}>
-            <div className="mx-auto max-w-md px-4 py-2 flex items-center justify-between">
-              <div className="text-xs sm:text-sm font-semibold">
-                {statusLabel(key)}
+          <>
+            <div className={`fixed inset-x-0 bottom-0 z-20 border-t ${barClasses}`}>
+              <div className="mx-auto max-w-md px-4 py-2 flex items-center justify-between">
+                <div className="text-xs sm:text-sm font-semibold">
+                  Start Inspection
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded-md bg-white/10 text-white hover:bg-white/20"
+                  aria-label="Start Inspection"
+                  onClick={() => setStartConfirmOpen(true)}
+                >
+                  <ClipboardCheck className="h-5 w-5" />
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-md bg-white/10 text-white hover:bg-white/20"
-                aria-label="Inspection"
-                onClick={() => {
-                  navigate(`/menu/incoming/inspection?hu=${encodeURIComponent(huVal)}`);
-                }}
-              >
-                <ClipboardCheck className="h-5 w-5" />
-              </Button>
             </div>
-          </div>
+
+            {/* Confirmation popup */}
+            <AlertDialog open={startConfirmOpen} onOpenChange={setStartConfirmOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Start Inspection ?</AlertDialogTitle>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setStartConfirmOpen(false)}>
+                    {t(lang).no}
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      setStartConfirmOpen(false);
+                      navigate(`/menu/incoming/inspection?hu=${encodeURIComponent(huVal)}`);
+                    }}
+                  >
+                    {t(lang).yes}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
         );
       })()}
 
