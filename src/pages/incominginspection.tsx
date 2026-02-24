@@ -247,12 +247,13 @@ const IncomingInspectionPage: React.FC = () => {
 
   const handleBack = () => navigate("/menu/incoming");
 
-  const handleBlurScan = async () => {
-    const q = query.trim();
+  const handleBlurScan = async (override?: string) => {
+    const q = (override ?? query).trim();
     if (!q) return;
 
     const tid = showLoading(trans.pleaseWait);
     setLoading(true);
+    setScreenLoading(true);
     try {
       const company = "1100";
       const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
@@ -282,7 +283,7 @@ const IncomingInspectionPage: React.FC = () => {
 
       if (count > 1 && value.length > 1) {
         const first = value[0] || {};
-        const ord = typeof first?.Order === "string" ? first.Order : query.trim();
+        const ord = typeof first?.Order === "string" ? first.Order : q;
         const origin = typeof first?.OrderOrigin === "string" ? first.OrderOrigin : "";
         setHeaderOrder(ord || "");
         setHeaderOrigin(origin || "");
@@ -297,6 +298,7 @@ const IncomingInspectionPage: React.FC = () => {
     } finally {
       dismissToast(tid as unknown as string);
       setLoading(false);
+      setScreenLoading(false);
     }
   };
 
@@ -350,8 +352,8 @@ const IncomingInspectionPage: React.FC = () => {
     if (hu && hu.trim()) {
       setQuery(hu.trim());
       setScanLabel(trans.loadHandlingUnit);
-      // Trigger the scan instantly (no need to blur)
-      void handleBlurScan();
+      // Trigger the scan instantly using the HU override
+      void handleBlurScan(hu.trim());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
