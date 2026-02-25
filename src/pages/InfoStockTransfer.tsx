@@ -303,17 +303,19 @@ const InfoStockTransfer = () => {
                 }}
                 onClear={() => setWarehouse("")}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-10 w-10"
-                onClick={openWarehousePicker}
-                disabled={!warehouseEnabled}
-                aria-label={trans.searchLabel}
-              >
-                <Search className="h-5 w-5" />
-              </Button>
+              {lastMatchType !== "HU" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-10 w-10"
+                  onClick={openWarehousePicker}
+                  disabled={!warehouseEnabled}
+                  aria-label={trans.searchLabel}
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+              )}
             </div>
             <Input disabled value={location} placeholder={trans.locationLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
             <Input disabled value={quantity} placeholder={trans.quantityLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
