@@ -384,6 +384,13 @@ const InfoStockTransfer = () => {
     });
     setCheckingTargetLocation(false);
 
+    if (!error && data && data.ok && data.exists === false) {
+      showError("location not found");
+      setLastValidatedTargetLocation(null);
+      setLastLocValidatedForWarehouse(null);
+      return;
+    }
+
     if (error || !data || !data.ok || data.exists !== true) {
       showError(trans.noEntries);
       setLastValidatedTargetLocation(null);
