@@ -103,14 +103,16 @@ serve(async (req) => {
 
     // Build OData request
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const escapedItem = item.replace(/'/g, "''");
+    const trimmed = item.replace(/\s+$/g, "").trim();
+    const escapedTrim = trimmed.replace(/'/g, "''");
+    const nineSpaced = `         ${trimmed}`;
+    const escapedNine = nineSpaced.replace(/'/g, "''");
 
     const params = new URLSearchParams();
-    params.set("$filter", `Item eq '${escapedItem}' and InventoryOnHand ge 0`);
+    params.set("$filter", `(Item eq '${escapedTrim}' or Item eq '${escapedNine}') and InventoryOnHand gt 0`);
     params.set("$count", "true");
     params.set("$select", "*");
-    params.set("$orderby", "InventoryOnHand");
-    params.set("$expand", "WarehouseRef");
+    params.set("$expand", "*");
 
     const path = `/${ti}/LN/lnapi/odata/whapi.wmdInventory/ItemInventoryByWarehouses`;
     const url = `${base}${path}?${params.toString()}`;
