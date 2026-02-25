@@ -109,6 +109,10 @@ const InfoStockTransfer = () => {
     huRef.current?.focus();
   }, []);
 
+  // Searching flags (used in canTransfer)
+  const [searching, setSearching] = useState<boolean>(false);
+  const [checkingTargetLocation, setCheckingTargetLocation] = useState<boolean>(false);
+
   // Status helpers
   const normalizeStatus = (raw?: string | null): string | null => {
     if (!raw) return null;
@@ -183,8 +187,6 @@ const InfoStockTransfer = () => {
     return !!(baseOk && qtyOk && unitOk && targetOk) && !searching && !checkingTargetLocation;
   }, [showDetails, lastMatchType, warehouse, location, quantity, unit, targetWarehouse, targetLocation, searching, checkingTargetLocation]);
 
-  const [searching, setSearching] = useState<boolean>(false);
-  const [checkingTargetLocation, setCheckingTargetLocation] = useState<boolean>(false);
   const handleSearch = async (_withLoading = false) => {
     const input = query.trim();
     if (!input) return;
@@ -318,7 +320,7 @@ const InfoStockTransfer = () => {
     if (s.includes("eigener konsignationsbestand") || (s.includes("consignment") && s.includes("eigen"))) return { bg: "#22c55e", text: "#052e16", label: "Eigener Konsignationsbestand" };
     if (s.includes("kaufmännisches lager") || s.includes("kaufma") || s.includes("commercial")) return { bg: "#a855f7", text: "#ffffff", label: "Kaufmännisches Lager" };
     return { bg: "#e5e7eb", text: "#111827", label: raw || "" };
-    };
+  };
 
   // Validate typed target warehouse against list (on blur / Enter)
   const ensureTargetWarehouseList = async () => {
@@ -358,7 +360,6 @@ const InfoStockTransfer = () => {
     }
   };
 
-  // Validate typed/scanned Target Location (no picker) against OData
   const validateTargetLocation = async () => {
     const wh = (targetWarehouse || "").trim();
     const loc = (targetLocation || "").trim();
