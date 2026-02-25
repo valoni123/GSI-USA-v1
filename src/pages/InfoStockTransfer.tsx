@@ -55,6 +55,7 @@ const InfoStockTransfer = () => {
   const [item, setItem] = useState<string>("");
   const [lot, setLot] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("");
+  const [unit, setUnit] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   // Enablement
   const [warehouseEnabled, setWarehouseEnabled] = useState<boolean>(false);
@@ -116,7 +117,8 @@ const InfoStockTransfer = () => {
       setLocation(d.location || "");
       setLot(d.lot || "");
       const qty = d.quantity != null ? String(d.quantity) : "";
-      setQuantity(qty + (d.unit ? ` ${d.unit}` : ""));
+      setQuantity(qty);
+      setUnit((d.unit || "").toString());
       setStatus(d.status || "");
       setWarehouseEnabled(false);
       setLastSearched(input);
@@ -136,6 +138,7 @@ const InfoStockTransfer = () => {
     if (itemRes.data && itemRes.data.ok) {
       const d = itemRes.data;
       setItem(d.item || input);
+      setUnit((d.unit || "").toString());
       setWarehouseEnabled(true);
       setLastSearched(input);
       // Clear HU-specific fields
@@ -319,6 +322,7 @@ const InfoStockTransfer = () => {
                   setLastMatchType(null);
                   setTargetWarehouse("");
                   setTargetLocation("");
+                  setUnit("");
                   huRef.current?.focus();
                 }}
               />
@@ -391,12 +395,22 @@ const InfoStockTransfer = () => {
               )}
             </div>
             <Input disabled value={location} placeholder={trans.locationLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
-            <FloatingLabelInput
-              id="transferQuantity"
-              label={trans.quantityLabel}
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
+            <div className="grid grid-cols-[1fr_96px] gap-2">
+              <FloatingLabelInput
+                id="transferQuantity"
+                label={trans.quantityLabel}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                inputMode="decimal"
+              />
+              <FloatingLabelInput
+                id="transferUnit"
+                label={trans.unitLabel}
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                onClear={() => setUnit("")}
+              />
+            </div>
             {/* Status field removed; it's displayed as a colored chip near Description for HU */}
             <FloatingLabelInput
               id="targetWarehouse"
