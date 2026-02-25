@@ -117,7 +117,7 @@ serve(async (req) => {
       },
     }).catch(() => null as unknown as Response);
     if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
-    const odataJson = await odataRes.json().catch(() => null) as any;
+    const odataJson = (await odataRes.json().catch(() => null)) as any;
 
     if (!odataRes.ok || !odataJson) {
       const top = odataJson?.error?.message || "odata_error";
@@ -125,30 +125,65 @@ serve(async (req) => {
       return json({ ok: false, error: { message: top, details } }, 200);
     }
 
-    const rows = Array.isArray(odataJson.value)
-      ? odataJson.value
-          .map((v: any) => {
-            const typeCandidate =
-              (typeof v?.WarehouseType === "string" && v.WarehouseType) ||
-              (typeof v?.Type === "string" && v.Type) ||
-              (typeof v?.WarehouseMasterDataRef?.WarehouseType === "string" && v.WarehouseMasterDataRef.WarehouseType) ||
-              (typeof v?.WarehouseMasterDataRef?.Type === "string" && v.WarehouseMasterDataRef.Type) ||
-              (typeof v?.WarehouseMasterDataRef?.WarehouseTypeRef?.Description === "string" && v.WarehouseMasterDataRef.WarehouseTypeRef.Description) ||
-              (typeof v?.WarehouseMasterDataRef?.WarehouseTypeRef?.Type === "string" && v.WarehouseMasterDataRef.WarehouseTypeRef.Type) ||
-              undefined;
-            return {
-              Warehouse: typeof v?.Warehouse === "string" ? v.Warehouse : "",
-              Description:
-                (typeof v?.WarehouseMasterDataRef?.Description === "string" && v.WarehouseMasterDataRef.Description) ||
-                (typeof v?.Description === "string" && v.Description) ||
-                undefined,
-              Type: typeCandidate,
-            };
-          })
-          .filter((r: any) => r.Warehouse)
-      : [];
+    // Fetch all pages (LN often paginates small)
+    const allRows: any[] = [];
+    let nextUrl: string | null = url;
+    let firstCount: number | null = null;
 
-    const count = typeof odataJson?.["@odata.count"] === "number" ? odataJson["@odata.count"] : rows.length;
+    while (nextUrl) {
+      const res = await fetch(nextUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          "Content-Language": language,
+          "X-Infor-LnCompany": company,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }).catch(() => null as unknown as Response);
+
+      if (!res) return json({ ok: false, error: "odata_network_error" }, 200);
+      const body = (await res.json().catch(() => null)) as any;
+
+      if (!res.ok || !body) {
+        const top = body?.error?.message || "odata_error";
+        const details = Array.isArray(body?.error?.details) ? body.error.details : [];
+        return json({ ok: false, error: { message: top, details } }, 200);
+      }
+
+      if (firstCount === null && typeof body?.["@odata.count"] === "number") {
+        firstCount = body["@odata.count"];
+      }
+
+      const page = Array.isArray(body?.value) ? body.value : [];
+      allRows.push(...page);
+
+      const maybeNext = (body?.["@odata.nextLink"] || body?.["odata.nextLink"] || "") as string;
+      nextUrl = maybeNext ? (maybeNext.startsWith("http") ? maybeNext : `${base}${maybeNext}`) : null;
+    }
+
+    const rows = allRows
+      .map((v: any) => {
+        const typeCandidate =
+          (typeof v?.WarehouseType === "string" && v.WarehouseType) ||
+          (typeof v?.Type === "string" && v.Type) ||
+          (typeof v?.WarehouseMasterDataRef?.WarehouseType === "string" && v.WarehouseMasterDataRef.WarehouseType) ||
+          (typeof v?.WarehouseMasterDataRef?.Type === "string" && v.WarehouseMasterDataRef.Type) ||
+          (typeof v?.WarehouseMasterDataRef?.WarehouseTypeRef?.Description === "string" &&
+            v.WarehouseMasterDataRef.WarehouseTypeRef.Description) ||
+          (typeof v?.WarehouseMasterDataRef?.WarehouseTypeRef?.Type === "string" && v.WarehouseMasterDataRef.WarehouseTypeRef.Type) ||
+          undefined;
+        return {
+          Warehouse: typeof v?.Warehouse === "string" ? v.Warehouse : "",
+          Description:
+            (typeof v?.WarehouseMasterDataRef?.Description === "string" && v.WarehouseMasterDataRef.Description) ||
+            (typeof v?.Description === "string" && v.Description) ||
+            undefined,
+          Type: typeCandidate,
+        };
+      })
+      .filter((r: any) => r.Warehouse);
+
+    const count = firstCount != null ? firstCount : rows.length;
 
     return json({ ok: true, count, rows }, 200);
   } catch {
