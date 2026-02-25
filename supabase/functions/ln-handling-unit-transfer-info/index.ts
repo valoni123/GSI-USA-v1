@@ -16,6 +16,30 @@ function json(body: unknown, status = 200) {
   });
 }
 
+const huSelect = [
+  "HandlingUnit",
+  "Item",
+  "Warehouse",
+  "Location",
+  "Lot",
+  "Status",
+  // quantity/unit variants
+  "QuantityInInventoryUnit",
+  "Quantity",
+  "QuantityBase",
+  "Unit",
+  "InventoryUnit",
+  "BaseUnit",
+  // blocked flags
+  "FullyBlocked",
+  "BlockedForOutbound",
+  "BlockedForTransferIssue",
+  "BlockedForCycleCounting",
+  "BlockedForAssembly",
+].join(",");
+
+const itemSelect = ["Item", "Description", "ItemDescription"].join(",");
+
 serve(async (req) => {
   const rid = crypto.randomUUID();
   const t0 = performance.now();
@@ -67,7 +91,7 @@ serve(async (req) => {
     // HU OData
     const escapedHu = handlingUnit.replace(/'/g, "''");
     const huPath = `/${cfgInfo.config.ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits(HandlingUnit='${escapedHu}')`;
-    const huUrl = `${base}${huPath}?$select=%2A`;
+    const huUrl = `${base}${huPath}?$select=${encodeURIComponent(huSelect)}`;
 
     const tHu0 = performance.now();
     const huRes = await fetch(huUrl, {
@@ -156,7 +180,7 @@ serve(async (req) => {
       for (const candidate of candidates) {
         const escaped = candidate.replace(/'/g, "''");
         const itemPath = `/${cfgInfo.config.ti}/LN/lnapi/odata/tcapi.ibdItem/Items(Item='${escaped}')`;
-        const itemUrl = `${base}${itemPath}?$select=%2A&$expand=InventoryUnitRef`;
+        const itemUrl = `${base}${itemPath}?$select=${encodeURIComponent(itemSelect)}`;
 
         const tItem0 = performance.now();
         const res = await fetch(itemUrl, {

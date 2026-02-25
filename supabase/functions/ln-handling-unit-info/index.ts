@@ -16,6 +16,28 @@ function json(body: unknown, status = 200) {
   });
 }
 
+const huSelect = [
+  "HandlingUnit",
+  "Item",
+  "Warehouse",
+  "Location",
+  "Lot",
+  "Status",
+  // quantity/unit variants
+  "QuantityInInventoryUnit",
+  "Quantity",
+  "QuantityBase",
+  "Unit",
+  "InventoryUnit",
+  "BaseUnit",
+  // blocked flags
+  "FullyBlocked",
+  "BlockedForOutbound",
+  "BlockedForTransferIssue",
+  "BlockedForCycleCounting",
+  "BlockedForAssembly",
+].join(",");
+
 serve(async (req) => {
   const rid = crypto.randomUUID();
   const t0 = performance.now();
@@ -66,7 +88,7 @@ serve(async (req) => {
     const base = cfgInfo.config.iu.endsWith("/") ? cfgInfo.config.iu.slice(0, -1) : cfgInfo.config.iu;
     const escaped = handlingUnit.replace(/'/g, "''");
     const path = `/${cfgInfo.config.ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits(HandlingUnit='${escaped}')`;
-    const url = `${base}${path}?$select=%2A`;
+    const url = `${base}${path}?$select=${encodeURIComponent(huSelect)}`;
 
     const tOdata0 = performance.now();
     const odataRes = await fetch(url, {

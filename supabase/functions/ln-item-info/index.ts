@@ -16,6 +16,14 @@ function json(body: unknown, status = 200) {
   });
 }
 
+const itemSelect = [
+  "Item",
+  "Description",
+  "ItemDescription",
+  "InventoryUnit",
+  "Unit",
+].join(",");
+
 serve(async (req) => {
   const rid = crypto.randomUUID();
   const t0 = performance.now();
@@ -77,7 +85,7 @@ serve(async (req) => {
     for (const candidate of candidates) {
       const escaped = candidate.replace(/'/g, "''");
       const path = `/${cfgInfo.config.ti}/LN/lnapi/odata/tcapi.ibdItem/Items(Item='${escaped}')`;
-      const url = `${base}${path}?$select=%2A&$expand=InventoryUnitRef`;
+      const url = `${base}${path}?$select=${encodeURIComponent(itemSelect)}`;
 
       const tOdata0 = performance.now();
       const res = await fetch(url, {
@@ -131,7 +139,7 @@ serve(async (req) => {
 
     const item = entity.Item ?? entity.ItemCode ?? itemCode;
     const description = entity.Description ?? entity.ItemDescription ?? null;
-    const unit = entity.InventoryUnit ?? entity?.InventoryUnitRef?.Unit ?? entity.Unit ?? null;
+    const unit = entity.InventoryUnit ?? entity.Unit ?? null;
 
     const totalMs = performance.now() - t0;
     const perf = debug
