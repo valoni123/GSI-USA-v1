@@ -917,6 +917,18 @@ const InfoStockTransfer = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") void validateTargetWarehouse();
                   }}
+                  onFocus={() => {
+                    // If empty, auto-fill with the current Warehouse when user enters the field
+                    if (!(targetWarehouse || "").trim() && (warehouse || "").trim()) {
+                      setTargetWarehouse((warehouse || "").trim());
+                    }
+                  }}
+                  onClick={() => {
+                    // Also handle click to cover touch scenarios
+                    if (!(targetWarehouse || "").trim() && (warehouse || "").trim()) {
+                      setTargetWarehouse((warehouse || "").trim());
+                    }
+                  }}
                 />
                 <Button
                   type="button"
