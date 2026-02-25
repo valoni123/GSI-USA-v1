@@ -73,7 +73,7 @@ const InfoStockTransfer = () => {
   // Target warehouse picker state
   const [targetWhPickerOpen, setTargetWhPickerOpen] = useState<boolean>(false);
   const [targetWhLoading, setTargetWhLoading] = useState<boolean>(false);
-  const [targetWhRows, setTargetWhRows] = useState<Array<{ Warehouse: string; Description?: string }>>([]);
+  const [targetWhRows, setTargetWhRows] = useState<Array<{ Warehouse: string; Description?: string; Type?: string }>>([]);
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -216,6 +216,7 @@ const InfoStockTransfer = () => {
       .map((r: any) => ({
         Warehouse: String(r.Warehouse || ""),
         Description: typeof r.Description === "string" ? r.Description : undefined,
+        Type: typeof r.Type === "string" ? r.Type : undefined,
       }))
       .filter((r) => r.Warehouse);
     setTargetWhRows(mapped);
@@ -281,6 +282,23 @@ const InfoStockTransfer = () => {
       default:
         return "bg-gray-300 text-black";
     }
+  };
+
+  // Map warehouse type to pill styles based on your screenshot
+  const whTypeStyle = (raw?: string) => {
+    const s = (raw || "").trim().toLowerCase();
+    if (!s) return { bg: "#e5e7eb", text: "#111827", label: "" }; // gray
+    if (s.includes("normal")) return { bg: "#fbbf24", text: "#111827", label: "Normal" }; // amber
+    if (s.includes("produktion") || s.includes("production")) return { bg: "#34d399", text: "#0b3d2e", label: "Produktion" }; // green/teal
+    if (s.includes("projekt") || s.includes("project")) return { bg: "#60a5fa", text: "#0b1b38", label: "Projekt" }; // blue
+    if (s.includes("service und instandhaltung") || s.includes("maintenance")) return { bg: "#f59e0b", text: "#111827", label: "Service und Instandhaltung" }; // orange
+    if (s.includes("service (ts) im kundeneigentum") || s.includes("customer") || s.includes("ts")) return { bg: "#fb923c", text: "#111827", label: "Service (TS) im Kundeneigentum" }; // orange-light
+    if (s.includes("service-reklamation") || s.includes("reklamation") || s.includes("complaint")) return { bg: "#ef4444", text: "#ffffff", label: "Service-Reklamation" }; // red
+    if (s.includes("fremder konsignationsbestand") || s.includes("consignment") && s.includes("fremd")) return { bg: "#84cc16", text: "#0b3d0b", label: "Fremder Konsignationsbestand" }; // lime
+    if (s.includes("eigener konsignationsbestand") || (s.includes("consignment") && s.includes("eigen"))) return { bg: "#22c55e", text: "#052e16", label: "Eigener Konsignationsbestand" }; // green
+    if (s.includes("kaufmännisches lager") || s.includes("kaufma") || s.includes("commercial")) return { bg: "#a855f7", text: "#ffffff", label: "Kaufmännisches Lager" }; // purple
+    // fallback
+    return { bg: "#e5e7eb", text: "#111827", label: raw || "" };
   };
 
   return (
@@ -558,22 +576,35 @@ const InfoStockTransfer = () => {
                     <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
                   ) : (
                     <div className="space-y-2">
-                      {targetWhRows.map((r, idx) => (
-                        <button
-                          key={`${r.Warehouse}-${idx}`}
-                          type="button"
-                          className="w-full text-left px-3 py-2 rounded-md border mb-1.5 bg-gray-50 hover:bg-gray-100"
-                          onClick={() => {
-                            setTargetWarehouse(r.Warehouse);
-                            setTargetWhPickerOpen(false);
-                          }}
-                        >
-                          <div className="flex flex-col">
-                            <div className="text-sm text-gray-900">{r.Warehouse}</div>
-                            {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
-                          </div>
-                        </button>
-                      ))}
+                      {targetWhRows.map((r, idx) => {
+                        const type = whTypeStyle(r.Type);
+                        return (
+                          <button
+                            key={`${r.Warehouse}-${idx}`}
+                            type="button"
+                            className="w-full text-left px-3 py-2 rounded-md border mb-1.5 bg-gray-50 hover:bg-gray-100"
+                            onClick={() => {
+                              setTargetWarehouse(r.Warehouse);
+                              setTargetWhPickerOpen(false);
+                            }}
+                          >
+                            <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                              <div className="flex flex-col">
+                                <div className="text-sm text-gray-900">{r.Warehouse}</div>
+                                {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
+                              </div>
+                              {type.label && (
+                                <span
+                                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                  style={{ backgroundColor: type.bg, color: type.text }}
+                                >
+                                  {type.label}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

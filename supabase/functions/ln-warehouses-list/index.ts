@@ -101,7 +101,7 @@ serve(async (req) => {
     const params = new URLSearchParams();
     params.set("$filter", "Locations eq whapi.wmdWarehouse.AnswerOnQuestionYn'Yes'");
     params.set("$select", "*");
-    params.set("$expand", "WarehouseMasterDataRef");
+    params.set("$expand", "*");
     params.set("$count", "true");
 
     const path = `/${ti}/LN/lnapi/odata/whapi.wmdWarehouse/Warehouses`;
@@ -126,11 +126,26 @@ serve(async (req) => {
     }
 
     const rows = Array.isArray(odataJson.value)
-      ? odataJson.value.map((v: any) => ({
-          Warehouse: typeof v?.Warehouse === "string" ? v.Warehouse : "",
-          Description: typeof v?.WarehouseMasterDataRef?.Description === "string" ? v.WarehouseMasterDataRef.Description : undefined,
-        }))
-        .filter((r: any) => r.Warehouse)
+      ? odataJson.value
+          .map((v: any) => {
+            const typeCandidate =
+              (typeof v?.WarehouseType === "string" && v.WarehouseType) ||
+              (typeof v?.Type === "string" && v.Type) ||
+              (typeof v?.WarehouseMasterDataRef?.WarehouseType === "string" && v.WarehouseMasterDataRef.WarehouseType) ||
+              (typeof v?.WarehouseMasterDataRef?.Type === "string" && v.WarehouseMasterDataRef.Type) ||
+              (typeof v?.WarehouseMasterDataRef?.WarehouseTypeRef?.Description === "string" && v.WarehouseMasterDataRef.WarehouseTypeRef.Description) ||
+              (typeof v?.WarehouseMasterDataRef?.WarehouseTypeRef?.Type === "string" && v.WarehouseMasterDataRef.WarehouseTypeRef.Type) ||
+              undefined;
+            return {
+              Warehouse: typeof v?.Warehouse === "string" ? v.Warehouse : "",
+              Description:
+                (typeof v?.WarehouseMasterDataRef?.Description === "string" && v.WarehouseMasterDataRef.Description) ||
+                (typeof v?.Description === "string" && v.Description) ||
+                undefined,
+              Type: typeCandidate,
+            };
+          })
+          .filter((r: any) => r.Warehouse)
       : [];
 
     const count = typeof odataJson?.["@odata.count"] === "number" ? odataJson["@odata.count"] : rows.length;
