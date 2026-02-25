@@ -182,16 +182,38 @@ const InfoStockTransfer = () => {
   const canTransfer = useMemo(() => {
     if (!showDetails) return false;
     const qtyOk = Number(quantity) > 0;
-    const targetOk = (targetWarehouse || "").trim() && (targetLocation || "").trim();
     const unitOk = (unit || "").trim().length > 0;
+    const tgtWh = (targetWarehouse || "").trim();
+    const tgtLoc = (targetLocation || "").trim();
+    // Target location must be validated (not just filled)
+    const targetLocValid =
+      !!tgtWh &&
+      !!tgtLoc &&
+      (lastValidatedTargetLocation || "").toLowerCase() === tgtLoc.toLowerCase() &&
+      (lastLocValidatedForWarehouse || "").toLowerCase() === tgtWh.toLowerCase();
+
     if (lastMatchType === "HU") {
       const baseOk = (warehouse || "").trim() && (location || "").trim();
-      return !!(baseOk && qtyOk && unitOk && targetOk) && !searching && !checkingTargetLocation;
+      return !!(baseOk && qtyOk && unitOk && targetLocValid) && !searching && !checkingTargetLocation && !transferring;
     }
     // ITEM
     const baseOk = (warehouse || "").trim();
-    return !!(baseOk && qtyOk && unitOk && targetOk) && !searching && !checkingTargetLocation;
-  }, [showDetails, lastMatchType, warehouse, location, quantity, unit, targetWarehouse, targetLocation, searching, checkingTargetLocation]);
+    return !!(baseOk && qtyOk && unitOk && targetLocValid) && !searching && !checkingTargetLocation && !transferring;
+  }, [
+    showDetails,
+    lastMatchType,
+    warehouse,
+    location,
+    quantity,
+    unit,
+    targetWarehouse,
+    targetLocation,
+    lastValidatedTargetLocation,
+    lastLocValidatedForWarehouse,
+    searching,
+    checkingTargetLocation,
+    transferring
+  ]);
 
   const handleSearch = async (_withLoading = false) => {
     const input = query.trim();
