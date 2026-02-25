@@ -140,10 +140,9 @@ const IncomingInspectionPage: React.FC = () => {
     );
   };
 
-  // If navigated with an initialHandlingUnit, prefill and auto-fetch
-  const location = useLocation() as any;
+  const routerLocation = useLocation() as any;
   useEffect(() => {
-    const hu = (location?.state?.initialHandlingUnit || "").toString().trim();
+    const hu = (routerLocation?.state?.initialHandlingUnit || "").toString().trim();
     if (!hu) return;
     setQuery(hu);
     // Defer to let input mount, then trigger blur handler logic to fetch
