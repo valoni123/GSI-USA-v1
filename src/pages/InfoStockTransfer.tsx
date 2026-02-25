@@ -93,9 +93,9 @@ const InfoStockTransfer = () => {
   // From-Location picker (ITEM flow)
   const [fromLocPickerOpen, setFromLocPickerOpen] = useState<boolean>(false);
   const [fromLocLoading, setFromLocLoading] = useState<boolean>(false);
-  const [fromLocRows, setFromLocRows] = useState<Array<{ Location: string; OnHand: number; Allocated?: number; Available?: number; Lot?: string | null; Unit?: string | null }>>([]);
+  const [fromLocRows, setFromLocRows] = useState<Array<{ Location: string; OnHand: number; Allocated?: number; Available?: number; Lot?: string | null }>>([]);
 
-  // Helfer: robust ins Location-Feld fokussieren (ITEM-Flow)
+  // Robuster Fokus ins obere Location-Feld (ITEM-Flow)
   const focusFromLocation = () => {
     const focus = () => {
       const el = fromLocRef.current || (document.getElementById("transferLocation") as HTMLInputElement | null);
@@ -888,7 +888,7 @@ const InfoStockTransfer = () => {
                               setWarehouse(r.Warehouse);
                               setTargetWarehouse(r.Warehouse);
                               setWarehousePickerOpen(false);
-                              // Nach Auswahl Warehouse im ITEM-Flow → Fokus ins Location-Feld (nicht Target Location)
+                              // NACH Warehouse-Auswahl immer ins obere Location-Feld springen (ITEM-Flow)
                               if (lastMatchType === "ITEM") {
                                 focusFromLocation();
                               } else {
