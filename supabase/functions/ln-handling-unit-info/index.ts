@@ -63,11 +63,11 @@ serve(async (req) => {
     const tokenMs = performance.now() - tTok0;
 
     // Build LN OData URL for Handling Units → single entity by key
-    // NOTE: We intentionally keep $select=* here because LN OData field names differ by configuration.
+    // NOTE: Do not use strict $select here; LN field sets differ per installation.
     const base = cfgInfo.config.iu.endsWith("/") ? cfgInfo.config.iu.slice(0, -1) : cfgInfo.config.iu;
     const escaped = handlingUnit.replace(/'/g, "''");
     const path = `/${cfgInfo.config.ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits(HandlingUnit='${escaped}')`;
-    const url = `${base}${path}?$select=*`;
+    const url = `${base}${path}`;
 
     const tOdata0 = performance.now();
     const odataRes = await fetch(url, {
@@ -99,6 +99,7 @@ serve(async (req) => {
           tokenCached: tokInfo.cached,
           odataMs,
           status: odataRes.status,
+          message: topMessage,
         });
       }
       return json({ ok: false, error: { message: topMessage, details } }, 200);

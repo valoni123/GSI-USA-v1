@@ -67,10 +67,10 @@ serve(async (req) => {
     const base = cfgInfo.config.iu.endsWith("/") ? cfgInfo.config.iu.slice(0, -1) : cfgInfo.config.iu;
 
     // HU OData
-    // NOTE: keep $select=* to avoid LN errors when field names differ by configuration.
+    // NOTE: do not use $select here; LN field sets differ per installation and strict $select can break.
     const escapedHu = handlingUnit.replace(/'/g, "''");
     const huPath = `/${cfgInfo.config.ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits(HandlingUnit='${escapedHu}')`;
-    const huUrl = `${base}${huPath}?$select=*`;
+    const huUrl = `${base}${huPath}`;
 
     const tHu0 = performance.now();
     const huRes = await fetch(huUrl, {
@@ -102,6 +102,7 @@ serve(async (req) => {
           tokenCached: tokInfo.cached,
           odataHuMs,
           status: huRes.status,
+          message: topMessage,
         });
       }
       return json({ ok: false, error: { message: topMessage, details } }, 200);
@@ -146,15 +147,13 @@ serve(async (req) => {
     const blockedForCycleCounting = toBool(pick(["BlockedForCycleCounting"]));
     const blockedForAssembly = toBool(pick(["BlockedForAssembly"]));
 
-    // Item description in the same request (avoids a second edge function round-trip)
+    // Item description is best-effort: do NOT fail the HU scan if Items cannot be read.
     let itemDescription: string | null = null;
     let odataItemMs = 0;
 
-    // Use the item exactly as returned by LN (do not trim/transform), and only fall back if needed.
     const rawItem = (item || "").toString();
     const trimmed = rawItem.trim();
     const candidates = [rawItem, trimmed]
-      .map((v) => v)
       .filter((v, i, arr) => v && arr.indexOf(v) === i);
 
     // Optional: some LN installations require 9 leading spaces for item keys.
@@ -181,7 +180,14 @@ serve(async (req) => {
 
       if (!res) continue;
       const resBody = (await res.json().catch(() => null)) as any;
-      if (!res.ok || !resBody) continue;
+      if (!res.ok || !resBody) {
+        const msg = resBody?.error?.message;
+        if (typeof msg === "string" && msg.toLowerCase().includes("cannot be read from table items")) {
+          // Permission issue on Items: stop trying and just omit description.
+          break;
+        }
+        continue;
+      }
 
       const itemEntity =
         resBody && typeof resBody === "object" && !Array.isArray(resBody)
