@@ -366,8 +366,10 @@ const InfoStockTransfer = () => {
     // Must be different from current Location
     if ((location || "").trim().toLowerCase() === loc.toLowerCase()) {
       showError(lang === "de" ? "Target Location darf nicht gleich Location sein" : "Target Location must differ from Location");
+      setTargetLocation("");
       setLastValidatedTargetLocation(null);
       setLastLocValidatedForWarehouse(null);
+      setTimeout(() => targetLocRef.current?.focus(), 50);
       return;
     }
 
@@ -386,15 +388,19 @@ const InfoStockTransfer = () => {
 
     if (!error && data && data.ok && data.exists === false) {
       showError("location not found");
+      setTargetLocation("");
       setLastValidatedTargetLocation(null);
       setLastLocValidatedForWarehouse(null);
+      setTimeout(() => targetLocRef.current?.focus(), 50);
       return;
     }
 
     if (error || !data || !data.ok || data.exists !== true) {
       showError(trans.noEntries);
+      setTargetLocation("");
       setLastValidatedTargetLocation(null);
       setLastLocValidatedForWarehouse(null);
+      setTimeout(() => targetLocRef.current?.focus(), 50);
       return;
     }
 
