@@ -37,15 +37,6 @@ serve(async (req) => {
     }
 
     const language = body.language || "en-US";
-    const company = await (async () => {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL");
-      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (!supabaseUrl || !serviceRoleKey) {
-        throw new Error("env_missing");
-      }
-      const supabase = createClient(supabaseUrl, serviceRoleKey);
-      return await getCompanyFromParams(supabase);
-    })();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -53,6 +44,8 @@ serve(async (req) => {
       return json({ ok: false, error: "env_missing" }, 200);
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const company = (body.company || "").trim() || (await getCompanyFromParams(supabase));
 
     // OAuth config
     const { data: cfgData } = await supabase.rpc("get_active_ionapi");
@@ -107,23 +100,13 @@ serve(async (req) => {
     const path = `/${ti}/LN/lnapi/odata/whapi.wmdWarehouse/Warehouses`;
     const url = `${base}${path}?${params.toString()}`;
 
-    const odataRes = await fetch(url, {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        "Content-Language": language,
-        "X-Infor-LnCompany": company,
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }).catch(() => null as unknown as Response);
-    if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
-    const odataJson = (await odataRes.json().catch(() => null)) as any;
-
-    if (!odataRes.ok || !odataJson) {
-      const top = odataJson?.error?.message || "odata_error";
-      const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
-      return json({ ok: false, error: { message: top, details } }, 200);
-    }
+    const baseHeaders = {
+      accept: "application/json",
+      "Content-Language": language,
+      "X-Infor-LnCompany": company,
+      Authorization: `Bearer ${accessToken}`,
+      Prefer: "odata.maxpagesize=200",
+    } as const;
 
     // Fetch all pages (LN often paginates small)
     const allRows: any[] = [];
@@ -133,12 +116,7 @@ serve(async (req) => {
     while (nextUrl) {
       const res = await fetch(nextUrl, {
         method: "GET",
-        headers: {
-          accept: "application/json",
-          "Content-Language": language,
-          "X-Infor-LnCompany": company,
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: baseHeaders,
       }).catch(() => null as unknown as Response);
 
       if (!res) return json({ ok: false, error: "odata_network_error" }, 200);
