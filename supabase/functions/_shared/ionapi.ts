@@ -12,10 +12,12 @@ type IonApiConfig = {
   ti: string;
 };
 
+type TokenCache = { token: string; expiresAt: number };
+
 let cachedConfig: IonApiConfig | null = null;
 let cachedConfigAt = 0;
 
-let cachedToken: { token: string; expiresAt: number } | null = null;
+let cachedToken: TokenCache | null = null;
 
 function buildTokenUrl(pu: string, ot: string) {
   const base = pu.endsWith("/") ? pu : pu + "/";
@@ -23,8 +25,14 @@ function buildTokenUrl(pu: string, ot: string) {
 }
 
 export async function getIonApiConfig(supabase: SupabaseClient): Promise<IonApiConfig> {
+  return (await getIonApiConfigInfo(supabase)).config;
+}
+
+export async function getIonApiConfigInfo(
+  supabase: SupabaseClient,
+): Promise<{ config: IonApiConfig; cached: boolean }> {
   const now = Date.now();
-  if (cachedConfig && now - cachedConfigAt < 60_000) return cachedConfig;
+  if (cachedConfig && now - cachedConfigAt < 60_000) return { config: cachedConfig, cached: true };
 
   const [cfgRes, activeRes] = await Promise.all([
     supabase.rpc("get_active_ionapi"),
@@ -62,13 +70,19 @@ export async function getIonApiConfig(supabase: SupabaseClient): Promise<IonApiC
 
   cachedConfig = { ci, cs, pu, ot, grant_type, saak, sask, iu, ti };
   cachedConfigAt = now;
-  return cachedConfig;
+  return { config: cachedConfig, cached: false };
 }
 
 export async function getIonApiAccessToken(supabase: SupabaseClient): Promise<string> {
+  return (await getIonApiAccessTokenInfo(supabase)).token;
+}
+
+export async function getIonApiAccessTokenInfo(
+  supabase: SupabaseClient,
+): Promise<{ token: string; cached: boolean; expiresAt: number }> {
   const now = Date.now();
   if (cachedToken && now < cachedToken.expiresAt - 60_000) {
-    return cachedToken.token;
+    return { token: cachedToken.token, cached: true, expiresAt: cachedToken.expiresAt };
   }
 
   const cfg = await getIonApiConfig(supabase);
@@ -101,5 +115,5 @@ export async function getIonApiAccessToken(supabase: SupabaseClient): Promise<st
     expiresAt: now + Math.max(30, expiresInSec) * 1000,
   };
 
-  return cachedToken.token;
+  return { token: cachedToken.token, cached: false, expiresAt: cachedToken.expiresAt };
 }
