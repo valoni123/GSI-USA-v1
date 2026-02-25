@@ -59,6 +59,8 @@ const InfoStockTransfer = () => {
   const [warehouseEnabled, setWarehouseEnabled] = useState<boolean>(false);
   // Control visibility of detail fields
   const [showDetails, setShowDetails] = useState<boolean>(false);
+  // Track last match type to format description
+  const [lastMatchType, setLastMatchType] = useState<"HU" | "ITEM" | null>(null);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -111,6 +113,7 @@ const InfoStockTransfer = () => {
       setLastSearched(input);
       setShowDetails(true);
       setQueryLabel(trans.loadHandlingUnit);
+      setLastMatchType("HU");
       // Try to fetch item description for HU-based results
       await fetchItemDescription(d.item);
       if (withLoading && tid) dismissToast(tid);
@@ -134,6 +137,7 @@ const InfoStockTransfer = () => {
       setStatus("");
       setShowDetails(true);
       setQueryLabel(trans.itemLabel);
+      setLastMatchType("ITEM");
       setItemDescription((d.description || "").toString());
       setTimeout(() => warehouseRef.current?.focus(), 50);
       return;
@@ -187,6 +191,7 @@ const InfoStockTransfer = () => {
                   if (showDetails) setShowDetails(false);
                   setItemDescription("");
                   setQueryLabel(trans.itemOrHandlingUnit);
+                  setLastMatchType(null);
                 }}
                 onFocus={(e) => {
                   if (e.currentTarget.value.length > 0) e.currentTarget.select();
@@ -207,6 +212,7 @@ const InfoStockTransfer = () => {
                   setShowDetails(false);
                   setItemDescription("");
                   setQueryLabel(trans.itemOrHandlingUnit);
+                  setLastMatchType(null);
                   huRef.current?.focus();
                 }}
               />
@@ -230,7 +236,9 @@ const InfoStockTransfer = () => {
                 Description
               </span>
               <div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-900">
-                {itemDescription}
+                {lastMatchType === "HU" && (item || "").trim()
+                  ? `${(item || "").trim()} - ${itemDescription}`
+                  : itemDescription}
               </div>
             </div>
           )}
@@ -254,8 +262,6 @@ const InfoStockTransfer = () => {
               onClear={() => setWarehouse("")}
             />
             <Input disabled value={location} placeholder={trans.locationLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
-            <Input disabled value={item} placeholder={trans.itemLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
-            <Input disabled value={lot} placeholder={trans.lotLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
             <Input disabled value={quantity} placeholder={trans.quantityLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
             <Input disabled value={status} placeholder={trans.statusLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
             <Input disabled placeholder={trans.targetWarehouseLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
