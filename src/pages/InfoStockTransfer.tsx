@@ -223,9 +223,16 @@ const InfoStockTransfer = () => {
             </Button>
           </div>
 
-          {/* Item description appears directly under the first input after load */}
+          {/* Item description: label + highlighted box */}
           {showDetails && itemDescription && (
-            <div className="text-xs text-gray-700 px-1 -mt-1">{itemDescription}</div>
+            <div className="mt-2">
+              <span className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold">
+                Description
+              </span>
+              <div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-900">
+                {itemDescription}
+              </div>
+            </div>
           )}
 
           {/* Stacked fields (visible only after a successful search) */}
