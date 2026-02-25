@@ -32,27 +32,17 @@ export async function getIonApiConfigInfo(
   supabase: SupabaseClient,
 ): Promise<{ config: IonApiConfig; cached: boolean }> {
   const now = Date.now();
-  if (cachedConfig && now - cachedConfigAt < 60_000) return { config: cachedConfig, cached: true };
+  // Cache config for longer; config rarely changes and this saves a DB roundtrip.
+  if (cachedConfig && now - cachedConfigAt < 5 * 60_000) return { config: cachedConfig, cached: true };
 
-  const [cfgRes, activeRes] = await Promise.all([
-    supabase.rpc("get_active_ionapi"),
-    supabase
-      .from("ionapi_oauth2")
-      .select("iu, ti")
-      .eq("active", true)
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const { data } = await supabase.rpc("get_active_ionapi_full");
+  const row = Array.isArray(data) ? data[0] : (data as any);
 
-  const cfgData = cfgRes.data as any;
-  const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
-  const activeRow = activeRes.data as any;
-
-  if (!cfg || !activeRow) {
+  if (!row) {
     throw new Error("no_active_config");
   }
 
-  const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
+  const { ci, cs, pu, ot, grant_type, saak, sask, iu, ti } = row as {
     ci: string;
     cs: string;
     pu: string;
@@ -60,9 +50,9 @@ export async function getIonApiConfigInfo(
     grant_type: string;
     saak: string;
     sask: string;
+    iu: string;
+    ti: string;
   };
-
-  const { iu, ti } = activeRow as { iu: string; ti: string };
 
   if (!ci || !cs || !pu || !ot || !grant_type || !saak || !sask || !iu || !ti) {
     throw new Error("config_incomplete");
