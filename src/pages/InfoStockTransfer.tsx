@@ -168,6 +168,21 @@ const InfoStockTransfer = () => {
     }
   };
 
+  // Enable TRANSFER only when everything required is filled
+  const canTransfer = useMemo(() => {
+    if (!showDetails) return false;
+    const qtyOk = Number(quantity) > 0;
+    const targetOk = (targetWarehouse || "").trim() && (targetLocation || "").trim();
+    const unitOk = (unit || "").trim().length > 0;
+    if (lastMatchType === "HU") {
+      const baseOk = (warehouse || "").trim() && (location || "").trim();
+      return !!(baseOk && qtyOk && unitOk && targetOk) && !searching && !checkingTargetLocation;
+    }
+    // ITEM
+    const baseOk = (warehouse || "").trim();
+    return !!(baseOk && qtyOk && unitOk && targetOk) && !searching && !checkingTargetLocation;
+  }, [showDetails, lastMatchType, warehouse, location, quantity, unit, targetWarehouse, targetLocation, searching, checkingTargetLocation]);
+
   const [searching, setSearching] = useState<boolean>(false);
   const [checkingTargetLocation, setCheckingTargetLocation] = useState<boolean>(false);
   const handleSearch = async (_withLoading = false) => {
@@ -713,6 +728,20 @@ const InfoStockTransfer = () => {
             </DialogPortal>
           </Dialog>
         </Card>
+      </div>
+
+      {/* Bottom action bar */}
+      <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
+        <div className="mx-auto max-w-md px-4 py-3">
+          <Button
+            className="w-full h-12 text-base"
+            variant={canTransfer ? "destructive" : "secondary"}
+            disabled={!canTransfer}
+            onClick={() => showSuccess("Ready to transfer")}
+          >
+            TRANSFER
+          </Button>
+        </div>
       </div>
 
       {/* Sign-out confirmation dialog */}
