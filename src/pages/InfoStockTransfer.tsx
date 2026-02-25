@@ -400,14 +400,13 @@ const InfoStockTransfer = () => {
                 </Button>
               )}
             </div>
-            <div>
-              <div className="text-xs font-semibold text-gray-600">{trans.locationLabel}</div>
-              <Input
-                disabled
-                value={location}
-                className="h-10 bg-gray-100 text-gray-700"
-              />
-            </div>
+            <FloatingLabelInput
+              id="transferLocation"
+              label={trans.locationLabel}
+              value={location}
+              disabled
+              className="bg-gray-100 text-gray-700"
+            />
             <div className="grid grid-cols-[1fr_96px] gap-2">
               <FloatingLabelInput
                 id="transferQuantity"
