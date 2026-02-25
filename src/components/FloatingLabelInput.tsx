@@ -18,6 +18,8 @@ type Props = {
   onClick?: (e: React.MouseEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onClear?: () => void;
+  onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  inputMode?: React.ComponentProps<"input">["inputMode"];
 };
 
 const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function FloatingLabelInput(
@@ -35,6 +37,8 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
     onClick,
     onKeyDown,
     onClear,
+    onPaste,
+    inputMode,
   },
   ref
 ) {
@@ -58,6 +62,8 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
         onFocus={onFocus}
         onClick={onClick}
         onKeyDown={onKeyDown}
+        onPaste={onPaste}
+        inputMode={inputMode}
         placeholder=" "
         className={`peer h-12 text-base pr-10 ${className ?? ""}`}
       />
