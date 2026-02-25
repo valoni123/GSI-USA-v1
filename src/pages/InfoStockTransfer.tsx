@@ -471,29 +471,34 @@ const InfoStockTransfer = () => {
         "") as string
     ).trim();
 
+    const loginCode = (localStorage.getItem("gsi.login") || employeeCode).trim();
+
     const isHU = lastMatchType === "HU" && (handlingUnit || "").trim().length > 0;
 
     setTransferring(true);
     const tid = showLoading(trans.pleaseWait);
 
+    // LN expects these (German) field names for txgsi.apiTRANSFER/GSITransfers
     const payload: Record<string, unknown> = {
-      fromWarehouse: (warehouse || "").trim(),
-      fromLocation: (location || "").trim(),
-      toWarehouse: (targetWarehouse || "").trim(),
-      toLocation: (targetLocation || "").trim(),
-      employee: employeeCode,
+      TransferID: "",
+      VonLager: (warehouse || "").trim(),
+      VonLagerplatz: (location || "").trim(),
+      InLager: (targetWarehouse || "").trim(),
+      AufLagerplatz: (targetLocation || "").trim(),
+      Menge: Number((quantity || "").trim() || "0"),
+      LoginCode: loginCode || employeeCode,
+      Mitarbeiter: employeeCode,
+      FromWebserver: "Yes",
       language: locale,
       company: "1100",
     };
 
     if (isHU) {
-      payload.handlingUnit = (handlingUnit || query || "").trim();
+      payload.Ladeeinheit = (handlingUnit || query || "").trim();
     } else {
-      payload.item = (item || "");
-      const qtyNum = Number((quantity || "").trim() || "0");
-      if (!Number.isNaN(qtyNum) && qtyNum > 0) {
-        payload.quantity = qtyNum;
-      }
+      // Item transfer is not supported by this LN endpoint; keep previous behavior by sending the item as Ladeeinheit
+      // only if the app was used that way.
+      payload.Ladeeinheit = (item || "").trim();
     }
 
     const { data, error } = await supabase.functions.invoke("ln-transfer-handling-unit", {
