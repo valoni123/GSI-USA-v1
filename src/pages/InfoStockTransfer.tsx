@@ -285,14 +285,7 @@ const InfoStockTransfer = () => {
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
           {/* Search row */}
           <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              {showDetails && lastMatchType === "HU" && (status || "").trim() && (
-                <span
-                  className={`absolute right-2 -top-3 inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${statusStyle(normalizeStatus(status))}`}
-                >
-                  {statusLabel(normalizeStatus(status))}
-                </span>
-              )}
+            <div className="flex-1">
               <FloatingLabelInput
                 id="transferQuery"
                 label={queryLabel}
@@ -346,12 +339,19 @@ const InfoStockTransfer = () => {
             </Button>
           </div>
 
-          {/* Item description: label + highlighted box */}
+          {/* Item description: label + highlighted box; show Status chip on the right for HU */}
           {showDetails && itemDescription && (
             <div className="mt-2">
-              <span className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold">
-                Description
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold">
+                  Description
+                </span>
+                {lastMatchType === "HU" && (status || "").trim() && (
+                  <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${statusStyle(normalizeStatus(status))}`}>
+                    {statusLabel(normalizeStatus(status))}
+                  </span>
+                )}
+              </div>
               <div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-900">
                 {lastMatchType === "HU" && (item || "").trim()
                   ? `${(item || "").trim()} - ${itemDescription}`
