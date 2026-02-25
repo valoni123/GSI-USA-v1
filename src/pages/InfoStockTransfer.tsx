@@ -135,10 +135,12 @@ const InfoStockTransfer = () => {
     requestAnimationFrame(focus);
     const t1 = window.setTimeout(focus, 50);
     const t2 = window.setTimeout(focus, 200);
+    const t3 = window.setTimeout(focus, 500);
 
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
+      window.clearTimeout(t3);
     };
   }, [focusTargetLocTick, targetWarehouse]);
 
@@ -392,7 +394,8 @@ const InfoStockTransfer = () => {
       setTargetLocation("");
       setLastValidatedTargetLocation(null);
       setLastLocValidatedForWarehouse(null);
-      setFocusTargetLocTick((v) => v + 1);
+      // Defer the focus tick so it runs after the blur/click sequence completes.
+      window.setTimeout(() => setFocusTargetLocTick((v) => v + 1), 0);
       return;
     }
 
