@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Search, User } from "lucide-react";
+import { LogOut, Search, User, CheckSquare, Square } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -78,7 +78,19 @@ const InfoStockTransfer = () => {
   // Target location picker state
   const [targetLocPickerOpen, setTargetLocPickerOpen] = useState<boolean>(false);
   const [targetLocLoading, setTargetLocLoading] = useState<boolean>(false);
-  const [targetLocRows, setTargetLocRows] = useState<Array<{ Location: string; Description?: string }>>([]);
+  const [targetLocRows, setTargetLocRows] = useState<Array<{
+    Location: string;
+    Description?: string;
+    BlockedForInbound?: boolean;
+    BlockedForOutbound?: boolean;
+    BlockedForTransferReceipt?: boolean;
+    BlockedForTransferIssue?: boolean;
+    BlockedForAssembly?: boolean;
+    LocationOccupied?: boolean;
+    LocationFull?: boolean;
+    InfiniteCapacity?: boolean;
+    FixedLocation?: boolean;
+  }>>([]);
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -367,11 +379,27 @@ const InfoStockTransfer = () => {
       .map((r: any) => ({
         Location: String(r.Location || ""),
         Description: typeof r.Description === "string" ? r.Description : undefined,
+        BlockedForInbound: Boolean(r.BlockedForInbound),
+        BlockedForOutbound: Boolean(r.BlockedForOutbound),
+        BlockedForTransferReceipt: Boolean(r.BlockedForTransferReceipt),
+        BlockedForTransferIssue: Boolean(r.BlockedForTransferIssue),
+        BlockedForAssembly: Boolean(r.BlockedForAssembly),
+        LocationOccupied: Boolean(r.LocationOccupied),
+        LocationFull: Boolean(r.LocationFull),
+        InfiniteCapacity: Boolean(r.InfiniteCapacity),
+        FixedLocation: Boolean(r.FixedLocation),
       }))
       .filter((r) => r.Location);
     setTargetLocRows(mapped);
     setTargetLocLoading(false);
   };
+
+  const Flag: React.FC<{ label: string; value?: boolean }> = ({ label, value }) => (
+    <div className="flex items-center gap-1">
+      {value ? <CheckSquare className="h-3.5 w-3.5 text-green-600" /> : <Square className="h-3.5 w-3.5 text-gray-400" />}
+      <span className="text-[11px] text-gray-700">{label}</span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -731,9 +759,22 @@ const InfoStockTransfer = () => {
                             setTargetLocPickerOpen(false);
                           }}
                         >
-                          <div className="flex flex-col">
-                            <div className="text-sm text-gray-900">{r.Location}</div>
-                            {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
+                          <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                            <div className="flex flex-col">
+                              <div className="text-sm text-gray-900">{r.Location}</div>
+                              {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                              <Flag label="Inbound" value={r.BlockedForInbound} />
+                              <Flag label="Outbound" value={r.BlockedForOutbound} />
+                              <Flag label="Trf. Receipt" value={r.BlockedForTransferReceipt} />
+                              <Flag label="Trf. Issue" value={r.BlockedForTransferIssue} />
+                              <Flag label="Assembly" value={r.BlockedForAssembly} />
+                              <Flag label="Occupied" value={r.LocationOccupied} />
+                              <Flag label="Full" value={r.LocationFull} />
+                              <Flag label="Infinite cap." value={r.InfiniteCapacity} />
+                              <Flag label="Fixed loc." value={r.FixedLocation} />
+                            </div>
                           </div>
                         </button>
                       ))}

@@ -90,7 +90,7 @@ serve(async (req) => {
     const escapedWh = wh.replace(/'/g, "''");
     const qp = new URLSearchParams();
     qp.set("$filter", "not startswith(Description,'old') and not startswith(Description,'OLD')");
-    qp.set("$select", "Location,Description");
+    qp.set("$select", "*");
     qp.set("$expand", "*");
     qp.set("$count", "true");
 
@@ -119,6 +119,15 @@ serve(async (req) => {
           .map((v: any) => ({
             Location: typeof v?.Location === "string" ? v.Location : "",
             Description: typeof v?.Description === "string" ? v.Description : undefined,
+            BlockedForInbound: Boolean(v?.BlockedForInbound),
+            BlockedForOutbound: Boolean(v?.BlockedForOutbound),
+            BlockedForTransferReceipt: Boolean(v?.BlockedForTransferReceipt),
+            BlockedForTransferIssue: Boolean(v?.BlockedForTransferIssue),
+            BlockedForAssembly: Boolean(v?.BlockedForAssembly),
+            LocationOccupied: Boolean(v?.LocationOccupied),
+            LocationFull: Boolean(v?.LocationFull),
+            InfiniteCapacity: Boolean(v?.InfiniteCapacity),
+            FixedLocation: Boolean(v?.FixedLocation),
           }))
           .filter((r: any) => r.Location)
       : [];
