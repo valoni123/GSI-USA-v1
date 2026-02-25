@@ -624,6 +624,56 @@ const InfoStockTransfer = () => {
     resetAll();
   };
 
+  // Quantity helpers: allow only positive numeric with optional decimal separator
+  const sanitizeQuantity = (raw: string) => {
+    const replaced = raw.replace(",", "."); // normalize comma to dot
+    // keep digits and dots only
+    let s = replaced.replace(/[^0-9.]/g, "");
+    // collapse multiple dots to a single one (keep first)
+    const firstDot = s.indexOf(".");
+    if (firstDot !== -1) {
+      s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
+    }
+    // prevent leading dot by prefixing 0
+    if (s.startsWith(".")) s = "0" + s;
+    return s;
+  };
+
+  const handleQuantityChange = (raw: string) => {
+    const s = sanitizeQuantity(raw);
+    setQuantity(s);
+  };
+
+  const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const allowedControl = ["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight", "Home", "End"];
+    if (allowedControl.includes(e.key)) return;
+    // Allow digits
+    if (/^[0-9]$/.test(e.key)) return;
+    // Allow one decimal separator if not present
+    if ((e.key === "." || e.key === ",") && !String(quantity || "").includes(".")) return;
+    // Block everything else (including minus, plus, letters)
+    e.preventDefault();
+  };
+
+  const handleQuantityPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const text = (e.clipboardData?.getData("text") || "").toString();
+    handleQuantityChange(text);
+  };
+
+  const handleQuantityBlur = () => {
+    const s = sanitizeQuantity(quantity || "");
+    const num = s === "" ? NaN : Number(s);
+    if (!isFinite(num) || num <= 0) {
+      setQuantity("");
+      // keep user in the field to correct
+      setTimeout(() => quantityRef.current?.focus(), 0);
+      return;
+    }
+    // normalize representation (strip leading zeros, unify decimal)
+    setQuantity(String(num));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
@@ -830,7 +880,10 @@ const InfoStockTransfer = () => {
                   id="transferQuantity"
                   label={trans.quantityLabel}
                   value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
+                  onChange={(e) => handleQuantityChange(e.target.value)}
+                  onKeyDown={handleQuantityKeyDown}
+                  onPaste={handleQuantityPaste}
+                  onBlur={handleQuantityBlur}
                   ref={quantityRef}
                   inputMode="decimal"
                 />
