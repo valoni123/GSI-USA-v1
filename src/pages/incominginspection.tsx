@@ -3,17 +3,16 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import ScreenSpinner from "@/components/ScreenSpinner";
 import InspectionResultsDialog from "@/components/InspectionResultsDialog";
 import InspectionLinePickerDialog from "@/components/InspectionLinePickerDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import BackButton from "@/components/BackButton";
 import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
-import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { t, type LanguageKey } from "@/lib/i18n";
-import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast";
+import { showSuccess, showError } from "@/utils/toast";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +26,8 @@ const IncomingInspectionPage: React.FC = () => {
 
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [linesLoading, setLinesLoading] = useState(false);
   const [showSignOut, setShowSignOut] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [records, setRecords] = useState<any[]>([]);
@@ -149,6 +150,7 @@ const IncomingInspectionPage: React.FC = () => {
 
   const doSubmit = async () => {
     if (!isSubmitEnabled || !selectedLine) return;
+    setIsSubmitting(true);
 
     const inspection = getInspection(selectedLine);
     const inspectionSeq = getSequence(selectedLine);
@@ -176,11 +178,10 @@ const IncomingInspectionPage: React.FC = () => {
       Unit: getOrderUnit(selectedLine) || storageUnit || "",
     };
 
-    const tid = showLoading(trans.pleaseWait);
     const { data, error } = await supabase.functions.invoke("ln-submit-inspection", {
       body: { language: "en-US", company: "1100", payload },
     });
-    dismissToast(tid as unknown as string);
+    setIsSubmitting(false);
 
     if (error || !data || !data.ok) {
       showError((data && (data.error?.message || data.error)) || "Submission failed");
@@ -235,7 +236,6 @@ const IncomingInspectionPage: React.FC = () => {
     const q = (forced ?? query).trim();
     if (!q) return;
 
-    const tid = showLoading(trans.pleaseWait);
     setLoading(true);
     try {
       const company = "1100";
@@ -278,7 +278,6 @@ const IncomingInspectionPage: React.FC = () => {
         setScanLabel(trans.inspectionQueryLabel);
       }
     } finally {
-      dismissToast(tid as unknown as string);
       setLoading(false);
     }
   };
@@ -299,6 +298,7 @@ const IncomingInspectionPage: React.FC = () => {
         if (selectedLine?.__position) setDetailsLocked(false);
         return;
       }
+      setLinesLoading(true);
       const insp = (selectedLine?.Inspection || "").toString().trim();
       const seq = Number(
         selectedLine?.InspectionSequence ??
@@ -309,6 +309,7 @@ const IncomingInspectionPage: React.FC = () => {
       if (!insp || !seq) {
         setSingleLineOnly(false);
         setDetailsLocked(false);
+        setLinesLoading(false);
         return;
       }
       const { data, error } = await supabase.functions.invoke("ln-inspection-lines", {
@@ -332,6 +333,7 @@ const IncomingInspectionPage: React.FC = () => {
         setLineOptions([]);
         setDetailsLocked(false);
       }
+      setLinesLoading(false);
     };
     void run();
   }, [selectedLine]);
@@ -713,6 +715,8 @@ const IncomingInspectionPage: React.FC = () => {
         company="1100"
         language="en-US"
       />
+
+      {(loading || isSubmitting || linesLoading) && <ScreenSpinner message={trans.pleaseWait} />}
     </div>
   );
 };
