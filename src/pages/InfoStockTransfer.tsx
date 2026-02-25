@@ -95,6 +95,24 @@ const InfoStockTransfer = () => {
   const [fromLocLoading, setFromLocLoading] = useState<boolean>(false);
   const [fromLocRows, setFromLocRows] = useState<Array<{ Location: string; OnHand: number; Allocated?: number; Available?: number; Lot?: string | null }>>([]);
 
+  // Helfer: robust ins Location-Feld fokussieren (ITEM-Flow)
+  const focusFromLocation = () => {
+    const focus = () => {
+      const el = fromLocRef.current || (document.getElementById("transferLocation") as HTMLInputElement | null);
+      el?.focus();
+    };
+    focus();
+    requestAnimationFrame(focus);
+    const t1 = window.setTimeout(focus, 50);
+    const t2 = window.setTimeout(focus, 200);
+    const t3 = window.setTimeout(focus, 500);
+    window.setTimeout(() => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+    }, 600);
+  };
+
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -700,15 +718,15 @@ const InfoStockTransfer = () => {
                     if (e.currentTarget.value.length > 0) e.currentTarget.select();
                   }}
                   onBlur={() => {
-                    // After Warehouse is scanned/entered in ITEM flow, jump to From Location
+                    // Nach Warehouse-Eingabe im ITEM-Flow → Fokus ins Location-Feld
                     if (lastMatchType === "ITEM" && (warehouse || "").trim()) {
-                      requestAnimationFrame(() => fromLocRef.current?.focus());
+                      focusFromLocation();
                     }
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && lastMatchType === "ITEM" && (warehouse || "").trim()) {
                       e.preventDefault();
-                      requestAnimationFrame(() => fromLocRef.current?.focus());
+                      focusFromLocation();
                     }
                   }}
                   onClear={() => setWarehouse("")}
@@ -869,9 +887,9 @@ const InfoStockTransfer = () => {
                               setWarehouse(r.Warehouse);
                               setTargetWarehouse(r.Warehouse);
                               setWarehousePickerOpen(false);
-                              // After selecting Warehouse in ITEM flow, focus From Location
+                              // Nach Auswahl Warehouse im ITEM-Flow → Fokus ins Location-Feld (nicht Target Location)
                               if (lastMatchType === "ITEM") {
-                                setTimeout(() => fromLocRef.current?.focus(), 50);
+                                focusFromLocation();
                               } else {
                                 setTimeout(() => warehouseRef.current?.focus(), 50);
                               }
