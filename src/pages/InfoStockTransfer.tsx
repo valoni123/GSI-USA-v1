@@ -93,7 +93,7 @@ const InfoStockTransfer = () => {
   // From-Location picker (ITEM flow)
   const [fromLocPickerOpen, setFromLocPickerOpen] = useState<boolean>(false);
   const [fromLocLoading, setFromLocLoading] = useState<boolean>(false);
-  const [fromLocRows, setFromLocRows] = useState<Array<{ Location: string; OnHand: number; Allocated?: number; Available?: number; Lot?: string | null }>>([]);
+  const [fromLocRows, setFromLocRows] = useState<Array<{ Location: string; OnHand: number; Allocated?: number; Available?: number; Lot?: string | null; Unit?: string | null }>>([]);
 
   // Helfer: robust ins Location-Feld fokussieren (ITEM-Flow)
   const focusFromLocation = () => {
@@ -391,6 +391,7 @@ const InfoStockTransfer = () => {
         Allocated: typeof r.Allocated === "number" ? r.Allocated : undefined,
         Available: typeof r.Available === "number" ? r.Available : undefined,
         Lot: typeof r.Lot === "string" ? r.Lot : null,
+        Unit: typeof r.Unit === "string" ? r.Unit : undefined,
       }))
       .filter((r) => r.Location);
     setFromLocRows(mapped);

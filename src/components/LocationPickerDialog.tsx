@@ -10,6 +10,7 @@ type Row = {
   Allocated?: number;
   Available?: number;
   Lot?: string | null;
+  Unit?: string;
 };
 
 type Props = {
@@ -49,12 +50,7 @@ const LocationPickerDialog: React.FC<Props> = ({
             ) : (
               <div className="space-y-2">
                 {rows.map((r, idx) => {
-                  const right = [
-                    typeof r.OnHand === "number" ? `On hand: ${r.OnHand}` : null,
-                    typeof r.Available === "number" ? `Avail: ${r.Available}` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ");
+                  const unit = r.Unit ? ` ${r.Unit}` : "";
                   return (
                     <button
                       key={`${r.Location}-${idx}`}
@@ -67,7 +63,22 @@ const LocationPickerDialog: React.FC<Props> = ({
                           <div className="text-sm text-gray-900">{r.Location}</div>
                           {r.Lot ? <div className="text-xs text-gray-700">Lot: {r.Lot}</div> : null}
                         </div>
-                        {right ? <div className="text-xs text-gray-700 whitespace-nowrap">{right}</div> : null}
+                        <div className="flex flex-col items-end gap-0.5">
+                          <div className="text-xs text-gray-600 whitespace-nowrap">
+                            On hand:{" "}
+                            <span className="font-semibold text-gray-900">
+                              {r.OnHand}
+                              {unit}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-600 whitespace-nowrap">
+                            Available:{" "}
+                            <span className="font-semibold text-gray-900">
+                              {typeof r.Available === "number" ? r.Available : ""}
+                              {unit}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </button>
                   );
