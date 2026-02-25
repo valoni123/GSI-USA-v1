@@ -5,6 +5,7 @@ import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
@@ -61,6 +62,11 @@ const InfoStockTransfer = () => {
   const [showDetails, setShowDetails] = useState<boolean>(false);
   // Track last match type to format description
   const [lastMatchType, setLastMatchType] = useState<"HU" | "ITEM" | null>(null);
+  // Warehouse picker state
+  const [warehousePickerOpen, setWarehousePickerOpen] = useState<boolean>(false);
+  const [whLoading, setWhLoading] = useState<boolean>(false);
+  const [whRows, setWhRows] = useState<Array<{ Warehouse: string; WarehouseName?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>>([]);
+
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -144,6 +150,40 @@ const InfoStockTransfer = () => {
     }
     // Neither HU nor Item found → small error
     showError(trans.noEntries);
+  };
+
+  // Open and load warehouses for current item
+  const openWarehousePicker = async () => {
+    const itm = (item || "").trim();
+    if (!itm) {
+      showError("Scan item first");
+      return;
+    }
+    setWarehousePickerOpen(true);
+    setWhLoading(true);
+    const { data, error } = await supabase.functions.invoke("ln-item-inventory-by-warehouse", {
+      body: { item: itm, language: locale, company: "1100" },
+    });
+    if (error || !data || !data.ok) {
+      setWhRows([]);
+      setWhLoading(false);
+      showError(trans.loadingList);
+      return;
+    }
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    // Keep warehouses with InventoryOnHand >= 0 (as per example), preserve unit and names
+    const mapped = rows
+      .map((r: any) => ({
+        Warehouse: String(r.Warehouse || ""),
+        WarehouseName: typeof r.WarehouseName === "string" ? r.WarehouseName : undefined,
+        Unit: typeof r.Unit === "string" ? r.Unit : undefined,
+        OnHand: Number(r.OnHand ?? 0),
+        Allocated: Number(r.Allocated ?? 0),
+        Available: Number(r.Available ?? 0),
+      }))
+      .filter((r) => r.Warehouse);
+    setWhRows(mapped);
+    setWhLoading(false);
   };
 
   return (
@@ -246,21 +286,35 @@ const InfoStockTransfer = () => {
           {/* Stacked fields (visible only after a successful search) */}
           {showDetails && (
           <div className="space-y-3">
-            <FloatingLabelInput
-              id="transferWarehouse"
-              label={trans.warehouseLabel}
-              ref={warehouseRef}
-              value={warehouse}
-              onChange={(e) => setWarehouse(e.target.value)}
-              disabled={!warehouseEnabled}
-              onFocus={(e) => {
-                if (e.currentTarget.value.length > 0) e.currentTarget.select();
-              }}
-              onClick={(e) => {
-                if (e.currentTarget.value.length > 0) e.currentTarget.select();
-              }}
-              onClear={() => setWarehouse("")}
-            />
+            <div className="relative">
+              <FloatingLabelInput
+                id="transferWarehouse"
+                label={trans.warehouseLabel}
+                ref={warehouseRef}
+                value={warehouse}
+                onChange={(e) => setWarehouse(e.target.value)}
+                disabled={!warehouseEnabled}
+                className="pr-12"
+                onFocus={(e) => {
+                  if (e.currentTarget.value.length > 0) e.currentTarget.select();
+                }}
+                onClick={(e) => {
+                  if (e.currentTarget.value.length > 0) e.currentTarget.select();
+                }}
+                onClear={() => setWarehouse("")}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-10 w-10"
+                onClick={openWarehousePicker}
+                disabled={!warehouseEnabled}
+                aria-label={trans.searchLabel}
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+            </div>
             <Input disabled value={location} placeholder={trans.locationLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
             <Input disabled value={quantity} placeholder={trans.quantityLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
             <Input disabled value={status} placeholder={trans.statusLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
@@ -268,6 +322,68 @@ const InfoStockTransfer = () => {
             <Input disabled placeholder={trans.targetLocationLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
           </div>
           )}
+
+          {/* Warehouse picker dialog */}
+          <Dialog open={warehousePickerOpen} onOpenChange={setWarehousePickerOpen}>
+            <DialogPortal>
+              <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
+              {/* Content wrapper using same visual style as other pickers */}
+              <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-0 shadow-lg">
+                <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
+                  {trans.warehouseLabel}
+                </div>
+                <div className="max-h-80 overflow-auto p-2">
+                  {whLoading ? (
+                    <div className="px-2 py-3 text-sm text-muted-foreground">{trans.loadingList}</div>
+                  ) : whRows.length === 0 ? (
+                    <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {whRows.map((r, idx) => {
+                        const unit = r.Unit ? ` ${r.Unit}` : "";
+                        return (
+                          <button
+                            key={`${r.Warehouse}-${idx}`}
+                            type="button"
+                            className="w-full text-left px-3 py-2 rounded-md border mb-1.5 bg-gray-50 hover:bg-gray-100"
+                            onClick={() => {
+                              setWarehouse(r.Warehouse);
+                              setWarehousePickerOpen(false);
+                              setTimeout(() => warehouseRef.current?.focus(), 50);
+                            }}
+                          >
+                            <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                              <div className="flex flex-col">
+                                <div className="text-xs font-semibold text-gray-700">{trans.warehouseLabel}:</div>
+                                <div className="text-sm text-gray-900">{r.Warehouse || "-"}</div>
+                                {r.WarehouseName && <div className="text-xs text-gray-700">{r.WarehouseName}</div>}
+                              </div>
+                              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 items-center">
+                                <div className="text-xs text-gray-500 whitespace-nowrap">On hand:</div>
+                                <div className="text-sm text-gray-900 text-right whitespace-nowrap">{r.OnHand}{unit}</div>
+                                <div className="text-xs text-gray-500 whitespace-nowrap">Allocated:</div>
+                                <div className="text-sm text-gray-900 text-right whitespace-nowrap">{r.Allocated}{unit}</div>
+                                <div className="text-xs text-gray-500 whitespace-nowrap">Available:</div>
+                                <div className="text-sm text-gray-900 text-right whitespace-nowrap">{r.Available}{unit}</div>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="absolute right-3 top-2 text-gray-600 hover:text-gray-900"
+                  aria-label="Close"
+                  onClick={() => setWarehousePickerOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+            </DialogPortal>
+          </Dialog>
         </Card>
       </div>
 
