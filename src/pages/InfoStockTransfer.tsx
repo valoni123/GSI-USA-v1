@@ -342,7 +342,7 @@ const InfoStockTransfer = () => {
           {/* Item description: label + highlighted box; show Status chip on the right for HU */}
           {showDetails && itemDescription && (
             <div className="mt-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pr-12">
                 <span className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold">
                   Description
                 </span>
