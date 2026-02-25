@@ -12,12 +12,10 @@ type IonApiConfig = {
   ti: string;
 };
 
-type TokenCache = { token: string; expiresAt: number };
-
 let cachedConfig: IonApiConfig | null = null;
 let cachedConfigAt = 0;
 
-let cachedToken: TokenCache | null = null;
+let cachedToken: { token: string; expiresAt: number } | null = null;
 
 function buildTokenUrl(pu: string, ot: string) {
   const base = pu.endsWith("/") ? pu : pu + "/";
@@ -25,24 +23,28 @@ function buildTokenUrl(pu: string, ot: string) {
 }
 
 export async function getIonApiConfig(supabase: SupabaseClient): Promise<IonApiConfig> {
-  return (await getIonApiConfigInfo(supabase)).config;
-}
-
-export async function getIonApiConfigInfo(
-  supabase: SupabaseClient,
-): Promise<{ config: IonApiConfig; cached: boolean }> {
   const now = Date.now();
-  // Cache config for longer; config rarely changes and this saves a DB roundtrip.
-  if (cachedConfig && now - cachedConfigAt < 5 * 60_000) return { config: cachedConfig, cached: true };
+  if (cachedConfig && now - cachedConfigAt < 60_000) return cachedConfig;
 
-  const { data } = await supabase.rpc("get_active_ionapi_full");
-  const row = Array.isArray(data) ? data[0] : (data as any);
+  const [cfgRes, activeRes] = await Promise.all([
+    supabase.rpc("get_active_ionapi"),
+    supabase
+      .from("ionapi_oauth2")
+      .select("iu, ti")
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  if (!row) {
+  const cfgData = cfgRes.data as any;
+  const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
+  const activeRow = activeRes.data as any;
+
+  if (!cfg || !activeRow) {
     throw new Error("no_active_config");
   }
 
-  const { ci, cs, pu, ot, grant_type, saak, sask, iu, ti } = row as {
+  const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
     ci: string;
     cs: string;
     pu: string;
@@ -50,9 +52,9 @@ export async function getIonApiConfigInfo(
     grant_type: string;
     saak: string;
     sask: string;
-    iu: string;
-    ti: string;
   };
+
+  const { iu, ti } = activeRow as { iu: string; ti: string };
 
   if (!ci || !cs || !pu || !ot || !grant_type || !saak || !sask || !iu || !ti) {
     throw new Error("config_incomplete");
@@ -60,19 +62,13 @@ export async function getIonApiConfigInfo(
 
   cachedConfig = { ci, cs, pu, ot, grant_type, saak, sask, iu, ti };
   cachedConfigAt = now;
-  return { config: cachedConfig, cached: false };
+  return cachedConfig;
 }
 
 export async function getIonApiAccessToken(supabase: SupabaseClient): Promise<string> {
-  return (await getIonApiAccessTokenInfo(supabase)).token;
-}
-
-export async function getIonApiAccessTokenInfo(
-  supabase: SupabaseClient,
-): Promise<{ token: string; cached: boolean; expiresAt: number }> {
   const now = Date.now();
   if (cachedToken && now < cachedToken.expiresAt - 60_000) {
-    return { token: cachedToken.token, cached: true, expiresAt: cachedToken.expiresAt };
+    return cachedToken.token;
   }
 
   const cfg = await getIonApiConfig(supabase);
@@ -105,5 +101,5 @@ export async function getIonApiAccessTokenInfo(
     expiresAt: now + Math.max(30, expiresInSec) * 1000,
   };
 
-  return { token: cachedToken.token, cached: false, expiresAt: cachedToken.expiresAt };
+  return cachedToken.token;
 }

@@ -21,13 +21,6 @@ const InfoStockTransfer = () => {
   });
   const trans = useMemo(() => t(lang), [lang]);
 
-  // Show perf timings in dev to identify bottlenecks
-  const [perfEnabled, setPerfEnabled] = useState<boolean>(() => Boolean(import.meta.env.DEV));
-  const [huPerf, setHuPerf] = useState<any | null>(null);
-  const [itemPerf, setItemPerf] = useState<any | null>(null);
-  const [clientHuMs, setClientHuMs] = useState<number | null>(null);
-  const [clientItemMs, setClientItemMs] = useState<number | null>(null);
-
   const [fullName, setFullName] = useState<string>("");
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
@@ -107,35 +100,19 @@ const InfoStockTransfer = () => {
     const code = (itm || "").toString().trim();
     if (!code) {
       setItemDescription("");
-      setItemPerf(null);
-      setClientItemMs(null);
       return;
     }
-    const tStart = performance.now();
     const { data, error } = await supabase.functions.invoke("ln-item-info", {
-      body: { item: code, language: locale, company: "1100", debug: perfEnabled },
+      body: { item: code, language: locale, company: "1100" },
     });
-    setClientItemMs(performance.now() - tStart);
-
     if (!error && data && data.ok) {
       setItemDescription((data.description || "").toString());
-      setItemPerf(data.perf ?? null);
-    } else {
-      setItemDescription("");
-      setItemPerf(null);
     }
   };
 
   useEffect(() => {
     huRef.current?.focus();
   }, []);
-
-  useEffect(() => {
-    // Warm up the edge function isolate so the first scan doesn't pay the full config/token cost.
-    void supabase.functions.invoke("ln-handling-unit-transfer-info", {
-      body: { warmup: true, language: locale, company: "1100" },
-    });
-  }, [locale]);
 
   // Searching flags (used in canTransfer)
   const [searching, setSearching] = useState<boolean>(false);
@@ -237,7 +214,7 @@ const InfoStockTransfer = () => {
     lastLocValidatedForWarehouse,
     searching,
     checkingTargetLocation,
-    transferring
+    transferring,
   ]);
 
   const handleSearch = async (_withLoading = false) => {
@@ -245,24 +222,14 @@ const InfoStockTransfer = () => {
     if (!input) return;
     if (lastSearched === input) return;
 
-    // reset perf snapshot for a new scan
-    setHuPerf(null);
-    setItemPerf(null);
-    setClientHuMs(null);
-    setClientItemMs(null);
-
     setSearching(true);
 
-    // Try Handling Unit (combined HU + item description)
-    const huStart = performance.now();
-    const huRes = await supabase.functions.invoke("ln-handling-unit-transfer-info", {
-      body: { handlingUnit: input, language: locale, company: "1100", debug: perfEnabled },
+    // Try Handling Unit
+    const huRes = await supabase.functions.invoke("ln-handling-unit-info", {
+      body: { handlingUnit: input, language: locale, company: "1100" },
     });
-    setClientHuMs(performance.now() - huStart);
-
     if (huRes.data && huRes.data.ok) {
       const d = huRes.data;
-      setHuPerf(d.perf ?? null);
       setItem(d.item || "");
       setHandlingUnit((d.handlingUnit || input).toString());
       setWarehouse(d.warehouse || "");
@@ -278,30 +245,17 @@ const InfoStockTransfer = () => {
       setShowDetails(true);
       setQueryLabel(trans.loadHandlingUnit);
       setLastMatchType("HU");
-      setItemDescription((d.itemDescription || "").toString());
-
-      setSearching(false);
-      return;
-    }
-
-    // If it looks like a HU, don't fall back to item search (avoids confusing LN Items errors)
-    const looksLikeHU = input.includes("-") || input.length >= 14;
-    if (looksLikeHU) {
-      showError(trans.huNotFoundGeneric);
+      await fetchItemDescription(d.item);
       setSearching(false);
       return;
     }
 
     // Try Item
-    const itemStart = performance.now();
     const itemRes = await supabase.functions.invoke("ln-item-info", {
-      body: { item: input, language: locale, company: "1100", debug: perfEnabled },
+      body: { item: input, language: locale, company: "1100" },
     });
-    setClientItemMs(performance.now() - itemStart);
-
     if (itemRes.data && itemRes.data.ok) {
       const d = itemRes.data;
-      setItemPerf(d.perf ?? null);
       setItem(d.item || input);
       setHandlingUnit("");
       setUnit((d.unit || "").toString());
@@ -384,175 +338,123 @@ const InfoStockTransfer = () => {
     setTargetWhLoading(false);
   };
 
-  // Map warehouse type to pill styles for target warehouse list
-  const whTypeStyle = (raw?: string) => {
-    const s = (raw || "").trim().toLowerCase();
-    if (!s) return { bg: "#e5e7eb", text: "#111827", label: "" };
-    if (s.includes("normal")) return { bg: "#fbbf24", text: "#111827", label: "Normal" };
-    if (s.includes("produktion") || s.includes("production")) return { bg: "#34d399", text: "#0b3d2e", label: "Produktion" };
-    if (s.includes("projekt") || s.includes("project")) return { bg: "#60a5fa", text: "#0b1b38", label: "Projekt" };
-    if (s.includes("service und instandhaltung") || s.includes("maintenance")) return { bg: "#f59e0b", text: "#111827", label: "Service und Instandhaltung" };
-    if (s.includes("service (ts) im kundeneigentum") || s.includes("customer") || s.includes("ts")) return { bg: "#fb923c", text: "#111827", label: "Service (TS) im Kundeneigentum" };
-    if (s.includes("service-reklamation") || s.includes("reklamation") || s.includes("complaint")) return { bg: "#ef4444", text: "#ffffff", label: "Service-Reklamation" };
-    if (s.includes("fremder konsignationsbestand") || (s.includes("consignment") && s.includes("fremd"))) return { bg: "#84cc16", text: "#0b3d0b", label: "Fremder Konsignationsbestand" };
-    if (s.includes("eigener konsignationsbestand") || (s.includes("consignment") && s.includes("eigen"))) return { bg: "#22c55e", text: "#052e16", label: "Eigener Konsignationsbestand" };
-    if (s.includes("kaufmännisches lager") || s.includes("kaufma") || s.includes("commercial")) return { bg: "#a855f7", text: "#ffffff", label: "Kaufmännisches Lager" };
-    return { bg: "#e5e7eb", text: "#111827", label: raw || "" };
+  const validateTargetWarehouse = async () => {
+    const wh = (targetWarehouse || "").trim();
+    if (!wh) return;
+    if ((lastValidatedTargetWarehouse || "").toLowerCase() === wh.toLowerCase()) return;
+
+    setCheckingTargetLocation(true);
+    const { data, error } = await supabase.functions.invoke("ln-warehouse-location-exists", {
+      body: { warehouse: wh, location: "*", language: locale, company: "1100" },
+    });
+    setCheckingTargetLocation(false);
+
+    if (error || !data || !data.ok) {
+      showError(trans.loadingList);
+      setLastValidatedTargetWarehouse(null);
+      return;
+    }
+
+    setLastValidatedTargetWarehouse(wh);
   };
 
-  // Reset all fields after successful transfer
+  const validateTargetLocation = async () => {
+    const wh = (targetWarehouse || "").trim();
+    const loc = (targetLocation || "").trim();
+    if (!wh || !loc) return;
+
+    if (
+      (lastValidatedTargetLocation || "").toLowerCase() === loc.toLowerCase() &&
+      (lastLocValidatedForWarehouse || "").toLowerCase() === wh.toLowerCase()
+    ) {
+      return;
+    }
+
+    setCheckingTargetLocation(true);
+    const { data, error } = await supabase.functions.invoke("ln-warehouse-location-exists", {
+      body: { warehouse: wh, location: loc, language: locale, company: "1100" },
+    });
+    setCheckingTargetLocation(false);
+
+    if (error || !data || !data.ok) {
+      showError(trans.loadingList);
+      setLastValidatedTargetLocation(null);
+      setLastLocValidatedForWarehouse(null);
+      return;
+    }
+
+    setLastValidatedTargetLocation(loc);
+    setLastLocValidatedForWarehouse(wh);
+  };
+
   const resetAll = () => {
     setQuery("");
     setLastSearched(null);
-    setQueryLabel(trans.itemOrHandlingUnit);
-    setItemDescription("");
+    setItem("");
+    setHandlingUnit("");
     setWarehouse("");
     setLocation("");
-    setItem("");
     setLot("");
     setQuantity("");
     setUnit("");
     setStatus("");
     setWarehouseEnabled(false);
     setShowDetails(false);
+    setItemDescription("");
+    setQueryLabel(trans.itemOrHandlingUnit);
     setLastMatchType(null);
     setTargetWarehouse("");
     setTargetLocation("");
-    setHandlingUnit("");
     setLastValidatedTargetWarehouse(null);
     setLastValidatedTargetLocation(null);
     setLastLocValidatedForWarehouse(null);
+    setWhRows([]);
     setWarehousePickerOpen(false);
+    setTargetWhRows([]);
     setTargetWhPickerOpen(false);
-    // Refocus first input
-    requestAnimationFrame(() => {
-      huRef.current?.focus();
-    });
+    huRef.current?.focus();
   };
 
-  // Validate typed target warehouse against list (on blur / Enter)
-  const ensureTargetWarehouseList = async () => {
-    if (Array.isArray(targetWhRows) && targetWhRows.length > 0) return true;
-    setTargetWhLoading(true);
-    const { data, error } = await supabase.functions.invoke("ln-warehouses-list", {
-      body: { language: locale, company: "1100" },
-    });
-    if (error || !data || !data.ok) {
-      setTargetWhRows([]);
-      setTargetWhLoading(false);
-      return false;
-    }
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-    const mapped = rows
-      .map((r: any) => ({
-        Warehouse: String(r.Warehouse || ""),
-        Description: typeof r.Description === "string" ? r.Description : undefined,
-        Type: typeof r.Type === "string" ? r.Type : undefined,
-      }))
-      .filter((r) => r.Warehouse);
-    setTargetWhRows(mapped);
-    setTargetWhLoading(false);
-    return true;
-  };
-
-  const validateTargetWarehouse = async () => {
-    const code = (targetWarehouse || "").trim();
-    if (!code) return;
-    // Skip if nothing changed since last validation
-    if (code.toLowerCase() === (lastValidatedTargetWarehouse || "").toLowerCase()) return;
-    const ok = await ensureTargetWarehouseList();
-    if (!ok) return;
-    const exists = targetWhRows.some((r) => r.Warehouse.toLowerCase() === code.toLowerCase());
-    if (!exists) {
-      showError("Warehouse not found");
-      setTargetWarehouse("");
-      setTimeout(() => targetWhRef.current?.focus(), 0);
-      setLastValidatedTargetWarehouse(null);
-    } else {
-      setLastValidatedTargetWarehouse(code);
-    }
-  };
-
-  // Validate typed/scanned Target Location (no picker) against OData
-  const validateTargetLocation = async () => {
-    const wh = (targetWarehouse || "").trim();
-    const loc = (targetLocation || "").trim();
-    if (!wh || !loc) return;
-    // Skip if nothing changed since last validation (and warehouse unchanged)
-    if (
-      loc.toLowerCase() === (lastValidatedTargetLocation || "").toLowerCase() &&
-      wh.toLowerCase() === (lastLocValidatedForWarehouse || "").toLowerCase()
-    ) {
-      return;
-    }
-    setCheckingTargetLocation(true);
-    const { data, error } = await supabase.functions.invoke("ln-warehouse-location-exists", {
-      body: { warehouse: wh, location: loc, language: locale, company: "1100" },
-    });
-    if (error || !data || !data.ok || !data.exists) {
-      showError("Location not found");
-      setTargetLocation("");
-      // Return focus to the Target Location field and select it to guide the user
-      requestAnimationFrame(() => {
-        const el = targetLocRef.current;
-        if (el) {
-          el.focus();
-          try { (el as any).select?.(); } catch {}
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      });
-      setLastValidatedTargetLocation(null);
-      setLastLocValidatedForWarehouse(null);
-      setCheckingTargetLocation(false);
-      return;
-    }
-    // Disallow same Location and Target Location
-    if (loc.toLowerCase() === (location || "").trim().toLowerCase()) {
-      showError("Target location cannot be the same as current location");
-      setTargetLocation("");
-      requestAnimationFrame(() => {
-        const el = targetLocRef.current;
-        if (el) {
-          el.focus();
-          try { (el as any).select?.(); } catch {}
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      });
-      setLastValidatedTargetLocation(null);
-      setLastLocValidatedForWarehouse(null);
-      setCheckingTargetLocation(false);
-      return;
-    }
-    setLastValidatedTargetLocation(loc);
-    setLastLocValidatedForWarehouse(wh);
-    setCheckingTargetLocation(false);
-  };
-
-  const handleTransfer = async () => {
+  const doTransfer = async () => {
     if (!canTransfer) return;
-    if (lastMatchType !== "HU") {
-      showError("Transfers are currently supported for handling units only");
-      return;
-    }
+    const employeeCode = (
+      (localStorage.getItem("gsi.employee") ||
+        localStorage.getItem("gsi.username") ||
+        localStorage.getItem("gsi.login") ||
+        "") as string
+    ).trim();
+
+    const isHU = lastMatchType === "HU" && (handlingUnit || "").trim().length > 0;
+
     setTransferring(true);
-    const login = (localStorage.getItem("gsi.employee") || localStorage.getItem("gsi.login") || "").toString();
-    const qtyNum = Number(quantity || "0");
+    const tid = showLoading(trans.pleaseWait);
+
+    const payload: Record<string, unknown> = {
+      fromWarehouse: (warehouse || "").trim(),
+      fromLocation: (location || "").trim(),
+      toWarehouse: (targetWarehouse || "").trim(),
+      toLocation: (targetLocation || "").trim(),
+      employee: employeeCode,
+      language: locale,
+      company: "1100",
+    };
+
+    if (isHU) {
+      payload.handlingUnit = (handlingUnit || query || "").trim();
+    } else {
+      payload.item = (item || "");
+      const qtyNum = Number((quantity || "").trim() || "0");
+      if (!Number.isNaN(qtyNum) && qtyNum > 0) {
+        payload.quantity = qtyNum;
+      }
+    }
+
     const { data, error } = await supabase.functions.invoke("ln-transfer-handling-unit", {
-      body: {
-        TransferID: "",
-        VonLager: (warehouse || "").trim(),
-        VonLagerplatz: (location || "").trim(),
-        InLager: (targetWarehouse || "").trim(),
-        AufLagerplatz: (targetLocation || "").trim(),
-        Ladeeinheit: (handlingUnit || query || "").trim(),
-        Menge: qtyNum,
-        LoginCode: login,
-        Mitarbeiter: login,
-        FromWebserver: "Yes",
-        language: locale,
-        company: "1100",
-      },
+      body: payload,
     });
+
+    dismissToast(tid as unknown as string);
+
     if (error || !data || !data.ok) {
       const msg = (data && (data.error?.message || data.error)) || "Transfer failed";
       showError(typeof msg === "string" ? msg : "Transfer failed");
@@ -579,27 +481,15 @@ const InfoStockTransfer = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            {import.meta.env.DEV && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={perfEnabled ? "text-emerald-300 hover:bg-white/10" : "text-gray-300 hover:bg-white/10"}
-                onClick={() => setPerfEnabled((v) => !v)}
-              >
-                Perf
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-red-500 hover:text-red-600 hover:bg-white/10"
-              aria-label={trans.signOut}
-              onClick={() => setSignOutOpen(true)}
-            >
-              <LogOut className="h-6 w-6" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-red-500 hover:text-red-600 hover:bg-white/10"
+            aria-label={trans.signOut}
+            onClick={() => setSignOutOpen(true)}
+          >
+            <LogOut className="h-6 w-6" />
+          </Button>
         </div>
       </div>
 
@@ -622,10 +512,6 @@ const InfoStockTransfer = () => {
                   setItemDescription("");
                   setQueryLabel(trans.itemOrHandlingUnit);
                   setLastMatchType(null);
-                  setHuPerf(null);
-                  setItemPerf(null);
-                  setClientHuMs(null);
-                  setClientItemMs(null);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -676,8 +562,8 @@ const InfoStockTransfer = () => {
             </Button>
           </div>
 
-          {/* Description + Status chip. Pad right to align with input's search icon width */}
-          {showDetails && (lastMatchType === "HU" || itemDescription) && (
+          {/* Description + Status chip (HU only). Pad right to align with input's search icon width */}
+          {showDetails && itemDescription && (
             <div className="mt-2">
               <div className="flex items-center justify-between pr-12">
                 <span className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold">
@@ -690,58 +576,10 @@ const InfoStockTransfer = () => {
                 )}
               </div>
               <div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-900">
-                {lastMatchType === "HU" ? (
-                  (item || "").trim() ? (
-                    itemDescription
-                      ? `${(item || "").trim()} - ${itemDescription}`
-                      : `${(item || "").trim()}`
-                  ) : (
-                    itemDescription || "-"
-                  )
-                ) : (
-                  itemDescription
-                )}
+                {lastMatchType === "HU" && (item || "").trim()
+                  ? `${(item || "").trim()} - ${itemDescription}`
+                  : itemDescription}
               </div>
-
-              {lastMatchType === "HU" && (item || "").trim() && !itemDescription && (
-                <div className="mt-1 text-xs text-muted-foreground">Description not available</div>
-              )}
-
-              {perfEnabled && (huPerf || itemPerf || clientHuMs != null || clientItemMs != null) && (
-                <div className="mt-2 rounded-md border bg-white px-3 py-2 text-[11px] text-gray-700">
-                  {clientHuMs != null && (
-                    <div className="flex justify-between gap-3">
-                      <span className="font-semibold">HU client:</span>
-                      <span>{Math.round(clientHuMs)} ms</span>
-                    </div>
-                  )}
-                  {huPerf && (
-                    <div className="mt-1 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
-                      <div>HU server total</div><div className="text-right">{Math.round(huPerf.totalMs)} ms</div>
-                      <div>• odata</div><div className="text-right">{Math.round(huPerf.odataMs)} ms</div>
-                      <div>• token</div><div className="text-right">{Math.round(huPerf.tokenMs)} ms {huPerf.tokenCached ? "(cached)" : ""}</div>
-                      <div>• config</div><div className="text-right">{Math.round(huPerf.cfgMs)} ms {huPerf.cfgCached ? "(cached)" : ""}</div>
-                      <div>• company</div><div className="text-right">{Math.round(huPerf.companyMs)} ms</div>
-                    </div>
-                  )}
-
-                  {clientItemMs != null && (
-                    <div className="mt-2 flex justify-between gap-3">
-                      <span className="font-semibold">Item client:</span>
-                      <span>{Math.round(clientItemMs)} ms</span>
-                    </div>
-                  )}
-                  {itemPerf && (
-                    <div className="mt-1 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
-                      <div>Item server total</div><div className="text-right">{Math.round(itemPerf.totalMs)} ms</div>
-                      <div>• odata</div><div className="text-right">{Math.round(itemPerf.odataMs)} ms</div>
-                      <div>• token</div><div className="text-right">{Math.round(itemPerf.tokenMs)} ms {itemPerf.tokenCached ? "(cached)" : ""}</div>
-                      <div>• config</div><div className="text-right">{Math.round(itemPerf.cfgMs)} ms {itemPerf.cfgCached ? "(cached)" : ""}</div>
-                      <div>• company</div><div className="text-right">{Math.round(itemPerf.companyMs)} ms</div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
@@ -803,12 +641,7 @@ const InfoStockTransfer = () => {
                   onChange={(e) => setQuantity(e.target.value)}
                   inputMode="decimal"
                 />
-                <FloatingLabelInput
-                  id="transferUnit"
-                  label={trans.unitLabel}
-                  value={unit}
-                  disabled
-                />
+                <FloatingLabelInput id="transferUnit" label={trans.unitLabel} value={unit} disabled />
               </div>
 
               {/* Target Warehouse with picker */}
@@ -832,8 +665,12 @@ const InfoStockTransfer = () => {
                   }}
                   className="pr-12"
                   ref={targetWhRef}
-                  onBlur={() => { void validateTargetWarehouse(); }}
-                  onKeyDown={(e) => { if (e.key === "Enter") void validateTargetWarehouse(); }}
+                  onBlur={() => {
+                    void validateTargetWarehouse();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void validateTargetWarehouse();
+                  }}
                 />
                 <Button
                   type="button"
@@ -862,10 +699,24 @@ const InfoStockTransfer = () => {
                     }
                   }}
                   ref={targetLocRef}
-                  onBlur={() => { void validateTargetLocation(); }}
-                  onKeyDown={(e) => { if (e.key === "Enter") void validateTargetLocation(); }}
+                  onBlur={() => {
+                    void validateTargetLocation();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void validateTargetLocation();
+                  }}
                 />
               )}
+
+              {/* Transfer button */}
+              <Button
+                type="button"
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
+                disabled={!canTransfer}
+                onClick={doTransfer}
+              >
+                TRANSFER
+              </Button>
             </div>
           )}
 
@@ -940,43 +791,32 @@ const InfoStockTransfer = () => {
                 <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
                   {trans.targetWarehouseLabel}
                 </div>
-                <div className="max-h-80 overflow-auto p-2">
+                <div className="max-height-80 max-h-80 overflow-auto p-2">
                   {targetWhLoading ? (
                     <div className="px-2 py-3 text-sm text-muted-foreground">{trans.loadingList}</div>
                   ) : targetWhRows.length === 0 ? (
                     <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
                   ) : (
                     <div className="space-y-2">
-                      {targetWhRows.map((r, idx) => {
-                        const type = whTypeStyle(r.Type);
-                        return (
-                          <button
-                            key={`${r.Warehouse}-${idx}`}
-                            type="button"
-                            className="w-full text-left px-3 py-2 rounded-md border mb-1.5 bg-gray-50 hover:bg-gray-100"
-                            onClick={() => {
-                              setTargetWarehouse(r.Warehouse);
-                              setTargetWhPickerOpen(false);
-                              setTimeout(() => targetWhRef.current?.focus(), 50);
-                            }}
-                          >
-                            <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
-                              <div className="flex flex-col">
-                                <div className="text-sm text-gray-900">{r.Warehouse}</div>
-                                {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
-                              </div>
-                              {type.label && (
-                                <span
-                                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                                  style={{ backgroundColor: type.bg, color: type.text }}
-                                >
-                                  {type.label}
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
+                      {targetWhRows.map((r, idx) => (
+                        <button
+                          key={`${r.Warehouse}-${idx}`}
+                          type="button"
+                          className="w-full text-left px-3 py-2 rounded-md border mb-1.5 bg-gray-50 hover:bg-gray-100"
+                          onClick={() => {
+                            setTargetWarehouse(r.Warehouse);
+                            setLastValidatedTargetWarehouse(r.Warehouse);
+                            setTargetWhPickerOpen(false);
+                            setTimeout(() => targetLocRef.current?.focus(), 50);
+                          }}
+                        >
+                          <div className="grid grid-cols-[1fr] gap-1">
+                            <div className="text-sm text-gray-900">{r.Warehouse}</div>
+                            {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
+                            {r.Type && <div className="text-[11px] text-gray-500">{r.Type}</div>}
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -991,24 +831,23 @@ const InfoStockTransfer = () => {
               </div>
             </DialogPortal>
           </Dialog>
+
+          {/* Transfer section */}
+          {showDetails && (
+            <div className="pt-2">
+              <Button
+                type="button"
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
+                disabled={!canTransfer}
+                onClick={doTransfer}
+              >
+                TRANSFER
+              </Button>
+            </div>
+          )}
         </Card>
       </div>
 
-      {/* Bottom action bar */}
-      <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
-        <div className="mx-auto max-w-md px-4 py-3">
-          <Button
-            className="w-full h-12 text-base"
-            variant={canTransfer ? "destructive" : "secondary"}
-            disabled={!canTransfer}
-            onClick={handleTransfer}
-          >
-            TRANSFER
-          </Button>
-        </div>
-      </div>
-
-      {/* Sign-out confirmation dialog */}
       <SignOutConfirm
         open={signOutOpen}
         onOpenChange={setSignOutOpen}

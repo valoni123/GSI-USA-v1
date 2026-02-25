@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCompanyFromParams } from "../_shared/company.ts";
-import { getIonApiAccessTokenInfo, getIonApiConfigInfo } from "../_shared/ionapi.ts";
+import { getIonApiAccessToken, getIonApiConfig } from "../_shared/ionapi.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,9 +17,6 @@ function json(body: unknown, status = 200) {
 }
 
 serve(async (req) => {
-  const rid = crypto.randomUUID();
-  const t0 = performance.now();
-
   try {
     if (req.method === "OPTIONS") {
       return new Response(null, { status: 200, headers: corsHeaders });
@@ -28,7 +25,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { handlingUnit?: string; language?: string; company?: string; debug?: boolean } = {};
+    let body: { handlingUnit?: string; language?: string; company?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -37,8 +34,6 @@ serve(async (req) => {
 
     const handlingUnit = (body.handlingUnit || "").trim();
     const language = body.language || "en-US";
-    const debug = !!body.debug;
-
     if (!handlingUnit) {
       return json({ ok: false, error: "missing_handling_unit" }, 200);
     }
@@ -50,58 +45,31 @@ serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const tCompany0 = performance.now();
     const company = (body.company || "").trim() || (await getCompanyFromParams(supabase));
-    const companyMs = performance.now() - tCompany0;
 
-    const tCfg0 = performance.now();
-    const cfgInfo = await getIonApiConfigInfo(supabase);
-    const cfgMs = performance.now() - tCfg0;
-
-    const tTok0 = performance.now();
-    const tokInfo = await getIonApiAccessTokenInfo(supabase);
-    const tokenMs = performance.now() - tTok0;
+    const cfg = await getIonApiConfig(supabase);
+    const accessToken = await getIonApiAccessToken(supabase);
 
     // Build LN OData URL for Handling Units → single entity by key
-    // NOTE: Do not use strict $select here; LN field sets differ per installation.
-    const base = cfgInfo.config.iu.endsWith("/") ? cfgInfo.config.iu.slice(0, -1) : cfgInfo.config.iu;
+    const base = cfg.iu.endsWith("/") ? cfg.iu.slice(0, -1) : cfg.iu;
     const escaped = handlingUnit.replace(/'/g, "''");
-    const path = `/${cfgInfo.config.ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits(HandlingUnit='${escaped}')`;
-    const url = `${base}${path}`;
+    const path = `/${cfg.ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits(HandlingUnit='${escaped}')`;
+    const url = `${base}${path}?$select=%2A`;
 
-    const tOdata0 = performance.now();
     const odataRes = await fetch(url, {
       method: "GET",
       headers: {
         accept: "application/json",
         "Content-Language": language,
         "X-Infor-LnCompany": company,
-        Authorization: `Bearer ${tokInfo.token}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     }).catch(() => null as unknown as Response);
-    const odataMs = performance.now() - tOdata0;
-
     if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
     const odataJson = (await odataRes.json().catch(() => null)) as any;
     if (!odataRes.ok || !odataJson) {
       const topMessage = odataJson?.error?.message || "odata_error";
       const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
-      const totalMs = performance.now() - t0;
-      if (debug) {
-        console.log("[ln-handling-unit-info] error", {
-          rid,
-          handlingUnit,
-          totalMs,
-          companyMs,
-          cfgMs,
-          cfgCached: cfgInfo.cached,
-          tokenMs,
-          tokenCached: tokInfo.cached,
-          odataMs,
-          status: odataRes.status,
-          message: topMessage,
-        });
-      }
       return json({ ok: false, error: { message: topMessage, details } }, 200);
     }
 
@@ -144,24 +112,6 @@ serve(async (req) => {
     const blockedForCycleCounting = toBool(pick(["BlockedForCycleCounting"]));
     const blockedForAssembly = toBool(pick(["BlockedForAssembly"]));
 
-    const totalMs = performance.now() - t0;
-    const perf = debug
-      ? {
-          rid,
-          totalMs,
-          companyMs,
-          cfgMs,
-          cfgCached: cfgInfo.cached,
-          tokenMs,
-          tokenCached: tokInfo.cached,
-          odataMs,
-        }
-      : undefined;
-
-    if (debug) {
-      console.log("[ln-handling-unit-info] ok", perf);
-    }
-
     return json(
       {
         ok: true,
@@ -178,7 +128,6 @@ serve(async (req) => {
         blockedForTransferIssue,
         blockedForCycleCounting,
         blockedForAssembly,
-        ...(perf ? { perf } : {}),
       },
       200,
     );
