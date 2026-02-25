@@ -765,11 +765,6 @@ const InfoStockTransfer = () => {
                               {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
                             </div>
                             <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                              <Flag label="Inbound" value={r.BlockedForInbound} />
-                              <Flag label="Outbound" value={r.BlockedForOutbound} />
-                              <Flag label="Trf. Receipt" value={r.BlockedForTransferReceipt} />
-                              <Flag label="Trf. Issue" value={r.BlockedForTransferIssue} />
-                              <Flag label="Assembly" value={r.BlockedForAssembly} />
                               <Flag label="Occupied" value={r.LocationOccupied} />
                               <Flag label="Full" value={r.LocationFull} />
                               <Flag label="Infinite cap." value={r.InfiniteCapacity} />
