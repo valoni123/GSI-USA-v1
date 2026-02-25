@@ -70,6 +70,10 @@ const InfoStockTransfer = () => {
   // Target fields
   const [targetWarehouse, setTargetWarehouse] = useState<string>("");
   const [targetLocation, setTargetLocation] = useState<string>("");
+  // Track last validated values to avoid unnecessary service calls
+  const [lastValidatedTargetWarehouse, setLastValidatedTargetWarehouse] = useState<string | null>(null);
+  const [lastValidatedTargetLocation, setLastValidatedTargetLocation] = useState<string | null>(null);
+  const [lastLocValidatedForWarehouse, setLastLocValidatedForWarehouse] = useState<string | null>(null);
 
   // Warehouse picker state (for item scan)
   const [warehousePickerOpen, setWarehousePickerOpen] = useState<boolean>(false);
@@ -350,6 +354,8 @@ const InfoStockTransfer = () => {
   const validateTargetWarehouse = async () => {
     const code = (targetWarehouse || "").trim();
     if (!code) return;
+    // Skip if nothing changed since last validation
+    if (code.toLowerCase() === (lastValidatedTargetWarehouse || "").toLowerCase()) return;
     const ok = await ensureTargetWarehouseList();
     if (!ok) return;
     const exists = targetWhRows.some((r) => r.Warehouse.toLowerCase() === code.toLowerCase());
@@ -357,13 +363,24 @@ const InfoStockTransfer = () => {
       showError("Warehouse not found");
       setTargetWarehouse("");
       setTimeout(() => targetWhRef.current?.focus(), 0);
+      setLastValidatedTargetWarehouse(null);
+    } else {
+      setLastValidatedTargetWarehouse(code);
     }
   };
 
+  // Validate typed/scanned Target Location (no picker) against OData
   const validateTargetLocation = async () => {
     const wh = (targetWarehouse || "").trim();
     const loc = (targetLocation || "").trim();
     if (!wh || !loc) return;
+    // Skip if nothing changed since last validation (and warehouse unchanged)
+    if (
+      loc.toLowerCase() === (lastValidatedTargetLocation || "").toLowerCase() &&
+      wh.toLowerCase() === (lastLocValidatedForWarehouse || "").toLowerCase()
+    ) {
+      return;
+    }
     setCheckingTargetLocation(true);
     const { data, error } = await supabase.functions.invoke("ln-warehouse-location-exists", {
       body: { warehouse: wh, location: loc, language: locale, company: "1100" },
@@ -380,6 +397,11 @@ const InfoStockTransfer = () => {
           el.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       });
+      setLastValidatedTargetLocation(null);
+      setLastLocValidatedForWarehouse(null);
+    } else {
+      setLastValidatedTargetLocation(loc);
+      setLastLocValidatedForWarehouse(wh);
     }
     setCheckingTargetLocation(false);
   };
@@ -573,7 +595,19 @@ const InfoStockTransfer = () => {
                   id="targetWarehouse"
                   label={trans.targetWarehouseLabel}
                   value={targetWarehouse}
-                  onChange={(e) => setTargetWarehouse(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setTargetWarehouse(v);
+                    // Value changed → clear last validated
+                    if (v.toLowerCase() !== (lastValidatedTargetWarehouse || "").toLowerCase()) {
+                      setLastValidatedTargetWarehouse(null);
+                    }
+                    // Warehouse changed → clear validated location (bound to old WH)
+                    if (v.toLowerCase() !== (lastLocValidatedForWarehouse || "").toLowerCase()) {
+                      setLastValidatedTargetLocation(null);
+                      setLastLocValidatedForWarehouse(null);
+                    }
+                  }}
                   className="pr-12"
                   ref={targetWhRef}
                   onBlur={() => { void validateTargetWarehouse(); }}
@@ -597,7 +631,14 @@ const InfoStockTransfer = () => {
                   id="targetLocation"
                   label={trans.targetLocationLabel}
                   value={targetLocation}
-                  onChange={(e) => setTargetLocation(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setTargetLocation(v);
+                    // Value changed → clear last validated
+                    if (v.toLowerCase() !== (lastValidatedTargetLocation || "").toLowerCase()) {
+                      setLastValidatedTargetLocation(null);
+                    }
+                  }}
                   ref={targetLocRef}
                   onBlur={() => { void validateTargetLocation(); }}
                   onKeyDown={(e) => { if (e.key === "Enter") void validateTargetLocation(); }}
