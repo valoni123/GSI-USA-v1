@@ -70,6 +70,10 @@ const InfoStockTransfer = () => {
   const [warehousePickerOpen, setWarehousePickerOpen] = useState<boolean>(false);
   const [whLoading, setWhLoading] = useState<boolean>(false);
   const [whRows, setWhRows] = useState<Array<{ Warehouse: string; WarehouseName?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>>([]);
+  // Target warehouse picker state
+  const [targetWhPickerOpen, setTargetWhPickerOpen] = useState<boolean>(false);
+  const [targetWhLoading, setTargetWhLoading] = useState<boolean>(false);
+  const [targetWhRows, setTargetWhRows] = useState<Array<{ Warehouse: string; Description?: string }>>([]);
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -192,6 +196,30 @@ const InfoStockTransfer = () => {
       .filter((r) => r.Warehouse);
     setWhRows(mapped);
     setWhLoading(false);
+  };
+
+  // Open target warehouse picker
+  const openTargetWarehousePicker = async () => {
+    setTargetWhPickerOpen(true);
+    setTargetWhLoading(true);
+    const { data, error } = await supabase.functions.invoke("ln-warehouses-list", {
+      body: { language: locale, company: "1100" },
+    });
+    if (error || !data || !data.ok) {
+      setTargetWhRows([]);
+      setTargetWhLoading(false);
+      showError(trans.loadingList);
+      return;
+    }
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    const mapped = rows
+      .map((r: any) => ({
+        Warehouse: String(r.Warehouse || ""),
+        Description: typeof r.Description === "string" ? r.Description : undefined,
+      }))
+      .filter((r) => r.Warehouse);
+    setTargetWhRows(mapped);
+    setTargetWhLoading(false);
   };
 
   // Status color helpers (same scheme as HU Info)
@@ -423,13 +451,25 @@ const InfoStockTransfer = () => {
               />
             </div>
             {/* Status field removed; it's displayed as a colored chip near Description for HU */}
-            <FloatingLabelInput
-              id="targetWarehouse"
-              label={trans.targetWarehouseLabel}
-              value={targetWarehouse}
-              onChange={(e) => setTargetWarehouse(e.target.value)}
-              onClear={() => setTargetWarehouse("")}
-            />
+            <div className="relative">
+              <FloatingLabelInput
+                id="targetWarehouse"
+                label={trans.targetWarehouseLabel}
+                value={targetWarehouse}
+                onChange={(e) => setTargetWarehouse(e.target.value)}
+                className="pr-12"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-10 w-10"
+                onClick={openTargetWarehousePicker}
+                aria-label={trans.searchLabel}
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+            </div>
             <FloatingLabelInput
               id="targetLocation"
               label={trans.targetLocationLabel}
@@ -496,6 +536,52 @@ const InfoStockTransfer = () => {
                   className="absolute right-3 top-2 text-gray-600 hover:text-gray-900"
                   aria-label="Close"
                   onClick={() => setWarehousePickerOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+            </DialogPortal>
+          </Dialog>
+
+          {/* Target Warehouse picker dialog */}
+          <Dialog open={targetWhPickerOpen} onOpenChange={setTargetWhPickerOpen}>
+            <DialogPortal>
+              <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
+              <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-0 shadow-lg">
+                <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
+                  {trans.targetWarehouseLabel}
+                </div>
+                <div className="max-h-80 overflow-auto p-2">
+                  {targetWhLoading ? (
+                    <div className="px-2 py-3 text-sm text-muted-foreground">{trans.loadingList}</div>
+                  ) : targetWhRows.length === 0 ? (
+                    <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {targetWhRows.map((r, idx) => (
+                        <button
+                          key={`${r.Warehouse}-${idx}`}
+                          type="button"
+                          className="w-full text-left px-3 py-2 rounded-md border mb-1.5 bg-gray-50 hover:bg-gray-100"
+                          onClick={() => {
+                            setTargetWarehouse(r.Warehouse);
+                            setTargetWhPickerOpen(false);
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <div className="text-sm text-gray-900">{r.Warehouse}</div>
+                            {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="absolute right-3 top-2 text-gray-600 hover:text-gray-900"
+                  aria-label="Close"
+                  onClick={() => setTargetWhPickerOpen(false)}
                 >
                   ×
                 </button>
