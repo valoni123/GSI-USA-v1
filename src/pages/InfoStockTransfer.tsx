@@ -122,9 +122,24 @@ const InfoStockTransfer = () => {
   const [focusTargetLocTick, setFocusTargetLocTick] = useState(0);
   useEffect(() => {
     if (!targetWarehouse.trim()) return;
-    requestAnimationFrame(() => {
-      targetLocRef.current?.focus();
-    });
+
+    const focus = () => {
+      const el =
+        targetLocRef.current ||
+        (document.getElementById("targetLocation") as HTMLInputElement | null);
+      el?.focus();
+    };
+
+    // Try a few times to survive re-renders / overlay timing.
+    focus();
+    requestAnimationFrame(focus);
+    const t1 = window.setTimeout(focus, 50);
+    const t2 = window.setTimeout(focus, 200);
+
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
   }, [focusTargetLocTick, targetWarehouse]);
 
   // Status helpers
