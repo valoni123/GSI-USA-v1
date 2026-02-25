@@ -16,29 +16,7 @@ function json(body: unknown, status = 200) {
   });
 }
 
-const huSelect = [
-  "HandlingUnit",
-  "Item",
-  "Warehouse",
-  "Location",
-  "Lot",
-  "Status",
-  // quantity/unit variants
-  "QuantityInInventoryUnit",
-  "Quantity",
-  "QuantityBase",
-  "Unit",
-  "InventoryUnit",
-  "BaseUnit",
-  // blocked flags
-  "FullyBlocked",
-  "BlockedForOutbound",
-  "BlockedForTransferIssue",
-  "BlockedForCycleCounting",
-  "BlockedForAssembly",
-].join(",");
-
-const itemSelect = ["Item", "Description", "ItemDescription"].join(",");
+const itemSelect = "Item,Description,ItemDescription";
 
 serve(async (req) => {
   const rid = crypto.randomUUID();
@@ -89,9 +67,10 @@ serve(async (req) => {
     const base = cfgInfo.config.iu.endsWith("/") ? cfgInfo.config.iu.slice(0, -1) : cfgInfo.config.iu;
 
     // HU OData
+    // NOTE: keep $select=* to avoid LN errors when field names differ by configuration.
     const escapedHu = handlingUnit.replace(/'/g, "''");
     const huPath = `/${cfgInfo.config.ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits(HandlingUnit='${escapedHu}')`;
-    const huUrl = `${base}${huPath}?$select=${encodeURIComponent(huSelect)}`;
+    const huUrl = `${base}${huPath}?$select=*`;
 
     const tHu0 = performance.now();
     const huRes = await fetch(huUrl, {
@@ -171,44 +150,49 @@ serve(async (req) => {
     let itemDescription: string | null = null;
     let odataItemMs = 0;
 
-    const itemTrimmed = (item || "").toString().trim();
-    if (itemTrimmed) {
-      const nineSpaced = `         ${itemTrimmed}`;
-      const candidates = [itemTrimmed, nineSpaced]
-        .filter((v, i, arr) => typeof v === "string" && v.length > 0 && arr.indexOf(v) === i);
+    // Use the item exactly as returned by LN (do not trim/transform), and only fall back if needed.
+    const rawItem = (item || "").toString();
+    const trimmed = rawItem.trim();
+    const candidates = [rawItem, trimmed]
+      .map((v) => v)
+      .filter((v, i, arr) => v && arr.indexOf(v) === i);
 
-      for (const candidate of candidates) {
-        const escaped = candidate.replace(/'/g, "''");
-        const itemPath = `/${cfgInfo.config.ti}/LN/lnapi/odata/tcapi.ibdItem/Items(Item='${escaped}')`;
-        const itemUrl = `${base}${itemPath}?$select=${encodeURIComponent(itemSelect)}`;
+    // Optional: some LN installations require 9 leading spaces for item keys.
+    if (trimmed && rawItem === trimmed) {
+      candidates.push(`         ${trimmed}`);
+    }
 
-        const tItem0 = performance.now();
-        const res = await fetch(itemUrl, {
-          method: "GET",
-          headers: {
-            accept: "application/json",
-            "Content-Language": language,
-            "X-Infor-LnCompany": company,
-            Authorization: `Bearer ${tokInfo.token}`,
-          },
-        }).catch(() => null as unknown as Response);
-        odataItemMs += performance.now() - tItem0;
+    for (const candidate of candidates) {
+      const escaped = candidate.replace(/'/g, "''");
+      const itemPath = `/${cfgInfo.config.ti}/LN/lnapi/odata/tcapi.ibdItem/Items(Item='${escaped}')`;
+      const itemUrl = `${base}${itemPath}?$select=${encodeURIComponent(itemSelect)}`;
 
-        if (!res) continue;
-        const resBody = (await res.json().catch(() => null)) as any;
-        if (!res.ok || !resBody) continue;
+      const tItem0 = performance.now();
+      const res = await fetch(itemUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          "Content-Language": language,
+          "X-Infor-LnCompany": company,
+          Authorization: `Bearer ${tokInfo.token}`,
+        },
+      }).catch(() => null as unknown as Response);
+      odataItemMs += performance.now() - tItem0;
 
-        const itemEntity =
-          resBody && typeof resBody === "object" && !Array.isArray(resBody)
-            ? resBody
-            : Array.isArray(resBody?.value) && resBody.value.length > 0
-              ? resBody.value[0]
-              : null;
+      if (!res) continue;
+      const resBody = (await res.json().catch(() => null)) as any;
+      if (!res.ok || !resBody) continue;
 
-        if (itemEntity) {
-          itemDescription = (itemEntity.Description ?? itemEntity.ItemDescription ?? null) as string | null;
-          break;
-        }
+      const itemEntity =
+        resBody && typeof resBody === "object" && !Array.isArray(resBody)
+          ? resBody
+          : Array.isArray(resBody?.value) && resBody.value.length > 0
+            ? resBody.value[0]
+            : null;
+
+      if (itemEntity) {
+        itemDescription = (itemEntity.Description ?? itemEntity.ItemDescription ?? null) as string | null;
+        break;
       }
     }
 
