@@ -191,14 +191,16 @@ const InfoStockTransfer = () => {
       !!tgtLoc &&
       (lastValidatedTargetLocation || "").toLowerCase() === tgtLoc.toLowerCase() &&
       (lastLocValidatedForWarehouse || "").toLowerCase() === tgtWh.toLowerCase();
+    // Must be different from current Location
+    const locDifferent = (location || "").trim().toLowerCase() !== tgtLoc.toLowerCase();
 
     if (lastMatchType === "HU") {
       const baseOk = (warehouse || "").trim() && (location || "").trim();
-      return !!(baseOk && qtyOk && unitOk && targetLocValid) && !searching && !checkingTargetLocation && !transferring;
+      return !!(baseOk && qtyOk && unitOk && targetLocValid && locDifferent) && !searching && !checkingTargetLocation && !transferring;
     }
     // ITEM
     const baseOk = (warehouse || "").trim();
-    return !!(baseOk && qtyOk && unitOk && targetLocValid) && !searching && !checkingTargetLocation && !transferring;
+    return !!(baseOk && qtyOk && unitOk && targetLocValid && locDifferent) && !searching && !checkingTargetLocation && !transferring;
   }, [
     showDetails,
     lastMatchType,
@@ -455,10 +457,28 @@ const InfoStockTransfer = () => {
       });
       setLastValidatedTargetLocation(null);
       setLastLocValidatedForWarehouse(null);
-    } else {
-      setLastValidatedTargetLocation(loc);
-      setLastLocValidatedForWarehouse(wh);
+      setCheckingTargetLocation(false);
+      return;
     }
+    // Disallow same Location and Target Location
+    if (loc.toLowerCase() === (location || "").trim().toLowerCase()) {
+      showError("Target location cannot be the same as current location");
+      setTargetLocation("");
+      requestAnimationFrame(() => {
+        const el = targetLocRef.current;
+        if (el) {
+          el.focus();
+          try { (el as any).select?.(); } catch {}
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+      setLastValidatedTargetLocation(null);
+      setLastLocValidatedForWarehouse(null);
+      setCheckingTargetLocation(false);
+      return;
+    }
+    setLastValidatedTargetLocation(loc);
+    setLastLocValidatedForWarehouse(wh);
     setCheckingTargetLocation(false);
   };
 
