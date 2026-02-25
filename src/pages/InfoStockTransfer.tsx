@@ -1067,48 +1067,13 @@ const InfoStockTransfer = () => {
                             setTargetWarehouse(r.Warehouse);
                             setLastValidatedTargetWarehouse(r.Warehouse);
                             setTargetWhPickerOpen(false);
-                            setTimeout(() => targetLocRef.current?.focus(), 50);
+                            // Do not move focus to Target Location automatically
                           }}
                         >
-                          <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
-                            <div className="flex flex-col">
-                              <div className="text-sm text-gray-900">{r.Warehouse}</div>
-                              {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
-                            </div>
-                            {r.Type ? (
-                              <span
-                                className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold ${(() => {
-                                  const t = r.Type.toLowerCase();
-                                  if (t === "normal" || t === "service und instandhaltung") {
-                                    return "bg-orange-500 text-white";
-                                  }
-                                  if (t === "produktion") {
-                                    return "bg-emerald-500 text-white";
-                                  }
-                                  if (t === "projekt") {
-                                    return "bg-sky-500 text-white";
-                                  }
-                                  if (t === "service (ts) im kundeneigentum") {
-                                    return "bg-orange-200 text-orange-900";
-                                  }
-                                  if (t === "service-reklamation") {
-                                    return "bg-red-500 text-white";
-                                  }
-                                  if (t === "fremder konsignationsbestand") {
-                                    return "bg-lime-200 text-lime-900";
-                                  }
-                                  if (t === "eigener konsignationsbestand") {
-                                    return "bg-green-500 text-white";
-                                  }
-                                  if (t === "kaufmännisches lager" || t === "kaufmaennisches lager") {
-                                    return "bg-fuchsia-500 text-white";
-                                  }
-                                  return "bg-gray-200 text-gray-800";
-                                })()}`}
-                              >
-                                {r.Type}
-                              </span>
-                            ) : null}
+                          <div className="grid grid-cols-[1fr] gap-1">
+                            <div className="text-sm text-gray-900">{r.Warehouse}</div>
+                            {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
+                            {r.Type && <div className="text-[11px] text-gray-500">{r.Type}</div>}
                           </div>
                         </button>
                       ))}
