@@ -169,6 +169,7 @@ const InfoStockTransfer = () => {
   };
 
   const [searching, setSearching] = useState<boolean>(false);
+  const [checkingTargetLocation, setCheckingTargetLocation] = useState<boolean>(false);
   const handleSearch = async (_withLoading = false) => {
     const input = query.trim();
     if (!input) return;
@@ -347,6 +348,7 @@ const InfoStockTransfer = () => {
     const wh = (targetWarehouse || "").trim();
     const loc = (targetLocation || "").trim();
     if (!wh || !loc) return;
+    setCheckingTargetLocation(true);
     const { data, error } = await supabase.functions.invoke("ln-warehouse-location-exists", {
       body: { warehouse: wh, location: loc, language: locale, company: "1100" },
     });
@@ -355,6 +357,7 @@ const InfoStockTransfer = () => {
       setTargetLocation("");
       setTimeout(() => targetLocRef.current?.focus(), 0);
     }
+    setCheckingTargetLocation(false);
   };
 
   return (
@@ -579,7 +582,7 @@ const InfoStockTransfer = () => {
             </div>
           )}
 
-          {(searching) && <ScreenSpinner message={trans.pleaseWait} />}
+          {(searching || checkingTargetLocation) && <ScreenSpinner message={trans.pleaseWait} />}
 
           {/* Item warehouse picker dialog */}
           <Dialog open={warehousePickerOpen} onOpenChange={setWarehousePickerOpen}>
