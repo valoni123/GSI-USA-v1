@@ -209,7 +209,7 @@ const InfoStockLEInfo = () => {
       return;
     }
     // Navigate to Warehouse Inspection with initial HU passed as state
-    navigate("/incominginspection", { state: { initialHandlingUnit: hu } });
+    navigate("/menu/incoming/inspection", { state: { initialHandlingUnit: hu } });
   };
 
   return (
