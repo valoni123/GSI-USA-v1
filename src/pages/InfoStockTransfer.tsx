@@ -832,19 +832,6 @@ const InfoStockTransfer = () => {
             </DialogPortal>
           </Dialog>
 
-          {/* Transfer section */}
-          {showDetails && (
-            <div className="pt-2">
-              <Button
-                type="button"
-                className="w-full bg-red-600 hover:bg-red-700 text-white"
-                disabled={!canTransfer}
-                onClick={doTransfer}
-              >
-                TRANSFER
-              </Button>
-            </div>
-          )}
         </Card>
       </div>
 
