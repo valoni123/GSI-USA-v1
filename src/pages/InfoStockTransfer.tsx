@@ -246,9 +246,9 @@ const InfoStockTransfer = () => {
 
     setSearching(true);
 
-    // Try Handling Unit
+    // Try Handling Unit (combined HU + item description)
     const huStart = performance.now();
-    const huRes = await supabase.functions.invoke("ln-handling-unit-info", {
+    const huRes = await supabase.functions.invoke("ln-handling-unit-transfer-info", {
       body: { handlingUnit: input, language: locale, company: "1100", debug: perfEnabled },
     });
     setClientHuMs(performance.now() - huStart);
@@ -271,11 +271,9 @@ const InfoStockTransfer = () => {
       setShowDetails(true);
       setQueryLabel(trans.loadHandlingUnit);
       setLastMatchType("HU");
-      setItemDescription("");
+      setItemDescription((d.itemDescription || "").toString());
 
-      // Don't keep the full-screen spinner up while description is loading.
       setSearching(false);
-      void fetchItemDescription(d.item);
       return;
     }
 
