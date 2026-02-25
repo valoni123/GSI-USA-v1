@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation() as any;
 
   const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
@@ -138,6 +139,20 @@ const IncomingInspectionPage: React.FC = () => {
       (r?.Unit || "").toString()
     );
   };
+
+  // If navigated with an initialHandlingUnit, prefill and auto-fetch
+  const location = useLocation() as any;
+  useEffect(() => {
+    const hu = (location?.state?.initialHandlingUnit || "").toString().trim();
+    if (!hu) return;
+    setQuery(hu);
+    // Defer to let input mount, then trigger blur handler logic to fetch
+    const t = setTimeout(() => {
+      void handleBlurScan();
+    }, 50);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const clearAfterSubmit = () => {
     // Keep scan input intact, clear the rest

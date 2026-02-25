@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, Search } from "lucide-react";
+import { ArrowLeft, LogOut, User, Search, ClipboardCheck } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, showSuccess, dismissToast } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import ScreenSpinner from "@/components/ScreenSpinner";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import HelpMenu from "@/components/HelpMenu";
 
 type HUInfo = {
@@ -70,6 +71,7 @@ const InfoStockLEInfo = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [data, setData] = useState<HUInfo | null>(null);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState<boolean>(false);
 
   useEffect(() => {
     huRef.current?.focus();
@@ -187,6 +189,28 @@ const InfoStockLEInfo = () => {
     if (lastFetchedHu !== hu) {
       await fetchHU(hu);
     }
+  };
+
+  // Determine if HU is in "To be inspected" state
+  const isToBeInspected = (() => {
+    const key = data?.status ? String(data.status).trim().toLowerCase() : "";
+    return ["tobeinspected", "toinspect", "to be inspected", "to inspect", "inspection"].some(
+      k => key.includes(k.replace(/\s+/g, ""))
+    );
+  })();
+
+  // Style matching the status color for "To be inspected"
+  const toBeInspectedBarClass =
+    "fixed inset-x-0 bottom-0 z-40";
+
+  const startInspection = () => {
+    const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
+    if (!hu) {
+      setConfirmOpen(false);
+      return;
+    }
+    // Navigate to Warehouse Inspection with initial HU passed as state
+    navigate("/incominginspection", { state: { initialHandlingUnit: hu } });
   };
 
   return (
@@ -352,6 +376,37 @@ const InfoStockLEInfo = () => {
           </div>
         </Card>
       </div>
+
+      {/* Action bar for 'To be inspected' */}
+      {data && isToBeInspected && (
+        <div className={toBeInspectedBarClass}>
+          <div className="mx-auto max-w-md px-3 py-3">
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              className="w-full flex items-center justify-center gap-2 h-12 rounded-md shadow-md"
+              style={{ backgroundColor: "#a876eb", color: "#ffffff" }}
+            >
+              <ClipboardCheck className="h-5 w-5 text-white" />
+              <span className="text-sm font-semibold">Start Inspection</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation dialog */}
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Start Inspection"
+        message="Start Inspection for this Handling Unit?"
+        confirmLabel={trans.yes}
+        cancelLabel={trans.no}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          startInspection();
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
 
       {/* Sign-out confirmation dialog */}
       <SignOutConfirm
