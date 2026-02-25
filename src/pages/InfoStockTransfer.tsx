@@ -468,7 +468,7 @@ const InfoStockTransfer = () => {
       showError(typeof msg === "string" ? msg : "Transfer failed");
       return;
     }
-    showSuccess("Transfer created");
+    showSuccess("Transfer completed");
     resetAll();
   };
 
