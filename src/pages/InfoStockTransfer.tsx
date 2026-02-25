@@ -114,6 +114,7 @@ const InfoStockTransfer = () => {
       const d = huRes.data;
       setItem(d.item || "");
       setWarehouse(d.warehouse || "");
+      setTargetWarehouse(d.warehouse || "");
       setLocation(d.location || "");
       setLot(d.lot || "");
       const qty = d.quantity != null ? String(d.quantity) : "";
@@ -143,6 +144,7 @@ const InfoStockTransfer = () => {
       setLastSearched(input);
       // Clear HU-specific fields
       setWarehouse("");
+      setTargetWarehouse("");
       setLocation("");
       setLot("");
       setQuantity("");
@@ -369,7 +371,11 @@ const InfoStockTransfer = () => {
                 label={trans.warehouseLabel}
                 ref={warehouseRef}
                 value={warehouse}
-                onChange={(e) => setWarehouse(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setWarehouse(v);
+                  if (!targetWarehouse) setTargetWarehouse(v);
+                }}
                 disabled={!warehouseEnabled}
                 className="pr-12"
                 onFocus={(e) => {
@@ -394,7 +400,14 @@ const InfoStockTransfer = () => {
                 </Button>
               )}
             </div>
-            <Input disabled value={location} placeholder={trans.locationLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
+            <div>
+              <div className="text-xs font-semibold text-gray-600">{trans.locationLabel}</div>
+              <Input
+                disabled
+                value={location}
+                className="h-10 bg-gray-100 text-gray-700"
+              />
+            </div>
             <div className="grid grid-cols-[1fr_96px] gap-2">
               <FloatingLabelInput
                 id="transferQuantity"
@@ -407,8 +420,7 @@ const InfoStockTransfer = () => {
                 id="transferUnit"
                 label={trans.unitLabel}
                 value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                onClear={() => setUnit("")}
+                disabled
               />
             </div>
             {/* Status field removed; it's displayed as a colored chip near Description for HU */}
@@ -454,6 +466,7 @@ const InfoStockTransfer = () => {
                             className="w-full text-left px-3 py-2 rounded-md border mb-1.5 bg-gray-50 hover:bg-gray-100"
                             onClick={() => {
                               setWarehouse(r.Warehouse);
+                              setTargetWarehouse(r.Warehouse);
                               setWarehousePickerOpen(false);
                               setTimeout(() => warehouseRef.current?.focus(), 50);
                             }}
