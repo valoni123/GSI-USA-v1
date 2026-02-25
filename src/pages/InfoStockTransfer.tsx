@@ -119,6 +119,14 @@ const InfoStockTransfer = () => {
   const [checkingTargetLocation, setCheckingTargetLocation] = useState<boolean>(false);
   const [transferring, setTransferring] = useState<boolean>(false);
 
+  const [focusTargetLocTick, setFocusTargetLocTick] = useState(0);
+  useEffect(() => {
+    if (!targetWarehouse.trim()) return;
+    requestAnimationFrame(() => {
+      targetLocRef.current?.focus();
+    });
+  }, [focusTargetLocTick, targetWarehouse]);
+
   // Status helpers
   const normalizeStatus = (raw?: string | null): string | null => {
     if (!raw) return null;
@@ -369,7 +377,7 @@ const InfoStockTransfer = () => {
       setTargetLocation("");
       setLastValidatedTargetLocation(null);
       setLastLocValidatedForWarehouse(null);
-      setTimeout(() => targetLocRef.current?.focus(), 50);
+      setFocusTargetLocTick((v) => v + 1);
       return;
     }
 
@@ -391,7 +399,7 @@ const InfoStockTransfer = () => {
       setTargetLocation("");
       setLastValidatedTargetLocation(null);
       setLastLocValidatedForWarehouse(null);
-      setTimeout(() => targetLocRef.current?.focus(), 50);
+      setFocusTargetLocTick((v) => v + 1);
       return;
     }
 
@@ -400,7 +408,7 @@ const InfoStockTransfer = () => {
       setTargetLocation("");
       setLastValidatedTargetLocation(null);
       setLastLocValidatedForWarehouse(null);
-      setTimeout(() => targetLocRef.current?.focus(), 50);
+      setFocusTargetLocTick((v) => v + 1);
       return;
     }
 
