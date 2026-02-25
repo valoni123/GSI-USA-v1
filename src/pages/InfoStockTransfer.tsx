@@ -843,7 +843,7 @@ const InfoStockTransfer = () => {
                 <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
                   {trans.targetWarehouseLabel}
                 </div>
-                <div className="max-height-80 max-h-80 overflow-auto p-2">
+                <div className="max-h-[70vh] overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] p-2">
                   {targetWhLoading ? (
                     <div className="px-2 py-3 text-sm text-muted-foreground">{trans.loadingList}</div>
                   ) : targetWhRows.length === 0 ? (
@@ -895,7 +895,6 @@ const InfoStockTransfer = () => {
                                   if (t === "kaufmännisches lager" || t === "kaufmaennisches lager") {
                                     return "bg-fuchsia-500 text-white";
                                   }
-                                  // fallback
                                   return "bg-gray-200 text-gray-800";
                                 })()}`}
                               >

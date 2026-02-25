@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { getCompanyFromParams } from "../_shared/company.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,7 +44,7 @@ serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const company = (body.company || "").trim() || (await getCompanyFromParams(supabase));
+    const company = await getCompanyFromParams(supabase);
 
     // OAuth config
     const { data: cfgData } = await supabase.rpc("get_active_ionapi");
