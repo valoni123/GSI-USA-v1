@@ -66,6 +66,7 @@ const InfoStockTransfer = () => {
   // Target fields (editable)
   const [targetWarehouse, setTargetWarehouse] = useState<string>("");
   const [targetLocation, setTargetLocation] = useState<string>("");
+  const targetWhRef = useRef<HTMLInputElement | null>(null);
   // Warehouse picker state
   const [warehousePickerOpen, setWarehousePickerOpen] = useState<boolean>(false);
   const [whLoading, setWhLoading] = useState<boolean>(false);
@@ -221,6 +222,45 @@ const InfoStockTransfer = () => {
       .filter((r) => r.Warehouse);
     setTargetWhRows(mapped);
     setTargetWhLoading(false);
+  };
+
+  // Ensure target warehouses list is loaded (without opening dialog)
+  const ensureTargetWarehouseList = async () => {
+    if (Array.isArray(targetWhRows) && targetWhRows.length > 0) return true;
+    setTargetWhLoading(true);
+    const { data, error } = await supabase.functions.invoke("ln-warehouses-list", {
+      body: { language: locale, company: "1100" },
+    });
+    if (error || !data || !data.ok) {
+      setTargetWhRows([]);
+      setTargetWhLoading(false);
+      return false;
+    }
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    const mapped = rows
+      .map((r: any) => ({
+        Warehouse: String(r.Warehouse || ""),
+        Description: typeof r.Description === "string" ? r.Description : undefined,
+        Type: typeof r.Type === "string" ? r.Type : undefined,
+      }))
+      .filter((r) => r.Warehouse);
+    setTargetWhRows(mapped);
+    setTargetWhLoading(false);
+    return true;
+  };
+
+  // Validate typed/scanned Target Warehouse
+  const validateTargetWarehouse = async () => {
+    const code = (targetWarehouse || "").trim();
+    if (!code) return;
+    const ok = await ensureTargetWarehouseList();
+    if (!ok) return;
+    const exists = targetWhRows.some((r) => r.Warehouse.toLowerCase() === code.toLowerCase());
+    if (!exists) {
+      showError("Warehouse not found");
+      setTargetWarehouse("");
+      setTimeout(() => targetWhRef.current?.focus(), 0);
+    }
   };
 
   // Status color helpers (same scheme as HU Info)
@@ -475,6 +515,13 @@ const InfoStockTransfer = () => {
                 label={trans.targetWarehouseLabel}
                 value={targetWarehouse}
                 onChange={(e) => setTargetWarehouse(e.target.value)}
+                ref={targetWhRef}
+                onBlur={() => { void validateTargetWarehouse(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    void validateTargetWarehouse();
+                  }
+                }}
                 className="pr-12"
               />
               <Button
