@@ -919,12 +919,16 @@ const InfoStockTransfer = () => {
                     // If empty, auto-fill with the current Warehouse when user enters the field
                     if (!(targetWarehouse || "").trim() && (warehouse || "").trim()) {
                       setTargetWarehouse((warehouse || "").trim());
+                      // Explicitly keep focus here to avoid any jump to Target Location
+                      requestAnimationFrame(() => targetWhRef.current?.focus());
                     }
                   }}
                   onClick={() => {
                     // Also handle click to cover touch scenarios
                     if (!(targetWarehouse || "").trim() && (warehouse || "").trim()) {
                       setTargetWarehouse((warehouse || "").trim());
+                      // Explicitly keep focus here to avoid any jump to Target Location
+                      requestAnimationFrame(() => targetWhRef.current?.focus());
                     }
                   }}
                 />
