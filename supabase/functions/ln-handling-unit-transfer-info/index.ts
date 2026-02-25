@@ -30,20 +30,16 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { handlingUnit?: string; language?: string; company?: string; debug?: boolean } = {};
+    let body: { handlingUnit?: string; language?: string; company?: string; debug?: boolean; warmup?: boolean } = {};
     try {
       body = await req.json();
     } catch {
       return json({ ok: false, error: "invalid_json" }, 200);
     }
 
-    const handlingUnit = (body.handlingUnit || "").trim();
     const language = body.language || "en-US";
     const debug = !!body.debug;
-
-    if (!handlingUnit) {
-      return json({ ok: false, error: "missing_handling_unit" }, 200);
-    }
+    const warmup = !!body.warmup;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -63,6 +59,34 @@ serve(async (req) => {
     const tTok0 = performance.now();
     const tokInfo = await getIonApiAccessTokenInfo(supabase);
     const tokenMs = performance.now() - tTok0;
+
+    // Warm up cache without calling LN OData
+    if (warmup) {
+      const totalMs = performance.now() - t0;
+      const perf = debug
+        ? {
+            rid,
+            totalMs,
+            companyMs,
+            cfgMs,
+            cfgCached: cfgInfo.cached,
+            tokenMs,
+            tokenCached: tokInfo.cached,
+            odataMs: 0,
+            odataHuMs: 0,
+            odataItemMs: 0,
+          }
+        : undefined;
+      if (debug) {
+        console.log("[ln-handling-unit-transfer-info] warmup", perf);
+      }
+      return json({ ok: true, ...(perf ? { perf } : {}) }, 200);
+    }
+
+    const handlingUnit = (body.handlingUnit || "").trim();
+    if (!handlingUnit) {
+      return json({ ok: false, error: "missing_handling_unit" }, 200);
+    }
 
     const base = cfgInfo.config.iu.endsWith("/") ? cfgInfo.config.iu.slice(0, -1) : cfgInfo.config.iu;
 

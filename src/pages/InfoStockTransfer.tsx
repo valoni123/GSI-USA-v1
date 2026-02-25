@@ -130,6 +130,13 @@ const InfoStockTransfer = () => {
     huRef.current?.focus();
   }, []);
 
+  useEffect(() => {
+    // Warm up the edge function isolate so the first scan doesn't pay the full config/token cost.
+    void supabase.functions.invoke("ln-handling-unit-transfer-info", {
+      body: { warmup: true, language: locale, company: "1100" },
+    });
+  }, [locale]);
+
   // Searching flags (used in canTransfer)
   const [searching, setSearching] = useState<boolean>(false);
   const [checkingTargetLocation, setCheckingTargetLocation] = useState<boolean>(false);
@@ -687,14 +694,18 @@ const InfoStockTransfer = () => {
                   (item || "").trim() ? (
                     itemDescription
                       ? `${(item || "").trim()} - ${itemDescription}`
-                      : `${(item || "").trim()} - ${trans.loadingList}`
+                      : `${(item || "").trim()}`
                   ) : (
-                    itemDescription || trans.loadingList
+                    itemDescription || "-"
                   )
                 ) : (
                   itemDescription
                 )}
               </div>
+
+              {lastMatchType === "HU" && (item || "").trim() && !itemDescription && (
+                <div className="mt-1 text-xs text-muted-foreground">Description not available</div>
+              )}
 
               {perfEnabled && (huPerf || itemPerf || clientHuMs != null || clientItemMs != null) && (
                 <div className="mt-2 rounded-md border bg-white px-3 py-2 text-[11px] text-gray-700">
