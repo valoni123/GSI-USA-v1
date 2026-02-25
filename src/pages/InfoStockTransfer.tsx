@@ -54,6 +54,8 @@ const InfoStockTransfer = () => {
   const [status, setStatus] = useState<string>("");
   // Enablement
   const [warehouseEnabled, setWarehouseEnabled] = useState<boolean>(false);
+  // Control visibility of detail fields
+  const [showDetails, setShowDetails] = useState<boolean>(false);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -89,6 +91,7 @@ const InfoStockTransfer = () => {
       setStatus(d.status || "");
       setWarehouseEnabled(false);
       setLastSearched(input);
+      setShowDetails(true);
       if (withLoading && tid) dismissToast(tid);
       return;
     }
@@ -108,6 +111,7 @@ const InfoStockTransfer = () => {
       setLot("");
       setQuantity("");
       setStatus("");
+      setShowDetails(true);
       setTimeout(() => warehouseRef.current?.focus(), 50);
       return;
     }
@@ -153,7 +157,12 @@ const InfoStockTransfer = () => {
                 label={trans.itemOrHandlingUnit}
                 ref={huRef}
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setQuery(v);
+                  setLastSearched(null);
+                  if (showDetails) setShowDetails(false);
+                }}
                 onFocus={(e) => {
                   if (e.currentTarget.value.length > 0) e.currentTarget.select();
                 }}
@@ -170,6 +179,7 @@ const InfoStockTransfer = () => {
                   setQuantity("");
                   setStatus("");
                   setWarehouseEnabled(false);
+                  setShowDetails(false);
                   huRef.current?.focus();
                 }}
               />
@@ -186,7 +196,8 @@ const InfoStockTransfer = () => {
             </Button>
           </div>
 
-          {/* Stacked fields */}
+          {/* Stacked fields (visible only after a successful search) */}
+          {showDetails && (
           <div className="space-y-3">
             <FloatingLabelInput
               id="transferWarehouse"
@@ -211,6 +222,7 @@ const InfoStockTransfer = () => {
             <Input disabled placeholder={trans.targetWarehouseLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
             <Input disabled placeholder={trans.targetLocationLabel} className="h-10 bg-gray-100 text-gray-700 placeholder:text-gray-700" />
           </div>
+          )}
         </Card>
       </div>
 
