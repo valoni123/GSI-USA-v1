@@ -46,6 +46,7 @@ const InfoStockTransfer = () => {
   const warehouseRef = useRef<HTMLInputElement | null>(null);
   const targetWhRef = useRef<HTMLInputElement | null>(null);
   const targetLocRef = useRef<HTMLInputElement | null>(null);
+  const fromLocRef = useRef<HTMLInputElement | null>(null);
 
   // First input + dynamic label/description
   const [query, setQuery] = useState<string>("");
@@ -658,6 +659,18 @@ const InfoStockTransfer = () => {
                   onClick={(e) => {
                     if (e.currentTarget.value.length > 0) e.currentTarget.select();
                   }}
+                  onBlur={() => {
+                    // After Warehouse is scanned/entered in ITEM flow, jump to From Location
+                    if (lastMatchType === "ITEM" && (warehouse || "").trim()) {
+                      requestAnimationFrame(() => fromLocRef.current?.focus());
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && lastMatchType === "ITEM" && (warehouse || "").trim()) {
+                      e.preventDefault();
+                      requestAnimationFrame(() => fromLocRef.current?.focus());
+                    }
+                  }}
                   onClear={() => setWarehouse("")}
                 />
                 {lastMatchType !== "HU" && (
@@ -675,13 +688,15 @@ const InfoStockTransfer = () => {
                 )}
               </div>
 
-              {/* Location (from) */}
+              {/* Location (from) — editable for ITEM flow */}
               <FloatingLabelInput
                 id="transferLocation"
                 label={trans.locationLabel}
+                ref={fromLocRef}
                 value={location}
-                disabled
-                className="bg-gray-100 text-gray-700"
+                onChange={(e) => setLocation(e.target.value)}
+                disabled={lastMatchType === "HU"}
+                className={lastMatchType === "HU" ? "bg-gray-100 text-gray-700" : ""}
               />
 
               {/* Quantity + Unit (unit read-only) */}
@@ -800,7 +815,12 @@ const InfoStockTransfer = () => {
                               setWarehouse(r.Warehouse);
                               setTargetWarehouse(r.Warehouse);
                               setWarehousePickerOpen(false);
-                              setTimeout(() => warehouseRef.current?.focus(), 50);
+                              // After selecting Warehouse in ITEM flow, focus From Location
+                              if (lastMatchType === "ITEM") {
+                                setTimeout(() => fromLocRef.current?.focus(), 50);
+                              } else {
+                                setTimeout(() => warehouseRef.current?.focus(), 50);
+                              }
                             }}
                           >
                             <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
