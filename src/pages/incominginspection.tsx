@@ -17,7 +17,7 @@ import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation() as any;
+  const routerLocation = useLocation() as any;
 
   const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
@@ -33,31 +33,23 @@ const IncomingInspectionPage: React.FC = () => {
   const [fullName, setFullName] = useState<string>("");
   const [headerOrder, setHeaderOrder] = useState<string>("");
   const [headerOrigin, setHeaderOrigin] = useState<string>("");
-  // Dynamic label for the scan field
   const [scanLabel, setScanLabel] = useState<string>(trans.inspectionQueryLabel);
 
-  // Selected inspection line (from dialog selection); may include __position payload
   const [selectedLine, setSelectedLine] = useState<any | null>(null);
 
-  // Inputs for approval flow
   const [approvedQty, setApprovedQty] = useState<string>("0");
   const [rejectedQty, setRejectedQty] = useState<string>("0");
   const [rejectReason, setRejectReason] = useState<string>("");
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [allowedReasons, setAllowedReasons] = useState<Array<{ Reason: string; Description?: string }>>([]);
   const [exceedToastShown, setExceedToastShown] = useState<boolean>(false);
-  // NEW: track if only one inspection line exists (to show '- 1' when needed)
   const [singleLineOnly, setSingleLineOnly] = useState<boolean>(false);
-  // NEW: toggle to approve entire quantity
   const [approveAll, setApproveAll] = useState<boolean>(false);
   const [rejectAll, setRejectAll] = useState<boolean>(false);
-  // ADD: line picker state
   const [linePickerOpen, setLinePickerOpen] = useState<boolean>(false);
   const [lineOptions, setLineOptions] = useState<any[]>([]);
-  // NEW: lock details until a specific inspection line is chosen
   const [detailsLocked, setDetailsLocked] = useState<boolean>(false);
 
-  // Reset all form and fetched state when starting a new scan
   const resetAllForNewScan = () => {
     setSelectedLine(null);
     setRecords([]);
@@ -70,11 +62,9 @@ const IncomingInspectionPage: React.FC = () => {
     setReasonDialogOpen(false);
     setAllowedReasons([]);
     setExceedToastShown(false);
-    // Ensure details are unlocked for a fresh scan
     setDetailsLocked(false);
   };
 
-  // Helper to extract quantities/units from selected line
   const getInspectQtySU = (r: any) => {
     const src = r?.__position || r;
     const n = Number(src?.QuantityToBeInspectedInStorageUnit ?? r?.QuantityToBeInspectedInStorageUnit ?? 0);
@@ -107,7 +97,6 @@ const IncomingInspectionPage: React.FC = () => {
   const totalToInspect = selectedLine ? getInspectQtySU(selectedLine) : 0;
   const storageUnit = selectedLine ? getStorageUnit(selectedLine) : "";
 
-  // Helpers to extract order-related fields from selectedLine
   const getOrderOrigin = (r: any) => (r?.OrderOrigin || headerOrigin || "").toString();
   const getOrderNumber = (r: any) => (r?.Order || headerOrder || "").toString();
   const getOrderPosition = (r: any) => {
@@ -140,21 +129,7 @@ const IncomingInspectionPage: React.FC = () => {
     );
   };
 
-  const routerLocation = useLocation() as any;
-  useEffect(() => {
-    const hu = (routerLocation?.state?.initialHandlingUnit || "").toString().trim();
-    if (!hu) return;
-    setQuery(hu);
-    // Defer to let input mount, then trigger blur handler logic to fetch
-    const t = setTimeout(() => {
-      void handleBlurScan();
-    }, 50);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const clearAfterSubmit = () => {
-    // Keep scan input intact, clear the rest
     setSelectedLine(null);
     setRecords([]);
     setDialogOpen(false);
@@ -169,7 +144,6 @@ const IncomingInspectionPage: React.FC = () => {
     setApproveAll(false);
     setRejectAll(false);
     setSingleLineOnly(false);
-    // Unlock details after submission
     setDetailsLocked(false);
   };
 
@@ -234,7 +208,6 @@ const IncomingInspectionPage: React.FC = () => {
     (approvedNum + rejectedNum === totalToInspect) &&
     isReasonValid;
 
-  // Show error toast if the sum exceeds the quantity to inspect
   useEffect(() => {
     if (!selectedLine) {
       setExceedToastShown(false);
@@ -310,23 +283,19 @@ const IncomingInspectionPage: React.FC = () => {
     }
   };
 
-  // When a record is selected from dialog, show details inline
   const handleSelectRecord = (rec: any) => {
     setDialogOpen(false);
     setSelectedLine(rec);
-    // Lock details until we know if there's 1 line or multiple
     setDetailsLocked(true);
     setApprovedQty("0");
     setRejectedQty("0");
     setRejectReason("");
   };
 
-  // If a selected record has multiple Inspection Lines, open the popup to pick one
   useEffect(() => {
     const run = async () => {
       if (!selectedLine || selectedLine.__position) {
         setSingleLineOnly(Boolean(selectedLine?.__position));
-        // If position is already chosen, unlock details
         if (selectedLine?.__position) setDetailsLocked(false);
         return;
       }
@@ -347,20 +316,17 @@ const IncomingInspectionPage: React.FC = () => {
       });
       const list = Array.isArray(data?.value) ? data.value : [];
       if (!error && list.length === 1) {
-        // Exactly one line → attach and unlock details
         setSelectedLine({ ...selectedLine, __position: list[0] });
         setSingleLineOnly(true);
         setLinePickerOpen(false);
         setLineOptions([]);
         setDetailsLocked(false);
       } else if (!error && list.length > 1) {
-        // Multiple lines → open picker; keep details locked until user selects
         setLineOptions(list);
         setLinePickerOpen(true);
         setSingleLineOnly(false);
         setDetailsLocked(true);
       } else {
-        // On error or no lines, unlock to show basic info
         setSingleLineOnly(false);
         setLinePickerOpen(false);
         setLineOptions([]);
@@ -370,13 +336,11 @@ const IncomingInspectionPage: React.FC = () => {
     void run();
   }, [selectedLine]);
 
-  // Reset toggles when a new line is selected
   useEffect(() => {
     setApproveAll(false);
     setRejectAll(false);
   }, [selectedLine]);
 
-  // Helpers to render origin chip like Goods Receipt
   const formatOriginLabel = (origin: string) => {
     const o = (origin || "").trim();
     if (!o) return "-";
@@ -398,6 +362,24 @@ const IncomingInspectionPage: React.FC = () => {
     return { bg: "#2db329", text: "#ffffff" };
   };
 
+  useEffect(() => {
+    const name = localStorage.getItem("gsi.full_name");
+    if (name) setFullName(name);
+  }, []);
+
+  // Auto-load when a Handling Unit is passed via router state
+  useEffect(() => {
+    const hu = (routerLocation?.state?.initialHandlingUnit || "").toString().trim();
+    if (!hu) return;
+    setQuery(hu);
+    // Trigger the same logic as blur to fetch immediately
+    const t = setTimeout(() => {
+      void handleBlurScan();
+    }, 50);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSignOutConfirm = () => {
     try {
       localStorage.removeItem("ln.token");
@@ -414,7 +396,6 @@ const IncomingInspectionPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
           <BackButton ariaLabel={trans.back} onClick={handleBack} />
@@ -438,7 +419,6 @@ const IncomingInspectionPage: React.FC = () => {
       </div>
 
       <div className="mx-auto max-w-md px-4 py-4 space-y-4">
-        {/* Scan input */}
         <div>
           <FloatingLabelInput
             id="inspectionScan"
@@ -469,7 +449,6 @@ const IncomingInspectionPage: React.FC = () => {
           />
         </div>
 
-        {/* Selection dialog */}
         <InspectionResultsDialog
           open={dialogOpen}
           records={records}
@@ -479,7 +458,6 @@ const IncomingInspectionPage: React.FC = () => {
           headerOrigin={headerOrigin}
         />
 
-        {/* Old-style line picker popup when a single record has multiple Inspection Lines */}
         <InspectionLinePickerDialog
           open={linePickerOpen}
           lines={lineOptions}
@@ -490,7 +468,6 @@ const IncomingInspectionPage: React.FC = () => {
             setSingleLineOnly(true);
             setLinePickerOpen(false);
             setLineOptions([]);
-            // Unlock details after user chooses a specific line
             setDetailsLocked(false);
           }}
           onClose={() => {
@@ -499,10 +476,8 @@ const IncomingInspectionPage: React.FC = () => {
           }}
         />
 
-        {/* Dynamic details when one line is selected */}
         {selectedLine && !detailsLocked && (
           <div className="space-y-3">
-            {/* Order header (same line) */}
             {(() => {
               const ord = (selectedLine?.Order || headerOrder || "").trim();
               const originRaw = (selectedLine?.OrderOrigin || headerOrigin || "").trim();
@@ -532,7 +507,6 @@ const IncomingInspectionPage: React.FC = () => {
               );
             })()}
 
-            {/* Inspection - Sequence - Line */}
             <div className="rounded-md border bg-gray-100 px-3 pt-5 pb-2 relative">
               <span className="absolute left-3 top-1 text-[11px] leading-none text-gray-600">{trans.inspectionLabel}</span>
               <span className="absolute right-3 top-1 text-[11px] leading-none text-gray-600">{trans.quantityLabel}</span>
@@ -555,7 +529,6 @@ const IncomingInspectionPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Item and description */}
             <div className="rounded-md border bg-white px-3 py-2">
               <div className="text-sm sm:text-base text-gray-900 break-all">{getItem(selectedLine) || "-"}</div>
               {getItemDesc(selectedLine) && (
@@ -563,7 +536,6 @@ const IncomingInspectionPage: React.FC = () => {
               )}
             </div>
 
-            {/* Approved Quantity input (with green check toggle) */}
             {!rejectAll && (
               <div className="relative">
                 <FloatingLabelInput
@@ -615,7 +587,6 @@ const IncomingInspectionPage: React.FC = () => {
               </div>
             )}
 
-            {/* Rejected Quantity input (with red check toggle) */}
             {!approveAll && (
               <div className="relative">
                 <FloatingLabelInput
@@ -667,7 +638,6 @@ const IncomingInspectionPage: React.FC = () => {
               </div>
             )}
 
-            {/* Reject Reason (visible only if rejected > 0) */}
             {isRejectReasonVisible && (
               <div className="relative">
                 <FloatingLabelInput
@@ -698,7 +668,6 @@ const IncomingInspectionPage: React.FC = () => {
               </div>
             )}
 
-            {/* Submit button */}
             <div className="pt-2">
               <Button
                 className="h-12 w-full"
@@ -720,7 +689,19 @@ const IncomingInspectionPage: React.FC = () => {
         question={trans.signOutQuestion}
         yesLabel={trans.yes}
         noLabel={trans.no}
-        onConfirm={handleSignOutConfirm}
+        onConfirm={() => {
+          try {
+            localStorage.removeItem("ln.token");
+            localStorage.removeItem("gsi.id");
+            localStorage.removeItem("gsi.full_name");
+            localStorage.removeItem("gsi.username");
+            localStorage.removeItem("gsi.employee");
+            localStorage.removeItem("gsi.login");
+          } catch {}
+          showSuccess(trans.signedOut);
+          setShowSignOut(false);
+          navigate("/");
+        }}
       />
 
       <ReasonPickerDialog
