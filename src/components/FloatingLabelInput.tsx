@@ -20,6 +20,7 @@ type Props = {
   onClear?: () => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   inputMode?: React.ComponentProps<"input">["inputMode"];
+  readOnly?: boolean;
 };
 
 const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function FloatingLabelInput(
@@ -39,11 +40,14 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
     onClear,
     onPaste,
     inputMode,
+    readOnly = false,
   },
   ref
 ) {
   const [internal, setInternal] = useState("");
   const val = value ?? internal;
+
+  const selectable = !disabled && !readOnly;
 
   return (
     <div className="relative">
@@ -53,14 +57,32 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, Props>(function Floating
         type={type}
         autoFocus={autoFocus}
         disabled={disabled}
+        readOnly={readOnly}
         value={val}
         onChange={(e) => {
           setInternal(e.target.value);
           onChange?.(e);
         }}
         onBlur={onBlur}
-        onFocus={onFocus}
-        onClick={onClick}
+        onFocus={(e) => {
+          if (selectable) {
+            // Ensure selection after focus settles (mobile-friendly)
+            requestAnimationFrame(() => {
+              try {
+                e.currentTarget.select();
+              } catch {}
+            });
+          }
+          onFocus?.(e);
+        }}
+        onClick={(e) => {
+          if (selectable) {
+            try {
+              e.currentTarget.select();
+            } catch {}
+          }
+          onClick?.(e);
+        }}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
         inputMode={inputMode}
