@@ -45,6 +45,9 @@ const InfoStockTransfer = () => {
   const warehouseRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState<string>("");
   const [lastSearched, setLastSearched] = useState<string | null>(null);
+  // First input dynamic label and item description
+  const [queryLabel, setQueryLabel] = useState<string>(() => t(lang).itemOrHandlingUnit);
+  const [itemDescription, setItemDescription] = useState<string>("");
   // Result fields
   const [warehouse, setWarehouse] = useState<string>("");
   const [location, setLocation] = useState<string>("");
@@ -62,6 +65,21 @@ const InfoStockTransfer = () => {
     if (lang === "pt-BR") return "pt-BR";
     return "en-US";
   }, [lang]);
+
+  // Helper to enrich description for HUs by fetching item details
+  const fetchItemDescription = async (itm?: string | null) => {
+    const code = (itm || "").toString().trim();
+    if (!code) {
+      setItemDescription("");
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("ln-item-info", {
+      body: { item: code, language: locale, company: "1100" },
+    });
+    if (!error && data && data.ok) {
+      setItemDescription((data.description || "").toString());
+    }
+  };
 
   useEffect(() => {
     huRef.current?.focus();
@@ -92,6 +110,9 @@ const InfoStockTransfer = () => {
       setWarehouseEnabled(false);
       setLastSearched(input);
       setShowDetails(true);
+      setQueryLabel(trans.loadHandlingUnit);
+      // Try to fetch item description for HU-based results
+      await fetchItemDescription(d.item);
       if (withLoading && tid) dismissToast(tid);
       return;
     }
@@ -112,6 +133,8 @@ const InfoStockTransfer = () => {
       setQuantity("");
       setStatus("");
       setShowDetails(true);
+      setQueryLabel(trans.itemLabel);
+      setItemDescription((d.description || "").toString());
       setTimeout(() => warehouseRef.current?.focus(), 50);
       return;
     }
@@ -154,7 +177,7 @@ const InfoStockTransfer = () => {
             <div className="flex-1">
               <FloatingLabelInput
                 id="transferQuery"
-                label={trans.itemOrHandlingUnit}
+                label={queryLabel}
                 ref={huRef}
                 value={query}
                 onChange={(e) => {
@@ -162,6 +185,8 @@ const InfoStockTransfer = () => {
                   setQuery(v);
                   setLastSearched(null);
                   if (showDetails) setShowDetails(false);
+                  setItemDescription("");
+                  setQueryLabel(trans.itemOrHandlingUnit);
                 }}
                 onFocus={(e) => {
                   if (e.currentTarget.value.length > 0) e.currentTarget.select();
@@ -180,6 +205,8 @@ const InfoStockTransfer = () => {
                   setStatus("");
                   setWarehouseEnabled(false);
                   setShowDetails(false);
+                  setItemDescription("");
+                  setQueryLabel(trans.itemOrHandlingUnit);
                   huRef.current?.focus();
                 }}
               />
@@ -195,6 +222,11 @@ const InfoStockTransfer = () => {
               <Search className="h-5 w-5" />
             </Button>
           </div>
+
+          {/* Item description appears directly under the first input after load */}
+          {showDetails && itemDescription && (
+            <div className="text-xs text-gray-700 px-1 -mt-1">{itemDescription}</div>
+          )}
 
           {/* Stacked fields (visible only after a successful search) */}
           {showDetails && (
