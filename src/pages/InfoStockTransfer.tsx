@@ -329,6 +329,36 @@ const InfoStockTransfer = () => {
     return { bg: "#e5e7eb", text: "#111827", label: raw || "" };
   };
 
+  // Reset all fields after successful transfer
+  const resetAll = () => {
+    setQuery("");
+    setLastSearched(null);
+    setQueryLabel(trans.itemOrHandlingUnit);
+    setItemDescription("");
+    setWarehouse("");
+    setLocation("");
+    setItem("");
+    setLot("");
+    setQuantity("");
+    setUnit("");
+    setStatus("");
+    setWarehouseEnabled(false);
+    setShowDetails(false);
+    setLastMatchType(null);
+    setTargetWarehouse("");
+    setTargetLocation("");
+    setHandlingUnit("");
+    setLastValidatedTargetWarehouse(null);
+    setLastValidatedTargetLocation(null);
+    setLastLocValidatedForWarehouse(null);
+    setWarehousePickerOpen(false);
+    setTargetWhPickerOpen(false);
+    // Refocus first input
+    requestAnimationFrame(() => {
+      huRef.current?.focus();
+    });
+  };
+
   // Validate typed target warehouse against list (on blur / Enter)
   const ensureTargetWarehouseList = async () => {
     if (Array.isArray(targetWhRows) && targetWhRows.length > 0) return true;
@@ -439,6 +469,7 @@ const InfoStockTransfer = () => {
       return;
     }
     showSuccess("Transfer created");
+    resetAll();
   };
 
   return (
