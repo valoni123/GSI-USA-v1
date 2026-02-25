@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Search, User, CheckSquare, Square } from "lucide-react";
+import LocationPickerDialog from "@/components/LocationPickerDialog";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
@@ -88,6 +89,11 @@ const InfoStockTransfer = () => {
   const [targetWhPickerOpen, setTargetWhPickerOpen] = useState<boolean>(false);
   const [targetWhLoading, setTargetWhLoading] = useState<boolean>(false);
   const [targetWhRows, setTargetWhRows] = useState<Array<{ Warehouse: string; Description?: string; Type?: string }>>([]);
+
+  // From-Location picker (ITEM flow)
+  const [fromLocPickerOpen, setFromLocPickerOpen] = useState<boolean>(false);
+  const [fromLocLoading, setFromLocLoading] = useState<boolean>(false);
+  const [fromLocRows, setFromLocRows] = useState<Array<{ Location: string; OnHand: number; Allocated?: number; Available?: number; Lot?: string | null }>>([]);
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -337,6 +343,40 @@ const InfoStockTransfer = () => {
       .filter((r) => r.Warehouse);
     setWhRows(mapped);
     setWhLoading(false);
+  };
+
+  // Open From-Location picker for ITEM flow
+  const openFromLocationPicker = async () => {
+    if (lastMatchType !== "ITEM") return;
+    const itm = (item || "").trim();
+    const wh = (warehouse || "").trim();
+    if (!itm || !wh) {
+      showError(lang === "de" ? "Bitte zuerst Artikel und Lager setzen" : "Scan item and warehouse first");
+      return;
+    }
+    setFromLocPickerOpen(true);
+    setFromLocLoading(true);
+    const { data, error } = await supabase.functions.invoke("ln-stockpoint-inventory", {
+      body: { item: itm, warehouse: wh, language: locale, company: "1100" },
+    });
+    if (error || !data || !data.ok) {
+      setFromLocRows([]);
+      setFromLocLoading(false);
+      showError(trans.loadingList);
+      return;
+    }
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    const mapped = rows
+      .map((r: any) => ({
+        Location: String(r.Location || r.LocationCode || r.StockPoint || ""),
+        OnHand: Number(r.OnHand ?? r.Quantity ?? 0),
+        Allocated: typeof r.Allocated === "number" ? r.Allocated : undefined,
+        Available: typeof r.Available === "number" ? r.Available : undefined,
+        Lot: typeof r.Lot === "string" ? r.Lot : null,
+      }))
+      .filter((r) => r.Location);
+    setFromLocRows(mapped);
+    setFromLocLoading(false);
   };
 
   // Target warehouses
@@ -688,16 +728,30 @@ const InfoStockTransfer = () => {
                 )}
               </div>
 
-              {/* Location (from) — editable for ITEM flow */}
-              <FloatingLabelInput
-                id="transferLocation"
-                label={trans.locationLabel}
-                ref={fromLocRef}
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                disabled={lastMatchType === "HU"}
-                className={lastMatchType === "HU" ? "bg-gray-100 text-gray-700" : ""}
-              />
+              {/* Location (from) — editable for ITEM flow, with picker */}
+              <div className="relative">
+                <FloatingLabelInput
+                  id="transferLocation"
+                  label={trans.locationLabel}
+                  ref={fromLocRef}
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  disabled={lastMatchType === "HU"}
+                  className={`${lastMatchType === "HU" ? "bg-gray-100 text-gray-700" : ""} pr-12`}
+                />
+                {lastMatchType === "ITEM" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 h-10 w-10"
+                    onClick={openFromLocationPicker}
+                    aria-label={trans.searchLabel}
+                  >
+                    <Search className="h-5 w-5" />
+                  </Button>
+                )}
+              </div>
 
               {/* Quantity + Unit (unit read-only) */}
               <div className="grid grid-cols-[1fr_96px] gap-2">
@@ -938,6 +992,23 @@ const InfoStockTransfer = () => {
               </div>
             </DialogPortal>
           </Dialog>
+
+          {/* From-Location picker dialog */}
+          <LocationPickerDialog
+            open={fromLocPickerOpen}
+            onOpenChange={setFromLocPickerOpen}
+            loading={fromLocLoading}
+            rows={fromLocRows}
+            onPick={(loc) => {
+              setLocation(loc);
+              setFromLocPickerOpen(false);
+              // Next step is Target Warehouse or Target Location depending on flow; keep focus on Location for quick scan
+              setTimeout(() => fromLocRef.current?.focus(), 50);
+            }}
+            title={trans.locationLabel}
+            emptyText={trans.noEntries}
+            loadingText={trans.loadingList}
+          />
 
         </Card>
       </div>
