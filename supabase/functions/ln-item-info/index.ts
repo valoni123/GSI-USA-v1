@@ -127,13 +127,47 @@ serve(async (req) => {
       return json({ ok: false, error: { message: topMessage, details } }, 200);
     }
 
-    // Entity should be a single object for a key-path request
-    const entity = (odataJson && typeof odataJson === "object" && !Array.isArray(odataJson))
-      ? odataJson
-      : (Array.isArray(odataJson?.value) && odataJson.value.length > 0 ? odataJson.value[0] : null);
+    // LN project items may require 9 leading spaces before the item code.
+    const raw = (itemCode || "");
+    const trimmed = raw.trim();
+    const nineSpaced = `         ${trimmed}`; // 9 leading spaces
+    const candidates = [raw, trimmed, nineSpaced]
+      .filter((v, i, arr) => typeof v === "string" && v.length > 0 && arr.indexOf(v) === i);
+
+    let entity: any = null;
+    let lastError: any = null;
+    for (const candidate of candidates) {
+      const escaped = candidate.replace(/'/g, "''");
+      const path = `/${ti}/LN/lnapi/odata/tcapi.ibdItem/Items(Item='${escaped}')`;
+      const url = `${base}${path}`;
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          "Content-Language": language,
+          "X-Infor-LnCompany": company,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }).catch(() => null as unknown as Response);
+      if (!res) {
+        lastError = { error: "odata_network_error" };
+        continue;
+      }
+      const body = await res.json().catch(() => null) as any;
+      if (!res.ok || !body) {
+        lastError = body;
+        continue;
+      }
+      entity = (body && typeof body === "object" && !Array.isArray(body))
+        ? body
+        : (Array.isArray(body?.value) && body.value.length > 0 ? body.value[0] : null);
+      if (entity) break;
+    }
 
     if (!entity) {
-      return json({ ok: false, error: { message: "not_found" } }, 200);
+      const topMessage = lastError?.error?.message || "odata_error";
+      const details = Array.isArray(lastError?.error?.details) ? lastError.error.details : [];
+      return json({ ok: false, error: topMessage, details }, 404);
     }
 
     const item = entity.Item ?? entity.ItemCode ?? itemCode;
