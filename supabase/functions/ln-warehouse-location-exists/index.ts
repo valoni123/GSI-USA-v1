@@ -84,6 +84,33 @@ serve(async (req) => {
     // OData request to validate location existence
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const escapedWh = warehouse.replace(/'/g, "''");
+
+    // Special case: location="*" means "validate warehouse exists"
+    if (location === "*") {
+      const path = `/${ti}/LN/lnapi/odata/whapi.wmdWarehouse/Warehouses(Warehouse='${escapedWh}')`;
+      const url = `${base}${path}?$select=Warehouse`;
+
+      const headers = {
+        accept: "application/json",
+        "Content-Language": language,
+        "X-Infor-LnCompany": company,
+        Authorization: `Bearer ${accessToken}`,
+      } as const;
+
+      const res = await fetch(url, { method: "GET", headers }).catch(() => null as unknown as Response);
+      if (!res) return json({ ok: false, error: "odata_network_error" }, 200);
+      const ojson = (await res.json().catch(() => null)) as any;
+
+      if (!res.ok) {
+        if (res.status === 404) return json({ ok: true, exists: false }, 200);
+        const top = ojson?.error?.message || "odata_error";
+        const details = Array.isArray(ojson?.error?.details) ? ojson.error.details : [];
+        return json({ ok: false, error: { message: top, details } }, 200);
+      }
+
+      return json({ ok: true, exists: true }, 200);
+    }
+
     const escapedLoc = location.replace(/'/g, "''");
 
     const qp = new URLSearchParams();
@@ -102,14 +129,19 @@ serve(async (req) => {
 
     const res = await fetch(url, { method: "GET", headers }).catch(() => null as unknown as Response);
     if (!res) return json({ ok: false, error: "odata_network_error" }, 200);
-    const ojson = await res.json().catch(() => null) as any;
+    const ojson = (await res.json().catch(() => null)) as any;
     if (!res.ok || !ojson) {
       const top = ojson?.error?.message || "odata_error";
       const details = Array.isArray(ojson?.error?.details) ? ojson.error.details : [];
       return json({ ok: false, error: { message: top, details } }, 200);
     }
 
-    const count = typeof ojson?.["@odata.count"] === "number" ? ojson["@odata.count"] : Array.isArray(ojson?.value) ? ojson.value.length : 0;
+    const count =
+      typeof ojson?.["@odata.count"] === "number"
+        ? ojson["@odata.count"]
+        : Array.isArray(ojson?.value)
+          ? ojson.value.length
+          : 0;
     return json({ ok: true, exists: count > 0, count }, 200);
   } catch {
     return json({ ok: false, error: { message: "unhandled" } }, 200);

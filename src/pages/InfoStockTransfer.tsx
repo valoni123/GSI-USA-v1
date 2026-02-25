@@ -349,8 +349,8 @@ const InfoStockTransfer = () => {
     });
     setCheckingTargetLocation(false);
 
-    if (error || !data || !data.ok) {
-      showError(trans.loadingList);
+    if (error || !data || !data.ok || data.exists !== true) {
+      showError(trans.noEntries);
       setLastValidatedTargetWarehouse(null);
       return;
     }
@@ -362,6 +362,14 @@ const InfoStockTransfer = () => {
     const wh = (targetWarehouse || "").trim();
     const loc = (targetLocation || "").trim();
     if (!wh || !loc) return;
+
+    // Must be different from current Location
+    if ((location || "").trim().toLowerCase() === loc.toLowerCase()) {
+      showError(lang === "de" ? "Target Location darf nicht gleich Location sein" : "Target Location must differ from Location");
+      setLastValidatedTargetLocation(null);
+      setLastLocValidatedForWarehouse(null);
+      return;
+    }
 
     if (
       (lastValidatedTargetLocation || "").toLowerCase() === loc.toLowerCase() &&
@@ -376,8 +384,8 @@ const InfoStockTransfer = () => {
     });
     setCheckingTargetLocation(false);
 
-    if (error || !data || !data.ok) {
-      showError(trans.loadingList);
+    if (error || !data || !data.ok || data.exists !== true) {
+      showError(trans.noEntries);
       setLastValidatedTargetLocation(null);
       setLastLocValidatedForWarehouse(null);
       return;
