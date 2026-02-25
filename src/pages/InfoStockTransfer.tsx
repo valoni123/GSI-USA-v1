@@ -355,7 +355,15 @@ const InfoStockTransfer = () => {
     if (error || !data || !data.ok || !data.exists) {
       showError("Location not found");
       setTargetLocation("");
-      setTimeout(() => targetLocRef.current?.focus(), 0);
+      // Return focus to the Target Location field and select it to guide the user
+      requestAnimationFrame(() => {
+        const el = targetLocRef.current;
+        if (el) {
+          el.focus();
+          try { (el as any).select?.(); } catch {}
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
     }
     setCheckingTargetLocation(false);
   };
