@@ -21,6 +21,13 @@ const InfoStockTransfer = () => {
   });
   const trans = useMemo(() => t(lang), [lang]);
 
+  // Show perf timings in dev to identify bottlenecks
+  const [perfEnabled, setPerfEnabled] = useState<boolean>(() => Boolean(import.meta.env.DEV));
+  const [huPerf, setHuPerf] = useState<any | null>(null);
+  const [itemPerf, setItemPerf] = useState<any | null>(null);
+  const [clientHuMs, setClientHuMs] = useState<number | null>(null);
+  const [clientItemMs, setClientItemMs] = useState<number | null>(null);
+
   const [fullName, setFullName] = useState<string>("");
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
@@ -100,15 +107,22 @@ const InfoStockTransfer = () => {
     const code = (itm || "").toString().trim();
     if (!code) {
       setItemDescription("");
+      setItemPerf(null);
+      setClientItemMs(null);
       return;
     }
+    const tStart = performance.now();
     const { data, error } = await supabase.functions.invoke("ln-item-info", {
-      body: { item: code, language: locale, company: "1100" },
+      body: { item: code, language: locale, company: "1100", debug: perfEnabled },
     });
+    setClientItemMs(performance.now() - tStart);
+
     if (!error && data && data.ok) {
       setItemDescription((data.description || "").toString());
+      setItemPerf(data.perf ?? null);
     } else {
       setItemDescription("");
+      setItemPerf(null);
     }
   };
 
@@ -224,14 +238,24 @@ const InfoStockTransfer = () => {
     if (!input) return;
     if (lastSearched === input) return;
 
+    // reset perf snapshot for a new scan
+    setHuPerf(null);
+    setItemPerf(null);
+    setClientHuMs(null);
+    setClientItemMs(null);
+
     setSearching(true);
 
     // Try Handling Unit
+    const huStart = performance.now();
     const huRes = await supabase.functions.invoke("ln-handling-unit-info", {
-      body: { handlingUnit: input, language: locale, company: "1100" },
+      body: { handlingUnit: input, language: locale, company: "1100", debug: perfEnabled },
     });
+    setClientHuMs(performance.now() - huStart);
+
     if (huRes.data && huRes.data.ok) {
       const d = huRes.data;
+      setHuPerf(d.perf ?? null);
       setItem(d.item || "");
       setHandlingUnit((d.handlingUnit || input).toString());
       setWarehouse(d.warehouse || "");
@@ -249,18 +273,22 @@ const InfoStockTransfer = () => {
       setLastMatchType("HU");
       setItemDescription("");
 
-      // Important: don't keep the full-screen spinner up while description is loading.
+      // Don't keep the full-screen spinner up while description is loading.
       setSearching(false);
       void fetchItemDescription(d.item);
       return;
     }
 
     // Try Item
+    const itemStart = performance.now();
     const itemRes = await supabase.functions.invoke("ln-item-info", {
-      body: { item: input, language: locale, company: "1100" },
+      body: { item: input, language: locale, company: "1100", debug: perfEnabled },
     });
+    setClientItemMs(performance.now() - itemStart);
+
     if (itemRes.data && itemRes.data.ok) {
       const d = itemRes.data;
+      setItemPerf(d.perf ?? null);
       setItem(d.item || input);
       setHandlingUnit("");
       setUnit((d.unit || "").toString());
@@ -538,15 +566,27 @@ const InfoStockTransfer = () => {
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-red-500 hover:text-red-600 hover:bg-white/10"
-            aria-label={trans.signOut}
-            onClick={() => setSignOutOpen(true)}
-          >
-            <LogOut className="h-6 w-6" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {import.meta.env.DEV && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={perfEnabled ? "text-emerald-300 hover:bg-white/10" : "text-gray-300 hover:bg-white/10"}
+                onClick={() => setPerfEnabled((v) => !v)}
+              >
+                Perf
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-red-500 hover:text-red-600 hover:bg-white/10"
+              aria-label={trans.signOut}
+              onClick={() => setSignOutOpen(true)}
+            >
+              <LogOut className="h-6 w-6" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -569,6 +609,10 @@ const InfoStockTransfer = () => {
                   setItemDescription("");
                   setQueryLabel(trans.itemOrHandlingUnit);
                   setLastMatchType(null);
+                  setHuPerf(null);
+                  setItemPerf(null);
+                  setClientHuMs(null);
+                  setClientItemMs(null);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -645,6 +689,42 @@ const InfoStockTransfer = () => {
                   itemDescription
                 )}
               </div>
+
+              {perfEnabled && (huPerf || itemPerf || clientHuMs != null || clientItemMs != null) && (
+                <div className="mt-2 rounded-md border bg-white px-3 py-2 text-[11px] text-gray-700">
+                  {clientHuMs != null && (
+                    <div className="flex justify-between gap-3">
+                      <span className="font-semibold">HU client:</span>
+                      <span>{Math.round(clientHuMs)} ms</span>
+                    </div>
+                  )}
+                  {huPerf && (
+                    <div className="mt-1 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
+                      <div>HU server total</div><div className="text-right">{Math.round(huPerf.totalMs)} ms</div>
+                      <div>• odata</div><div className="text-right">{Math.round(huPerf.odataMs)} ms</div>
+                      <div>• token</div><div className="text-right">{Math.round(huPerf.tokenMs)} ms {huPerf.tokenCached ? "(cached)" : ""}</div>
+                      <div>• config</div><div className="text-right">{Math.round(huPerf.cfgMs)} ms {huPerf.cfgCached ? "(cached)" : ""}</div>
+                      <div>• company</div><div className="text-right">{Math.round(huPerf.companyMs)} ms</div>
+                    </div>
+                  )}
+
+                  {clientItemMs != null && (
+                    <div className="mt-2 flex justify-between gap-3">
+                      <span className="font-semibold">Item client:</span>
+                      <span>{Math.round(clientItemMs)} ms</span>
+                    </div>
+                  )}
+                  {itemPerf && (
+                    <div className="mt-1 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
+                      <div>Item server total</div><div className="text-right">{Math.round(itemPerf.totalMs)} ms</div>
+                      <div>• odata</div><div className="text-right">{Math.round(itemPerf.odataMs)} ms</div>
+                      <div>• token</div><div className="text-right">{Math.round(itemPerf.tokenMs)} ms {itemPerf.tokenCached ? "(cached)" : ""}</div>
+                      <div>• config</div><div className="text-right">{Math.round(itemPerf.cfgMs)} ms {itemPerf.cfgCached ? "(cached)" : ""}</div>
+                      <div>• company</div><div className="text-right">{Math.round(itemPerf.companyMs)} ms</div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
