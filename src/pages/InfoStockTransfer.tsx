@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Search, User, CheckSquare, Square } from "lucide-react";
+import ScreenSpinner from "@/components/ScreenSpinner";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -167,16 +168,13 @@ const InfoStockTransfer = () => {
     }
   };
 
-  // Main search handler: HU first, then ITEM
-  const handleSearch = async (withLoading = false) => {
+  const [searching, setSearching] = useState<boolean>(false);
+  const handleSearch = async (_withLoading = false) => {
     const input = query.trim();
     if (!input) return;
     if (lastSearched === input) return;
 
-    let tid: string | null = null;
-    if (withLoading) {
-      tid = showLoading(trans.loadingDetails) as unknown as string;
-    }
+    setSearching(true);
 
     // Try Handling Unit
     const huRes = await supabase.functions.invoke("ln-handling-unit-info", {
@@ -199,7 +197,7 @@ const InfoStockTransfer = () => {
       setQueryLabel(trans.loadHandlingUnit);
       setLastMatchType("HU");
       await fetchItemDescription(d.item);
-      if (withLoading && tid) dismissToast(tid);
+      setSearching(false);
       return;
     }
 
@@ -207,7 +205,6 @@ const InfoStockTransfer = () => {
     const itemRes = await supabase.functions.invoke("ln-item-info", {
       body: { item: input, language: locale, company: "1100" },
     });
-    if (withLoading && tid) dismissToast(tid);
     if (itemRes.data && itemRes.data.ok) {
       const d = itemRes.data;
       setItem(d.item || input);
@@ -225,10 +222,12 @@ const InfoStockTransfer = () => {
       setLastMatchType("ITEM");
       setItemDescription((d.description || "").toString());
       setTimeout(() => warehouseRef.current?.focus(), 50);
+      setSearching(false);
       return;
     }
 
     showError(trans.noEntries);
+    setSearching(false);
   };
 
   // Open and load warehouses for current item (picker)
@@ -579,6 +578,8 @@ const InfoStockTransfer = () => {
               )}
             </div>
           )}
+
+          {(searching) && <ScreenSpinner message={trans.pleaseWait} />}
 
           {/* Item warehouse picker dialog */}
           <Dialog open={warehousePickerOpen} onOpenChange={setWarehousePickerOpen}>
