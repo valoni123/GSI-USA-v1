@@ -117,6 +117,7 @@ const InfoStockTransfer = () => {
   // Searching flags (used in canTransfer)
   const [searching, setSearching] = useState<boolean>(false);
   const [checkingTargetLocation, setCheckingTargetLocation] = useState<boolean>(false);
+  const [transferring, setTransferring] = useState<boolean>(false);
 
   // Status helpers
   const normalizeStatus = (raw?: string | null): string | null => {
@@ -445,6 +446,7 @@ const InfoStockTransfer = () => {
       showError("Transfers are currently supported for handling units only");
       return;
     }
+    setTransferring(true);
     const login = (localStorage.getItem("gsi.employee") || localStorage.getItem("gsi.login") || "").toString();
     const qtyNum = Number(quantity || "0");
     const { data, error } = await supabase.functions.invoke("ln-transfer-handling-unit", {
@@ -466,8 +468,10 @@ const InfoStockTransfer = () => {
     if (error || !data || !data.ok) {
       const msg = (data && (data.error?.message || data.error)) || "Transfer failed";
       showError(typeof msg === "string" ? msg : "Transfer failed");
+      setTransferring(false);
       return;
     }
+    setTransferring(false);
     showSuccess("Transfer completed");
     resetAll();
   };
@@ -713,7 +717,7 @@ const InfoStockTransfer = () => {
             </div>
           )}
 
-          {(searching || checkingTargetLocation) && <ScreenSpinner message={trans.pleaseWait} />}
+          {(searching || checkingTargetLocation || transferring) && <ScreenSpinner message={trans.pleaseWait} />}
 
           {/* Item warehouse picker dialog */}
           <Dialog open={warehousePickerOpen} onOpenChange={setWarehousePickerOpen}>
