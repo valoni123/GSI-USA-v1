@@ -107,6 +107,8 @@ const InfoStockTransfer = () => {
     });
     if (!error && data && data.ok) {
       setItemDescription((data.description || "").toString());
+    } else {
+      setItemDescription("");
     }
   };
 
@@ -245,8 +247,11 @@ const InfoStockTransfer = () => {
       setShowDetails(true);
       setQueryLabel(trans.loadHandlingUnit);
       setLastMatchType("HU");
-      await fetchItemDescription(d.item);
+      setItemDescription("");
+
+      // Important: don't keep the full-screen spinner up while description is loading.
       setSearching(false);
+      void fetchItemDescription(d.item);
       return;
     }
 
@@ -614,8 +619,8 @@ const InfoStockTransfer = () => {
             </Button>
           </div>
 
-          {/* Description + Status chip (HU only). Pad right to align with input's search icon width */}
-          {showDetails && itemDescription && (
+          {/* Description + Status chip. Pad right to align with input's search icon width */}
+          {showDetails && (lastMatchType === "HU" || itemDescription) && (
             <div className="mt-2">
               <div className="flex items-center justify-between pr-12">
                 <span className="inline-flex items-center rounded-full bg-gray-200 text-gray-800 px-3 py-1 text-xs font-semibold">
@@ -628,9 +633,17 @@ const InfoStockTransfer = () => {
                 )}
               </div>
               <div className="mt-1 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-900">
-                {lastMatchType === "HU" && (item || "").trim()
-                  ? `${(item || "").trim()} - ${itemDescription}`
-                  : itemDescription}
+                {lastMatchType === "HU" ? (
+                  (item || "").trim() ? (
+                    itemDescription
+                      ? `${(item || "").trim()} - ${itemDescription}`
+                      : `${(item || "").trim()} - ${trans.loadingList}`
+                  ) : (
+                    itemDescription || trans.loadingList
+                  )
+                ) : (
+                  itemDescription
+                )}
               </div>
             </div>
           )}

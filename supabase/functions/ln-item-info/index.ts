@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCompanyFromParams } from "../_shared/company.ts";
+import { getIonApiAccessToken, getIonApiConfig } from "../_shared/ionapi.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,11 +14,6 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-function buildTokenUrl(pu: string, ot: string) {
-  const base = pu.endsWith("/") ? pu : pu + "/";
-  return base + ot.replace(/^\//, "");
 }
 
 serve(async (req) => {
@@ -38,15 +34,6 @@ serve(async (req) => {
 
     const itemCode = (body.item || "").trim();
     const language = body.language || "en-US";
-    const company = await (async () => {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL");
-      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (!supabaseUrl || !serviceRoleKey) {
-        throw new Error("env_missing");
-      }
-      const supabase = createClient(supabaseUrl, serviceRoleKey);
-      return await getCompanyFromParams(supabase);
-    })();
     if (!itemCode) {
       return json({ ok: false, error: "missing_item" }, 200);
     }
@@ -58,53 +45,13 @@ serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get decrypted credentials via RPC
-    const { data: cfgData } = await supabase.rpc("get_active_ionapi");
-    const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
-    if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
+    const company = (body.company || "").trim() || (await getCompanyFromParams(supabase));
 
-    const { ci, cs, pu, ot, grant_type } = cfg as {
-      ci: string; cs: string; pu: string; ot: string; grant_type: string;
-    };
-    const grantType = grant_type === "password_credentials" ? "password" : grant_type;
-
-    // Get iu and ti from active row
-    const { data: activeRow } = await supabase
-      .from("ionapi_oauth2")
-      .select("iu, ti")
-      .eq("active", true)
-      .limit(1)
-      .maybeSingle();
-    if (!activeRow) return json({ ok: false, error: "no_active_config_row" }, 200);
-    const iu: string = activeRow.iu;
-    const ti: string = activeRow.ti;
-
-    // Token
-    const basic = btoa(`${ci}:${cs}`);
-    const tokenParams = new URLSearchParams();
-    tokenParams.set("grant_type", grantType);
-    // We rely on decrypted values from get_active_ionapi() for username/password
-    const { saak, sask } = cfg as { saak: string; sask: string };
-    tokenParams.set("username", saak);
-    tokenParams.set("password", sask);
-
-    const tokenRes = await fetch(buildTokenUrl(pu, ot), {
-      method: "POST",
-      headers: {
-        "Authorization": `Basic ${basic}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: tokenParams.toString(),
-    }).catch(() => null as unknown as Response);
-    if (!tokenRes) return json({ ok: false, error: "token_network_error" }, 200);
-    const tokenJson = await tokenRes.json().catch(() => null) as any;
-    if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
-      return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
-    }
-    const accessToken = tokenJson.access_token as string;
+    const cfg = await getIonApiConfig(supabase);
+    const accessToken = await getIonApiAccessToken(supabase);
 
     // Build LN OData base URL
-    const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
+    const base = cfg.iu.endsWith("/") ? cfg.iu.slice(0, -1) : cfg.iu;
     // LN project items may require 9 leading spaces before the item code.
     const trimmed = (itemCode || "").trim();
     const nineSpaced = `         ${trimmed}`; // exactly 9 leading spaces
@@ -115,7 +62,7 @@ serve(async (req) => {
     let lastError: any = null;
     for (const candidate of candidates) {
       const escaped = candidate.replace(/'/g, "''");
-      const path = `/${ti}/LN/lnapi/odata/tcapi.ibdItem/Items(Item='${escaped}')`;
+      const path = `/${cfg.ti}/LN/lnapi/odata/tcapi.ibdItem/Items(Item='${escaped}')`;
       const url = `${base}${path}?$select=%2A&$expand=InventoryUnitRef`;
       const res = await fetch(url, {
         method: "GET",
@@ -130,14 +77,17 @@ serve(async (req) => {
         lastError = { error: "odata_network_error" };
         continue;
       }
-      const body = await res.json().catch(() => null) as any;
-      if (!res.ok || !body) {
-        lastError = body;
+      const resBody = (await res.json().catch(() => null)) as any;
+      if (!res.ok || !resBody) {
+        lastError = resBody;
         continue;
       }
-      entity = (body && typeof body === "object" && !Array.isArray(body))
-        ? body
-        : (Array.isArray(body?.value) && body.value.length > 0 ? body.value[0] : null);
+      entity =
+        resBody && typeof resBody === "object" && !Array.isArray(resBody)
+          ? resBody
+          : Array.isArray(resBody?.value) && resBody.value.length > 0
+            ? resBody.value[0]
+            : null;
       if (entity) break;
     }
 
