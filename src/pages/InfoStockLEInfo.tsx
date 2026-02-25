@@ -199,9 +199,8 @@ const InfoStockLEInfo = () => {
     );
   })();
 
-  // Style matching the status color for "To be inspected"
-  const toBeInspectedBarClass =
-    "fixed inset-x-0 bottom-0 z-40";
+  // Floating CTA position (centered above bottom)
+  const toBeInspectedBarClass = "fixed left-1/2 -translate-x-1/2 bottom-6 z-40";
 
   const startInspection = () => {
     const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
@@ -380,17 +379,15 @@ const InfoStockLEInfo = () => {
       {/* Action bar for 'To be inspected' */}
       {data && isToBeInspected && (
         <div className={toBeInspectedBarClass}>
-          <div className="mx-auto max-w-md px-3 py-3">
-            <button
-              type="button"
-              onClick={() => setConfirmOpen(true)}
-              className="w-full flex items-center justify-center gap-2 h-12 rounded-md shadow-md"
-              style={{ backgroundColor: "#a876eb", color: "#ffffff" }}
-            >
-              <ClipboardCheck className="h-5 w-5 text-white" />
-              <span className="text-sm font-semibold">Start Inspection</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            className="flex items-center justify-center gap-2 h-10 px-4 rounded-md shadow-lg"
+            style={{ backgroundColor: "#a876eb", color: "#ffffff" }}
+          >
+            <ClipboardCheck className="h-4 w-4 text-white" />
+            <span className="text-sm font-semibold">Start Inspection</span>
+          </button>
         </div>
       )}
 
