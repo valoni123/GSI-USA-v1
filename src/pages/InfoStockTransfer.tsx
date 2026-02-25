@@ -708,7 +708,6 @@ const InfoStockTransfer = () => {
                   onChange={(e) => {
                     const v = e.target.value;
                     setWarehouse(v);
-                    if (!targetWarehouse) setTargetWarehouse(v);
                   }}
                   disabled={!warehouseEnabled}
                   className="pr-12"
@@ -886,7 +885,6 @@ const InfoStockTransfer = () => {
                             className="w-full text-left px-3 py-2 rounded-md border mb-1.5 bg-gray-50 hover:bg-gray-100"
                             onClick={() => {
                               setWarehouse(r.Warehouse);
-                              setTargetWarehouse(r.Warehouse);
                               setWarehousePickerOpen(false);
                               // NACH Warehouse-Auswahl immer ins obere Location-Feld springen (ITEM-Flow)
                               if (lastMatchType === "ITEM") {
