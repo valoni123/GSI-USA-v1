@@ -48,6 +48,7 @@ const InfoStockTransfer = () => {
   const targetWhRef = useRef<HTMLInputElement | null>(null);
   const targetLocRef = useRef<HTMLInputElement | null>(null);
   const fromLocRef = useRef<HTMLInputElement | null>(null);
+  const quantityRef = useRef<HTMLInputElement | null>(null);
 
   // First input + dynamic label/description
   const [query, setQuery] = useState<string>("");
@@ -111,6 +112,51 @@ const InfoStockTransfer = () => {
       window.clearTimeout(t2);
       window.clearTimeout(t3);
     }, 600);
+  };
+
+  // Fokus zuverlässig ins Mengenfeld
+  const focusQuantity = () => {
+    const focus = () => {
+      const el = quantityRef.current || (document.getElementById("transferQuantity") as HTMLInputElement | null);
+      el?.focus();
+    };
+    focus();
+    requestAnimationFrame(focus);
+    const t1 = window.setTimeout(focus, 50);
+    const t2 = window.setTimeout(focus, 200);
+    const t3 = window.setTimeout(focus, 500);
+    window.setTimeout(() => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+    }, 600);
+  };
+
+  // Menge/Einheit aus gewählter/eingegebener Location holen (ITEM-Flow)
+  const prefillFromLocation = async () => {
+    if (lastMatchType !== "ITEM") return;
+    const itm = (item || "").trim();
+    const wh = (warehouse || "").trim();
+    const loc = (location || "").trim();
+    if (!itm || !wh || !loc) return;
+    const { data, error } = await supabase.functions.invoke("ln-stockpoint-inventory", {
+      body: { item: itm, warehouse: wh, location: loc, language: locale, company: "1100" },
+    });
+    if (error || !data || !data.ok) {
+      // Falls Service scheitert, keine Änderung erzwingen
+      return;
+    }
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    const first = rows[0];
+    if (first) {
+      const avail = typeof first.Available === "number" ? first.Available : undefined;
+      const onHand = typeof first.OnHand === "number" ? first.OnHand : undefined;
+      const unitVal = typeof first.Unit === "string" ? first.Unit : (typeof first.InventoryUnit === "string" ? first.InventoryUnit : "");
+      const qtyNum = typeof avail === "number" ? avail : (typeof onHand === "number" ? onHand : undefined);
+      if (typeof qtyNum === "number") setQuantity(String(qtyNum));
+      if (unitVal) setUnit(unitVal);
+      focusQuantity();
+    }
   };
 
   const locale = useMemo(() => {
@@ -754,6 +800,13 @@ const InfoStockTransfer = () => {
                   ref={fromLocRef}
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  onBlur={() => { if ((location || "").trim()) { void prefillFromLocation(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (location || "").trim()) {
+                      e.preventDefault();
+                      void prefillFromLocation();
+                    }
+                  }}
                   disabled={lastMatchType === "HU"}
                   className={`${lastMatchType === "HU" ? "bg-gray-100 text-gray-700" : ""} pr-12`}
                 />
@@ -778,6 +831,7 @@ const InfoStockTransfer = () => {
                   label={trans.quantityLabel}
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
+                  ref={quantityRef}
                   inputMode="decimal"
                 />
                 <FloatingLabelInput id="transferUnit" label={trans.unitLabel} value={unit} disabled />
@@ -1018,9 +1072,15 @@ const InfoStockTransfer = () => {
             rows={fromLocRows}
             onPick={(loc) => {
               setLocation(loc);
+              // Beim Auswählen gleich Menge/Einheit aus der gewählten Zeile übernehmen
+              const picked = fromLocRows.find((r) => r.Location === loc);
+              if (picked) {
+                const qtyNum = typeof picked.Available === "number" ? picked.Available : picked.OnHand;
+                if (typeof qtyNum === "number") setQuantity(String(qtyNum));
+                if (picked.Unit) setUnit(picked.Unit);
+              }
               setFromLocPickerOpen(false);
-              // Next step is Target Warehouse or Target Location depending on flow; keep focus on Location for quick scan
-              setTimeout(() => fromLocRef.current?.focus(), 50);
+              focusQuantity();
             }}
             title={trans.locationLabel}
             emptyText={trans.noEntries}
