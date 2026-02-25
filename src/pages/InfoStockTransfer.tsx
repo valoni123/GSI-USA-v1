@@ -57,6 +57,7 @@ const InfoStockTransfer = () => {
   const [warehouse, setWarehouse] = useState<string>("");
   const [location, setLocation] = useState<string>("");
   const [item, setItem] = useState<string>("");
+  const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [lot, setLot] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("");
   const [unit, setUnit] = useState<string>("");
@@ -205,6 +206,7 @@ const InfoStockTransfer = () => {
     if (huRes.data && huRes.data.ok) {
       const d = huRes.data;
       setItem(d.item || "");
+      setHandlingUnit((d.handlingUnit || input).toString());
       setWarehouse(d.warehouse || "");
       setTargetWarehouse(d.warehouse || "");
       setLocation(d.location || "");
@@ -230,6 +232,7 @@ const InfoStockTransfer = () => {
     if (itemRes.data && itemRes.data.ok) {
       const d = itemRes.data;
       setItem(d.item || input);
+      setHandlingUnit("");
       setUnit((d.unit || "").toString());
       setWarehouseEnabled(true);
       setLastSearched(input);
@@ -404,6 +407,38 @@ const InfoStockTransfer = () => {
       setLastLocValidatedForWarehouse(wh);
     }
     setCheckingTargetLocation(false);
+  };
+
+  const handleTransfer = async () => {
+    if (!canTransfer) return;
+    if (lastMatchType !== "HU") {
+      showError("Transfers are currently supported for handling units only");
+      return;
+    }
+    const login = (localStorage.getItem("gsi.employee") || localStorage.getItem("gsi.login") || "").toString();
+    const qtyNum = Number(quantity || "0");
+    const { data, error } = await supabase.functions.invoke("ln-transfer-handling-unit", {
+      body: {
+        TransferID: "",
+        VonLager: (warehouse || "").trim(),
+        VonLagerplatz: (location || "").trim(),
+        InLager: (targetWarehouse || "").trim(),
+        AufLagerplatz: (targetLocation || "").trim(),
+        Ladeeinheit: (handlingUnit || query || "").trim(),
+        Menge: qtyNum,
+        LoginCode: login,
+        Mitarbeiter: login,
+        FromWebserver: "Yes",
+        language: locale,
+        company: "1100",
+      },
+    });
+    if (error || !data || !data.ok) {
+      const msg = (data && (data.error?.message || data.error)) || "Transfer failed";
+      showError(typeof msg === "string" ? msg : "Transfer failed");
+      return;
+    }
+    showSuccess("Transfer created");
   };
 
   return (
@@ -779,7 +814,7 @@ const InfoStockTransfer = () => {
             className="w-full h-12 text-base"
             variant={canTransfer ? "destructive" : "secondary"}
             disabled={!canTransfer}
-            onClick={() => showSuccess("Ready to transfer")}
+            onClick={handleTransfer}
           >
             TRANSFER
           </Button>
