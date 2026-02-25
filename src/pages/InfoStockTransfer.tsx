@@ -862,10 +862,24 @@ const InfoStockTransfer = () => {
                             setTimeout(() => targetLocRef.current?.focus(), 50);
                           }}
                         >
-                          <div className="grid grid-cols-[1fr] gap-1">
-                            <div className="text-sm text-gray-900">{r.Warehouse}</div>
-                            {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
-                            {r.Type && <div className="text-[11px] text-gray-500">{r.Type}</div>}
+                          <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                            <div className="flex flex-col">
+                              <div className="text-sm text-gray-900">{r.Warehouse}</div>
+                              {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
+                            </div>
+                            {r.Type ? (
+                              <span
+                                className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold capitalize ${
+                                  r.Type.toLowerCase() === "normal"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : r.Type.toLowerCase().includes("blocked")
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-gray-200 text-gray-800"
+                                }`}
+                              >
+                                {r.Type}
+                              </span>
+                            ) : null}
                           </div>
                         </button>
                       ))}
