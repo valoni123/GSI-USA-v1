@@ -405,6 +405,16 @@ const InfoStockTransfer = () => {
                   setQueryLabel(trans.itemOrHandlingUnit);
                   setLastMatchType(null);
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    void handleSearch(true);
+                  }
+                }}
+                onBlur={() => {
+                  if (query.trim()) {
+                    void handleSearch(true);
+                  }
+                }}
                 onFocus={(e) => {
                   if (e.currentTarget.value.length > 0) e.currentTarget.select();
                 }}
