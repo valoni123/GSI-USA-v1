@@ -118,7 +118,11 @@ serve(async (req) => {
     }
 
     if (!entity) {
-      const topMessage = lastError?.error?.message || "odata_error";
+      const rawTopMessage = lastError?.error?.message || "odata_error";
+      const topMessage =
+        typeof rawTopMessage === "string" && rawTopMessage.toLowerCase().includes("cannot be read from table items")
+          ? "not_found"
+          : rawTopMessage;
       const details = Array.isArray(lastError?.error?.details) ? lastError.error.details : [];
       const totalMs = performance.now() - t0;
       if (debug) {

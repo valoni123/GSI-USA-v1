@@ -277,6 +277,14 @@ const InfoStockTransfer = () => {
       return;
     }
 
+    // If it looks like a HU, don't fall back to item search (avoids confusing LN Items errors)
+    const looksLikeHU = input.includes("-") || input.length >= 14;
+    if (looksLikeHU) {
+      showError(trans.huNotFoundGeneric);
+      setSearching(false);
+      return;
+    }
+
     // Try Item
     const itemStart = performance.now();
     const itemRes = await supabase.functions.invoke("ln-item-info", {
