@@ -869,13 +869,35 @@ const InfoStockTransfer = () => {
                             </div>
                             {r.Type ? (
                               <span
-                                className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold capitalize ${
-                                  r.Type.toLowerCase() === "normal"
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : r.Type.toLowerCase().includes("blocked")
-                                      ? "bg-red-100 text-red-800"
-                                      : "bg-gray-200 text-gray-800"
-                                }`}
+                                className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold ${(() => {
+                                  const t = r.Type.toLowerCase();
+                                  if (t === "normal" || t === "service und instandhaltung") {
+                                    return "bg-orange-500 text-white";
+                                  }
+                                  if (t === "produktion") {
+                                    return "bg-emerald-500 text-white";
+                                  }
+                                  if (t === "projekt") {
+                                    return "bg-sky-500 text-white";
+                                  }
+                                  if (t === "service (ts) im kundeneigentum") {
+                                    return "bg-orange-200 text-orange-900";
+                                  }
+                                  if (t === "service-reklamation") {
+                                    return "bg-red-500 text-white";
+                                  }
+                                  if (t === "fremder konsignationsbestand") {
+                                    return "bg-lime-200 text-lime-900";
+                                  }
+                                  if (t === "eigener konsignationsbestand") {
+                                    return "bg-green-500 text-white";
+                                  }
+                                  if (t === "kaufmännisches lager" || t === "kaufmaennisches lager") {
+                                    return "bg-fuchsia-500 text-white";
+                                  }
+                                  // fallback
+                                  return "bg-gray-200 text-gray-800";
+                                })()}`}
                               >
                                 {r.Type}
                               </span>
