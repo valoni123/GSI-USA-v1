@@ -36,9 +36,7 @@ serve(async (req) => {
       return json({ ok: false, error: "invalid_json" }, 200);
     }
 
-    const rawItem = body.item || "";
-    const trimmedItem = rawItem.trim();
-    const paddedItem = `${" ".repeat(9)}${trimmedItem}`;
+    const item = (body.item || "").trim();
     const language = body.language || "en-US";
     const company = await (async () => {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -49,9 +47,8 @@ serve(async (req) => {
       const supabase = createClient(supabaseUrl, serviceRoleKey);
       return await getCompanyFromParams(supabase);
     })();
-    if (!trimmedItem) {
-      return json({ ok: false, error: "missing_item" }, 200);
-    }
+
+    if (!item) return json({ ok: false, error: "missing_item" }, 200);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -60,17 +57,17 @@ serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get decrypted config
+    // Decrypted OAuth config
     const { data: cfgData } = await supabase.rpc("get_active_ionapi");
     const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
     if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
 
-    const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
-      ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
+    const { ci, cs, pu, ot, grant_type } = cfg as {
+      ci: string; cs: string; pu: string; ot: string; grant_type: string;
     };
     const grantType = grant_type === "password_credentials" ? "password" : grant_type;
 
-    // Get iu & ti
+    // Active iu/ti
     const { data: activeRow } = await supabase
       .from("ionapi_oauth2")
       .select("iu, ti")
@@ -85,13 +82,14 @@ serve(async (req) => {
     const basic = btoa(`${ci}:${cs}`);
     const tokenParams = new URLSearchParams();
     tokenParams.set("grant_type", grantType);
+    const { saak, sask } = cfg as { saak: string; sask: string };
     tokenParams.set("username", saak);
     tokenParams.set("password", sask);
 
     const tokenRes = await fetch(buildTokenUrl(pu, ot), {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${basic}`,
+        Authorization: `Basic ${basic}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: tokenParams.toString(),
@@ -103,21 +101,30 @@ serve(async (req) => {
     }
     const accessToken = tokenJson.access_token as string;
 
-    // OData GET
+    // Build OData request
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
+    const escapedItem = item.replace(/'/g, "''");
+
+    const params = new URLSearchParams();
+    params.set("$filter", `Item eq '${escapedItem}' and InventoryOnHand ge 0`);
+    params.set("$count", "true");
+    params.set("$select", "*");
+    params.set("$orderby", "InventoryOnHand");
+    params.set("$expand", "WarehouseRef");
+
     const path = `/${ti}/LN/lnapi/odata/whapi.wmdInventory/ItemInventoryByWarehouses`;
-    const filter = `Item eq '${paddedItem.replace(/'/g, "''")}'`;
-    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$select=*&$expand=*`;
+    const url = `${base}${path}?${params.toString()}`;
 
     const odataRes = await fetch(url, {
       method: "GET",
       headers: {
-        "accept": "application/json",
+        accept: "application/json",
         "Content-Language": language,
         "X-Infor-LnCompany": company,
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     }).catch(() => null as unknown as Response);
+
     if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
     const odataJson = await odataRes.json().catch(() => null) as any;
     if (!odataRes.ok || !odataJson) {
@@ -128,29 +135,29 @@ serve(async (req) => {
 
     const rows = Array.isArray(odataJson.value)
       ? odataJson.value.map((v: any) => {
-          const wh = v?.Warehouse ?? "";
-          const whName = v?.WarehouseRef?.Description ?? "";
-          const onHand = Number(v?.InventoryOnHand ?? 0);
-          const allocated = Number(v?.InventoryAllocated ?? 0);
-          const blocked = Number(v?.InventoryBlocked ?? 0);
-          const available = onHand - allocated - blocked;
-          const unit = v?.ItemRef?.InventoryUnit ?? "";
+          const wh = typeof v?.Warehouse === "string" ? v.Warehouse : (typeof v?.WarehouseRef?.Warehouse === "string" ? v.WarehouseRef.Warehouse : "");
+          const whName = typeof v?.WarehouseRef?.Description === "string" ? v.WarehouseRef.Description : undefined;
+          const unit = typeof v?.InventoryUnit === "string" ? v.InventoryUnit : (typeof v?.Unit === "string" ? v.Unit : undefined);
+          const onHand = Number(v?.InventoryOnHand ?? v?.OnHand ?? 0);
+          const allocated = Number(v?.Allocated ?? 0);
+          const available = Number(v?.Available ?? (onHand - allocated));
           return {
-            Warehouse: String(wh || ""),
-            WarehouseName: String(whName || ""),
-            Unit: String(unit || ""),
-            OnHand: isNaN(onHand) ? 0 : onHand,
-            Allocated: isNaN(allocated) ? 0 : allocated,
-            Available: isNaN(available) ? 0 : available,
+            Warehouse: wh,
+            WarehouseName: whName,
+            Unit: unit,
+            OnHand: onHand,
+            Allocated: allocated,
+            Available: available,
           };
         })
       : [];
 
-    // Sort by Warehouse asc
-    rows.sort((a: any, b: any) => (a.Warehouse || "").localeCompare(b.Warehouse || ""));
+    const count = typeof odataJson?.["@odata.count"] === "number"
+      ? odataJson["@odata.count"]
+      : rows.length;
 
-    return json({ ok: true, rows }, 200);
-  } catch {
-    return json({ ok: false, error: "unhandled" }, 200);
+    return json({ ok: true, count, rows }, 200);
+  } catch (e) {
+    return json({ ok: false, error: { message: "unhandled" } }, 200);
   }
 });
