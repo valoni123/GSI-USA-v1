@@ -375,7 +375,7 @@ const IncomingGoodsReceipt = () => {
     const originKey = (orderType || "").trim() || "";
     if (lastCheckedOrder === `${trimmed}|${lineTrim}|${originKey}`) return;
 
-    const tid = showLoading(trans.loadingDetails);
+    const tid = showLoading(trans.pleaseWait);
     const originForFilter = (orderType || "").trim() ? orderType : undefined;
     const { data, error } = await supabase.functions.invoke("ln-warehousing-orders", {
       body: {
@@ -386,8 +386,10 @@ const IncomingGoodsReceipt = () => {
         company: "4000",
       },
     });
-    dismissToast(tid as unknown as string);
+    // Keep spinner visible while we hydrate additional data below; dismiss on each return path.
     if (error || !data || !data.ok) {
+      dismissToast(tid as unknown as string);
+
       setShowOrderType(false);
       setOrderType("");
       setOrderTypeOptions([]);
@@ -403,6 +405,7 @@ const IncomingGoodsReceipt = () => {
     const lnNow = (orderPos || "").trim();
     // Abort only if the order number changed; allow line mismatches (React state may not have flushed yet)
     if (ordNow !== trimmed) {
+      dismissToast(tid as unknown as string);
       return;
     }
 
@@ -436,8 +439,10 @@ const IncomingGoodsReceipt = () => {
           setInboundLinesGrouped([]);
           setHasMultipleLines(false);
           setLastCheckedOrder(`${trimmed}|${lineTrim}|${originCandidate}`);
+          dismissToast(tid as unknown as string);
           return;
         }
+
       }
       // No open lines and no received lines found for known origins → show not found
       setShowOrderType(false);
@@ -451,6 +456,7 @@ const IncomingGoodsReceipt = () => {
       setLastCheckedOrder(null);
       showError("Order not found");
       setTimeout(() => orderNoRef.current?.focus(), 0);
+      dismissToast(tid as unknown as string);
       return;
     }
 
@@ -520,7 +526,10 @@ const IncomingGoodsReceipt = () => {
       }
     }
 
+    dismissToast(tid as unknown as string);
+
     if (!lineTrim) {
+
       setInboundLinesAll(mappedLines);
     }
 
@@ -528,6 +537,8 @@ const IncomingGoodsReceipt = () => {
       const singleLineStr = String(mappedLines[0].Line);
       setOrderPos(singleLineStr);
       setLastCheckedOrder(`${trimmed}|${singleLineStr}|${originKey}`);
+      // Dismiss current spinner before recursive call.
+      dismissToast(tid as unknown as string);
       await checkOrder(trimmed, singleLineStr);
       return;
     }
@@ -555,6 +566,7 @@ const IncomingGoodsReceipt = () => {
       }
 
       setLastCheckedOrder(`${trimmed}|${lineTrim}|${origin || ""}`);
+      dismissToast(tid as unknown as string);
       return;
     }
 
@@ -597,6 +609,7 @@ const IncomingGoodsReceipt = () => {
     setOrderTypeDisabled(true);
     setOrderTypeRequired(false);
     setLastCheckedOrder(`${trimmed}|${lineTrim}|${originKey}`);
+    dismissToast(tid as unknown as string);
   };
 
   const checkExistingLots = async (itm: string, originStr: string, bp?: string) => {
@@ -1697,9 +1710,10 @@ const IncomingGoodsReceipt = () => {
         </div>
       </div>
 
-      {isSubmitting && <ScreenSpinner backdropBlur />}
+      {isSubmitting && <ScreenSpinner />}
 
       <SignOutConfirm
+
         open={signOutOpen}
         onOpenChange={setSignOutOpen}
         title={trans.signOutTitle}
