@@ -231,8 +231,8 @@ const IncomingInspectionPage: React.FC = () => {
 
   const handleBack = () => navigate("/menu/incoming");
 
-  const handleBlurScan = async () => {
-    const q = query.trim();
+  const handleBlurScan = async (forced?: string) => {
+    const q = (forced ?? query).trim();
     if (!q) return;
 
     const tid = showLoading(trans.pleaseWait);
@@ -265,7 +265,7 @@ const IncomingInspectionPage: React.FC = () => {
 
       if (count > 1 && value.length > 1) {
         const first = value[0] || {};
-        const ord = typeof first?.Order === "string" ? first.Order : query.trim();
+        const ord = typeof first?.Order === "string" ? first.Order : q;
         const origin = typeof first?.OrderOrigin === "string" ? first.OrderOrigin : "";
         setHeaderOrder(ord || "");
         setHeaderOrigin(origin || "");
@@ -372,11 +372,7 @@ const IncomingInspectionPage: React.FC = () => {
     const hu = (routerLocation?.state?.initialHandlingUnit || "").toString().trim();
     if (!hu) return;
     setQuery(hu);
-    // Trigger the same logic as blur to fetch immediately
-    const t = setTimeout(() => {
-      void handleBlurScan();
-    }, 50);
-    return () => clearTimeout(t);
+    void handleBlurScan(hu);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -438,7 +434,7 @@ const IncomingInspectionPage: React.FC = () => {
                 resetAllForNewScan();
               }
             }}
-            onBlur={handleBlurScan}
+            onBlur={() => handleBlurScan()}
             onFocus={(e) => e.currentTarget.select()}
             onClick={(e) => e.currentTarget.select()}
             onClear={() => {
