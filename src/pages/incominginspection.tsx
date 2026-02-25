@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import InspectionResultsDialog from "@/components/InspectionResultsDialog";
 import InspectionLinePickerDialog from "@/components/InspectionLinePickerDialog";
