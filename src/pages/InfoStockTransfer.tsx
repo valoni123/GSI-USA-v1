@@ -192,7 +192,7 @@ const InfoStockTransfer = () => {
 
   const [focusTargetLocTick, setFocusTargetLocTick] = useState(0);
   useEffect(() => {
-    if (!targetWarehouse.trim()) return;
+    if (focusTargetLocTick === 0) return;
 
     const focus = () => {
       const el =
@@ -201,7 +201,7 @@ const InfoStockTransfer = () => {
       el?.focus();
     };
 
-    // Try a few times to survive re-renders / overlay timing.
+    // Mehrfach versuchen, um Re-Renders/Overlays abzufangen.
     focus();
     requestAnimationFrame(focus);
     const t1 = window.setTimeout(focus, 50);
@@ -213,7 +213,7 @@ const InfoStockTransfer = () => {
       window.clearTimeout(t2);
       window.clearTimeout(t3);
     };
-  }, [focusTargetLocTick, targetWarehouse]);
+  }, [focusTargetLocTick]);
 
   // Status helpers
   const normalizeStatus = (raw?: string | null): string | null => {
