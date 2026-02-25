@@ -103,35 +103,12 @@ serve(async (req) => {
     }
     const accessToken = tokenJson.access_token as string;
 
-    // Build LN OData URL for Items → single entity by key
+    // Build LN OData base URL
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const escaped = itemCode.replace(/'/g, "''");
-    const path = `/${ti}/LN/lnapi/odata/tcapi.ibdItem/Items(Item='${escaped}')`;
-    const url = `${base}${path}?$select=%2A&$expand=%2A`;
-
-    const odataRes = await fetch(url, {
-      method: "GET",
-      headers: {
-        "accept": "application/json",
-        "Content-Language": language,
-        "X-Infor-LnCompany": company,
-        "Authorization": `Bearer ${accessToken}`,
-      },
-    }).catch(() => null as unknown as Response);
-    if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
-    const odataJson = await odataRes.json().catch(() => null) as any;
-
-    if (!odataRes.ok || !odataJson) {
-      const topMessage = odataJson?.error?.message || "odata_error";
-      const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
-      return json({ ok: false, error: { message: topMessage, details } }, 200);
-    }
-
     // LN project items may require 9 leading spaces before the item code.
-    const raw = (itemCode || "");
-    const trimmed = raw.trim();
-    const nineSpaced = `         ${trimmed}`; // 9 leading spaces
-    const candidates = [raw, trimmed, nineSpaced]
+    const trimmed = (itemCode || "").trim();
+    const nineSpaced = `         ${trimmed}`; // exactly 9 leading spaces
+    const candidates = [trimmed, nineSpaced]
       .filter((v, i, arr) => typeof v === "string" && v.length > 0 && arr.indexOf(v) === i);
 
     let entity: any = null;
@@ -139,7 +116,7 @@ serve(async (req) => {
     for (const candidate of candidates) {
       const escaped = candidate.replace(/'/g, "''");
       const path = `/${ti}/LN/lnapi/odata/tcapi.ibdItem/Items(Item='${escaped}')`;
-      const url = `${base}${path}`;
+      const url = `${base}${path}?$select=%2A&$expand=InventoryUnitRef`;
       const res = await fetch(url, {
         method: "GET",
         headers: {
@@ -172,7 +149,7 @@ serve(async (req) => {
 
     const item = entity.Item ?? entity.ItemCode ?? itemCode;
     const description = entity.Description ?? entity.ItemDescription ?? null;
-    const unit = entity.InventoryUnit ?? entity.Unit ?? null;
+    const unit = entity.InventoryUnit ?? entity?.InventoryUnitRef?.Unit ?? entity.Unit ?? null;
 
     return json({ ok: true, item, description, unit }, 200);
   } catch {
