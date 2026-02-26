@@ -885,12 +885,15 @@ const InfoStockTransfer = () => {
                   onPaste={handleQuantityPaste}
                   onBlur={handleQuantityBlur}
                   onClick={() => {
-                    if (!(quantity || "").trim()) {
+                    // Nur im ITEM-Flow und wenn leer automatisch aus Location befüllen
+                    if (lastMatchType === "ITEM" && !(quantity || "").trim()) {
                       void prefillFromLocation();
                     }
                   }}
                   ref={quantityRef}
                   inputMode="decimal"
+                  disabled={lastMatchType === "HU"}
+                  className={lastMatchType === "HU" ? "bg-gray-100 text-gray-700" : undefined}
                 />
                 <FloatingLabelInput id="transferUnit" label={trans.unitLabel} value={unit} disabled />
               </div>
