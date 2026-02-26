@@ -155,7 +155,7 @@ const InfoStockTransfer = () => {
       const qtyNum = typeof avail === "number" ? avail : (typeof onHand === "number" ? onHand : undefined);
       if (typeof qtyNum === "number") setQuantity(String(qtyNum));
       if (unitVal) setUnit(unitVal);
-      focusQuantity();
+      // WICHTIG: Kein Fokuswechsel mehr
     }
   };
 
@@ -850,6 +850,13 @@ const InfoStockTransfer = () => {
                   ref={fromLocRef}
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  onBlur={() => { if ((location || "").trim()) { void prefillFromLocation(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (location || "").trim()) {
+                      e.preventDefault();
+                      void prefillFromLocation();
+                    }
+                  }}
                   disabled={lastMatchType === "HU"}
                   className={`${lastMatchType === "HU" ? "bg-gray-100 text-gray-700" : ""} pr-12`}
                 />
@@ -1139,8 +1146,14 @@ const InfoStockTransfer = () => {
             rows={fromLocRows}
             onPick={(loc) => {
               setLocation(loc);
+              // Beim Auswählen Menge/Einheit aus der gewählten Zeile übernehmen – ohne Fokuswechsel
+              const picked = fromLocRows.find((r) => r.Location === loc);
+              if (picked) {
+                const qtyNum = typeof picked.Available === "number" ? picked.Available : picked.OnHand;
+                if (typeof qtyNum === "number") setQuantity(String(qtyNum));
+                if ((picked as any).Unit) setUnit((picked as any).Unit);
+              }
               setFromLocPickerOpen(false);
-              // Quantity/Unit will be filled only when user clicks into the Quantity field (if empty)
             }}
             title={trans.locationLabel}
             emptyText={trans.noEntries}
