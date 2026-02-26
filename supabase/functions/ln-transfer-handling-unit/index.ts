@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { getCompanyFromParams } from "../_shared/company.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +29,8 @@ serve(async (req) => {
     }
 
     let body: {
+      language?: string;
+      company?: string;
       TransferID?: string;
       VonLager?: string;
       VonLagerplatz?: string;
@@ -40,8 +41,7 @@ serve(async (req) => {
       LoginCode?: string;
       Mitarbeiter?: string;
       FromWebserver?: string;
-      language?: string;
-      company?: string;
+      Artikel?: string;
     } = {};
     try {
       body = await req.json();
@@ -51,21 +51,37 @@ serve(async (req) => {
 
     const language = body.language || "en-US";
 
+    // Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !serviceRoleKey) return json({ ok: false, error: "env_missing" }, 200);
+    if (!supabaseUrl || !serviceRoleKey) {
+      return json({ ok: false, error: "env_missing" }, 200);
+    }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
-    const company = await getCompanyFromParams(supabase);
+
+    // Company from params
+    const { data: compRes, error: compErr } = await supabase
+      .from("gsi000_params")
+      .select("txgsi000_compnr, created_at")
+      .not("txgsi000_compnr", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (compErr || !Array.isArray(compRes) || compRes.length === 0) {
+      return json({ ok: false, error: "no_company_config" }, 200);
+    }
+    const company = (compRes[0]?.txgsi000_compnr || "").toString().trim();
 
     // OAuth config
     const { data: cfgData } = await supabase.rpc("get_active_ionapi");
     const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
     if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
 
-    const { ci, cs, pu, ot, grant_type } = cfg as { ci: string; cs: string; pu: string; ot: string; grant_type: string };
+    const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
+      ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
+    };
     const grantType = grant_type === "password_credentials" ? "password" : grant_type;
 
-    // IU/TI
+    // iu & ti
     const { data: activeRow } = await supabase
       .from("ionapi_oauth2")
       .select("iu, ti")
@@ -78,57 +94,70 @@ serve(async (req) => {
 
     // Token
     const basic = btoa(`${ci}:${cs}`);
-    const paramsToken = new URLSearchParams();
-    paramsToken.set("grant_type", grantType);
-    const { saak, sask } = cfg as { saak: string; sask: string };
-    paramsToken.set("username", saak);
-    paramsToken.set("password", sask);
+    const tokenParams = new URLSearchParams();
+    tokenParams.set("grant_type", grantType);
+    tokenParams.set("username", saak);
+    tokenParams.set("password", sask);
 
     const tokenRes = await fetch(buildTokenUrl(pu, ot), {
       method: "POST",
-      headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" },
-      body: paramsToken.toString(),
+      headers: {
+        Authorization: `Basic ${basic}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: tokenParams.toString(),
     }).catch(() => null as unknown as Response);
     if (!tokenRes) return json({ ok: false, error: "token_network_error" }, 200);
-    const tokenJson = await tokenRes.json().catch(() => null) as any;
+    const tokenJson = (await tokenRes.json().catch(() => null)) as any;
     if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
       return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
     }
     const accessToken = tokenJson.access_token as string;
 
-    // Build LN POST
+    // Build LN OData URL
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgsi.apiTRANSFER/GSITransfers`;
     const url = `${base}${path}?$select=TransferID`;
 
-    const postPayload = {
+    // Build payload: prefer Artikel if present (ITEM flow), else Ladeeinheit (HU flow)
+    const lnPayload: Record<string, unknown> = {
       TransferID: "",
       VonLager: (body.VonLager || "").trim(),
       VonLagerplatz: (body.VonLagerplatz || "").trim(),
       InLager: (body.InLager || "").trim(),
       AufLagerplatz: (body.AufLagerplatz || "").trim(),
-      Ladeeinheit: (body.Ladeeinheit || "").trim(),
       Menge: Number(body.Menge || 0),
       LoginCode: (body.LoginCode || "").trim(),
       Mitarbeiter: (body.Mitarbeiter || "").trim(),
       FromWebserver: "Yes",
     };
 
+    const artikelRaw = (body.Artikel || "").toString();
+    const artikelTrim = artikelRaw.trim();
+    if (artikelRaw || artikelTrim) {
+      // if Artikel provided, send it (assume UI already padded when needed)
+      lnPayload.Artikel = artikelRaw || artikelTrim;
+    } else {
+      lnPayload.Ladeeinheit = (body.Ladeeinheit || "").toString().trim();
+    }
+
+    // POST to LN
     const lnRes = await fetch(url, {
       method: "POST",
       headers: {
         accept: "application/json",
-        "Content-Type": "application/json",
         "Content-Language": language,
         "X-Infor-LnCompany": company,
+        "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(postPayload),
+      body: JSON.stringify(lnPayload),
     }).catch(() => null as unknown as Response);
-    if (!lnRes) return json({ ok: false, error: "odata_network_error" }, 200);
-    const lnJson = await lnRes.json().catch(() => null) as any;
+
+    if (!lnRes) return json({ ok: false, error: "ln_network_error" }, 200);
+    const lnJson = (await lnRes.json().catch(() => null)) as any;
     if (!lnRes.ok || !lnJson) {
-      const top = lnJson?.error?.message || "odata_error";
+      const top = lnJson?.error?.message || "ln_error";
       const details = Array.isArray(lnJson?.error?.details) ? lnJson.error.details : [];
       return json({ ok: false, error: { message: top, details } }, 200);
     }

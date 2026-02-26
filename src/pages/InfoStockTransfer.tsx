@@ -602,9 +602,9 @@ const InfoStockTransfer = () => {
     if (isHU) {
       payload.Ladeeinheit = (handlingUnit || query || "").trim();
     } else {
-      // Item transfer is not supported by this LN endpoint; keep previous behavior by sending the item as Ladeeinheit
-      // only if the app was used that way.
-      payload.Ladeeinheit = (item || "").trim();
+      // ITEM flow: send Artikel with 9 leading spaces
+      const itmTrim = (item || "").trim();
+      payload.Artikel = `         ${itmTrim}`;
     }
 
     const { data, error } = await supabase.functions.invoke("ln-transfer-handling-unit", {
