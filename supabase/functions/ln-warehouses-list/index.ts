@@ -89,10 +89,9 @@ serve(async (req) => {
     }
     const accessToken = tokenJson.access_token as string;
 
-    // OData call: list warehouses with Locations = Yes
+    // OData call: list warehouses (no extra filter so we don't miss any)
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const params = new URLSearchParams();
-    params.set("$filter", "Locations eq whapi.wmdWarehouse.AnswerOnQuestionYn'Yes'");
     params.set("$select", "*");
     params.set("$expand", "*");
     params.set("$count", "true");
