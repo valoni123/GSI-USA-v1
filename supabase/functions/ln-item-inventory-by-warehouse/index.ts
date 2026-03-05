@@ -38,15 +38,18 @@ serve(async (req) => {
 
     const item = (body.item || "").trim();
     const language = body.language || "en-US";
-    const company = await (async () => {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL");
-      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (!supabaseUrl || !serviceRoleKey) {
-        throw new Error("env_missing");
-      }
-      const supabase = createClient(supabaseUrl, serviceRoleKey);
-      return await getCompanyFromParams(supabase);
-    })();
+
+    // Prefer the company explicitly sent by the client; otherwise fall back to the stored config.
+    const company = (body.company || "").toString().trim() ||
+      await (async () => {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (!supabaseUrl || !serviceRoleKey) {
+          throw new Error("env_missing");
+        }
+        const supabase = createClient(supabaseUrl, serviceRoleKey);
+        return await getCompanyFromParams(supabase);
+      })();
 
     if (!item) return json({ ok: false, error: "missing_item" }, 200);
 
