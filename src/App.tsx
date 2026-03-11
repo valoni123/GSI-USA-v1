@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Menu from "./pages/Menu";
@@ -22,6 +22,24 @@ import Docs from "./pages/Docs";
 
 const queryClient = new QueryClient();
 
+const hasStoredSession = () => {
+  if (typeof window === "undefined") return false;
+  const gsiId = (localStorage.getItem("gsi.id") || "").trim();
+  const login = (localStorage.getItem("gsi.login") || "").trim();
+  const token = (localStorage.getItem("ln.token") || "").trim();
+  return Boolean(gsiId && login && token);
+};
+
+const ProtectedRoute = () => {
+  const location = useLocation();
+
+  if (!hasStoredSession()) {
+    return <Navigate to="/" replace state={{ from: location.pathname }} />;
+  }
+
+  return <Outlet />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -30,21 +48,24 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/menu" element={<Menu />} />
-          <Route path="/menu/incoming" element={<IncomingMenu />} />
-          <Route path="/menu/incoming/goods-receipt" element={<IncomingGoodsReceipt />} />
-          <Route path="/menu/incoming/inspection" element={<IncomingInspection />} />
-          <Route path="/menu/info-stock" element={<InfoStockMenu />} />
-          <Route path="/menu/info-stock/article" element={<InfoStockArticle />} />
-          <Route path="/menu/info-stock/transfer" element={<InfoStockTransfer />} />
-          <Route path="/menu/info-stock/le-info" element={<InfoStockLEInfo />} />
-          <Route path="/menu/transport" element={<TransportMenu />} />
-          <Route path="/menu/transport/load" element={<TransportLoad />} />
-          <Route path="/menu/transport/unload" element={<TransportUnload />} />
-          <Route path="/transport/select" element={<TransportSelect />} />
-          <Route path="/transportgroup/:group" element={<TransportGroup />} />
           <Route path="/docs" element={<Docs />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/menu" element={<Menu />} />
+            <Route path="/menu/incoming" element={<IncomingMenu />} />
+            <Route path="/menu/incoming/goods-receipt" element={<IncomingGoodsReceipt />} />
+            <Route path="/menu/incoming/inspection" element={<IncomingInspection />} />
+            <Route path="/menu/info-stock" element={<InfoStockMenu />} />
+            <Route path="/menu/info-stock/article" element={<InfoStockArticle />} />
+            <Route path="/menu/info-stock/transfer" element={<InfoStockTransfer />} />
+            <Route path="/menu/info-stock/le-info" element={<InfoStockLEInfo />} />
+            <Route path="/menu/transport" element={<TransportMenu />} />
+            <Route path="/menu/transport/load" element={<TransportLoad />} />
+            <Route path="/menu/transport/unload" element={<TransportUnload />} />
+            <Route path="/transport/select" element={<TransportSelect />} />
+            <Route path="/transportgroup/:group" element={<TransportGroup />} />
+          </Route>
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
