@@ -54,17 +54,15 @@ const TransportLoad = () => {
   const locationRef = useRef<HTMLInputElement | null>(null);
   const vehicleRef = useRef<HTMLInputElement | null>(null);
   const lookupRequestIdRef = useRef(0);
-  const loadRequestIdRef = useRef(0); // NEW: guard for load requests
-  const lastLoadClickAtRef = useRef(0); // NEW: debounce guard
+  const loadRequestIdRef = useRef(0);
+  const lastLoadClickAtRef = useRef(0);
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
   const [result, setResult] = useState<{ TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null>(null);
-  // NEW: Quantity and Unit for the scanned Handling Unit
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
-  // NEW: dynamic label for first input
   const [huItemLabel, setHuItemLabel] = useState<string>("Handling Unit / Item");
   const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
@@ -85,11 +83,21 @@ const TransportLoad = () => {
     ETag: string;
     OrderedQuantity?: number | string | null;
   };
+  type ResolvedLoadData = {
+    requestCode: string;
+    result: NonNullable<typeof result>;
+    etag: string;
+    quantity: string;
+    unit: string;
+    matchType: "HU" | "ITEM";
+  };
   const [listItems, setListItems] = useState<LoadedListItem[]>([]);
-  const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({}); // per-row lock
+  const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
   const [confirmMoveBackOpen, setConfirmMoveBackOpen] = useState<boolean>(false);
   const [confirmItem, setConfirmItem] = useState<LoadedListItem | null>(null);
   const [listLoading, setListLoading] = useState<boolean>(false);
+  const [resolvedRequestCode, setResolvedRequestCode] = useState<string>("");
+  const resolvedLoadRef = useRef<ResolvedLoadData | null>(null);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
     if (lang === "es-MX") return "es-MX";
@@ -97,7 +105,14 @@ const TransportLoad = () => {
     return "en-US";
   }, [lang]);
 
+  const clearResolvedLoad = () => {
+    lookupRequestIdRef.current += 1;
+    resolvedLoadRef.current = null;
+    setResolvedRequestCode("");
+  };
+
   const resetResolvedState = () => {
+    clearResolvedLoad();
     setResult(null);
     setVehicleEnabled(false);
     setVehicleId("");
@@ -113,12 +128,10 @@ const TransportLoad = () => {
   };
 
   useEffect(() => {
-    // Focus the first field on mount
     huRef.current?.focus();
   }, []);
 
   useEffect(() => {
-    // Initialize badge from localStorage, no REST call
     const cached = Number(localStorage.getItem("transport.count") || "0");
     setLoadedCount(cached);
   }, [locale]);
@@ -195,21 +208,18 @@ const TransportLoad = () => {
         "") as string
     ).trim();
     const vid = (localStorage.getItem("vehicle.id") || "").trim();
-    // Always move back FROM the vehicle location
     if (!vid) {
       showError("No vehicle selected. Please set a Vehicle ID.");
       setMovingBackMap((m) => ({ ...m, [key]: false }));
       return;
     }
-    const fromLocation = vid;
     const tid = showLoading(trans.executingMovement);
 
-    // 1) Move HU back to original Location From
     const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
       body: {
         handlingUnit: (it.HandlingUnit || "").trim(),
         fromWarehouse: (it.Warehouse || "").trim(),
-        fromLocation,
+        fromLocation: vid,
         toWarehouse: (it.Warehouse || "").trim(),
         toLocation: (it.LocationFrom || "").trim(),
         employee: employeeCode,
@@ -227,7 +237,6 @@ const TransportLoad = () => {
       return;
     }
 
-    // 2) Clear VehicleID on transport order
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: (it.TransportID || "").trim(),
@@ -251,14 +260,12 @@ const TransportLoad = () => {
 
     showSuccess("Moved back");
 
-    // Refresh list and badge
     const currentVehicle = (localStorage.getItem("vehicle.id") || "").trim();
     if (currentVehicle) {
       setListLoading(true);
       await fetchList(currentVehicle);
       setListLoading(false);
     } else {
-      // Fallback: remove the item locally
       setListItems((items) => items.filter((row) => moveBackKey(row) !== key));
       setLoadedCount((n) => Math.max(0, n - 1));
       try { localStorage.setItem("transport.count", String(Math.max(0, (Number(localStorage.getItem("transport.count") || "1")) - 1))); } catch {}
@@ -271,10 +278,10 @@ const TransportLoad = () => {
     const requestCode = huRaw.trim();
     if (!requestCode) return;
 
+    clearResolvedLoad();
     setLocationRequired(false);
     setLocationScan("");
 
-    // Only proceed if result is empty (first time) or HU changed
     const shouldCheck = result === null || lastFetchedHu !== requestCode;
     if (!shouldCheck) return;
 
@@ -303,23 +310,21 @@ const TransportLoad = () => {
     const items = (ordData.items || []) as Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity: number | null }>;
     const first = ordData.first as { TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null;
 
-    // If multiple matches → open selection popup
     if ((ordData.count ?? items.length ?? 0) > 1) {
       setSelectItems(items);
-      setSelectOpen(true);
       setLastFetchedHu(requestCode);
+      setSelectOpen(true);
       setDetailsLoading(false);
       return;
     }
 
-    // Single match path
-    setResult(first || null);
+    const nextResult = first || null;
+    setResult(nextResult);
     setLastFetchedHu(requestCode);
-    const etagValue = (first && typeof first?.ETag === "string" ? first.ETag : "");
+    const etagValue = nextResult && typeof nextResult.ETag === "string" ? nextResult.ETag : "";
     setEtag(etagValue);
 
-    // If HandlingUnit present → load HU info for qty/unit; else require Location scan
-    const chosenHU = (first?.HandlingUnit || "").trim();
+    const chosenHU = (nextResult?.HandlingUnit || "").trim();
     if (chosenHU) {
       setHuItemLabel("Handling Unit");
       const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
@@ -357,16 +362,37 @@ const TransportLoad = () => {
       setVehicleEnabled(true);
       const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
       if (storedVehicle) setVehicleId(storedVehicle);
+      if (nextResult) {
+        resolvedLoadRef.current = {
+          requestCode,
+          result: nextResult,
+          etag: etagValue,
+          quantity: qty,
+          unit,
+          matchType: "HU",
+        };
+        setResolvedRequestCode(requestCode);
+      }
       setDetailsLoading(false);
       setTimeout(() => vehicleRef.current?.focus(), 50);
     } else {
-      // Item-only path
       setHuItemLabel("Item");
-      // Item-only → Location required before proceeding
-      setHuQuantity(first && typeof first.OrderedQuantity === "number" ? String(first.OrderedQuantity) : "");
+      const qty = nextResult && typeof nextResult.OrderedQuantity === "number" ? String(nextResult.OrderedQuantity) : "";
+      setHuQuantity(qty);
       setHuUnit("");
       setVehicleEnabled(false);
       setLocationRequired(true);
+      if (nextResult) {
+        resolvedLoadRef.current = {
+          requestCode,
+          result: nextResult,
+          etag: etagValue,
+          quantity: qty,
+          unit: "",
+          matchType: "ITEM",
+        };
+        setResolvedRequestCode(requestCode);
+      }
       setDetailsLoading(false);
       setTimeout(() => locationRef.current?.focus(), 50);
     }
@@ -376,34 +402,40 @@ const TransportLoad = () => {
     setErrorOpen(false);
     resetResolvedState();
     setHandlingUnit("");
-    // Refocus HU
     setTimeout(() => huRef.current?.focus(), 50);
   };
-
-  const canLoad = vehicleEnabled && vehicleId.trim().length > 0 && !!result && handlingUnit.trim().length > 0 && lastFetchedHu === handlingUnit.trim();
 
   const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
 
+  const canLoad =
+    !detailsLoading &&
+    vehicleEnabled &&
+    vehicleId.trim().length > 0 &&
+    Boolean(resolvedLoadRef.current) &&
+    resolvedRequestCode === handlingUnit.trim();
+
   const onLoadClick = async () => {
-    // Debounce very fast double taps
     const now = Date.now();
     if (now - lastLoadClickAtRef.current < 250) return;
     lastLoadClickAtRef.current = now;
 
-    // Prevent overlapping requests
-    if (processing) return;
-    if (!canLoad || !result) return;
+    if (processing || detailsLoading) return;
+    const currentResolved = resolvedLoadRef.current;
+    const currentInput = handlingUnit.trim();
+    if (!currentResolved || currentResolved.requestCode !== currentInput) {
+      showError("Please wait until the current handling unit is fully resolved.");
+      return;
+    }
+
     const requestId = ++loadRequestIdRef.current;
     setProcessing(true);
 
-    // Snapshot current values to avoid reading stale state if user scans while in-flight
-    const currentResult = result;
+    const currentResult = currentResolved.result;
     const snapVehicleId = vehicleId.trim();
     const snapLocale = locale;
-    const snapEtag = etag.trim();
-    const snapHuQty = (huQuantity || "").trim();
-    const snapHandlingUnit = handlingUnit.trim();
+    const snapEtag = currentResolved.etag;
+    const snapHuQty = currentResolved.quantity.trim();
 
     const employeeCode = (
       (localStorage.getItem("gsi.employee") ||
@@ -411,8 +443,6 @@ const TransportLoad = () => {
         localStorage.getItem("gsi.login") ||
         "") as string
     ).trim();
-    // Build payload: HandlingUnit move OR Item move
-    const isHU = (currentResult?.HandlingUnit || "").trim().length > 0;
     const payload: Record<string, unknown> = {
       fromWarehouse: (currentResult.Warehouse || "").trim(),
       fromLocation: (currentResult.LocationFrom || "").trim(),
@@ -421,12 +451,10 @@ const TransportLoad = () => {
       employee: employeeCode,
       language: snapLocale,
     };
-    if (isHU) {
-      // Handling Unit move: always use the resolved HU from LN, never the raw input field.
+    if (currentResolved.matchType === "HU") {
       payload.handlingUnit = (currentResult.HandlingUnit || "").trim();
     } else {
-      // Item move: send Item as returned by LN (preserve leading spaces) and Quantity from OrderedQuantity
-      payload.item = (currentResult.Item || "");
+      payload.item = currentResult.Item || "";
       const qtyNum = Number(snapHuQty || "0");
       if (!Number.isNaN(qtyNum) && qtyNum > 0) {
         payload.quantity = qtyNum;
@@ -435,7 +463,6 @@ const TransportLoad = () => {
     const tid = showLoading(trans.executingMovement);
     const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
     dismissToast(tid as unknown as string);
-    // Ignore late responses if a newer load started (extra safety)
     if (loadRequestIdRef.current !== requestId) {
       setProcessing(false);
       return;
@@ -451,7 +478,6 @@ const TransportLoad = () => {
     }
     showSuccess(trans.loadedSuccessfully);
 
-    // PATCH Transport order to set VehicleID and LocationDevice = Fahrzeug-ID
     const patchTid = showLoading(trans.updatingTransportOrder);
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
@@ -478,12 +504,10 @@ const TransportLoad = () => {
       return;
     }
 
-    // Clear form and reset after successful PATCH
     setHandlingUnit("");
     resetResolvedState();
     setTimeout(() => huRef.current?.focus(), 50);
 
-    // Refresh the loaded count badge
     const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
     if (selectedVehicle) {
       await fetchCount(selectedVehicle);
@@ -549,7 +573,7 @@ const TransportLoad = () => {
             autoFocus
             ref={huRef}
             value={handlingUnit}
-            disabled={processing} // NEW: lock input while processing a load to avoid mid-submit changes
+            disabled={processing}
             onChange={(e) => {
               const v = e.target.value;
               setHandlingUnit(v);
@@ -564,11 +588,9 @@ const TransportLoad = () => {
             }}
             onBlur={onHUBlur}
             onFocus={(e) => {
-              // Select the full value when focusing the field
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
             onClick={(e) => {
-              // If user clicks while focused, keep the full selection
               if (e.currentTarget.value.length > 0) {
                 e.currentTarget.select();
               }
@@ -826,7 +848,7 @@ const TransportLoad = () => {
                       const currentInput = handlingUnit.trim();
                       setSelectOpen(false);
                       const chosenHU = (it.HandlingUnit || "").trim();
-                      setResult({
+                      const nextResult = {
                         TransportID: it.TransportID,
                         RunNumber: it.RunNumber,
                         Item: it.Item,
@@ -836,12 +858,13 @@ const TransportLoad = () => {
                         LocationTo: it.LocationTo,
                         ETag: it.ETag,
                         OrderedQuantity: it.OrderedQuantity,
-                      });
+                      };
+                      setResult(nextResult);
                       setLastFetchedHu(currentInput);
                       setEtag(it.ETag || "");
-                      // Update dynamic label based on presence of Handling Unit in the selected row
                       setHuItemLabel(chosenHU ? "Handling Unit" : "Item");
                       if (chosenHU) {
+                        clearResolvedLoad();
                         const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
                           body: { handlingUnit: chosenHU, language: locale },
                         });
@@ -856,12 +879,31 @@ const TransportLoad = () => {
                         setVehicleEnabled(true);
                         const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
                         if (storedVehicle) setVehicleId(storedVehicle);
+                        resolvedLoadRef.current = {
+                          requestCode: currentInput,
+                          result: nextResult,
+                          etag: it.ETag || "",
+                          quantity: qty,
+                          unit,
+                          matchType: "HU",
+                        };
+                        setResolvedRequestCode(currentInput);
                         setTimeout(() => vehicleRef.current?.focus(), 50);
                       } else {
-                        setHuQuantity(typeof it.OrderedQuantity === "number" ? String(it.OrderedQuantity) : "");
+                        const qty = typeof it.OrderedQuantity === "number" ? String(it.OrderedQuantity) : "";
+                        setHuQuantity(qty);
                         setHuUnit("");
                         setVehicleEnabled(false);
                         setLocationRequired(true);
+                        resolvedLoadRef.current = {
+                          requestCode: currentInput,
+                          result: nextResult,
+                          etag: it.ETag || "",
+                          quantity: qty,
+                          unit: "",
+                          matchType: "ITEM",
+                        };
+                        setResolvedRequestCode(currentInput);
                         setTimeout(() => locationRef.current?.focus(), 50);
                       }
                     }}
