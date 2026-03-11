@@ -53,6 +53,7 @@ const TransportLoad = () => {
   const huRef = useRef<HTMLInputElement | null>(null);
   const locationRef = useRef<HTMLInputElement | null>(null);
   const vehicleRef = useRef<HTMLInputElement | null>(null);
+  const lookupRequestIdRef = useRef(0);
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
@@ -80,6 +81,21 @@ const TransportLoad = () => {
     if (lang === "pt-BR") return "pt-BR";
     return "en-US";
   }, [lang]);
+
+  const resetResolvedState = () => {
+    setResult(null);
+    setVehicleEnabled(false);
+    setVehicleId("");
+    setLastFetchedHu(null);
+    setEtag("");
+    setHuQuantity("");
+    setHuUnit("");
+    setLocationRequired(false);
+    setLocationScan("");
+    setHuItemLabel("Handling Unit / Item");
+    setSelectOpen(false);
+    setSelectItems([]);
+  };
 
   useEffect(() => {
     // Focus the first field on mount
@@ -141,14 +157,18 @@ const TransportLoad = () => {
 
   const onHUBlur = async () => {
     const huRaw = handlingUnit;
-    if (!huRaw.trim()) return;
+    const requestCode = huRaw.trim();
+    if (!requestCode) return;
 
     setLocationRequired(false);
     setLocationScan("");
 
     // Only proceed if result is empty (first time) or HU changed
-    const shouldCheck = result === null || lastFetchedHu !== huRaw;
+    const shouldCheck = result === null || lastFetchedHu !== requestCode;
     if (!shouldCheck) return;
+
+    const requestId = ++lookupRequestIdRef.current;
+    const isLatestRequest = () => lookupRequestIdRef.current === requestId && handlingUnit.trim() === requestCode;
 
     const tid = showLoading(trans.checkingHandlingUnit);
     setDetailsLoading(true);
@@ -156,6 +176,11 @@ const TransportLoad = () => {
       body: { handlingUnit: huRaw, language: locale },
     });
     dismissToast(tid as unknown as string);
+
+    if (!isLatestRequest()) {
+      setDetailsLoading(false);
+      return;
+    }
 
     const ordData = ordRes.data;
     if (ordRes.error || !ordData || !ordData.ok || (ordData.count ?? 0) === 0) {
@@ -171,12 +196,14 @@ const TransportLoad = () => {
     if ((ordData.count ?? items.length ?? 0) > 1) {
       setSelectItems(items);
       setSelectOpen(true);
+      setLastFetchedHu(requestCode);
       setDetailsLoading(false);
       return;
     }
 
     // Single match path
     setResult(first || null);
+    setLastFetchedHu(requestCode);
     const etagValue = (first && typeof first?.ETag === "string" ? first.ETag : "");
     setEtag(etagValue);
 
@@ -191,15 +218,14 @@ const TransportLoad = () => {
           body: { handlingUnit: chosenHU, vehicleId: selectedVehicle, language: locale },
         });
         dismissToast(preTid as unknown as string);
+        if (!isLatestRequest()) {
+          setDetailsLoading(false);
+          return;
+        }
         if (loadedData && loadedData.ok && Number(loadedData.count || 0) > 0) {
           setLoadedErrorOpen(true);
-          // Clear and reset
-          setResult(null);
-          setVehicleEnabled(false);
+          resetResolvedState();
           setHandlingUnit("");
-          setVehicleId("");
-          setLastFetchedHu(null);
-          setEtag("");
           setDetailsLoading(false);
           setTimeout(() => huRef.current?.focus(), 50);
           return;
@@ -208,6 +234,10 @@ const TransportLoad = () => {
       const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
         body: { handlingUnit: chosenHU, language: locale },
       });
+      if (!isLatestRequest()) {
+        setDetailsLoading(false);
+        return;
+      }
       const qtyData = infoRes.data;
       const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
       const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
@@ -216,7 +246,6 @@ const TransportLoad = () => {
       setVehicleEnabled(true);
       const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
       if (storedVehicle) setVehicleId(storedVehicle);
-      setLastFetchedHu(chosenHU);
       setDetailsLoading(false);
       setTimeout(() => vehicleRef.current?.focus(), 50);
     } else {
@@ -234,17 +263,13 @@ const TransportLoad = () => {
 
   const onErrorConfirm = () => {
     setErrorOpen(false);
-    setResult(null);
-    setVehicleEnabled(false);
+    resetResolvedState();
     setHandlingUnit("");
-    setVehicleId("");
-    setLastFetchedHu(null);
-    setEtag("");
     // Refocus HU
     setTimeout(() => huRef.current?.focus(), 50);
   };
 
-  const canLoad = vehicleEnabled && vehicleId.trim().length > 0;
+  const canLoad = vehicleEnabled && vehicleId.trim().length > 0 && !!result && handlingUnit.trim().length > 0 && lastFetchedHu === handlingUnit.trim();
 
   const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
@@ -269,8 +294,8 @@ const TransportLoad = () => {
       language: locale,
     };
     if (isHU) {
-      // Handling Unit move
-      payload.handlingUnit = handlingUnit.trim();
+      // Handling Unit move: always use the resolved HU from LN, never the raw input field.
+      payload.handlingUnit = (result.HandlingUnit || "").trim();
     } else {
       // Item move: send Item as returned by LN (preserve leading spaces) and Quantity from OrderedQuantity
       payload.item = (result.Item || "");
@@ -318,13 +343,7 @@ const TransportLoad = () => {
 
     // Clear form and reset after successful PATCH
     setHandlingUnit("");
-    setVehicleId("");
-    setResult(null);
-    setVehicleEnabled(false);
-    setLastFetchedHu(null);
-    setEtag("");
-    setHuQuantity("");
-    setHuUnit("");
+    resetResolvedState();
     setTimeout(() => huRef.current?.focus(), 50);
 
     // Refresh the loaded count badge
@@ -396,17 +415,13 @@ const TransportLoad = () => {
             onChange={(e) => {
               const v = e.target.value;
               setHandlingUnit(v);
-              if (v.trim() === "") {
-                setResult(null);
-                setVehicleEnabled(false);
-                setVehicleId("");
-                setLastFetchedHu(null);
-                setEtag("");
-                setHuQuantity("");
-                setHuUnit("");
-                setLocationRequired(false);
-                setLocationScan("");
-                setHuItemLabel("Handling Unit / Item");
+              const trimmed = v.trim();
+              if (!trimmed) {
+                resetResolvedState();
+                return;
+              }
+              if (trimmed !== (lastFetchedHu || "")) {
+                resetResolvedState();
               }
             }}
             onBlur={onHUBlur}
@@ -625,6 +640,7 @@ const TransportLoad = () => {
                     type="button"
                     className="w-full text-left"
                     onClick={async () => {
+                      const currentInput = handlingUnit.trim();
                       setSelectOpen(false);
                       const chosenHU = (it.HandlingUnit || "").trim();
                       setResult({
@@ -638,6 +654,7 @@ const TransportLoad = () => {
                         ETag: it.ETag,
                         OrderedQuantity: it.OrderedQuantity,
                       });
+                      setLastFetchedHu(currentInput);
                       setEtag(it.ETag || "");
                       // Update dynamic label based on presence of Handling Unit in the selected row
                       setHuItemLabel(chosenHU ? "Handling Unit" : "Item");
@@ -645,6 +662,9 @@ const TransportLoad = () => {
                         const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
                           body: { handlingUnit: chosenHU, language: locale },
                         });
+                        if (handlingUnit.trim() !== currentInput) {
+                          return;
+                        }
                         const qtyData = infoRes.data;
                         const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
                         const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
