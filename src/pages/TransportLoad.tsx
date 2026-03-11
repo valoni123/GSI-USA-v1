@@ -458,31 +458,101 @@ const TransportLoad = () => {
     const requestId = ++loadRequestIdRef.current;
     setProcessing(true);
 
-    const currentResult = currentResolved.result;
     const snapVehicleId = vehicleId.trim();
     const snapLocale = locale;
-    const snapEtag = currentResolved.etag;
-    const snapHuQty = currentResolved.quantity.trim();
-
     const employeeCode = (
       (localStorage.getItem("gsi.employee") ||
         localStorage.getItem("gsi.username") ||
         localStorage.getItem("gsi.login") ||
         "") as string
     ).trim();
+
+    // Re-resolve the current scanned code right before loading so a fast previous scan
+    // can never leak old result/quantity data into the movement request.
+    const verifyTid = showLoading(trans.checkingHandlingUnit);
+    const { data: ordData, error: ordErr } = await supabase.functions.invoke("ln-transport-orders", {
+      body: { handlingUnit: currentInput, language: snapLocale },
+    });
+    if (loadRequestIdRef.current !== requestId || handlingUnit.trim() !== currentInput) {
+      dismissToast(verifyTid as unknown as string);
+      setProcessing(false);
+      return;
+    }
+    if (ordErr || !ordData || !ordData.ok || (ordData.count ?? 0) === 0) {
+      dismissToast(verifyTid as unknown as string);
+      showError(trans.huNotFound);
+      setProcessing(false);
+      return;
+    }
+
+    const orderItems = Array.isArray(ordData.items) ? ordData.items : [];
+    const resolvedItem = orderItems.find((row: any) =>
+      String(row?.TransportID ?? "") === String(currentResolved.result.TransportID ?? "") &&
+      String(row?.RunNumber ?? "") === String(currentResolved.result.RunNumber ?? "")
+    );
+    const refreshedResult = (resolvedItem || ordData.first || null) as NonNullable<typeof result> | null;
+    if (!refreshedResult) {
+      dismissToast(verifyTid as unknown as string);
+      showError(trans.huNotFound);
+      setProcessing(false);
+      return;
+    }
+
+    const refreshedMatchType: "HU" | "ITEM" = (refreshedResult.HandlingUnit || "").trim() ? "HU" : "ITEM";
+    const refreshedEtag = typeof refreshedResult.ETag === "string" ? refreshedResult.ETag : "";
+    let refreshedQuantity = "";
+    let refreshedUnit = "";
+
+    if (refreshedMatchType === "HU") {
+      const resolvedHu = (refreshedResult.HandlingUnit || "").trim();
+      const { data: huData, error: huErr } = await supabase.functions.invoke("ln-handling-unit-info", {
+        body: { handlingUnit: resolvedHu, language: snapLocale },
+      });
+      if (loadRequestIdRef.current !== requestId || handlingUnit.trim() !== currentInput) {
+        dismissToast(verifyTid as unknown as string);
+        setProcessing(false);
+        return;
+      }
+      if (huErr || !huData || !huData.ok) {
+        dismissToast(verifyTid as unknown as string);
+        showError(trans.huNotFound);
+        setProcessing(false);
+        return;
+      }
+      refreshedQuantity = String(huData.quantity ?? "");
+      refreshedUnit = String(huData.unit ?? "");
+    } else {
+      refreshedQuantity = typeof refreshedResult.OrderedQuantity === "number" ? String(refreshedResult.OrderedQuantity) : "";
+    }
+
+    resolvedLoadRef.current = {
+      requestCode: currentInput,
+      result: refreshedResult,
+      etag: refreshedEtag,
+      quantity: refreshedQuantity,
+      unit: refreshedUnit,
+      matchType: refreshedMatchType,
+    };
+    setResolvedRequestCode(currentInput);
+    setResult(refreshedResult);
+    setEtag(refreshedEtag);
+    setHuQuantity(refreshedQuantity);
+    setHuUnit(refreshedUnit);
+    dismissToast(verifyTid as unknown as string);
+
     const payload: Record<string, unknown> = {
-      fromWarehouse: (currentResult.Warehouse || "").trim(),
-      fromLocation: (currentResult.LocationFrom || "").trim(),
-      toWarehouse: (currentResult.Warehouse || "").trim(),
+      fromWarehouse: (refreshedResult.Warehouse || "").trim(),
+      fromLocation: (refreshedResult.LocationFrom || "").trim(),
+      toWarehouse: (refreshedResult.Warehouse || "").trim(),
       toLocation: snapVehicleId,
       employee: employeeCode,
       language: snapLocale,
     };
-    if (currentResolved.matchType === "HU") {
-      payload.handlingUnit = (currentResult.HandlingUnit || "").trim();
+    if (refreshedMatchType === "HU") {
+      payload.handlingUnit = (refreshedResult.HandlingUnit || "").trim();
     } else {
-      payload.item = currentResult.Item || "";
-      const qtyNum = Number(snapHuQty || "0");
+      payload.item = refreshedResult.Item || "";
+      const qtyNum = Number(refreshedQuantity || "0");
       if (!Number.isNaN(qtyNum) && qtyNum > 0) {
         payload.quantity = qtyNum;
       }
@@ -508,9 +578,9 @@ const TransportLoad = () => {
     const patchTid = showLoading(trans.updatingTransportOrder);
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
-        transportId: (currentResult.TransportID || "").trim(),
-        runNumber: (currentResult.RunNumber || "").trim(),
-        etag: snapEtag,
+        transportId: (refreshedResult.TransportID || "").trim(),
+        runNumber: (refreshedResult.RunNumber || "").trim(),
+        etag: refreshedEtag,
         vehicleId: snapVehicleId,
         language: snapLocale,
         company: "1100",
