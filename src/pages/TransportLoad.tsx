@@ -55,6 +55,7 @@ const TransportLoad = () => {
   const vehicleRef = useRef<HTMLInputElement | null>(null);
   const lookupRequestIdRef = useRef(0);
   const loadRequestIdRef = useRef(0);
+  const moveBackRequestIdRef = useRef(0);
   const lastLoadClickAtRef = useRef(0);
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
@@ -93,6 +94,7 @@ const TransportLoad = () => {
   };
   const [listItems, setListItems] = useState<LoadedListItem[]>([]);
   const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
+  const [moveBackProcessing, setMoveBackProcessing] = useState<boolean>(false);
   const [confirmMoveBackOpen, setConfirmMoveBackOpen] = useState<boolean>(false);
   const [confirmItem, setConfirmItem] = useState<LoadedListItem | null>(null);
   const [listLoading, setListLoading] = useState<boolean>(false);
@@ -198,8 +200,18 @@ const TransportLoad = () => {
 
   const onMoveBack = async (it: LoadedListItem) => {
     const key = moveBackKey(it);
-    if (movingBackMap[key]) return;
+    if (movingBackMap[key] || moveBackProcessing) return;
+    const requestId = ++moveBackRequestIdRef.current;
+    const currentItem = {
+      HandlingUnit: (it.HandlingUnit || "").trim(),
+      Warehouse: (it.Warehouse || "").trim(),
+      LocationFrom: (it.LocationFrom || "").trim(),
+      TransportID: (it.TransportID || "").trim(),
+      RunNumber: (it.RunNumber || "").trim(),
+      ETag: (it.ETag || "").trim(),
+    };
     setMovingBackMap((m) => ({ ...m, [key]: true }));
+    setMoveBackProcessing(true);
 
     const employeeCode = (
       (localStorage.getItem("gsi.employee") ||
@@ -211,21 +223,28 @@ const TransportLoad = () => {
     if (!vid) {
       showError("No vehicle selected. Please set a Vehicle ID.");
       setMovingBackMap((m) => ({ ...m, [key]: false }));
+      setMoveBackProcessing(false);
       return;
     }
     const tid = showLoading(trans.executingMovement);
 
     const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
       body: {
-        handlingUnit: (it.HandlingUnit || "").trim(),
-        fromWarehouse: (it.Warehouse || "").trim(),
+        handlingUnit: currentItem.HandlingUnit,
+        fromWarehouse: currentItem.Warehouse,
         fromLocation: vid,
-        toWarehouse: (it.Warehouse || "").trim(),
-        toLocation: (it.LocationFrom || "").trim(),
+        toWarehouse: currentItem.Warehouse,
+        toLocation: currentItem.LocationFrom,
         employee: employeeCode,
         language: locale,
       },
     });
+    if (moveBackRequestIdRef.current !== requestId) {
+      dismissToast(tid as unknown as string);
+      setMovingBackMap((m) => ({ ...m, [key]: false }));
+      setMoveBackProcessing(false);
+      return;
+    }
     if (moveErr || !moveData || !moveData.ok) {
       dismissToast(tid as unknown as string);
       const err = (moveData && moveData.error) || moveErr;
@@ -234,20 +253,26 @@ const TransportLoad = () => {
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
       showError(message);
       setMovingBackMap((m) => ({ ...m, [key]: false }));
+      setMoveBackProcessing(false);
       return;
     }
 
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
-        transportId: (it.TransportID || "").trim(),
-        runNumber: (it.RunNumber || "").trim(),
-        etag: (it.ETag || "").trim(),
+        transportId: currentItem.TransportID,
+        runNumber: currentItem.RunNumber,
+        etag: currentItem.ETag,
         vehicleId: "",
         language: locale,
         company: "1100",
       },
     });
     dismissToast(tid as unknown as string);
+    if (moveBackRequestIdRef.current !== requestId) {
+      setMovingBackMap((m) => ({ ...m, [key]: false }));
+      setMoveBackProcessing(false);
+      return;
+    }
     if (patchErr || !patchData || !patchData.ok) {
       const err = (patchData && patchData.error) || patchErr;
       const top = err?.message || "Unbekannter Fehler";
@@ -255,6 +280,7 @@ const TransportLoad = () => {
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
       showError(message);
       setMovingBackMap((m) => ({ ...m, [key]: false }));
+      setMoveBackProcessing(false);
       return;
     }
 
@@ -271,6 +297,7 @@ const TransportLoad = () => {
       try { localStorage.setItem("transport.count", String(Math.max(0, (Number(localStorage.getItem("transport.count") || "1")) - 1))); } catch {}
     }
     setMovingBackMap((m) => ({ ...m, [key]: false }));
+    setMoveBackProcessing(false);
   };
 
   const onHUBlur = async () => {
@@ -703,6 +730,7 @@ const TransportLoad = () => {
       {/* Blocking spinner while processing */}
       {listLoading && <ScreenSpinner message={trans.loadingList} />}
       {processing && <ScreenSpinner message={trans.pleaseWait} />}
+      {moveBackProcessing && <ScreenSpinner message={trans.pleaseWait} />}
 
       {/* Error dialog: HU not found */}
       <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
@@ -808,7 +836,7 @@ const TransportLoad = () => {
                               setConfirmItem(it);
                               setConfirmMoveBackOpen(true);
                             }}
-                            disabled={Boolean(movingBackMap[`${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`])}
+                            disabled={moveBackProcessing || Boolean(movingBackMap[`${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`])}
                             aria-label="Move back"
                           >
                             <RotateCcw className="h-4 w-4" />
