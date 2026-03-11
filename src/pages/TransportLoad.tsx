@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User } from "lucide-react";
+import { ArrowLeft, LogOut, User, RotateCcw } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -75,7 +75,18 @@ const TransportLoad = () => {
   const [locationRequired, setLocationRequired] = useState<boolean>(false);
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [listOpen, setListOpen] = useState<boolean>(false);
-  const [listItems, setListItems] = useState<Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>>([]);
+  type LoadedListItem = {
+    HandlingUnit: string;
+    LocationFrom: string;
+    LocationTo: string;
+    Warehouse: string;
+    TransportID: string;
+    RunNumber: string;
+    ETag: string;
+    OrderedQuantity?: number | string | null;
+  };
+  const [listItems, setListItems] = useState<LoadedListItem[]>([]);
+  const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({}); // per-row lock
   const [listLoading, setListLoading] = useState<boolean>(false);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -134,7 +145,18 @@ const TransportLoad = () => {
       body: { vehicleId: vid, language: locale, company: "1100" },
     });
     if (data && data.ok) {
-      const items = (data.items || []) as Array<{ HandlingUnit: string; LocationFrom: string; LocationTo: string }>;
+      const items = Array.isArray(data.items)
+        ? (data.items as any[]).map((v) => ({
+            HandlingUnit: String(v?.HandlingUnit ?? ""),
+            LocationFrom: String(v?.LocationFrom ?? ""),
+            LocationTo: String(v?.LocationTo ?? ""),
+            Warehouse: String(v?.Warehouse ?? ""),
+            TransportID: String(v?.TransportID ?? ""),
+            RunNumber: String(v?.RunNumber ?? ""),
+            ETag: String(v?.ETag ?? ""),
+            OrderedQuantity: v?.OrderedQuantity ?? null,
+          })) as LoadedListItem[]
+        : [];
       setListItems(items);
       const next = Number(data.count ?? items.length ?? 0);
       setLoadedCount(next);
@@ -155,6 +177,85 @@ const TransportLoad = () => {
     try {
       localStorage.setItem("transport.count", String(next));
     } catch {}
+  };
+
+  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`;
+
+  const onMoveBack = async (it: LoadedListItem) => {
+    const key = moveBackKey(it);
+    if (movingBackMap[key]) return;
+    setMovingBackMap((m) => ({ ...m, [key]: true }));
+
+    const employeeCode = (
+      (localStorage.getItem("gsi.employee") ||
+        localStorage.getItem("gsi.username") ||
+        localStorage.getItem("gsi.login") ||
+        "") as string
+    ).trim();
+    const vid = (localStorage.getItem("vehicle.id") || "").trim();
+    const fromLocation = (it.LocationTo || "").trim() || vid;
+    const tid = showLoading(trans.executingMovement);
+
+    // 1) Move HU back to original Location From
+    const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
+      body: {
+        handlingUnit: (it.HandlingUnit || "").trim(),
+        fromWarehouse: (it.Warehouse || "").trim(),
+        fromLocation,
+        toWarehouse: (it.Warehouse || "").trim(),
+        toLocation: (it.LocationFrom || "").trim(),
+        employee: employeeCode,
+        language: locale,
+      },
+    });
+    if (moveErr || !moveData || !moveData.ok) {
+      dismissToast(tid as unknown as string);
+      const err = (moveData && moveData.error) || moveErr;
+      const top = err?.message || "Unbekannter Fehler";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      setMovingBackMap((m) => ({ ...m, [key]: false }));
+      return;
+    }
+
+    // 2) Clear VehicleID on transport order
+    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
+      body: {
+        transportId: (it.TransportID || "").trim(),
+        runNumber: (it.RunNumber || "").trim(),
+        etag: (it.ETag || "").trim(),
+        vehicleId: "",
+        language: locale,
+        company: "1100",
+      },
+    });
+    dismissToast(tid as unknown as string);
+    if (patchErr || !patchData || !patchData.ok) {
+      const err = (patchData && patchData.error) || patchErr;
+      const top = err?.message || "Unbekannter Fehler";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      setMovingBackMap((m) => ({ ...m, [key]: false }));
+      return;
+    }
+
+    showSuccess("Moved back");
+
+    // Refresh list and badge
+    const currentVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+    if (currentVehicle) {
+      setListLoading(true);
+      await fetchList(currentVehicle);
+      setListLoading(false);
+    } else {
+      // Fallback: remove the item locally
+      setListItems((items) => items.filter((row) => moveBackKey(row) !== key));
+      setLoadedCount((n) => Math.max(0, n - 1));
+      try { localStorage.setItem("transport.count", String(Math.max(0, (Number(localStorage.getItem("transport.count") || "1")) - 1))); } catch {}
+    }
+    setMovingBackMap((m) => ({ ...m, [key]: false }));
   };
 
   const onHUBlur = async () => {
@@ -620,27 +721,37 @@ const TransportLoad = () => {
       <Dialog open={listOpen} onOpenChange={setListOpen}>
         <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">
           <div className="text-sm">
-            <div className="grid grid-cols-[1fr_1fr_1fr] gap-2 px-3 py-2 border-b rounded-t-lg bg-black text-white">
+            <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 px-3 py-2 border-b rounded-t-lg bg-black text-white">
               <div className="font-semibold">{trans.loadHandlingUnit}</div>
               <div className="font-semibold">{trans.locationFromLabel}</div>
               <div className="font-semibold">{trans.locationToLabel}</div>
+              <div className="font-semibold text-right"> </div>
             </div>
             <div className="max-h-64 overflow-auto mt-0 space-y-2 px-2 py-2">
               {listItems.length === 0 ? (
                 <div className="text-xs text-muted-foreground px-1">{trans.noEntries}</div>
               ) : (
                 listItems.map((it, idx) => (
-                  <div key={idx}>
+                  <div key={`${it.TransportID}-${it.RunNumber}-${idx}`}>
                     <div className="rounded-md bg-gray-100/80 px-3 py-2 shadow-sm">
-                      <div className="grid grid-cols-[1fr_1fr_1fr] gap-2 text-xs">
-                        <div className="break-all">{it.HandlingUnit}</div>
-                        <div className="break-all">{it.LocationFrom}</div>
-                        <div className="break-all">{it.LocationTo}</div>
+                      <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center text-xs">
+                        <div className="break-all">{it.HandlingUnit || "-"}</div>
+                        <div className="break-all">{it.LocationFrom || "-"}</div>
+                        <div className="break-all">{it.LocationTo || "-"}</div>
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            className={`inline-flex items-center justify-center h-7 w-7 rounded-md border border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50`}
+                            onClick={() => onMoveBack(it)}
+                            disabled={Boolean(movingBackMap[`${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`])}
+                            aria-label="Move back"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    {idx < listItems.length - 1 && (
-                      <div className="h-px bg-gray-200/60 mx-1 my-2" />
-                    )}
+                    {idx < listItems.length - 1 && <div className="h-px bg-gray-200/60 mx-1 my-2" />}
                   </div>
                 ))
               )}
