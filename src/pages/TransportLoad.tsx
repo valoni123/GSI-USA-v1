@@ -87,6 +87,8 @@ const TransportLoad = () => {
   };
   const [listItems, setListItems] = useState<LoadedListItem[]>([]);
   const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({}); // per-row lock
+  const [confirmMoveBackOpen, setConfirmMoveBackOpen] = useState<boolean>(false);
+  const [confirmItem, setConfirmItem] = useState<LoadedListItem | null>(null);
   const [listLoading, setListLoading] = useState<boolean>(false);
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -712,6 +714,38 @@ const TransportLoad = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Confirm Move Back dialog */}
+      <AlertDialog open={confirmMoveBackOpen} onOpenChange={setConfirmMoveBackOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Move back</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="text-sm text-gray-700">Do you really want to move it back?</div>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmMoveBackOpen(false);
+                setConfirmItem(null);
+              }}
+            >
+              Cancel
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={async () => {
+                const it = confirmItem;
+                setConfirmMoveBackOpen(false);
+                setConfirmItem(null);
+                if (it) {
+                  await onMoveBack(it);
+                }
+              }}
+            >
+              Move back
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Sign-out confirmation dialog */}
       <SignOutConfirm
         open={signOutOpen}
@@ -748,7 +782,10 @@ const TransportLoad = () => {
                           <button
                             type="button"
                             className={`inline-flex items-center justify-center h-7 w-7 rounded-md border border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50`}
-                            onClick={() => onMoveBack(it)}
+                            onClick={() => {
+                              setConfirmItem(it);
+                              setConfirmMoveBackOpen(true);
+                            }}
                             disabled={Boolean(movingBackMap[`${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`])}
                             aria-label="Move back"
                           >

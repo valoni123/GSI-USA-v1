@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowBigLeft, ArrowBigRight, Forklift, User, LogOut, Search, RotateCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import BackButton from "@/components/BackButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,6 +90,8 @@ const TransportMenu = () => {
   const [listItems, setListItems] = useState<LoadedListItem[]>([]);
   const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
   const [listLoading, setListLoading] = useState<boolean>(false);
+  const [confirmMoveBackOpen, setConfirmMoveBackOpen] = useState<boolean>(false);
+  const [confirmItem, setConfirmItem] = useState<LoadedListItem | null>(null);
 
   // Vehicle selection
   const initialSelected = sessionStorage.getItem("transport.selected") === "1";
@@ -362,7 +372,10 @@ const TransportMenu = () => {
                               <button
                                 type="button"
                                 className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                                onClick={() => onMoveBack(it)}
+                                onClick={() => {
+                                  setConfirmItem(it);
+                                  setConfirmMoveBackOpen(true);
+                                }}
                                 disabled={Boolean(movingBackMap[`${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`])}
                                 aria-label="Move back"
                               >
@@ -382,6 +395,37 @@ const TransportMenu = () => {
             </div>
           </DialogContent>
         </Dialog>
+        {/* Confirm Move Back dialog */}
+        <AlertDialog open={confirmMoveBackOpen} onOpenChange={setConfirmMoveBackOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Move back</AlertDialogTitle>
+            </AlertDialogHeader>
+            <div className="text-sm text-gray-700">Do you really want to move it back?</div>
+            <AlertDialogFooter>
+              <AlertDialogAction
+                onClick={() => {
+                  setConfirmMoveBackOpen(false);
+                  setConfirmItem(null);
+                }}
+              >
+                Cancel
+              </AlertDialogAction>
+              <AlertDialogAction
+                onClick={async () => {
+                  const it = confirmItem;
+                  setConfirmMoveBackOpen(false);
+                  setConfirmItem(null);
+                  if (it) {
+                    await onMoveBack(it);
+                  }
+                }}
+              >
+                Move back
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         {/* Blocking spinner while list is loading */}
         {listLoading && <ScreenSpinner message={trans.loadingList} />}
       </div>
