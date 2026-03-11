@@ -193,7 +193,13 @@ const TransportLoad = () => {
         "") as string
     ).trim();
     const vid = (localStorage.getItem("vehicle.id") || "").trim();
-    const fromLocation = (it.LocationTo || "").trim() || vid;
+    // Always move back FROM the vehicle location
+    if (!vid) {
+      showError("No vehicle selected. Please set a Vehicle ID.");
+      setMovingBackMap((m) => ({ ...m, [key]: false }));
+      return;
+    }
+    const fromLocation = vid;
     const tid = showLoading(trans.executingMovement);
 
     // 1) Move HU back to original Location From
