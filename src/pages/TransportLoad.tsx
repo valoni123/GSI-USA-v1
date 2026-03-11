@@ -54,6 +54,8 @@ const TransportLoad = () => {
   const locationRef = useRef<HTMLInputElement | null>(null);
   const vehicleRef = useRef<HTMLInputElement | null>(null);
   const lookupRequestIdRef = useRef(0);
+  const loadRequestIdRef = useRef(0); // NEW: guard for load requests
+  const lastLoadClickAtRef = useRef(0); // NEW: debounce guard
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
@@ -275,8 +277,25 @@ const TransportLoad = () => {
   const [processing, setProcessing] = useState<boolean>(false);
 
   const onLoadClick = async () => {
+    // Debounce very fast double taps
+    const now = Date.now();
+    if (now - lastLoadClickAtRef.current < 250) return;
+    lastLoadClickAtRef.current = now;
+
+    // Prevent overlapping requests
+    if (processing) return;
     if (!canLoad || !result) return;
+    const requestId = ++loadRequestIdRef.current;
     setProcessing(true);
+
+    // Snapshot current values to avoid reading stale state if user scans while in-flight
+    const currentResult = result;
+    const snapVehicleId = vehicleId.trim();
+    const snapLocale = locale;
+    const snapEtag = etag.trim();
+    const snapHuQty = (huQuantity || "").trim();
+    const snapHandlingUnit = handlingUnit.trim();
+
     const employeeCode = (
       (localStorage.getItem("gsi.employee") ||
         localStorage.getItem("gsi.username") ||
@@ -284,22 +303,22 @@ const TransportLoad = () => {
         "") as string
     ).trim();
     // Build payload: HandlingUnit move OR Item move
-    const isHU = (result?.HandlingUnit || "").trim().length > 0;
+    const isHU = (currentResult?.HandlingUnit || "").trim().length > 0;
     const payload: Record<string, unknown> = {
-      fromWarehouse: (result.Warehouse || "").trim(),
-      fromLocation: (result.LocationFrom || "").trim(),
-      toWarehouse: (result.Warehouse || "").trim(),
-      toLocation: vehicleId.trim(),
+      fromWarehouse: (currentResult.Warehouse || "").trim(),
+      fromLocation: (currentResult.LocationFrom || "").trim(),
+      toWarehouse: (currentResult.Warehouse || "").trim(),
+      toLocation: snapVehicleId,
       employee: employeeCode,
-      language: locale,
+      language: snapLocale,
     };
     if (isHU) {
       // Handling Unit move: always use the resolved HU from LN, never the raw input field.
-      payload.handlingUnit = (result.HandlingUnit || "").trim();
+      payload.handlingUnit = (currentResult.HandlingUnit || "").trim();
     } else {
       // Item move: send Item as returned by LN (preserve leading spaces) and Quantity from OrderedQuantity
-      payload.item = (result.Item || "");
-      const qtyNum = Number((huQuantity || "").trim() || "0");
+      payload.item = (currentResult.Item || "");
+      const qtyNum = Number(snapHuQty || "0");
       if (!Number.isNaN(qtyNum) && qtyNum > 0) {
         payload.quantity = qtyNum;
       }
@@ -307,6 +326,11 @@ const TransportLoad = () => {
     const tid = showLoading(trans.executingMovement);
     const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
     dismissToast(tid as unknown as string);
+    // Ignore late responses if a newer load started (extra safety)
+    if (loadRequestIdRef.current !== requestId) {
+      setProcessing(false);
+      return;
+    }
     if (error || !data || !data.ok) {
       const err = (data && data.error) || error;
       const top = err?.message || "Unbekannter Fehler";
@@ -322,15 +346,19 @@ const TransportLoad = () => {
     const patchTid = showLoading(trans.updatingTransportOrder);
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
-        transportId: (result.TransportID || "").trim(),
-        runNumber: (result.RunNumber || "").trim(),
-        etag: etag.trim(),
-        vehicleId: vehicleId.trim(),
-        language: locale,
+        transportId: (currentResult.TransportID || "").trim(),
+        runNumber: (currentResult.RunNumber || "").trim(),
+        etag: snapEtag,
+        vehicleId: snapVehicleId,
+        language: snapLocale,
         company: "1100",
       },
     });
     dismissToast(patchTid as unknown as string);
+    if (loadRequestIdRef.current !== requestId) {
+      setProcessing(false);
+      return;
+    }
     if (patchErr || !patchData || !patchData.ok) {
       const err = (patchData && patchData.error) || patchErr;
       const top = err?.message || "Unbekannter Fehler";
@@ -412,6 +440,7 @@ const TransportLoad = () => {
             autoFocus
             ref={huRef}
             value={handlingUnit}
+            disabled={processing} // NEW: lock input while processing a load to avoid mid-submit changes
             onChange={(e) => {
               const v = e.target.value;
               setHandlingUnit(v);
@@ -528,14 +557,14 @@ const TransportLoad = () => {
         <div className="mx-auto max-w-md px-4 py-3">
           <Button
             className={
-              canLoad
+              canLoad && !processing
                 ? "w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white"
                 : "w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100"
             }
-            disabled={!canLoad}
+            disabled={!canLoad || processing}
             onClick={onLoadClick}
           >
-            {trans.loadAction}
+            {processing ? trans.executingMovement : trans.loadAction}
           </Button>
         </div>
       </div>
