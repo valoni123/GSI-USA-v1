@@ -23,6 +23,7 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
   const [transportScreen, setTransportScreen] = useState(false);
 
   const canSubmit = Boolean(resolvedFullName && password.trim().length > 0);
+  const passwordDisabled = usernameLookup === "notfound";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +95,7 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
                 } else {
                   setResolvedFullName(null);
                   setUsernameLookup("notfound");
+                  setPassword("");
                 }
               }}
             />
@@ -103,6 +105,7 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               label={trans.password}
               type="password"
               value={password}
+              disabled={passwordDisabled}
               onChange={(e) => setPassword(e.target.value)}
             />
 
