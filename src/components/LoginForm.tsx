@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { LanguageKey } from "@/lib/i18n";
@@ -14,14 +14,22 @@ type Props = {
 };
 
 const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
+  const trans = useMemo(() => t(lang), [lang]);
+
   const [username, setUsername] = useState("");
-  const [usernameLabel, setUsernameLabel] = useState(t(lang).username);
+  const [resolvedFullName, setResolvedFullName] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [transportScreen, setTransportScreen] = useState(false);
-  const trans = t(lang);
+
+  const usernameLabel = resolvedFullName
+    ? `${trans.username} - ${resolvedFullName}`
+    : trans.username;
+
+  const canSubmit = Boolean(resolvedFullName && password.trim().length > 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmit) return;
     onSubmit({ username, password, transportscreen: transportScreen });
   };
 
@@ -49,22 +57,22 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               onChange={(e) => {
                 const v = e.target.value;
                 setUsername(v);
-                // Reset label to default while editing
-                if (usernameLabel !== trans.username) {
-                  setUsernameLabel(trans.username);
-                }
+                if (resolvedFullName) setResolvedFullName(null);
               }}
               onBlur={async () => {
                 const raw = username.trim();
-                if (!raw) return;
+                if (!raw) {
+                  setResolvedFullName(null);
+                  return;
+                }
                 const { data } = await supabase.functions.invoke("gsi-get-user-name", {
                   body: { username: raw },
                 });
                 const full = data && data.ok ? data.full_name : null;
                 if (typeof full === "string" && full.trim().length > 0) {
-                  setUsernameLabel(`${trans.username} - ${full.trim()}`);
+                  setResolvedFullName(full.trim());
                 } else {
-                  setUsernameLabel(trans.username);
+                  setResolvedFullName(null);
                 }
               }}
             />
@@ -88,7 +96,11 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               </label>
             </div>
 
-            <Button type="submit" className="w-full h-12 text-base bg-slate-900 hover:bg-slate-900/90 text-white">
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              className="w-full h-12 text-base bg-slate-900 hover:bg-slate-900/90 text-white disabled:bg-slate-400 disabled:hover:bg-slate-400"
+            >
               {trans.signIn}
             </Button>
           </form>
