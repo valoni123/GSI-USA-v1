@@ -245,14 +245,15 @@ const TransportUnload = () => {
       return false;
     }
 
-    // After successful move, PATCH the TransportOrder: Completed='Yes', clear VehicleID & LocationDevice
+    // After successful move, PATCH the TransportOrder: Completed='Yes', set VehicleID & LocationDevice to ToLocation
     const patchTid = showLoading(trans.updatingTransportOrder);
+    const toLoc = (it.LocationTo || "").trim();
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: (it.TransportID || "").trim(),
         runNumber: (it.RunNumber || "").trim(),
         etag: (it.ETag || "").trim(),
-        vehicleId: "",
+        vehicleId: toLoc,
         completed: "Yes",
         language: locale,
         company: "1100",
