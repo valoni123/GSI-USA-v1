@@ -31,12 +31,14 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
   };
 
   const usernameLabel = (
-    <span className="inline-flex items-center gap-2">
-      <span>{trans.username}</span>
+    <span>
+      {trans.username}
       {usernameLookup === "found" && resolvedFullName ? (
-        <span className="font-semibold text-gray-900">{resolvedFullName}</span>
+        <span> - {resolvedFullName}</span>
       ) : usernameLookup === "notfound" ? (
-        <span className="font-bold text-red-600">User not found</span>
+        <span>
+          {" "}- <span className="text-red-600">NOT FOUND</span>
+        </span>
       ) : null}
     </span>
   );
