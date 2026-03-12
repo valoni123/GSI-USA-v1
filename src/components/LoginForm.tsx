@@ -30,6 +30,17 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
     onSubmit({ username, password, transportscreen: transportScreen });
   };
 
+  const usernameLabel = (
+    <span className="inline-flex items-center gap-2">
+      <span>{trans.username}</span>
+      {usernameLookup === "found" && resolvedFullName ? (
+        <span className="font-semibold text-gray-900">{resolvedFullName}</span>
+      ) : usernameLookup === "notfound" ? (
+        <span className="font-bold text-red-600">User not found</span>
+      ) : null}
+    </span>
+  );
+
   return (
     <div className="w-full max-w-md">
       <Card className="rounded-none border border-black/80 bg-white shadow-sm">
@@ -46,53 +57,44 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <div className="min-h-[18px] text-sm">
-                {usernameLookup === "found" && resolvedFullName ? (
-                  <span className="font-semibold text-gray-900">{resolvedFullName}</span>
-                ) : usernameLookup === "notfound" ? (
-                  <span className="font-bold text-red-600">User not found</span>
-                ) : null}
-              </div>
-              <FloatingLabelInput
-                id="username"
-                label={trans.username}
-                autoFocus
-                value={username}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setUsername(v);
-                  if (resolvedFullName) setResolvedFullName(null);
-                  if (usernameLookup !== "idle") setUsernameLookup("idle");
-                }}
-                onBlur={async () => {
-                  const raw = username.trim();
-                  if (!raw) {
-                    setResolvedFullName(null);
-                    setUsernameLookup("idle");
-                    return;
-                  }
+            <FloatingLabelInput
+              id="username"
+              label={usernameLabel}
+              autoFocus
+              value={username}
+              onChange={(e) => {
+                const v = e.target.value;
+                setUsername(v);
+                if (resolvedFullName) setResolvedFullName(null);
+                if (usernameLookup !== "idle") setUsernameLookup("idle");
+              }}
+              onBlur={async () => {
+                const raw = username.trim();
+                if (!raw) {
+                  setResolvedFullName(null);
+                  setUsernameLookup("idle");
+                  return;
+                }
 
-                  setUsernameLookup("loading");
-                  const requested = raw;
-                  const { data } = await supabase.functions.invoke("gsi-get-user-name", {
-                    body: { username: requested },
-                  });
+                setUsernameLookup("loading");
+                const requested = raw;
+                const { data } = await supabase.functions.invoke("gsi-get-user-name", {
+                  body: { username: requested },
+                });
 
-                  // Ignore stale responses
-                  if (username.trim() !== requested) return;
+                // Ignore stale responses
+                if (username.trim() !== requested) return;
 
-                  const full = data && data.ok ? data.full_name : null;
-                  if (typeof full === "string" && full.trim().length > 0) {
-                    setResolvedFullName(full.trim());
-                    setUsernameLookup("found");
-                  } else {
-                    setResolvedFullName(null);
-                    setUsernameLookup("notfound");
-                  }
-                }}
-              />
-            </div>
+                const full = data && data.ok ? data.full_name : null;
+                if (typeof full === "string" && full.trim().length > 0) {
+                  setResolvedFullName(full.trim());
+                  setUsernameLookup("found");
+                } else {
+                  setResolvedFullName(null);
+                  setUsernameLookup("notfound");
+                }
+              }}
+            />
 
             <FloatingLabelInput
               id="password"

@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 
 type Props = {
   id: string;
-  label: string;
+  label: React.ReactNode;
   disabled?: boolean;
   autoFocus?: boolean;
   type?: React.ComponentProps<"input">["type"];
