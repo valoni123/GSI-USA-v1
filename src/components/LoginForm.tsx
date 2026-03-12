@@ -18,12 +18,9 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
 
   const [username, setUsername] = useState("");
   const [resolvedFullName, setResolvedFullName] = useState<string | null>(null);
+  const [usernameLookup, setUsernameLookup] = useState<"idle" | "loading" | "found" | "notfound">("idle");
   const [password, setPassword] = useState("");
   const [transportScreen, setTransportScreen] = useState(false);
-
-  const usernameLabel = resolvedFullName
-    ? `${trans.username} - ${resolvedFullName}`
-    : trans.username;
 
   const canSubmit = Boolean(resolvedFullName && password.trim().length > 0);
 
@@ -49,33 +46,53 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <FloatingLabelInput
-              id="username"
-              label={usernameLabel}
-              autoFocus
-              value={username}
-              onChange={(e) => {
-                const v = e.target.value;
-                setUsername(v);
-                if (resolvedFullName) setResolvedFullName(null);
-              }}
-              onBlur={async () => {
-                const raw = username.trim();
-                if (!raw) {
-                  setResolvedFullName(null);
-                  return;
-                }
-                const { data } = await supabase.functions.invoke("gsi-get-user-name", {
-                  body: { username: raw },
-                });
-                const full = data && data.ok ? data.full_name : null;
-                if (typeof full === "string" && full.trim().length > 0) {
-                  setResolvedFullName(full.trim());
-                } else {
-                  setResolvedFullName(null);
-                }
-              }}
-            />
+            <div className="space-y-1">
+              <div className="min-h-[18px] text-sm">
+                {usernameLookup === "found" && resolvedFullName ? (
+                  <span className="font-semibold text-gray-900">{resolvedFullName}</span>
+                ) : usernameLookup === "notfound" ? (
+                  <span className="font-bold text-red-600">User not found</span>
+                ) : null}
+              </div>
+              <FloatingLabelInput
+                id="username"
+                label={trans.username}
+                autoFocus
+                value={username}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setUsername(v);
+                  if (resolvedFullName) setResolvedFullName(null);
+                  if (usernameLookup !== "idle") setUsernameLookup("idle");
+                }}
+                onBlur={async () => {
+                  const raw = username.trim();
+                  if (!raw) {
+                    setResolvedFullName(null);
+                    setUsernameLookup("idle");
+                    return;
+                  }
+
+                  setUsernameLookup("loading");
+                  const requested = raw;
+                  const { data } = await supabase.functions.invoke("gsi-get-user-name", {
+                    body: { username: requested },
+                  });
+
+                  // Ignore stale responses
+                  if (username.trim() !== requested) return;
+
+                  const full = data && data.ok ? data.full_name : null;
+                  if (typeof full === "string" && full.trim().length > 0) {
+                    setResolvedFullName(full.trim());
+                    setUsernameLookup("found");
+                  } else {
+                    setResolvedFullName(null);
+                    setUsernameLookup("notfound");
+                  }
+                }}
+              />
+            </div>
 
             <FloatingLabelInput
               id="password"
