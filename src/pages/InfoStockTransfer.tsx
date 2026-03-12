@@ -277,6 +277,11 @@ const InfoStockTransfer = () => {
   // Enable TRANSFER only when everything required is filled
   const canTransfer = useMemo(() => {
     if (!showDetails) return false;
+
+    const statusKey = normalizeStatus(status);
+    // For HU flow, only allow transfers when HU is actually in stock.
+    if (lastMatchType === "HU" && statusKey !== "instock") return false;
+
     const qtyOk = Number(quantity) > 0;
     const unitOk = (unit || "").trim().length > 0;
     const tgtWh = (targetWarehouse || "").trim();
@@ -292,7 +297,12 @@ const InfoStockTransfer = () => {
 
     if (lastMatchType === "HU") {
       const baseOk = (warehouse || "").trim() && (location || "").trim();
-      return !!(baseOk && qtyOk && unitOk && targetLocValid && locDifferent) && !searching && !checkingTargetLocation && !transferring;
+      return (
+        !!(baseOk && qtyOk && unitOk && targetLocValid && locDifferent) &&
+        !searching &&
+        !checkingTargetLocation &&
+        !transferring
+      );
     }
     // ITEM
     const baseOk = (warehouse || "").trim();
@@ -311,6 +321,7 @@ const InfoStockTransfer = () => {
     searching,
     checkingTargetLocation,
     transferring,
+    status,
   ]);
 
   const handleSearch = async (_withLoading = false) => {
@@ -326,16 +337,30 @@ const InfoStockTransfer = () => {
     });
     if (huRes.data && huRes.data.ok) {
       const d = huRes.data;
+      const statusKey = normalizeStatus(d.status || "");
+
       setItem(d.item || "");
       setHandlingUnit((d.handlingUnit || input).toString());
       setWarehouse(d.warehouse || "");
-      setTargetWarehouse(d.warehouse || "");
       setLocation(d.location || "");
       setLot(d.lot || "");
       const qty = d.quantity != null ? String(d.quantity) : "";
       setQuantity(qty);
       setUnit((d.unit || "").toString());
       setStatus(d.status || "");
+
+      // Always reset target fields on a new HU scan to avoid carrying over previous values.
+      // Only allow target selection when HU is in stock.
+      if (statusKey === "instock") {
+        setTargetWarehouse(d.warehouse || "");
+      } else {
+        setTargetWarehouse("");
+      }
+      setTargetLocation("");
+      setLastValidatedTargetWarehouse(null);
+      setLastValidatedTargetLocation(null);
+      setLastLocValidatedForWarehouse(null);
+
       setWarehouseEnabled(false);
       setLastSearched(input);
       setShowDetails(true);
@@ -898,84 +923,90 @@ const InfoStockTransfer = () => {
                 <FloatingLabelInput id="transferUnit" label={trans.unitLabel} value={unit} disabled />
               </div>
 
-              {/* Target Warehouse with picker */}
-              <div className="relative">
-                <FloatingLabelInput
-                  id="targetWarehouse"
-                  label={trans.targetWarehouseLabel}
-                  value={targetWarehouse}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setTargetWarehouse(v);
-                    // Value changed → clear last validated
-                    if (v.toLowerCase() !== (lastValidatedTargetWarehouse || "").toLowerCase()) {
-                      setLastValidatedTargetWarehouse(null);
-                    }
-                    // Warehouse changed → clear validated location (bound to old WH)
-                    if (v.toLowerCase() !== (lastLocValidatedForWarehouse || "").toLowerCase()) {
-                      setLastValidatedTargetLocation(null);
-                      setLastLocValidatedForWarehouse(null);
-                    }
-                  }}
-                  className="pr-12"
-                  ref={targetWhRef}
-                  onBlur={() => {
-                    void validateTargetWarehouse();
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void validateTargetWarehouse();
-                  }}
-                  onFocus={() => {
-                    // If empty, auto-fill with the current Warehouse when user enters the field
-                    if (!(targetWarehouse || "").trim() && (warehouse || "").trim()) {
-                      setTargetWarehouse((warehouse || "").trim());
-                      // Explicitly keep focus here to avoid any jump to Target Location
-                      requestAnimationFrame(() => targetWhRef.current?.focus());
-                    }
-                  }}
-                  onClick={() => {
-                    // Also handle click to cover touch scenarios
-                    if (!(targetWarehouse || "").trim() && (warehouse || "").trim()) {
-                      setTargetWarehouse((warehouse || "").trim());
-                      // Explicitly keep focus here to avoid any jump to Target Location
-                      requestAnimationFrame(() => targetWhRef.current?.focus());
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-10 w-10"
-                  onClick={openTargetWarehousePicker}
-                  aria-label={trans.searchLabel}
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
-              </div>
+              {/* Target Warehouse + Target Location
+                  For HU scans: only show these when the HU status is In Stock. */}
+              {(lastMatchType !== "HU" || normalizeStatus(status) === "instock") && (
+                <>
+                  {/* Target Warehouse with picker */}
+                  <div className="relative">
+                    <FloatingLabelInput
+                      id="targetWarehouse"
+                      label={trans.targetWarehouseLabel}
+                      value={targetWarehouse}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setTargetWarehouse(v);
+                        // Value changed → clear last validated
+                        if (v.toLowerCase() !== (lastValidatedTargetWarehouse || "").toLowerCase()) {
+                          setLastValidatedTargetWarehouse(null);
+                        }
+                        // Warehouse changed → clear validated location (bound to old WH)
+                        if (v.toLowerCase() !== (lastLocValidatedForWarehouse || "").toLowerCase()) {
+                          setLastValidatedTargetLocation(null);
+                          setLastLocValidatedForWarehouse(null);
+                        }
+                      }}
+                      className="pr-12"
+                      ref={targetWhRef}
+                      onBlur={() => {
+                        void validateTargetWarehouse();
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void validateTargetWarehouse();
+                      }}
+                      onFocus={() => {
+                        // If empty, auto-fill with the current Warehouse when user enters the field
+                        if (!(targetWarehouse || "").trim() && (warehouse || "").trim()) {
+                          setTargetWarehouse((warehouse || "").trim());
+                          // Explicitly keep focus here to avoid any jump to Target Location
+                          requestAnimationFrame(() => targetWhRef.current?.focus());
+                        }
+                      }}
+                      onClick={() => {
+                        // Also handle click to cover touch scenarios
+                        if (!(targetWarehouse || "").trim() && (warehouse || "").trim()) {
+                          setTargetWarehouse((warehouse || "").trim());
+                          // Explicitly keep focus here to avoid any jump to Target Location
+                          requestAnimationFrame(() => targetWhRef.current?.focus());
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 h-10 w-10"
+                      onClick={openTargetWarehousePicker}
+                      aria-label={trans.searchLabel}
+                    >
+                      <Search className="h-5 w-5" />
+                    </Button>
+                  </div>
 
-              {/* Target Location: only visible after Target Warehouse set; no picker, inline validation */}
-              {!!targetWarehouse.trim() && (
-                <FloatingLabelInput
-                  id="targetLocation"
-                  label={trans.targetLocationLabel}
-                  value={targetLocation}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setTargetLocation(v);
-                    // Value changed → clear last validated
-                    if (v.toLowerCase() !== (lastValidatedTargetLocation || "").toLowerCase()) {
-                      setLastValidatedTargetLocation(null);
-                    }
-                  }}
-                  ref={targetLocRef}
-                  onBlur={() => {
-                    void validateTargetLocation();
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void validateTargetLocation();
-                  }}
-                />
+                  {/* Target Location: only visible after Target Warehouse set; no picker, inline validation */}
+                  {!!targetWarehouse.trim() && (
+                    <FloatingLabelInput
+                      id="targetLocation"
+                      label={trans.targetLocationLabel}
+                      value={targetLocation}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setTargetLocation(v);
+                        // Value changed → clear last validated
+                        if (v.toLowerCase() !== (lastValidatedTargetLocation || "").toLowerCase()) {
+                          setLastValidatedTargetLocation(null);
+                        }
+                      }}
+                      ref={targetLocRef}
+                      onBlur={() => {
+                        void validateTargetLocation();
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void validateTargetLocation();
+                      }}
+                    />
+                  )}
+                </>
               )}
 
               {/* Transfer button */}
