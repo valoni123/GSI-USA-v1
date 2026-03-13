@@ -51,6 +51,7 @@ const InfoStockMenu = () => {
     if (key === "article") navigate("/menu/info-stock/article");
     if (key === "leInfo") navigate("/menu/info-stock/le-info");
     if (key === "transfer") navigate("/menu/info-stock/transfer");
+    if (key === "correction") navigate("/menu/info-stock/correction");
     // remaining tiles currently have no implemented routes
   };
 
