@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Search, User, CheckSquare, Square } from "lucide-react";
+import { LogOut, Search, User, CheckSquare, Square, MinusCircle, PlusCircle } from "lucide-react";
 import LocationPickerDialog from "@/components/LocationPickerDialog";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import BackButton from "@/components/BackButton";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
+import { Input } from "@/components/ui/input";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
@@ -64,6 +65,10 @@ const InfoStockCorrection = () => {
   const [unit, setUnit] = useState<string>("");
   const [status, setStatus] = useState<string>("");
 
+  // Quantity to submit (editable via +/- field)
+  const [submitQuantity, setSubmitQuantity] = useState<string>("");
+  const [submitQtyTouched, setSubmitQtyTouched] = useState<boolean>(false);
+
   // Enablement and visibility
   const [warehouseEnabled, setWarehouseEnabled] = useState<boolean>(false);
   const [showDetails, setShowDetails] = useState<boolean>(false);
@@ -119,6 +124,82 @@ const InfoStockCorrection = () => {
     }, 600);
   };
 
+  // Quantity helpers: allow only positive numeric with optional decimal separator
+  const sanitizeQuantity = (raw: string) => {
+    const replaced = raw.replace(",", "."); // normalize comma to dot
+    // keep digits and dots only
+    let s = replaced.replace(/[^0-9.]/g, "");
+    // collapse multiple dots to a single one (keep first)
+    const firstDot = s.indexOf(".");
+    if (firstDot !== -1) {
+      s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
+    }
+    // prevent leading dot by prefixing 0
+    if (s.startsWith(".")) s = "0" + s;
+    return s;
+  };
+
+  const handleQuantityChange = (raw: string) => {
+    const s = sanitizeQuantity(raw);
+    setQuantity(s);
+    if (!submitQtyTouched) setSubmitQuantity(s);
+  };
+
+  const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const allowedControl = ["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight", "Home", "End"];
+    if (allowedControl.includes(e.key)) return;
+    // Allow digits
+    if (/^[0-9]$/.test(e.key)) return;
+    // Allow one decimal separator if not present
+    if ((e.key === "." || e.key === ",") && !String(quantity || "").includes(".")) return;
+    // Block everything else (including minus, plus, letters)
+    e.preventDefault();
+  };
+
+  const handleQuantityPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const text = (e.clipboardData?.getData("text") || "").toString();
+    handleQuantityChange(text);
+  };
+
+  const handleQuantityBlur = () => {
+    const s = sanitizeQuantity(quantity || "");
+    const num = s === "" ? NaN : Number(s);
+    if (!isFinite(num) || num <= 0) {
+      setQuantity("");
+      if (!submitQtyTouched) setSubmitQuantity("");
+      // keep user in the field to correct
+      setTimeout(() => quantityRef.current?.focus(), 0);
+      return;
+    }
+    const normalized = String(num);
+    setQuantity(normalized);
+    if (!submitQtyTouched) setSubmitQuantity(normalized);
+  };
+
+  const handleSubmitQuantityChange = (raw: string) => {
+    setSubmitQtyTouched(true);
+    setSubmitQuantity(sanitizeQuantity(raw));
+  };
+
+  const handleSubmitQuantityBlur = () => {
+    const s = sanitizeQuantity(submitQuantity || "");
+    const num = s === "" ? NaN : Number(s);
+    if (!isFinite(num) || num <= 0) {
+      setSubmitQuantity("");
+      return;
+    }
+    setSubmitQuantity(String(num));
+  };
+
+  const adjustSubmitQuantity = (delta: number) => {
+    setSubmitQtyTouched(true);
+    const s = sanitizeQuantity(submitQuantity || "");
+    const current = s === "" ? 0 : Number(s);
+    const next = Math.max(0, (isFinite(current) ? current : 0) + delta);
+    setSubmitQuantity(next === 0 ? "0" : String(next));
+  };
+
   // Menge/Einheit aus gewählter/eingegebener Location holen (ITEM-Flow)
   const prefillFromLocation = async () => {
     if (lastMatchType !== "ITEM") return;
@@ -140,7 +221,11 @@ const InfoStockCorrection = () => {
       const onHand = typeof first.OnHand === "number" ? first.OnHand : undefined;
       const unitVal = typeof first.Unit === "string" ? first.Unit : (typeof first.InventoryUnit === "string" ? first.InventoryUnit : "");
       const qtyNum = typeof avail === "number" ? avail : (typeof onHand === "number" ? onHand : undefined);
-      if (typeof qtyNum === "number") setQuantity(String(qtyNum));
+      if (typeof qtyNum === "number") {
+        const q = String(qtyNum);
+        setQuantity(q);
+        if (!submitQtyTouched) setSubmitQuantity(q);
+      }
       if (unitVal) setUnit(unitVal);
       // WICHTIG: Kein Fokuswechsel mehr
     }
@@ -244,11 +329,11 @@ const InfoStockCorrection = () => {
     if (lastMatchType === "HU" && statusKey !== "instock") return false;
 
     const baseOk = (warehouse || "").trim() && (location || "").trim();
-    const qtyOk = Number(quantity) > 0;
+    const qtyOk = Number(submitQuantity) > 0;
     const unitOk = (unit || "").trim().length > 0;
 
     return !!(baseOk && qtyOk && unitOk) && !searching && !transferring;
-  }, [showDetails, lastMatchType, warehouse, location, quantity, unit, searching, transferring, status]);
+  }, [showDetails, lastMatchType, warehouse, location, submitQuantity, unit, searching, transferring, status]);
 
   const handleSearch = async (_withLoading = false) => {
     const input = query.trim();
@@ -271,6 +356,8 @@ const InfoStockCorrection = () => {
       setLot(d.lot || "");
       const qty = d.quantity != null ? String(d.quantity) : "";
       setQuantity(qty);
+      setSubmitQuantity(qty);
+      setSubmitQtyTouched(false);
       setUnit((d.unit || "").toString());
       setStatus(d.status || "");
 
@@ -299,6 +386,8 @@ const InfoStockCorrection = () => {
       setLocation("");
       setLot("");
       setQuantity("");
+      setSubmitQuantity("");
+      setSubmitQtyTouched(false);
       setStatus("");
       setShowDetails(true);
       setQueryLabel(trans.itemLabel);
@@ -390,6 +479,8 @@ const InfoStockCorrection = () => {
     setLocation("");
     setLot("");
     setQuantity("");
+    setSubmitQuantity("");
+    setSubmitQtyTouched(false);
     setUnit("");
     setStatus("");
     setWarehouseEnabled(false);
@@ -408,56 +499,6 @@ const InfoStockCorrection = () => {
     showSuccess("Submitted");
     setTransferring(false);
     resetAll();
-  };
-
-  // Quantity helpers: allow only positive numeric with optional decimal separator
-  const sanitizeQuantity = (raw: string) => {
-    const replaced = raw.replace(",", "."); // normalize comma to dot
-    // keep digits and dots only
-    let s = replaced.replace(/[^0-9.]/g, "");
-    // collapse multiple dots to a single one (keep first)
-    const firstDot = s.indexOf(".");
-    if (firstDot !== -1) {
-      s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
-    }
-    // prevent leading dot by prefixing 0
-    if (s.startsWith(".")) s = "0" + s;
-    return s;
-  };
-
-  const handleQuantityChange = (raw: string) => {
-    const s = sanitizeQuantity(raw);
-    setQuantity(s);
-  };
-
-  const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const allowedControl = ["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight", "Home", "End"];
-    if (allowedControl.includes(e.key)) return;
-    // Allow digits
-    if (/^[0-9]$/.test(e.key)) return;
-    // Allow one decimal separator if not present
-    if ((e.key === "." || e.key === ",") && !String(quantity || "").includes(".")) return;
-    // Block everything else (including minus, plus, letters)
-    e.preventDefault();
-  };
-
-  const handleQuantityPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const text = (e.clipboardData?.getData("text") || "").toString();
-    handleQuantityChange(text);
-  };
-
-  const handleQuantityBlur = () => {
-    const s = sanitizeQuantity(quantity || "");
-    const num = s === "" ? NaN : Number(s);
-    if (!isFinite(num) || num <= 0) {
-      setQuantity("");
-      // keep user in the field to correct
-      setTimeout(() => quantityRef.current?.focus(), 0);
-      return;
-    }
-    // normalize representation (strip leading zeros, unify decimal)
-    setQuantity(String(num));
   };
 
   return (
@@ -680,6 +721,42 @@ const InfoStockCorrection = () => {
                   className={lastMatchType === "HU" ? "bg-gray-100 text-gray-700" : undefined}
                 />
                 <FloatingLabelInput id="transferUnit" label={trans.unitLabel} value={unit} disabled />
+              </div>
+
+              {/* Editable submit quantity with +/- */}
+              <div className="flex items-center justify-between gap-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full"
+                  onClick={() => adjustSubmitQuantity(-1)}
+                  aria-label="Decrease quantity"
+                >
+                  <MinusCircle className="h-7 w-7 text-gray-700" />
+                </Button>
+
+                <Input
+                  value={submitQuantity}
+                  onChange={(e) => handleSubmitQuantityChange(e.target.value)}
+                  onBlur={handleSubmitQuantityBlur}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onClick={(e) => (e.currentTarget as HTMLInputElement).select()}
+                  inputMode="decimal"
+                  placeholder={trans.quantityLabel}
+                  className="h-10 text-center"
+                />
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full"
+                  onClick={() => adjustSubmitQuantity(1)}
+                  aria-label="Increase quantity"
+                >
+                  <PlusCircle className="h-7 w-7 text-red-600" />
+                </Button>
               </div>
 
               {/* Submit button */}
