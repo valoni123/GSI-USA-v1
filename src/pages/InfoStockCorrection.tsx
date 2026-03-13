@@ -45,8 +45,6 @@ const InfoStockCorrection = () => {
 
   const huRef = useRef<HTMLInputElement | null>(null);
   const warehouseRef = useRef<HTMLInputElement | null>(null);
-  const targetWhRef = useRef<HTMLInputElement | null>(null);
-  const targetLocRef = useRef<HTMLInputElement | null>(null);
   const fromLocRef = useRef<HTMLInputElement | null>(null);
   const quantityRef = useRef<HTMLInputElement | null>(null);
 
@@ -71,14 +69,6 @@ const InfoStockCorrection = () => {
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [lastMatchType, setLastMatchType] = useState<"HU" | "ITEM" | null>(null);
 
-  // Target fields
-  const [targetWarehouse, setTargetWarehouse] = useState<string>("");
-  const [targetLocation, setTargetLocation] = useState<string>("");
-  // Track last validated values to avoid unnecessary service calls
-  const [lastValidatedTargetWarehouse, setLastValidatedTargetWarehouse] = useState<string | null>(null);
-  const [lastValidatedTargetLocation, setLastValidatedTargetLocation] = useState<string | null>(null);
-  const [lastLocValidatedForWarehouse, setLastLocValidatedForWarehouse] = useState<string | null>(null);
-
   // Warehouse picker state (for item scan)
   const [warehousePickerOpen, setWarehousePickerOpen] = useState<boolean>(false);
   const [whLoading, setWhLoading] = useState<boolean>(false);
@@ -86,15 +76,12 @@ const InfoStockCorrection = () => {
     Array<{ Warehouse: string; WarehouseName?: string; Unit?: string; OnHand: number; Allocated: number; Available: number }>
   >([]);
 
-  // Target warehouse picker state
-  const [targetWhPickerOpen, setTargetWhPickerOpen] = useState<boolean>(false);
-  const [targetWhLoading, setTargetWhLoading] = useState<boolean>(false);
-  const [targetWhRows, setTargetWhRows] = useState<Array<{ Warehouse: string; Description?: string; Type?: string }>>([]);
-
   // From-Location picker (ITEM flow)
   const [fromLocPickerOpen, setFromLocPickerOpen] = useState<boolean>(false);
   const [fromLocLoading, setFromLocLoading] = useState<boolean>(false);
-  const [fromLocRows, setFromLocRows] = useState<Array<{ Location: string; OnHand: number; Allocated?: number; Available?: number; Lot?: string | null }>>([]);
+  const [fromLocRows, setFromLocRows] = useState<
+    Array<{ Location: string; OnHand: number; Allocated?: number; Available?: number; Lot?: string | null; Unit?: string }>
+  >([]);
 
   // Robuster Fokus ins obere Location-Feld (ITEM-Flow)
   const focusFromLocation = () => {
@@ -187,33 +174,7 @@ const InfoStockCorrection = () => {
 
   // Searching flags (used in canTransfer)
   const [searching, setSearching] = useState<boolean>(false);
-  const [checkingTargetLocation, setCheckingTargetLocation] = useState<boolean>(false);
   const [transferring, setTransferring] = useState<boolean>(false);
-
-  const [focusTargetLocTick, setFocusTargetLocTick] = useState(0);
-  useEffect(() => {
-    if (focusTargetLocTick === 0) return;
-
-    const focus = () => {
-      const el =
-        targetLocRef.current ||
-        (document.getElementById("targetLocation") as HTMLInputElement | null);
-      el?.focus();
-    };
-
-    // Mehrfach versuchen, um Re-Renders/Overlays abzufangen.
-    focus();
-    requestAnimationFrame(focus);
-    const t1 = window.setTimeout(focus, 50);
-    const t2 = window.setTimeout(focus, 200);
-    const t3 = window.setTimeout(focus, 500);
-
-    return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      window.clearTimeout(t3);
-    };
-  }, [focusTargetLocTick]);
 
   // Status helpers
   const normalizeStatus = (raw?: string | null): string | null => {
@@ -274,55 +235,20 @@ const InfoStockCorrection = () => {
     }
   };
 
-  // Enable TRANSFER only when everything required is filled
-  const canTransfer = useMemo(() => {
+  // Enable SUBMIT only when everything required is filled
+  const canSubmit = useMemo(() => {
     if (!showDetails) return false;
 
     const statusKey = normalizeStatus(status);
-    // For HU flow, only allow transfers when HU is actually in stock.
+    // For HU flow, only allow submit when HU is actually in stock.
     if (lastMatchType === "HU" && statusKey !== "instock") return false;
 
+    const baseOk = (warehouse || "").trim() && (location || "").trim();
     const qtyOk = Number(quantity) > 0;
     const unitOk = (unit || "").trim().length > 0;
-    const tgtWh = (targetWarehouse || "").trim();
-    const tgtLoc = (targetLocation || "").trim();
-    // Target location must be validated (not just filled)
-    const targetLocValid =
-      !!tgtWh &&
-      !!tgtLoc &&
-      (lastValidatedTargetLocation || "").toLowerCase() === tgtLoc.toLowerCase() &&
-      (lastLocValidatedForWarehouse || "").toLowerCase() === tgtWh.toLowerCase();
-    // Must be different from current Location
-    const locDifferent = (location || "").trim().toLowerCase() !== tgtLoc.toLowerCase();
 
-    if (lastMatchType === "HU") {
-      const baseOk = (warehouse || "").trim() && (location || "").trim();
-      return (
-        !!(baseOk && qtyOk && unitOk && targetLocValid && locDifferent) &&
-        !searching &&
-        !checkingTargetLocation &&
-        !transferring
-      );
-    }
-    // ITEM
-    const baseOk = (warehouse || "").trim();
-    return !!(baseOk && qtyOk && unitOk && targetLocValid && locDifferent) && !searching && !checkingTargetLocation && !transferring;
-  }, [
-    showDetails,
-    lastMatchType,
-    warehouse,
-    location,
-    quantity,
-    unit,
-    targetWarehouse,
-    targetLocation,
-    lastValidatedTargetLocation,
-    lastLocValidatedForWarehouse,
-    searching,
-    checkingTargetLocation,
-    transferring,
-    status,
-  ]);
+    return !!(baseOk && qtyOk && unitOk) && !searching && !transferring;
+  }, [showDetails, lastMatchType, warehouse, location, quantity, unit, searching, transferring, status]);
 
   const handleSearch = async (_withLoading = false) => {
     const input = query.trim();
@@ -337,7 +263,6 @@ const InfoStockCorrection = () => {
     });
     if (huRes.data && huRes.data.ok) {
       const d = huRes.data;
-      const statusKey = normalizeStatus(d.status || "");
 
       setItem(d.item || "");
       setHandlingUnit((d.handlingUnit || input).toString());
@@ -348,18 +273,6 @@ const InfoStockCorrection = () => {
       setQuantity(qty);
       setUnit((d.unit || "").toString());
       setStatus(d.status || "");
-
-      // Always reset target fields on a new HU scan to avoid carrying over previous values.
-      // Only allow target selection when HU is in stock.
-      if (statusKey === "instock") {
-        setTargetWarehouse(d.warehouse || "");
-      } else {
-        setTargetWarehouse("");
-      }
-      setTargetLocation("");
-      setLastValidatedTargetWarehouse(null);
-      setLastValidatedTargetLocation(null);
-      setLastLocValidatedForWarehouse(null);
 
       setWarehouseEnabled(false);
       setLastSearched(input);
@@ -383,7 +296,6 @@ const InfoStockCorrection = () => {
       setWarehouseEnabled(true);
       setLastSearched(input);
       setWarehouse("");
-      setTargetWarehouse("");
       setLocation("");
       setLot("");
       setQuantity("");
@@ -469,102 +381,6 @@ const InfoStockCorrection = () => {
     setFromLocLoading(false);
   };
 
-  // Target warehouses
-  const openTargetWarehousePicker = async () => {
-    setTargetWhPickerOpen(true);
-    setTargetWhLoading(true);
-    const { data, error } = await supabase.functions.invoke("ln-warehouses-list", {
-      body: { language: locale, company: "1100" },
-    });
-    if (error || !data || !data.ok) {
-      setTargetWhRows([]);
-      setTargetWhLoading(false);
-      showError(trans.loadingList);
-      return;
-    }
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-    const mapped = rows
-      .map((r: any) => ({
-        Warehouse: String(r.Warehouse || ""),
-        Description: typeof r.Description === "string" ? r.Description : undefined,
-        Type: typeof r.Type === "string" ? r.Type : undefined,
-      }))
-      .filter((r) => r.Warehouse);
-    setTargetWhRows(mapped);
-    setTargetWhLoading(false);
-  };
-
-  const validateTargetWarehouse = async () => {
-    const wh = (targetWarehouse || "").trim();
-    if (!wh) return;
-    if ((lastValidatedTargetWarehouse || "").toLowerCase() === wh.toLowerCase()) return;
-
-    setCheckingTargetLocation(true);
-    const { data, error } = await supabase.functions.invoke("ln-warehouse-location-exists", {
-      body: { warehouse: wh, location: "*", language: locale, company: "1100" },
-    });
-    setCheckingTargetLocation(false);
-
-    if (error || !data || !data.ok || data.exists !== true) {
-      showError(trans.noEntries);
-      setLastValidatedTargetWarehouse(null);
-      return;
-    }
-
-    setLastValidatedTargetWarehouse(wh);
-  };
-
-  const validateTargetLocation = async () => {
-    const wh = (targetWarehouse || "").trim();
-    const loc = (targetLocation || "").trim();
-    if (!wh || !loc) return;
-
-    // Must be different from current Location
-    if ((location || "").trim().toLowerCase() === loc.toLowerCase()) {
-      showError(lang === "de" ? "Target Location darf nicht gleich Location sein" : "Target Location must differ from Location");
-      setTargetLocation("");
-      setLastValidatedTargetLocation(null);
-      setLastLocValidatedForWarehouse(null);
-      // Defer the focus tick so it runs after the blur/click sequence completes.
-      window.setTimeout(() => setFocusTargetLocTick((v) => v + 1), 0);
-      return;
-    }
-
-    if (
-      (lastValidatedTargetLocation || "").toLowerCase() === loc.toLowerCase() &&
-      (lastLocValidatedForWarehouse || "").toLowerCase() === wh.toLowerCase()
-    ) {
-      return;
-    }
-
-    setCheckingTargetLocation(true);
-    const { data, error } = await supabase.functions.invoke("ln-warehouse-location-exists", {
-      body: { warehouse: wh, location: loc, language: locale, company: "1100" },
-    });
-    setCheckingTargetLocation(false);
-
-    if (!error && data && data.ok && data.exists === false) {
-      showError("location not found");
-      setTargetLocation("");
-      setLastValidatedTargetLocation(null);
-      setLastLocValidatedForWarehouse(null);
-      setFocusTargetLocTick((v) => v + 1);
-      return;
-    }
-
-    if (error || !data || !data.ok || data.exists !== true) {
-      showError(trans.noEntries);
-      setTargetLocation("");
-      setLastValidatedTargetLocation(null);
-      setLastLocValidatedForWarehouse(null);
-      setFocusTargetLocTick((v) => v + 1);
-      return;
-    }
-
-    setLastValidatedTargetLocation(loc);
-    setLastLocValidatedForWarehouse(wh);
-  };
-
   const resetAll = () => {
     setQuery("");
     setLastSearched(null);
@@ -581,20 +397,13 @@ const InfoStockCorrection = () => {
     setItemDescription("");
     setQueryLabel(trans.itemOrHandlingUnit);
     setLastMatchType(null);
-    setTargetWarehouse("");
-    setTargetLocation("");
-    setLastValidatedTargetWarehouse(null);
-    setLastValidatedTargetLocation(null);
-    setLastLocValidatedForWarehouse(null);
     setWhRows([]);
     setWarehousePickerOpen(false);
-    setTargetWhRows([]);
-    setTargetWhPickerOpen(false);
     huRef.current?.focus();
   };
 
   const doSubmit = async () => {
-    if (!canTransfer) return;
+    if (!canSubmit) return;
     setTransferring(true);
     showSuccess("Submitted");
     setTransferring(false);
@@ -728,8 +537,6 @@ const InfoStockCorrection = () => {
                   setItemDescription("");
                   setQueryLabel(trans.itemOrHandlingUnit);
                   setLastMatchType(null);
-                  setTargetWarehouse("");
-                  setTargetLocation("");
                   setUnit("");
                   huRef.current?.focus();
                 }}
@@ -875,97 +682,11 @@ const InfoStockCorrection = () => {
                 <FloatingLabelInput id="transferUnit" label={trans.unitLabel} value={unit} disabled />
               </div>
 
-              {/* Target Warehouse + Target Location
-                  For HU scans: only show these when the HU status is In Stock. */}
-              {(lastMatchType !== "HU" || normalizeStatus(status) === "instock") && (
-                <>
-                  {/* Target Warehouse with picker */}
-                  <div className="relative">
-                    <FloatingLabelInput
-                      id="targetWarehouse"
-                      label={trans.targetWarehouseLabel}
-                      value={targetWarehouse}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setTargetWarehouse(v);
-                        // Value changed → clear last validated
-                        if (v.toLowerCase() !== (lastValidatedTargetWarehouse || "").toLowerCase()) {
-                          setLastValidatedTargetWarehouse(null);
-                        }
-                        // Warehouse changed → clear validated location (bound to old WH)
-                        if (v.toLowerCase() !== (lastLocValidatedForWarehouse || "").toLowerCase()) {
-                          setLastValidatedTargetLocation(null);
-                          setLastLocValidatedForWarehouse(null);
-                        }
-                      }}
-                      className="pr-12"
-                      ref={targetWhRef}
-                      onBlur={() => {
-                        void validateTargetWarehouse();
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") void validateTargetWarehouse();
-                      }}
-                      onFocus={() => {
-                        // If empty, auto-fill with the current Warehouse when user enters the field
-                        if (!(targetWarehouse || "").trim() && (warehouse || "").trim()) {
-                          setTargetWarehouse((warehouse || "").trim());
-                          // Explicitly keep focus here to avoid any jump to Target Location
-                          requestAnimationFrame(() => targetWhRef.current?.focus());
-                        }
-                      }}
-                      onClick={() => {
-                        // Also handle click to cover touch scenarios
-                        if (!(targetWarehouse || "").trim() && (warehouse || "").trim()) {
-                          setTargetWarehouse((warehouse || "").trim());
-                          // Explicitly keep focus here to avoid any jump to Target Location
-                          requestAnimationFrame(() => targetWhRef.current?.focus());
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 h-10 w-10"
-                      onClick={openTargetWarehousePicker}
-                      aria-label={trans.searchLabel}
-                    >
-                      <Search className="h-5 w-5" />
-                    </Button>
-                  </div>
-
-                  {/* Target Location: only visible after Target Warehouse set; no picker, inline validation */}
-                  {!!targetWarehouse.trim() && (
-                    <FloatingLabelInput
-                      id="targetLocation"
-                      label={trans.targetLocationLabel}
-                      value={targetLocation}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setTargetLocation(v);
-                        // Value changed → clear last validated
-                        if (v.toLowerCase() !== (lastValidatedTargetLocation || "").toLowerCase()) {
-                          setLastValidatedTargetLocation(null);
-                        }
-                      }}
-                      ref={targetLocRef}
-                      onBlur={() => {
-                        void validateTargetLocation();
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") void validateTargetLocation();
-                      }}
-                    />
-                  )}
-                </>
-              )}
-
-              {/* Transfer button */}
+              {/* Submit button */}
               <Button
                 type="button"
                 className="w-full bg-red-600 hover:bg-red-700 text-white"
-                disabled={!canTransfer}
+                disabled={!canSubmit}
                 onClick={doSubmit}
               >
                 Submit
@@ -973,7 +694,7 @@ const InfoStockCorrection = () => {
             </div>
           )}
 
-          {(searching || checkingTargetLocation || transferring) && <ScreenSpinner message={trans.pleaseWait} />}
+          {(searching || transferring) && <ScreenSpinner message={trans.pleaseWait} />}
 
           {/* Item warehouse picker dialog */}
           <Dialog open={warehousePickerOpen} onOpenChange={setWarehousePickerOpen}>
@@ -1040,115 +761,26 @@ const InfoStockCorrection = () => {
             </DialogPortal>
           </Dialog>
 
-          {/* Target warehouse picker dialog */}
-          <Dialog open={targetWhPickerOpen} onOpenChange={setTargetWhPickerOpen}>
-            <DialogPortal>
-              <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
-              <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-0 shadow-lg">
-                <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
-                  {trans.targetWarehouseLabel}
-                </div>
-                <div className="max-h-[70vh] overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] p-2">
-                  {targetWhLoading ? (
-                    <div className="px-2 py-3 text-sm text-muted-foreground">{trans.loadingList}</div>
-                  ) : targetWhRows.length === 0 ? (
-                    <div className="px-2 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {targetWhRows.map((r, idx) => (
-                        <button
-                          key={`${r.Warehouse}-${idx}`}
-                          type="button"
-                          className="w-full text-left px-3 py-2 rounded-md border mb-1.5 bg-gray-50 hover:bg-gray-100"
-                          onClick={() => {
-                            setTargetWarehouse(r.Warehouse);
-                            setLastValidatedTargetWarehouse(r.Warehouse);
-                            setTargetWhPickerOpen(false);
-                            // kein Auto-Fokus auf Target Location
-                          }}
-                        >
-                          <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
-                            <div className="flex flex-col">
-                              <div className="text-sm text-gray-900">{r.Warehouse}</div>
-                              {r.Description && <div className="text-xs text-gray-700">{r.Description}</div>}
-                            </div>
-                            {r.Type ? (
-                              <span
-                                className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold ${(() => {
-                                  const t = r.Type.toLowerCase().trim();
-                                  if (t.includes("normal") || t === "normale" || t === "service und instandhaltung") {
-                                    return "bg-orange-500 text-white";
-                                  }
-                                  if (t === "produktion") {
-                                    return "bg-emerald-500 text-white";
-                                  }
-                                  if (t === "projekt") {
-                                    return "bg-sky-500 text-white";
-                                  }
-                                  if (t === "service (ts) im kundeneigentum") {
-                                    return "bg-orange-200 text-orange-900";
-                                  }
-                                  if (t === "service-reklamation") {
-                                    return "bg-red-500 text-white";
-                                  }
-                                  if (t === "fremder konsignationsbestand") {
-                                    return "bg-lime-200 text-lime-900";
-                                  }
-                                  if (t === "eigener konsignationsbestand") {
-                                    return "bg-green-500 text-white";
-                                  }
-                                  if (t === "kaufmännisches lager" || t === "kaufmaennisches lager") {
-                                    return "bg-fuchsia-500 text-white";
-                                  }
-                                  return "bg-gray-200 text-gray-800";
-                                })()}`}
-                              >
-                                {r.Type}
-                              </span>
-                            ) : null}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="absolute right-3 top-2 text-gray-600 hover:text-gray-900"
-                  aria-label="Close"
-                  onClick={() => setTargetWhPickerOpen(false)}
-                >
-                  ×
-                </button>
-              </div>
-            </DialogPortal>
-          </Dialog>
-
-          {/* From-Location picker dialog */}
+          {/* From-Location picker dialog (ITEM flow) */}
           <LocationPickerDialog
             open={fromLocPickerOpen}
             onOpenChange={setFromLocPickerOpen}
             loading={fromLocLoading}
+            title={trans.locationLabel}
             rows={fromLocRows}
             onPick={(loc) => {
               setLocation(loc);
-              // Beim Auswählen Menge/Einheit aus der gewählten Zeile übernehmen – ohne Fokuswechsel
               const picked = fromLocRows.find((r) => r.Location === loc);
-              if (picked) {
-                const qtyNum = typeof picked.Available === "number" ? picked.Available : picked.OnHand;
-                if (typeof qtyNum === "number") setQuantity(String(qtyNum));
-                if ((picked as any).Unit) setUnit((picked as any).Unit);
-              }
+              setLot(typeof picked?.Lot === "string" ? picked.Lot : "");
               setFromLocPickerOpen(false);
+              void prefillFromLocation();
+              focusQuantity();
             }}
-            title={trans.locationLabel}
-            emptyText={trans.noEntries}
-            loadingText={trans.loadingList}
           />
-
         </Card>
       </div>
 
+      {/* Sign-out confirmation dialog */}
       <SignOutConfirm
         open={signOutOpen}
         onOpenChange={setSignOutOpen}
