@@ -531,7 +531,7 @@ const InfoStockCorrection = () => {
         const huQuantity = huQtyByLocation.get(row.Location) ?? 0;
         return {
           ...row,
-          NonHu: huQuantity > 0 ? Math.abs(Number(row.OnHand || 0) - huQuantity) : undefined,
+          NonHu: Math.abs(Number(row.OnHand || 0) - huQuantity),
         };
       }),
     );
