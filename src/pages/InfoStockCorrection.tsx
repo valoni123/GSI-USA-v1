@@ -97,7 +97,7 @@ const InfoStockCorrection = () => {
   const [fromLocPickerOpen, setFromLocPickerOpen] = useState<boolean>(false);
   const [fromLocLoading, setFromLocLoading] = useState<boolean>(false);
   const [fromLocRows, setFromLocRows] = useState<
-    Array<{ Location: string; OnHand: number; Allocated?: number; Available?: number; Lot?: string | null; Unit?: string }>
+    Array<{ Location: string; OnHand: number; Allocated?: number; Available?: number; Lot?: string | null; Unit?: string; NonHu?: number }>
   >([]);
 
   // Robuster Fokus ins obere Location-Feld (ITEM-Flow)
@@ -504,7 +504,37 @@ const InfoStockCorrection = () => {
         Unit: typeof r.Unit === "string" ? r.Unit : undefined,
       }))
       .filter((r) => r.Location);
-    setFromLocRows(mapped);
+
+    const uniqueLocations = Array.from(new Set(mapped.map((row) => row.Location)));
+    const { data: huQtyData } = await supabase.functions.invoke("ln-handling-unit-quantity-by-location", {
+      body: {
+        item: itm,
+        warehouse: wh,
+        locations: uniqueLocations,
+        language: locale,
+        company: "1100",
+      },
+    });
+
+    const huQtyByLocation = new Map<string, number>();
+    const huRows = Array.isArray(huQtyData?.rows) ? huQtyData.rows : [];
+    for (const row of huRows) {
+      const locationKey = String(row?.Location || "").trim();
+      const huQuantity = Number(row?.QuantityInInventoryUnit ?? 0);
+      if (locationKey && Number.isFinite(huQuantity)) {
+        huQtyByLocation.set(locationKey, huQuantity);
+      }
+    }
+
+    setFromLocRows(
+      mapped.map((row) => {
+        const huQuantity = huQtyByLocation.get(row.Location) ?? 0;
+        return {
+          ...row,
+          NonHu: huQuantity > 0 ? Math.abs(Number(row.OnHand || 0) - huQuantity) : undefined,
+        };
+      }),
+    );
     setFromLocLoading(false);
   };
 

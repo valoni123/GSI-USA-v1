@@ -10,6 +10,7 @@ type Row = {
   Available?: number;
   Lot?: string | null;
   Unit?: string;
+  NonHu?: number;
 };
 
 type Props = {
@@ -89,6 +90,15 @@ const LocationPickerDialog: React.FC<Props> = ({
                             {unit}
                           </span>
                         </div>
+                        {typeof r.NonHu === "number" && (
+                          <div className="text-xs text-gray-600 whitespace-nowrap">
+                            Non-HU:{" "}
+                            <span className="font-semibold text-gray-900">
+                              {r.NonHu}
+                              {unit}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </button>
