@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Menu from "./pages/Menu";
 import IncomingMenu from "./pages/IncomingMenu";
+import OutgoingMenu from "./pages/OutgoingMenu";
 import IncomingGoodsReceipt from "./pages/IncomingGoodsReceipt";
 import IncomingInspection from "./pages/incominginspection";
 import InfoStockMenu from "./pages/InfoStockMenu";
@@ -54,6 +55,7 @@ const App = () => (
           <Route element={<ProtectedRoute />}>
             <Route path="/menu" element={<Menu />} />
             <Route path="/menu/incoming" element={<IncomingMenu />} />
+            <Route path="/menu/outgoing" element={<OutgoingMenu />} />
             <Route path="/menu/incoming/goods-receipt" element={<IncomingGoodsReceipt />} />
             <Route path="/menu/incoming/inspection" element={<IncomingInspection />} />
             <Route path="/menu/info-stock" element={<InfoStockMenu />} />

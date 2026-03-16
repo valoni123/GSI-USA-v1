@@ -15,7 +15,7 @@ type AppTile = {
 
 function Menu() {
   const navigate = useNavigate();
-  const [lang, setLang] = useState<LanguageKey>(() => {
+  const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
     return saved || "en";
   });
@@ -83,6 +83,9 @@ function Menu() {
             onClick={() => {
               if (app.key === "incoming") {
                 navigate("/menu/incoming");
+              }
+              if (app.key === "outgoing") {
+                navigate("/menu/outgoing");
               }
               if (app.key === "infoStock") {
                 navigate("/menu/info-stock");

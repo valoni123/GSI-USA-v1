@@ -35,6 +35,11 @@ type TranslationKeys =
   | "appTransport"
   | "appSettings"
   | "back"
+  | "outgoingPicking"
+  | "outgoingRelease"
+  | "outgoingShipment"
+  | "outgoingLoading"
+  | "outgoingPersonalPicking"
   | "incomingGoodsReceipt"
   | "incomingWarehouseInspection"
   | "incomingPutawaySuggestions"
@@ -152,6 +157,11 @@ const translations: Translations = {
     appTransport: "Transport",
     appSettings: "Settings",
     back: "Back",
+    outgoingPicking: "Picking",
+    outgoingRelease: "Release",
+    outgoingShipment: "Shipment",
+    outgoingLoading: "Loading",
+    outgoingPersonalPicking: "Personal Picking",
     incomingGoodsReceipt: "Goods Receipt",
     incomingWarehouseInspection: "Inspection",
     incomingPutawaySuggestions: "Putaway",
@@ -266,6 +276,11 @@ const translations: Translations = {
     appTransport: "Transport",
     appSettings: "Einstellungen",
     back: "Zurück",
+    outgoingPicking: "Kommissionierung",
+    outgoingRelease: "Freigeben",
+    outgoingShipment: "Sendung",
+    outgoingLoading: "Verladen",
+    outgoingPersonalPicking: "Pers. Komm.",
     incomingGoodsReceipt: "Wareneingang",
     incomingWarehouseInspection: "Lagerprüfung",
     incomingPutawaySuggestions: "Einlagerung",
@@ -380,6 +395,11 @@ const translations: Translations = {
     appTransport: "Transporte",
     appSettings: "Configuración",
     back: "Atrás",
+    outgoingPicking: "Preparación",
+    outgoingRelease: "Liberar",
+    outgoingShipment: "Envío",
+    outgoingLoading: "Carga",
+    outgoingPersonalPicking: "Prep. personal",
     incomingGoodsReceipt: "Recepción de mercancías",
     incomingWarehouseInspection: "Inspección",
     incomingPutawaySuggestions: "Almacenaje",
@@ -494,6 +514,11 @@ const translations: Translations = {
     appTransport: "Transporte",
     appSettings: "Configurações",
     back: "Voltar",
+    outgoingPicking: "Separação",
+    outgoingRelease: "Liberar",
+    outgoingShipment: "Remessa",
+    outgoingLoading: "Carregamento",
+    outgoingPersonalPicking: "Separação pessoal",
     incomingGoodsReceipt: "Recebimento",
     incomingWarehouseInspection: "Inspeção",
     incomingPutawaySuggestions: "Endereçamento",
