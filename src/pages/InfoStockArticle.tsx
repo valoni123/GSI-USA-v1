@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { LogOut, Package, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import ScreenSpinner from "@/components/ScreenSpinner";
 
 const InfoStockArticle = () => {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
 
   const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
@@ -183,17 +184,20 @@ const InfoStockArticle = () => {
     setLocLoading(false);
   };
 
-  const openHuStock = async () => {
-    if (!canOpenHuStock) return;
+  const loadHuStock = async (itemValue: string, warehouseValue: string, locationValue: string, openDialog = true) => {
+    const trimmedItem = (itemValue || "").trim();
+    const trimmedWarehouse = (warehouseValue || "").trim();
+    const trimmedLocation = (locationValue || "").trim();
+    if (!trimmedItem || !trimmedWarehouse || !trimmedLocation) return;
 
-    setHuStockOpen(true);
+    if (openDialog) setHuStockOpen(true);
     setHuStockLoading(true);
     const tid = showLoading(trans.loadingList);
     const { data, error } = await supabase.functions.invoke("ln-handling-unit-stock", {
       body: {
-        item: item.trim(),
-        warehouse: warehouse.trim(),
-        location: location.trim(),
+        item: trimmedItem,
+        warehouse: trimmedWarehouse,
+        location: trimmedLocation,
         language: locale,
         company: "1100",
       },
@@ -212,12 +216,67 @@ const InfoStockArticle = () => {
     setHuStockLoading(false);
   };
 
+  const openHuStock = async () => {
+    if (!canOpenHuStock) return;
+    await loadHuStock(item, warehouse, location, true);
+  };
+
   const openHuInfo = (handlingUnitValue: string) => {
     const value = (handlingUnitValue || "").trim();
     if (!value) return;
     setHuStockOpen(false);
-    navigate("/menu/info-stock/le-info", { state: { initialHandlingUnit: value } });
+    navigate("/menu/info-stock/le-info", {
+      state: {
+        initialHandlingUnit: value,
+        returnTo: {
+          path: "/menu/info-stock/article",
+          state: {
+            initialItem: item.trim(),
+            initialWarehouse: warehouse.trim(),
+            initialLocation: location.trim(),
+            reopenHuStock: true,
+          },
+        },
+      },
+    });
   };
+
+  useEffect(() => {
+    const navState = (routerLocation.state as any) || {};
+    const initialItem = (navState.initialItem || "").toString().trim();
+    const initialWarehouse = (navState.initialWarehouse || "").toString().trim();
+    const initialLocation = (navState.initialLocation || "").toString().trim();
+    const reopenHuStock = !!navState.reopenHuStock;
+
+    if (!initialItem) return;
+
+    const restoreState = async () => {
+      setItem(initialItem);
+      setWarehouse(initialWarehouse);
+      setLocation(initialLocation);
+      setLastFetchedItem(null);
+      setHuStockRows([]);
+      setHuStockOpen(false);
+
+      await fetchInventory(initialItem);
+
+      if (initialWarehouse) {
+        setSelectedWarehouse(initialWarehouse);
+        await fetchLocations(initialItem, initialWarehouse, initialLocation || undefined);
+      }
+
+      if (initialLocation) {
+        setSelectedLocation(initialLocation);
+      }
+
+      if (reopenHuStock && initialWarehouse && initialLocation) {
+        await loadHuStock(initialItem, initialWarehouse, initialLocation, true);
+      }
+    };
+
+    void restoreState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Clear handlers with re-fetch
   const clearItem = async () => {

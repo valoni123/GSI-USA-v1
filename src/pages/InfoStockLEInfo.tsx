@@ -211,6 +211,15 @@ const InfoStockLEInfo = () => {
   const toBeInspectedBarClass = "fixed left-1/2 -translate-x-1/2 bottom-6 z-40";
   const inStockBarClass = "fixed left-1/2 -translate-x-1/2 bottom-6 z-40 flex items-center gap-4";
 
+  const handleBack = () => {
+    const returnTo = (routerLocation.state as any)?.returnTo;
+    if (returnTo?.path) {
+      navigate(returnTo.path, { state: returnTo.state });
+      return;
+    }
+    navigate("/menu/info-stock");
+  };
+
   const startInspection = () => {
     const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
     if (!hu) {
@@ -289,7 +298,7 @@ const InfoStockLEInfo = () => {
       {/* Top bar */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/info-stock")} />
+          <BackButton ariaLabel={trans.back} onClick={handleBack} />
 
           <div className="flex flex-col items-center flex-1">
             <div className="font-bold text-lg tracking-wide text-center">{trans.infoStockLEInfo}</div>
