@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { LogOut, Search, User, CheckSquare, Square } from "lucide-react";
 import LocationPickerDialog from "@/components/LocationPickerDialog";
 import ScreenSpinner from "@/components/ScreenSpinner";
@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const InfoStockTransfer = () => {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
 
   const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
@@ -698,6 +699,19 @@ const InfoStockTransfer = () => {
     // normalize representation (strip leading zeros, unify decimal)
     setQuantity(String(num));
   };
+
+  useEffect(() => {
+    const initialHu = (routerLocation.state as any)?.initialHandlingUnit;
+    if (typeof initialHu === "string" && initialHu.trim() && !(query || "").trim()) {
+      const v = initialHu.trim();
+      setQuery(v);
+      setLastSearched(null);
+      setTimeout(() => {
+        void handleSearch(true);
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">

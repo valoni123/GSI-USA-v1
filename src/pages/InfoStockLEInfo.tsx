@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, Search, ClipboardCheck } from "lucide-react";
+import { LogOut, User, Search, ClipboardCheck, ArrowRightLeft, Printer } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -191,16 +191,13 @@ const InfoStockLEInfo = () => {
     }
   };
 
-  // Determine if HU is in "To be inspected" state
-  const isToBeInspected = (() => {
-    const key = data?.status ? String(data.status).trim().toLowerCase() : "";
-    return ["tobeinspected", "toinspect", "to be inspected", "to inspect", "inspection"].some(
-      k => key.includes(k.replace(/\s+/g, ""))
-    );
-  })();
+  const statusKey = useMemo(() => normalizeStatus(data?.status), [data?.status]);
+  const isToBeInspected = statusKey === "tobeinspected";
+  const isInStock = statusKey === "instock";
 
   // Floating CTA position (centered above bottom)
   const toBeInspectedBarClass = "fixed left-1/2 -translate-x-1/2 bottom-6 z-40";
+  const inStockBarClass = "fixed left-1/2 -translate-x-1/2 bottom-6 z-40 flex items-center gap-4";
 
   const startInspection = () => {
     const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
@@ -210,6 +207,69 @@ const InfoStockLEInfo = () => {
     }
     // Navigate to Warehouse Inspection with initial HU passed as state
     navigate("/menu/incoming/inspection", { state: { initialHandlingUnit: hu } });
+  };
+
+  const handleMove = () => {
+    const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
+    if (!hu) return;
+    navigate("/menu/info-stock/transfer", { state: { initialHandlingUnit: hu } });
+  };
+
+  const handlePrintLabel = () => {
+    const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
+    if (!hu) return;
+
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    if (!w) return;
+
+    const doc = w.document;
+    doc.open();
+    doc.write(
+      `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>${hu}</title>
+      <style>
+        body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; padding:24px;}
+        .card{border:1px solid #ddd; border-radius:12px; padding:16px; max-width:420px;}
+        h1{font-size:20px; margin:0 0 12px;}
+        .row{display:flex; justify-content:space-between; gap:12px; font-size:14px; margin:6px 0;}
+        .k{color:#555;}
+        .v{font-weight:600; text-align:right; word-break:break-all;}
+      </style>
+      </head><body></body></html>`
+    );
+    doc.close();
+
+    const body = doc.body;
+    const card = doc.createElement("div");
+    card.className = "card";
+
+    const title = doc.createElement("h1");
+    title.textContent = `HU: ${hu}`;
+    card.appendChild(title);
+
+    const addRow = (k: string, v: string) => {
+      const row = doc.createElement("div");
+      row.className = "row";
+      const kEl = doc.createElement("div");
+      kEl.className = "k";
+      kEl.textContent = k;
+      const vEl = doc.createElement("div");
+      vEl.className = "v";
+      vEl.textContent = v;
+      row.appendChild(kEl);
+      row.appendChild(vEl);
+      card.appendChild(row);
+    };
+
+    addRow("Item", (data?.item || "-").toString());
+    addRow("Warehouse", (data?.warehouse || "-").toString());
+    addRow("Location", (data?.location || "-").toString());
+    addRow("Quantity", `${(data?.quantity ?? "-").toString()} ${(data?.unit || "").toString()}`.trim());
+
+    body.appendChild(card);
+
+    w.focus();
+    w.print();
   };
 
   return (
@@ -388,6 +448,32 @@ const InfoStockLEInfo = () => {
             <ClipboardCheck className="h-4 w-4 text-white" />
             <span className="text-sm font-semibold">{trans.startInspection}</span>
           </button>
+        </div>
+      )}
+
+      {/* Action bar for 'In Stock' */}
+      {data && isInStock && (
+        <div className={inStockBarClass}>
+          <Button
+            type="button"
+            size="icon"
+            className="h-11 w-11 rounded-md shadow-lg"
+            variant="secondary"
+            aria-label={trans.leInfoMove}
+            onClick={handleMove}
+          >
+            <ArrowRightLeft className="h-5 w-5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            className="h-11 w-11 rounded-md shadow-lg"
+            variant="secondary"
+            aria-label={trans.leInfoPrintLabel}
+            onClick={handlePrintLabel}
+          >
+            <Printer className="h-5 w-5" />
+          </Button>
         </div>
       )}
 
