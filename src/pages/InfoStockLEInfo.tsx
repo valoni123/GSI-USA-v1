@@ -454,26 +454,24 @@ const InfoStockLEInfo = () => {
       {/* Action bar for 'In Stock' */}
       {data && isInStock && (
         <div className={inStockBarClass}>
-          <Button
+          <button
             type="button"
-            size="icon"
-            className="h-11 w-11 rounded-md shadow-lg"
-            variant="secondary"
-            aria-label={trans.leInfoMove}
             onClick={handleMove}
+            className="flex items-center justify-center gap-2 h-10 px-4 w-36 rounded-md shadow-lg text-sm font-semibold"
+            style={{ backgroundColor: "#78d8a3", color: "#000000" }}
           >
-            <ArrowRightLeft className="h-5 w-5" />
-          </Button>
-          <Button
+            <ArrowRightLeft className="h-4 w-4" />
+            <span>{trans.leInfoMove}</span>
+          </button>
+          <button
             type="button"
-            size="icon"
-            className="h-11 w-11 rounded-md shadow-lg"
-            variant="secondary"
-            aria-label={trans.leInfoPrintLabel}
             onClick={handlePrintLabel}
+            className="flex items-center justify-center gap-2 h-10 px-4 w-36 rounded-md shadow-lg text-sm font-semibold"
+            style={{ backgroundColor: "#3f3f46", color: "#ffffff" }}
           >
-            <Printer className="h-5 w-5" />
-          </Button>
+            <Printer className="h-4 w-4" />
+            <span>{trans.leInfoPrintLabel}</span>
+          </button>
         </div>
       )}
 
