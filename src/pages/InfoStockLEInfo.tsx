@@ -233,7 +233,18 @@ const InfoStockLEInfo = () => {
   const handleMove = () => {
     const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
     if (!hu) return;
-    navigate("/menu/info-stock/transfer", { state: { initialHandlingUnit: hu } });
+    navigate("/menu/info-stock/transfer", {
+      state: {
+        initialHandlingUnit: hu,
+        returnTo: {
+          path: "/menu/info-stock/le-info",
+          state: {
+            initialHandlingUnit: hu,
+            returnTo: (routerLocation.state as any)?.returnTo,
+          },
+        },
+      },
+    });
   };
 
   const handlePrintLabel = () => {
