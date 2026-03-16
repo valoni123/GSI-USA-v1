@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { LogOut, User, Search, ClipboardCheck, ArrowRightLeft, Printer } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ type HUInfo = {
 
 const InfoStockLEInfo = () => {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
 
   const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
@@ -72,6 +73,17 @@ const InfoStockLEInfo = () => {
   const [data, setData] = useState<HUInfo | null>(null);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const initialHu = (routerLocation.state as any)?.initialHandlingUnit;
+    if (typeof initialHu === "string" && initialHu.trim() && !(handlingUnit || "").trim()) {
+      const value = initialHu.trim();
+      setHandlingUnit(value);
+      setLastFetchedHu(null);
+      void fetchHU(value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     huRef.current?.focus();

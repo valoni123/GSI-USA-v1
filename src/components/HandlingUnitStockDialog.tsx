@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { ArrowUpRight, } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { type LanguageKey, t } from "@/lib/i18n";
 
@@ -15,6 +16,7 @@ type Props = {
   lang: LanguageKey;
   rows: HandlingUnitStockRow[];
   loading: boolean;
+  onOpenHandlingUnit: (handlingUnit: string) => void;
 };
 
 const normalizeStatus = (raw?: string | null): string | null => {
@@ -77,7 +79,7 @@ const statusStyle = (key: string | null) => {
   }
 };
 
-const HandlingUnitStockDialog = ({ open, onOpenChange, lang, rows, loading }: Props) => {
+const HandlingUnitStockDialog = ({ open, onOpenChange, lang, rows, loading, onOpenHandlingUnit }: Props) => {
   const trans = useMemo(() => t(lang), [lang]);
 
   return (
@@ -99,9 +101,17 @@ const HandlingUnitStockDialog = ({ open, onOpenChange, lang, rows, loading }: Pr
                 const key = normalizeStatus(row.Status);
                 return (
                   <div key={`${row.HandlingUnit}-${index}`} className="rounded-md border bg-gray-50 p-3">
-                    <div className="grid grid-cols-[138px_1fr] gap-x-3 gap-y-2 text-sm">
+                    <div className="grid grid-cols-[138px_1fr_auto] gap-x-3 gap-y-2 text-sm items-center">
                       <div className="font-semibold text-gray-700">{trans.loadHandlingUnit}:</div>
                       <div className="break-all text-gray-900">{row.HandlingUnit || "-"}</div>
+                      <button
+                        type="button"
+                        aria-label={trans.infoStockLEInfo}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-zinc-700 text-white shadow hover:bg-zinc-800"
+                        onClick={() => onOpenHandlingUnit(row.HandlingUnit)}
+                      >
+                        <ArrowUpRight className="h-4 w-4" />
+                      </button>
 
                       <div className="font-semibold text-gray-700">{trans.statusLabel}:</div>
                       <div>
@@ -109,9 +119,11 @@ const HandlingUnitStockDialog = ({ open, onOpenChange, lang, rows, loading }: Pr
                           {statusLabel(key, lang)}
                         </span>
                       </div>
+                      <div />
 
                       <div className="font-semibold text-gray-700">{trans.quantityLabel}:</div>
                       <div className="break-all text-gray-900">{quantityText}</div>
+                      <div />
                     </div>
                   </div>
                 );

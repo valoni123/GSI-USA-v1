@@ -212,6 +212,13 @@ const InfoStockArticle = () => {
     setHuStockLoading(false);
   };
 
+  const openHuInfo = (handlingUnitValue: string) => {
+    const value = (handlingUnitValue || "").trim();
+    if (!value) return;
+    setHuStockOpen(false);
+    navigate("/menu/info-stock/le-info", { state: { initialHandlingUnit: value } });
+  };
+
   // Clear handlers with re-fetch
   const clearItem = async () => {
     setItem("");
@@ -560,6 +567,7 @@ const InfoStockArticle = () => {
         lang={lang}
         rows={huStockRows}
         loading={huStockLoading}
+        onOpenHandlingUnit={openHuInfo}
       />
 
       <SignOutConfirm
