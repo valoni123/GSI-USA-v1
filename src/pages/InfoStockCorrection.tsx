@@ -799,16 +799,33 @@ const InfoStockCorrection = () => {
               </div>
 
               {/* Reason */}
-              <div className="space-y-1">
-                <div className="text-xs font-medium text-gray-700">
-                  {trans.correctionReasonLabel} <span className="text-red-600">*</span>
-                </div>
+              <div className="relative">
                 <Select value={reason} onValueChange={setReason}>
-                  <SelectTrigger className="h-10" disabled={reasonsLoading || reasons.length === 0}>
+                  <SelectTrigger
+                    id="correctionReason"
+                    className="peer h-12"
+                    disabled={reasonsLoading || reasons.length === 0}
+                    data-has-value={Boolean((reason || "").trim())}
+                  >
                     <SelectValue
                       placeholder={reasonsLoading ? trans.loadingEntries : trans.correctionSelectReason}
                     />
                   </SelectTrigger>
+                  <label
+                    htmlFor="correctionReason"
+                    className="
+                      pointer-events-none absolute left-3
+                      bg-white dark:bg-background px-1 rounded-sm
+                      text-gray-400
+                      transition-all duration-200
+                      peer-data-[has-value=false]:top-1/2 peer-data-[has-value=false]:-translate-y-1/2 peer-data-[has-value=false]:text-sm
+                      peer-data-[state=open]:-top-3 peer-data-[state=open]:-translate-y-0 peer-data-[state=open]:text-xs peer-data-[state=open]:text-gray-700
+                      peer-data-[has-value=true]:-top-3 peer-data-[has-value=true]:-translate-y-0 peer-data-[has-value=true]:text-xs peer-data-[has-value=true]:text-gray-700
+                      peer-disabled:text-gray-400
+                    "
+                  >
+                    {trans.correctionReasonLabel} <span className="text-red-600">*</span>
+                  </label>
                   <SelectContent>
                     {reasons.map((r) => (
                       <SelectItem key={r.Reason} value={r.Reason}>
