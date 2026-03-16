@@ -297,7 +297,7 @@ const translations: Translations = {
     incomingConfirmAndPost: "Bestätigen & Buchen",
     incomingConfirm: "Bestätigen",
     incomingReceive: "Eingegangen",
-    receivedLines: "Eingegangene Zeilen",
+    receivedLines: "Eingegangene Pos.",
     confirmAll: "Alle bestätigen",
     infoStockArticle: "Artikel",
     infoStockLEInfo: "LE-Info",
