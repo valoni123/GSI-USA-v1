@@ -13,6 +13,7 @@ type TranslationKeys =
   | "password"
   | "signIn"
   | "language"
+  | "changeLanguage"
   | "signingIn"
   | "signedIn"
   | "emptyFields"
@@ -128,6 +129,7 @@ const translations: Translations = {
     password: "Password",
     signIn: "Sign In",
     language: "Language",
+    changeLanguage: "Change language",
     signingIn: "Signing in…",
     signedIn: "Signed in",
     emptyFields: "Please enter user and password.",
@@ -240,6 +242,7 @@ const translations: Translations = {
     password: "Passwort",
     signIn: "Anmelden",
     language: "Sprache",
+    changeLanguage: "Sprache wechseln",
     signingIn: "Wird angemeldet…",
     signedIn: "Angemeldet",
     emptyFields: "Bitte Benutzer und Passwort eingeben.",
@@ -352,6 +355,7 @@ const translations: Translations = {
     password: "Contraseña",
     signIn: "Entrar",
     language: "Idioma",
+    changeLanguage: "Cambiar idioma",
     signingIn: "Iniciando sesión…",
     signedIn: "Sesión iniciada",
     emptyFields: "Ingrese usuario y contraseña.",
@@ -464,6 +468,7 @@ const translations: Translations = {
     password: "Senha",
     signIn: "Entrar",
     language: "Idioma",
+    changeLanguage: "Mudar idioma",
     signingIn: "Entrando…",
     signedIn: "Conectado",
     emptyFields: "Informe usuário e senha.",

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LANGUAGES, type LanguageKey, t } from "@/lib/i18n";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Props = {
   value: LanguageKey;
@@ -20,53 +20,44 @@ type Props = {
 const LanguageSwitcher = ({ value, onChange, mode = "fixed" }: Props) => {
   const containerClasses =
     mode === "fixed"
-      ? "fixed inset-x-0 bottom-4 flex items-center justify-center pointer-events-none"
-      : "absolute -bottom-10 left-1/2 -translate-x-1/2 pointer-events-none";
-  
+      ? "fixed inset-x-0 bottom-4 flex items-center justify-center"
+      : "absolute -bottom-10 left-1/2 -translate-x-1/2";
+
+  const current = useMemo(() => LANGUAGES.find((l) => l.key === value), [value]);
+  const trans = useMemo(() => t(value), [value]);
+
   return (
     <div className={containerClasses}>
-      <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-background/80 backdrop-blur border shadow px-2 py-1">
-        <DropdownMenu>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="rounded-full"
-                    aria-label="Change language"
-                  >
-                    <Globe className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent>{t(value).language}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full bg-background/80 backdrop-blur border shadow-sm gap-2"
+            aria-label={trans.changeLanguage}
+          >
+            <Globe className="h-4 w-4" />
+            <span aria-hidden className="leading-none">
+              {current?.flag}
+            </span>
+            <span className="font-medium">{trans.changeLanguage}</span>
+          </Button>
+        </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="center" sideOffset={6}>
-            <DropdownMenuLabel>{t(value).language}</DropdownMenuLabel>
-            <DropdownMenuRadioGroup
-              value={value}
-              onValueChange={(v) => onChange(v as LanguageKey)}
-            >
-              {LANGUAGES.map((l) => (
-                <DropdownMenuRadioItem key={l.key} value={l.key}>
-                  <span className="mr-2" aria-hidden>{l.flag}</span>
-                  {l.label}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <div className="text-xs font-medium tabular-nums px-2 py-1 rounded-md bg-muted">
-          {
-            LANGUAGES.find((l) => l.key === value)?.short
-          }
-        </div>
-      </div>
+        <DropdownMenuContent align="center" sideOffset={8}>
+          <DropdownMenuLabel>{trans.changeLanguage}</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as LanguageKey)}>
+            {LANGUAGES.map((l) => (
+              <DropdownMenuRadioItem key={l.key} value={l.key}>
+                <span className="mr-2" aria-hidden>
+                  {l.flag}
+                </span>
+                {l.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 };
