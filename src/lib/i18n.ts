@@ -1,10 +1,10 @@
 export type LanguageKey = "en" | "de" | "es-MX" | "pt-BR";
 
 export const LANGUAGES = [
-  { key: "en", label: "English", short: "EN", flag: "🇺🇸" },
-  { key: "de", label: "Deutsch", short: "DE", flag: "🇩🇪" },
-  { key: "es-MX", label: "Español (MX)", short: "MX", flag: "🇲🇽" },
-  { key: "pt-BR", label: "Português (BR)", short: "BR", flag: "🇧🇷" },
+  { key: "en", label: "English", short: "EN", flag: "US" },
+  { key: "de", label: "Deutsch", short: "DE", flag: "DE" },
+  { key: "es-MX", label: "Español (MX)", short: "MX", flag: "MX" },
+  { key: "pt-BR", label: "Português (BR)", short: "BR", flag: "BR" },
 ] as const;
 
 type TranslationKeys =

@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LANGUAGES, type LanguageKey, t } from "@/lib/i18n";
+import FlagIcon from "@/components/FlagIcon";
 
 type Props = {
   value: LanguageKey;
@@ -37,9 +38,12 @@ const LanguageSwitcher = ({ value, onChange, mode = "fixed" }: Props) => {
             aria-label={trans.changeLanguage}
           >
             <Globe className="h-4 w-4" />
-            <span aria-hidden className="leading-none">
-              {current?.flag}
-            </span>
+            {current ? (
+              <FlagIcon
+                code={current.flag}
+                className="h-4 w-6 rounded-sm shadow-[inset_0_0_0_1px_rgba(0,0,0,0.15)]"
+              />
+            ) : null}
             <span className="font-medium">{trans.changeLanguage}</span>
           </Button>
         </DropdownMenuTrigger>
@@ -49,9 +53,10 @@ const LanguageSwitcher = ({ value, onChange, mode = "fixed" }: Props) => {
           <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as LanguageKey)}>
             {LANGUAGES.map((l) => (
               <DropdownMenuRadioItem key={l.key} value={l.key}>
-                <span className="mr-2" aria-hidden>
-                  {l.flag}
-                </span>
+                <FlagIcon
+                  code={l.flag}
+                  className="mr-2 h-4 w-6 rounded-sm shadow-[inset_0_0_0_1px_rgba(0,0,0,0.15)]"
+                />
                 {l.label}
               </DropdownMenuRadioItem>
             ))}
