@@ -24,41 +24,11 @@ type RequestBody = {
   company?: string;
 };
 
-const SELECT_FIELDS = [
-  "HandlingUnit",
-  "ParentHandlingUnit",
-  "Status",
-  "Lot",
-  "Location",
-  "MultiItemHandlingUnit",
-  "FullyBlocked",
-  "BlockedForOutbound",
-  "BlockedForTransferIssue",
-  "BlockedForCycleCounting",
-  "BlockedForAssembly",
-  "Unit",
-  "QuantityInInventoryUnit",
-  "GrossWeight",
-  "NetWeight",
-  "WeightUnit",
-  "Height",
-  "Width",
-  "Length",
-  "DimensionUnit",
-].join(",");
+const SELECT_FIELDS = "HandlingUnit,Status,Unit,QuantityInInventoryUnit";
 
-function toBool(value: unknown) {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value !== 0;
-  if (value == null) return false;
-  const normalized = String(value).trim().toLowerCase();
-  return normalized === "true" || normalized === "1" || normalized === "yes";
-}
-
-function toNumberOrNull(value: unknown) {
-  if (value == null || value === "") return null;
+function toNumber(value: unknown) {
   const num = Number(value);
-  return Number.isFinite(num) ? num : null;
+  return Number.isFinite(num) ? num : 0;
 }
 
 serve(async (req) => {
@@ -99,11 +69,13 @@ serve(async (req) => {
     const base = cfg.iu.endsWith("/") ? cfg.iu.slice(0, -1) : cfg.iu;
 
     const fetchForItemKey = async (itemKey: string) => {
+      const escapedWarehouse = warehouse.replace(/'/g, "''");
+      const escapedLocation = location.replace(/'/g, "''");
       const path = `/${cfg.ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/Items(Item='${encodeURIComponent(itemKey)}')/HandlingUnitRefs`;
       const params = new URLSearchParams();
       params.set(
         "$filter",
-        `Warehouse eq '${warehouse.replace(/'/g, "''")}' and Status ne whapi.wmdHandlingUnit.HandlingUnitStatus'Closed' and Location eq '${location.replace(/'/g, "''")}'`,
+        `Warehouse eq '${escapedWarehouse}' and Status ne whapi.wmdHandlingUnit.HandlingUnitStatus'Closed' and Location eq '${escapedLocation}'`,
       );
       params.set("$count", "true");
       params.set("$select", SELECT_FIELDS);
@@ -135,25 +107,9 @@ serve(async (req) => {
       const rows = Array.isArray(payload.value)
         ? payload.value.map((row: any) => ({
             HandlingUnit: String(row?.HandlingUnit || ""),
-            ParentHandlingUnit: row?.ParentHandlingUnit ? String(row.ParentHandlingUnit) : null,
             Status: row?.Status == null ? null : String(row.Status),
-            Lot: row?.Lot == null ? null : String(row.Lot),
-            Location: row?.Location == null ? null : String(row.Location),
-            MultiItemHandlingUnit: toBool(row?.MultiItemHandlingUnit),
-            FullyBlocked: toBool(row?.FullyBlocked),
-            BlockedForOutbound: toBool(row?.BlockedForOutbound),
-            BlockedForTransferIssue: toBool(row?.BlockedForTransferIssue),
-            BlockedForCycleCounting: toBool(row?.BlockedForCycleCounting),
-            BlockedForAssembly: toBool(row?.BlockedForAssembly),
             Unit: row?.Unit == null ? null : String(row.Unit),
-            QuantityInInventoryUnit: toNumberOrNull(row?.QuantityInInventoryUnit) ?? 0,
-            GrossWeight: toNumberOrNull(row?.GrossWeight),
-            NetWeight: toNumberOrNull(row?.NetWeight),
-            WeightUnit: row?.WeightUnit == null ? null : String(row.WeightUnit),
-            Height: toNumberOrNull(row?.Height),
-            Width: toNumberOrNull(row?.Width),
-            Length: toNumberOrNull(row?.Length),
-            DimensionUnit: row?.DimensionUnit == null ? null : String(row.DimensionUnit),
+            QuantityInInventoryUnit: toNumber(row?.QuantityInInventoryUnit),
           }))
         : [];
 
