@@ -1,0 +1,133 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getCompanyFromParams } from "../_shared/company.ts";
+import { getIonApiAccessToken, getIonApiConfig } from "../_shared/ionapi.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
+  }
+
+  try {
+    const body = (await req.json().catch(() => ({}))) as {
+      language?: string;
+      company?: string;
+      handlingUnit?: string;
+      deviation?: number;
+      reason?: string;
+      loginCode?: string;
+      employee?: string;
+      scan1?: string;
+      transactionId?: string;
+    };
+
+    const language = body.language || "en-US";
+    const companyOverride = (body.company || "").toString().trim();
+
+    const handlingUnit = (body.handlingUnit || "").toString().trim();
+    const reason = (body.reason || "").toString().trim();
+    const loginCode = (body.loginCode || "").toString().trim();
+    const employee = (body.employee || "").toString().trim();
+    const deviation = Number(body.deviation);
+
+    if (!handlingUnit || !reason || !loginCode || !employee || !Number.isFinite(deviation)) {
+      return json({ ok: false, error: "invalid_payload" }, 200);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("[ln-inventory-adjustment] env missing");
+      return json({ ok: false, error: "env_missing" }, 200);
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    let company = companyOverride;
+    if (!company) {
+      try {
+        company = await getCompanyFromParams(supabase);
+      } catch (e) {
+        console.error("[ln-inventory-adjustment] no_company_config", { error: String(e) });
+        return json({ ok: false, error: "no_company_config" }, 200);
+      }
+    }
+
+    const cfg = await getIonApiConfig(supabase);
+    const accessToken = await getIonApiAccessToken(supabase);
+
+    const base = cfg.iu.endsWith("/") ? cfg.iu.slice(0, -1) : cfg.iu;
+    const qs = new URLSearchParams();
+    qs.set("$select", "*");
+
+    const url = `${base}/${cfg.ti}/LN/lnapi/odata/txgsi.Adjustments/GSIAdjustments?${qs.toString()}`;
+
+    const payload = {
+      TransactionID: (body.transactionId || "").toString(),
+      HandlingUnit: handlingUnit,
+      Deviation: deviation,
+      ReasonForStockCorrection: reason,
+      Scan1: (body.scan1 || "").toString(),
+      LoginCode: loginCode,
+      Employee: employee,
+      FromWebservice: "Yes",
+    };
+
+    console.log("[ln-inventory-adjustment] posting adjustment", {
+      company,
+      language,
+      handlingUnit,
+      deviation,
+      reason,
+    });
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "Content-Language": language,
+        "X-Infor-LnCompany": company,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    }).catch((e) => {
+      console.error("[ln-inventory-adjustment] odata_network_error", { error: String(e) });
+      return null as unknown as Response;
+    });
+
+    if (!res) return json({ ok: false, error: "odata_network_error" }, 200);
+
+    const data = (await res.json().catch(() => null)) as any;
+    if (!res.ok || !data) {
+      console.error("[ln-inventory-adjustment] odata_error", {
+        status: res.status,
+        body: data,
+      });
+      const topMessage = data?.error?.message || "odata_error";
+      const details = Array.isArray(data?.error?.details) ? data.error.details : [];
+      return json({ ok: false, error: { message: topMessage, details } }, 200);
+    }
+
+    return json({ ok: true, value: data }, 200);
+  } catch (e) {
+    console.error("[ln-inventory-adjustment] unhandled", { error: String(e) });
+    return json({ ok: false, error: { message: "unhandled" } }, 200);
+  }
+});

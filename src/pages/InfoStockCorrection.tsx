@@ -535,9 +535,60 @@ const InfoStockCorrection = () => {
   const doSubmit = async () => {
     if (!canSubmit) return;
     setTransferring(true);
-    showSuccess("Submitted");
-    setTransferring(false);
-    resetAll();
+
+    try {
+      if (lastMatchType === "HU") {
+        const hu = (handlingUnit || query || "").trim();
+        const deviation = Number(submitQuantity);
+        const reasonCode = (reason || "").trim();
+
+        const loginCode =
+          (localStorage.getItem("gsi.login") ||
+            localStorage.getItem("gsi.employee") ||
+            localStorage.getItem("gsi.username") ||
+            "")
+            .toString()
+            .trim();
+
+        const employee =
+          (localStorage.getItem("gsi.employee") ||
+            localStorage.getItem("gsi.login") ||
+            localStorage.getItem("gsi.username") ||
+            "")
+            .toString()
+            .trim();
+
+        const tid = showLoading(trans.pleaseWait);
+        const { data, error } = await supabase.functions.invoke("ln-inventory-adjustment", {
+          body: {
+            company: "1100",
+            language: locale,
+            handlingUnit: hu,
+            deviation,
+            reason: reasonCode,
+            loginCode,
+            employee,
+          },
+        });
+        dismissToast(tid as unknown as string);
+
+        if (error || !data || !data.ok) {
+          showError(trans.tokenFailed);
+          setTransferring(false);
+          return;
+        }
+
+        showSuccess(trans.correctionSubmit);
+      } else {
+        showSuccess("Submitted");
+      }
+
+      setTransferring(false);
+      resetAll();
+    } catch (e) {
+      setTransferring(false);
+      showError(String(e));
+    }
   };
 
   return (
