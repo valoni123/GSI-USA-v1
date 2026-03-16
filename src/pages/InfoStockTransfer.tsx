@@ -325,8 +325,8 @@ const InfoStockTransfer = () => {
     status,
   ]);
 
-  const handleSearch = async (_withLoading = false) => {
-    const input = query.trim();
+  const runSearch = async (rawInput: string) => {
+    const input = (rawInput || "").trim();
     if (!input) return;
     if (lastSearched === input) return;
 
@@ -398,8 +398,12 @@ const InfoStockTransfer = () => {
       return;
     }
 
-    showError(trans.noEntries);
     setSearching(false);
+  };
+
+  const handleSearch = async (_withLoading = false) => {
+    void _withLoading;
+    return runSearch(query);
   };
 
   // Open and load warehouses for current item (picker)
@@ -706,9 +710,7 @@ const InfoStockTransfer = () => {
       const v = initialHu.trim();
       setQuery(v);
       setLastSearched(null);
-      setTimeout(() => {
-        void handleSearch(true);
-      }, 0);
+      void runSearch(v);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
