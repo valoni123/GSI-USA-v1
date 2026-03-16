@@ -138,6 +138,23 @@ const InfoStockCorrection = () => {
     }, 600);
   };
 
+  const applyPickedLocation = (loc: string) => {
+    const picked = fromLocRows.find((row) => row.Location === loc);
+    const nonHu = Math.abs(Number(picked?.NonHu ?? 0));
+    const value = String(nonHu);
+
+    setLocation(loc);
+    setLot(typeof picked?.Lot === "string" ? picked.Lot : "");
+    setQuantity(value);
+    setSubmitQtyTouched(false);
+    setSubmitQuantity(value);
+    if (typeof picked?.Unit === "string" && picked.Unit) {
+      setUnit(picked.Unit);
+    }
+    setFromLocPickerOpen(false);
+    setTimeout(() => focusQuantity(), 50);
+  };
+
   // Quantity helpers: allow only positive numeric with optional decimal separator
   const sanitizeQuantity = (raw: string) => {
     const replaced = raw.replace(",", "."); // normalize comma to dot
@@ -1021,13 +1038,7 @@ const InfoStockCorrection = () => {
             loading={fromLocLoading}
             title={trans.locationLabel}
             rows={fromLocRows}
-            onPick={(loc) => {
-              setLocation(loc);
-              const picked = fromLocRows.find((r) => r.Location === loc);
-              setLot(typeof picked?.Lot === "string" ? picked.Lot : "");
-              setFromLocPickerOpen(false);
-              void prefillFromLocation();
-            }}
+            onPick={applyPickedLocation}
           />
         </Card>
       </div>
