@@ -71,6 +71,26 @@ const InfoStockArticle = () => {
     return "en-US";
   }, [lang]);
 
+  const searchDisabled = useMemo(() => {
+    const itemValue = item.trim();
+    const warehouseValue = warehouse.trim();
+    const locationValue = location.trim();
+    const currentWarehouse = (selectedWarehouse || "").trim();
+    const currentLocation = (selectedLocation || "").trim();
+
+    if (!itemValue) return true;
+
+    const itemAlreadyLoaded = lastFetchedItem === itemValue;
+    const warehouseAlreadyLoaded =
+      !!warehouseValue &&
+      currentWarehouse.toLowerCase() === warehouseValue.toLowerCase();
+    const locationAlreadyLoaded =
+      !!locationValue &&
+      currentLocation.toLowerCase() === locationValue.toLowerCase();
+
+    return loading || locLoading || (itemAlreadyLoaded && warehouseAlreadyLoaded && locationAlreadyLoaded);
+  }, [item, warehouse, location, selectedWarehouse, selectedLocation, lastFetchedItem, loading, locLoading]);
+
   // NEW: Only show the selected/typed warehouse block when a warehouse is specified
   const displayRows = useMemo(() => {
     const eff = (warehouse || selectedWarehouse || "").trim();
@@ -446,7 +466,7 @@ const InfoStockArticle = () => {
           <Button
             className="w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
             onClick={() => fetchInventory(item)}
-            disabled={item.trim() === "" && warehouse.trim() === "" && location.trim() === ""}
+            disabled={searchDisabled}
           >
             {trans.searchLabel}
           </Button>
