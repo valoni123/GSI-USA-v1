@@ -43,12 +43,12 @@ const IncomingMenu = () => {
     },
     {
       key: "warehouseInspection",
-      label: "Inspection",
+      label: trans.incomingWarehouseInspection,
       icon: <Search className="h-10 w-10 text-red-700" />,
     },
     {
       key: "putawaySuggestions",
-      label: "Putaway",
+      label: trans.incomingPutawaySuggestions,
       icon: <Box className="h-10 w-10 text-red-700" />,
     },
     {
