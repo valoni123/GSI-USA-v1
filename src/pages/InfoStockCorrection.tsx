@@ -858,9 +858,7 @@ const InfoStockCorrection = () => {
                     disabled={reasonsLoading || reasons.length === 0}
                     data-has-value={Boolean((reason || "").trim())}
                   >
-                    <SelectValue
-                      placeholder={reasonsLoading ? trans.loadingEntries : trans.correctionSelectReason}
-                    />
+                    <SelectValue placeholder={""} />
                   </SelectTrigger>
                   <label
                     htmlFor="correctionReason"
