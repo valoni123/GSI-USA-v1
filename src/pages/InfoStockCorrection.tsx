@@ -138,6 +138,13 @@ const InfoStockCorrection = () => {
     }, 600);
   };
 
+  const resetLocationQuantities = () => {
+    setLot("");
+    setQuantity("");
+    setSubmitQtyTouched(false);
+    setSubmitQuantity("");
+  };
+
   const applyPickedLocation = (loc: string) => {
     const picked = fromLocRows.find((row) => row.Location === loc);
     const nonHu = Math.abs(Number(picked?.NonHu ?? 0));
@@ -232,11 +239,11 @@ const InfoStockCorrection = () => {
   };
 
   // Menge/Einheit aus gewählter/eingegebener Location holen (ITEM-Flow)
-  const prefillFromLocation = async () => {
+  const prefillFromLocation = async (nextLocation?: string) => {
     if (lastMatchType !== "ITEM") return;
     const itm = (item || "").trim();
     const wh = (warehouse || "").trim();
-    const loc = (location || "").trim();
+    const loc = (nextLocation ?? location ?? "").trim();
     if (!itm || !wh || !loc) return;
     const { data, error } = await supabase.functions.invoke("ln-stockpoint-inventory", {
       body: { item: itm, warehouse: wh, location: loc, language: locale, company: "1100" },
@@ -265,6 +272,7 @@ const InfoStockCorrection = () => {
       const nonHu = Math.abs((Number.isFinite(onHand) ? onHand : 0) - (Number.isFinite(huQuantity) ? huQuantity : 0));
       const q = String(nonHu);
 
+      setLocation(loc);
       setLot(lotVal);
       setQuantity(q);
       setSubmitQtyTouched(false);
@@ -825,12 +833,28 @@ const InfoStockCorrection = () => {
                   label={trans.locationLabel}
                   ref={fromLocRef}
                   value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  onBlur={() => { if ((location || "").trim()) { void prefillFromLocation(); } }}
+                  onChange={(e) => {
+                    const nextLocation = e.target.value;
+                    if (lastMatchType === "ITEM" && nextLocation !== location) {
+                      resetLocationQuantities();
+                    }
+                    setLocation(nextLocation);
+                  }}
+                  onBlur={(e) => {
+                    const nextLocation = e.currentTarget.value.trim();
+                    if (!nextLocation) {
+                      resetLocationQuantities();
+                      setLocation("");
+                      return;
+                    }
+                    void prefillFromLocation(nextLocation);
+                  }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && (location || "").trim()) {
+                    if (e.key === "Enter") {
+                      const nextLocation = e.currentTarget.value.trim();
+                      if (!nextLocation) return;
                       e.preventDefault();
-                      void prefillFromLocation();
+                      void prefillFromLocation(nextLocation);
                     }
                   }}
                   disabled={lastMatchType === "HU"}
