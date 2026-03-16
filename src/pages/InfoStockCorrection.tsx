@@ -55,6 +55,7 @@ const InfoStockCorrection = () => {
   const warehouseRef = useRef<HTMLInputElement | null>(null);
   const fromLocRef = useRef<HTMLInputElement | null>(null);
   const quantityRef = useRef<HTMLInputElement | null>(null);
+  const submitQuantityRef = useRef<HTMLInputElement | null>(null);
 
   // First input + dynamic label/description
   const [query, setQuery] = useState<string>("");
@@ -118,11 +119,12 @@ const InfoStockCorrection = () => {
     }, 600);
   };
 
-  // Fokus zuverlässig ins Mengenfeld
+  // Fokus zuverlässig ins editierbare Mengenfeld
   const focusQuantity = () => {
     const focus = () => {
-      const el = quantityRef.current || (document.getElementById("transferQuantity") as HTMLInputElement | null);
+      const el = submitQuantityRef.current || (document.getElementById("correctionSubmitQuantity") as HTMLInputElement | null);
       el?.focus();
+      el?.select();
     };
     focus();
     requestAnimationFrame(focus);
@@ -223,23 +225,35 @@ const InfoStockCorrection = () => {
       body: { item: itm, warehouse: wh, location: loc, language: locale, company: "1100" },
     });
     if (error || !data || !data.ok) {
-      // Falls Service scheitert, keine Änderung erzwingen
       return;
     }
     const rows = Array.isArray(data.rows) ? data.rows : [];
     const first = rows[0];
     if (first) {
-      const avail = typeof first.Available === "number" ? first.Available : undefined;
-      const onHand = typeof first.OnHand === "number" ? first.OnHand : undefined;
+      const onHand = typeof first.OnHand === "number" ? first.OnHand : Number(first.OnHand ?? 0);
       const unitVal = typeof first.Unit === "string" ? first.Unit : (typeof first.InventoryUnit === "string" ? first.InventoryUnit : "");
-      const qtyNum = typeof avail === "number" ? avail : (typeof onHand === "number" ? onHand : undefined);
-      if (typeof qtyNum === "number") {
-        const q = String(qtyNum);
-        setQuantity(q);
-        if (!submitQtyTouched) setSubmitQuantity(q);
-      }
+      const lotVal = typeof first.Lot === "string" ? first.Lot : "";
+
+      const { data: huQtyData } = await supabase.functions.invoke("ln-handling-unit-quantity-by-location", {
+        body: {
+          item: itm,
+          warehouse: wh,
+          locations: [loc],
+          language: locale,
+          company: "1100",
+        },
+      });
+      const huRow = Array.isArray(huQtyData?.rows) ? huQtyData.rows[0] : null;
+      const huQuantity = Number(huRow?.QuantityInInventoryUnit ?? 0);
+      const nonHu = Math.abs((Number.isFinite(onHand) ? onHand : 0) - (Number.isFinite(huQuantity) ? huQuantity : 0));
+      const q = String(nonHu);
+
+      setLot(lotVal);
+      setQuantity(q);
+      setSubmitQtyTouched(false);
+      setSubmitQuantity(q);
       if (unitVal) setUnit(unitVal);
-      // WICHTIG: Kein Fokuswechsel mehr
+      focusQuantity();
     }
   };
 
@@ -830,15 +844,14 @@ const InfoStockCorrection = () => {
                   onPaste={handleQuantityPaste}
                   onBlur={handleQuantityBlur}
                   onClick={() => {
-                    // Nur im ITEM-Flow und wenn leer automatisch aus Location befüllen
                     if (lastMatchType === "ITEM" && !(quantity || "").trim()) {
                       void prefillFromLocation();
                     }
                   }}
                   ref={quantityRef}
                   inputMode="decimal"
-                  disabled={lastMatchType === "HU"}
-                  className={lastMatchType === "HU" ? "bg-gray-100 text-gray-700" : undefined}
+                  disabled={true}
+                  className="bg-gray-100 text-gray-700"
                 />
                 <FloatingLabelInput id="transferUnit" label={trans.unitLabel} value={unit} disabled />
               </div>
@@ -857,6 +870,8 @@ const InfoStockCorrection = () => {
                 </Button>
 
                 <Input
+                  id="correctionSubmitQuantity"
+                  ref={submitQuantityRef}
                   value={submitQuantity}
                   onChange={(e) => handleSubmitQuantityChange(e.target.value)}
                   onBlur={handleSubmitQuantityBlur}
@@ -1012,7 +1027,6 @@ const InfoStockCorrection = () => {
               setLot(typeof picked?.Lot === "string" ? picked.Lot : "");
               setFromLocPickerOpen(false);
               void prefillFromLocation();
-              focusQuantity();
             }}
           />
         </Card>
