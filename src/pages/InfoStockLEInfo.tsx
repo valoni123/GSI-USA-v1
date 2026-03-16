@@ -386,7 +386,7 @@ const InfoStockLEInfo = () => {
             style={{ backgroundColor: "#a876eb", color: "#ffffff" }}
           >
             <ClipboardCheck className="h-4 w-4 text-white" />
-            <span className="text-sm font-semibold">Start Inspection</span>
+            <span className="text-sm font-semibold">{trans.startInspection}</span>
           </button>
         </div>
       )}
@@ -394,8 +394,8 @@ const InfoStockLEInfo = () => {
       {/* Confirmation dialog */}
       <ConfirmDialog
         open={confirmOpen}
-        title="Start Inspection"
-        message="Start Inspection for this Handling Unit?"
+        title={trans.startInspectionTitle}
+        message={trans.startInspectionMessage}
         confirmLabel={trans.yes}
         cancelLabel={trans.no}
         onConfirm={() => {

@@ -54,6 +54,9 @@ type TranslationKeys =
   | "incomingReceive"
   | "receivedLines"
   | "confirmAll"
+  | "startInspection"
+  | "startInspectionTitle"
+  | "startInspectionMessage"
   | "infoStockArticle"
   | "infoStockLEInfo"
   | "infoStockCorrection"
@@ -178,6 +181,9 @@ const translations: Translations = {
     incomingReceive: "Receive",
     receivedLines: "Received Lines",
     confirmAll: "Confirm All",
+    startInspection: "Start Inspection",
+    startInspectionTitle: "Start Inspection",
+    startInspectionMessage: "Start Inspection for this Handling Unit?",
     infoStockArticle: "Item",
     infoStockLEInfo: "HU-Info",
     infoStockCorrection: "Correction",
@@ -299,6 +305,9 @@ const translations: Translations = {
     incomingReceive: "Eingegangen",
     receivedLines: "Eingegangene Pos.",
     confirmAll: "Alle bestätigen",
+    startInspection: "Prüfung starten",
+    startInspectionTitle: "Prüfung starten",
+    startInspectionMessage: "Prüfung für diese Ladeeinheit starten?",
     infoStockArticle: "Artikel",
     infoStockLEInfo: "LE-Info",
     infoStockCorrection: "Korrektur",
@@ -420,6 +429,9 @@ const translations: Translations = {
     incomingReceive: "Recibir",
     receivedLines: "Líneas recibidas",
     confirmAll: "Confirmar todo",
+    startInspection: "Iniciar inspección",
+    startInspectionTitle: "Iniciar inspección",
+    startInspectionMessage: "¿Iniciar inspección para esta unidad de manejo?",
     infoStockArticle: "Artículo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Corrección",
@@ -541,6 +553,9 @@ const translations: Translations = {
     incomingReceive: "Receber",
     receivedLines: "Linhas recebidas",
     confirmAll: "Confirmar tudo",
+    startInspection: "Iniciar inspeção",
+    startInspectionTitle: "Iniciar inspeção",
+    startInspectionMessage: "Iniciar inspeção para esta unidade de manuseio?",
     infoStockArticle: "Artigo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Correção",
