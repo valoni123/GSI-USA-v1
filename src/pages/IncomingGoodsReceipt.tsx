@@ -1705,7 +1705,7 @@ const IncomingGoodsReceipt = () => {
               }
             }}
           >
-            {confirmOnly ? "CONFIRM" : "Receive"}
+            {confirmOnly ? trans.incomingConfirm : trans.incomingReceive}
           </Button>
         </div>
       </div>

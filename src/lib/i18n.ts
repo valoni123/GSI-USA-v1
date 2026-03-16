@@ -46,6 +46,7 @@ type TranslationKeys =
   | "incomingDeliveryNoteLabel"
   | "incomingConfirmAndPost"
   | "incomingConfirm"
+  | "incomingReceive"
   | "infoStockArticle"
   | "infoStockLEInfo"
   | "infoStockCorrection"
@@ -162,6 +163,7 @@ const translations: Translations = {
     incomingDeliveryNoteLabel: "Delivery note",
     incomingConfirmAndPost: "Confirm & Post",
     incomingConfirm: "Confirm",
+    incomingReceive: "Receive",
     infoStockArticle: "Item",
     infoStockLEInfo: "HU-Info",
     infoStockCorrection: "Correction",
@@ -275,6 +277,7 @@ const translations: Translations = {
     incomingDeliveryNoteLabel: "Lieferschein",
     incomingConfirmAndPost: "Bestätigen & Buchen",
     incomingConfirm: "Bestätigen",
+    incomingReceive: "Eingegangen",
     infoStockArticle: "Artikel",
     infoStockLEInfo: "LE-Info",
     infoStockCorrection: "Korrektur",
@@ -388,6 +391,7 @@ const translations: Translations = {
     incomingDeliveryNoteLabel: "Albarán",
     incomingConfirmAndPost: "Confirmar y contabilizar",
     incomingConfirm: "Confirmar",
+    incomingReceive: "Recibir",
     infoStockArticle: "Artículo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Corrección",
@@ -501,6 +505,7 @@ const translations: Translations = {
     incomingDeliveryNoteLabel: "Nota de entrega",
     incomingConfirmAndPost: "Confirmar e lançar",
     incomingConfirm: "Confirmar",
+    incomingReceive: "Receber",
     infoStockArticle: "Artigo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Correção",
