@@ -44,11 +44,12 @@ const LanguageSwitcher = ({ value, onChange, mode = "fixed" }: Props) => {
                 className="h-4 w-6 rounded-sm shadow-[inset_0_0_0_1px_rgba(0,0,0,0.15)]"
               />
             ) : null}
-            <span className="font-medium">{trans.changeLanguage}</span>
+            <span className="sr-only">{trans.changeLanguage}</span>
           </Button>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="center" sideOffset={8}>
+          <DropdownMenuLabel>{trans.changeLanguage}</DropdownMenuLabel>
           <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as LanguageKey)}>
             {LANGUAGES.map((l) => (
               <DropdownMenuRadioItem key={l.key} value={l.key}>
