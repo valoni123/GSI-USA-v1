@@ -57,6 +57,7 @@ type TranslationKeys =
   | "startInspection"
   | "startInspectionTitle"
   | "startInspectionMessage"
+  | "correctionSubmit"
   | "infoStockArticle"
   | "infoStockLEInfo"
   | "infoStockCorrection"
@@ -184,6 +185,7 @@ const translations: Translations = {
     startInspection: "Start Inspection",
     startInspectionTitle: "Start Inspection",
     startInspectionMessage: "Start Inspection for this Handling Unit?",
+    correctionSubmit: "Correct",
     infoStockArticle: "Item",
     infoStockLEInfo: "HU-Info",
     infoStockCorrection: "Correction",
@@ -308,6 +310,7 @@ const translations: Translations = {
     startInspection: "Prüfung starten",
     startInspectionTitle: "Prüfung starten",
     startInspectionMessage: "Prüfung für diese Ladeeinheit starten?",
+    correctionSubmit: "Korrigieren",
     infoStockArticle: "Artikel",
     infoStockLEInfo: "LE-Info",
     infoStockCorrection: "Korrektur",
@@ -432,6 +435,7 @@ const translations: Translations = {
     startInspection: "Iniciar inspección",
     startInspectionTitle: "Iniciar inspección",
     startInspectionMessage: "¿Iniciar inspección para esta unidad de manejo?",
+    correctionSubmit: "Corregir",
     infoStockArticle: "Artículo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Corrección",
@@ -556,6 +560,7 @@ const translations: Translations = {
     startInspection: "Iniciar inspeção",
     startInspectionTitle: "Iniciar inspeção",
     startInspectionMessage: "Iniciar inspeção para esta unidade de manuseio?",
+    correctionSubmit: "Corrigir",
     infoStockArticle: "Artigo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Correção",

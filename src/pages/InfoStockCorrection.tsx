@@ -329,11 +329,15 @@ const InfoStockCorrection = () => {
     if (lastMatchType === "HU" && statusKey !== "instock") return false;
 
     const baseOk = (warehouse || "").trim() && (location || "").trim();
-    const qtyOk = Number(submitQuantity) > 0;
     const unitOk = (unit || "").trim().length > 0;
 
-    return !!(baseOk && qtyOk && unitOk) && !searching && !transferring;
-  }, [showDetails, lastMatchType, warehouse, location, submitQuantity, unit, searching, transferring, status]);
+    const originalQty = Number(quantity);
+    const nextQty = Number(submitQuantity);
+    const qtyOk = isFinite(nextQty) && nextQty > 0;
+    const qtyChanged = isFinite(originalQty) && isFinite(nextQty) && nextQty !== originalQty;
+
+    return !!(baseOk && qtyOk && unitOk && qtyChanged) && !searching && !transferring;
+  }, [showDetails, lastMatchType, warehouse, location, quantity, submitQuantity, unit, searching, transferring, status]);
 
   const handleSearch = async (_withLoading = false) => {
     const input = query.trim();
@@ -766,7 +770,7 @@ const InfoStockCorrection = () => {
                 disabled={!canSubmit}
                 onClick={doSubmit}
               >
-                Submit
+                {trans.correctionSubmit}
               </Button>
             </div>
           )}
