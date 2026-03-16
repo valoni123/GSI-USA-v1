@@ -322,7 +322,7 @@ const translations: Translations = {
     correctionReasonLabel: "Grund",
     correctionSelectReason: "Grund wählen",
     leInfoMove: "Umlagern",
-    leInfoPrintLabel: "Etikett drucken",
+    leInfoPrintLabel: "Etikett",
     infoStockArticle: "Artikel",
     infoStockLEInfo: "LE-Info",
     infoStockCorrection: "Korrektur",
