@@ -62,6 +62,7 @@ type TranslationKeys =
   | "correctionSelectReason"
   | "leInfoMove"
   | "leInfoPrintLabel"
+  | "handlingUnitStockLabel"
   | "infoStockArticle"
   | "infoStockLEInfo"
   | "infoStockCorrection"
@@ -194,6 +195,7 @@ const translations: Translations = {
     correctionSelectReason: "Select reason",
     leInfoMove: "Move",
     leInfoPrintLabel: "Print Label",
+    handlingUnitStockLabel: "HU Stock",
     infoStockArticle: "Item",
     infoStockLEInfo: "HU-Info",
     infoStockCorrection: "Correction",
@@ -323,6 +325,7 @@ const translations: Translations = {
     correctionSelectReason: "Grund wählen",
     leInfoMove: "Umlagern",
     leInfoPrintLabel: "Etikett",
+    handlingUnitStockLabel: "LE Stock",
     infoStockArticle: "Artikel",
     infoStockLEInfo: "LE-Info",
     infoStockCorrection: "Korrektur",
@@ -452,6 +455,7 @@ const translations: Translations = {
     correctionSelectReason: "Seleccionar motivo",
     leInfoMove: "Trasladar",
     leInfoPrintLabel: "Imprimir etiqueta",
+    handlingUnitStockLabel: "Stock HU",
     infoStockArticle: "Artículo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Corrección",
@@ -581,6 +585,7 @@ const translations: Translations = {
     correctionSelectReason: "Selecionar motivo",
     leInfoMove: "Transferir",
     leInfoPrintLabel: "Imprimir etiqueta",
+    handlingUnitStockLabel: "Estoque HU",
     infoStockArticle: "Artigo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Correção",

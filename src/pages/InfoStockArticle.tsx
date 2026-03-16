@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User } from "lucide-react";
+import { LogOut, Package, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
+import HandlingUnitStockDialog, { type HandlingUnitStockRow } from "@/components/HandlingUnitStockDialog";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess, showError, showLoading, dismissToast } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +60,9 @@ const InfoStockArticle = () => {
   const [locLoading, setLocLoading] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isLocationSelecting, setIsLocationSelecting] = useState<boolean>(false);
+  const [huStockOpen, setHuStockOpen] = useState(false);
+  const [huStockLoading, setHuStockLoading] = useState(false);
+  const [huStockRows, setHuStockRows] = useState<HandlingUnitStockRow[]>([]);
 
   useEffect(() => {
     itemRef.current?.focus();
@@ -91,6 +95,25 @@ const InfoStockArticle = () => {
     return loading || locLoading || (itemAlreadyLoaded && warehouseAlreadyLoaded && locationAlreadyLoaded);
   }, [item, warehouse, location, selectedWarehouse, selectedLocation, lastFetchedItem, loading, locLoading]);
 
+  const canOpenHuStock = useMemo(() => {
+    const itemValue = item.trim();
+    const warehouseValue = warehouse.trim();
+    const locationValue = location.trim();
+    const currentWarehouse = (selectedWarehouse || "").trim();
+    const currentLocation = (selectedLocation || "").trim();
+
+    return (
+      !!itemValue &&
+      !!warehouseValue &&
+      !!locationValue &&
+      lastFetchedItem === itemValue &&
+      currentWarehouse.toLowerCase() === warehouseValue.toLowerCase() &&
+      currentLocation.toLowerCase() === locationValue.toLowerCase() &&
+      !loading &&
+      !locLoading
+    );
+  }, [item, warehouse, location, selectedWarehouse, selectedLocation, lastFetchedItem, loading, locLoading]);
+
   // NEW: Only show the selected/typed warehouse block when a warehouse is specified
   const displayRows = useMemo(() => {
     const eff = (warehouse || selectedWarehouse || "").trim();
@@ -106,8 +129,12 @@ const InfoStockArticle = () => {
       setSelectedWarehouse(null);
       setSelectedLocation(null);
       setLastFetchedItem(null);
+      setHuStockRows([]);
+      setHuStockOpen(false);
       return;
     }
+    setHuStockRows([]);
+    setHuStockOpen(false);
     setLoading(true);
     const tid = showLoading(trans.loadingList);
     const { data, error } = await supabase.functions.invoke("ln-item-inventory-by-warehouse", {
@@ -137,6 +164,8 @@ const InfoStockArticle = () => {
       setLocRows([]);
       return;
     }
+    setHuStockRows([]);
+    setHuStockOpen(false);
     setLocLoading(true);
     const tid = showLoading(trans.loadingList);
     const { data, error } = await supabase.functions.invoke("ln-stockpoint-inventory", {
@@ -154,6 +183,35 @@ const InfoStockArticle = () => {
     setLocLoading(false);
   };
 
+  const openHuStock = async () => {
+    if (!canOpenHuStock) return;
+
+    setHuStockOpen(true);
+    setHuStockLoading(true);
+    const tid = showLoading(trans.loadingList);
+    const { data, error } = await supabase.functions.invoke("ln-handling-unit-stock", {
+      body: {
+        item: item.trim(),
+        warehouse: warehouse.trim(),
+        location: location.trim(),
+        language: locale,
+        company: "1100",
+      },
+    });
+    dismissToast(tid as unknown as string);
+
+    if (error || !data || !data.ok) {
+      const msg = (data && (data.error?.message || data.error)) || "Failed";
+      showError(typeof msg === "string" ? msg : trans.loadingList);
+      setHuStockRows([]);
+      setHuStockLoading(false);
+      return;
+    }
+
+    setHuStockRows(Array.isArray(data.rows) ? (data.rows as HandlingUnitStockRow[]) : []);
+    setHuStockLoading(false);
+  };
+
   // Clear handlers with re-fetch
   const clearItem = async () => {
     setItem("");
@@ -162,6 +220,8 @@ const InfoStockArticle = () => {
     setSelectedWarehouse(null);
     setSelectedLocation(null);
     setLastFetchedItem(null);
+    setHuStockRows([]);
+    setHuStockOpen(false);
     itemRef.current?.focus();
     // No item → show empty state
   };
@@ -170,6 +230,8 @@ const InfoStockArticle = () => {
     setSelectedWarehouse(null);
     setSelectedLocation(null);
     setLocRows([]);
+    setHuStockRows([]);
+    setHuStockOpen(false);
     warehouseRef.current?.focus();
     // Reload warehouses for current item
     if (item.trim()) await fetchInventory(item);
@@ -177,6 +239,8 @@ const InfoStockArticle = () => {
   const clearLocation = async () => {
     setLocation("");
     setSelectedLocation(null);
+    setHuStockRows([]);
+    setHuStockOpen(false);
     locationRef.current?.focus();
     // Reload locations for current item + warehouse
     const wh = (warehouse || selectedWarehouse || "").trim();
@@ -211,7 +275,7 @@ const InfoStockArticle = () => {
       </div>
 
       {/* Form */}
-      <div className="mx-auto max-w-md px-4 py-6 pb-24">
+      <div className="mx-auto max-w-md px-4 py-6 pb-36">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
           {/* Item */}
           <FloatingLabelInput
@@ -222,6 +286,8 @@ const InfoStockArticle = () => {
             onChange={(e) => {
               const v = e.target.value;
               setItem(v);
+              setHuStockRows([]);
+              setHuStockOpen(false);
               if (v.trim() === "") {
                 setRows([]);
                 setLocRows([]);
@@ -259,7 +325,11 @@ const InfoStockArticle = () => {
             label={trans.warehouseLabel}
             ref={warehouseRef}
             value={warehouse}
-            onChange={(e) => setWarehouse(e.target.value)}
+            onChange={(e) => {
+              setWarehouse(e.target.value);
+              setHuStockRows([]);
+              setHuStockOpen(false);
+            }}
             onBlur={() => {
               const wh = warehouse.trim();
               if (!wh) {
@@ -298,7 +368,11 @@ const InfoStockArticle = () => {
             label={trans.locationLabel}
             ref={locationRef}
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(e) => {
+              setLocation(e.target.value);
+              setHuStockRows([]);
+              setHuStockOpen(false);
+            }}
             onBlur={() => {
               if (isLocationSelecting) {
                 // Skip blur-triggered fetch when a location row is being selected
@@ -354,13 +428,13 @@ const InfoStockArticle = () => {
                         setSelectedWarehouse(r.Warehouse);
                         setWarehouse(r.Warehouse);
                         setSelectedLocation(null);
+                        setHuStockRows([]);
+                        setHuStockOpen(false);
                         await fetchLocations(item, r.Warehouse);
                         setTimeout(() => locationRef.current?.focus(), 50);
                       }}
                     >
-                      {/* Responsive grid: narrower left column on mobile, more space for right quantities */}
                       <div className="grid grid-cols-[130px_10px_1fr] sm:grid-cols-[170px_12px_1fr] gap-3 items-stretch w-full">
-                        {/* Left block: Warehouse label, code, description on its own line */}
                         <div className="flex flex-col justify-center">
                           <div className="text-sm font-semibold text-gray-700">{trans.warehouseLabel}:</div>
                           <div className="text-sm text-gray-900 whitespace-nowrap">{r.Warehouse || "-"}</div>
@@ -369,12 +443,10 @@ const InfoStockArticle = () => {
                           )}
                         </div>
 
-                        {/* Middle: vertical divider */}
                         <div className="flex items-stretch">
                           <div className="mx-auto w-[2px] rounded bg-gray-300/70" />
                         </div>
 
-                        {/* Right block: quantities; labels and values each on one line */}
                         <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 items-center">
                           <div className="text-xs text-gray-500 whitespace-nowrap">{trans.onHandLabel}:</div>
                           <div className="text-sm text-gray-900 text-right whitespace-nowrap">{r.OnHand}{unit}</div>
@@ -393,7 +465,6 @@ const InfoStockArticle = () => {
             )}
           </div>
 
-          {/* Locations list for selected warehouse */}
           {selectedWarehouse && (
             <div className="mt-4 rounded-md">
               {locLoading ? (
@@ -411,7 +482,6 @@ const InfoStockArticle = () => {
                         type="button"
                         className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${isLocSelected ? "bg-gray-200/70" : "bg-white hover:bg-gray-100/70"}`}
                         onMouseDown={() => {
-                          // Mark that a location selection is in progress (runs before input blur)
                           setIsLocationSelecting(true);
                         }}
                         onClick={async () => {
@@ -422,8 +492,9 @@ const InfoStockArticle = () => {
 
                           setSelectedLocation(clickedLoc);
                           setLocation(clickedLoc);
+                          setHuStockRows([]);
+                          setHuStockOpen(false);
 
-                          // If inputs already match this location, don't refetch
                           if (currentItem && currentWh && currentLoc === clickedLoc) {
                             setIsLocationSelecting(false);
                             return;
@@ -460,9 +531,19 @@ const InfoStockArticle = () => {
         </Card>
       </div>
 
-      {/* Bottom action bar */}
       <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
-        <div className="mx-auto max-w-md px-4 py-3">
+        <div className="mx-auto max-w-md px-4 py-3 space-y-3">
+          {canOpenHuStock && (
+            <Button
+              type="button"
+              className="w-full h-11 text-base bg-zinc-700 hover:bg-zinc-800 text-white"
+              onClick={openHuStock}
+            >
+              <Package className="mr-2 h-4 w-4" />
+              {trans.handlingUnitStockLabel}
+            </Button>
+          )}
+
           <Button
             className="w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
             onClick={() => fetchInventory(item)}
@@ -473,7 +554,14 @@ const InfoStockArticle = () => {
         </div>
       </div>
 
-      {/* Sign-out confirmation dialog */}
+      <HandlingUnitStockDialog
+        open={huStockOpen}
+        onOpenChange={setHuStockOpen}
+        lang={lang}
+        rows={huStockRows}
+        loading={huStockLoading}
+      />
+
       <SignOutConfirm
         open={signOutOpen}
         onOpenChange={setSignOutOpen}
@@ -484,7 +572,6 @@ const InfoStockArticle = () => {
         onConfirm={onConfirmSignOut}
       />
 
-      {/* Full-screen spinner while loading warehouses */}
       {loading && <ScreenSpinner message={trans.loadingList} />}
     </div>
   );
