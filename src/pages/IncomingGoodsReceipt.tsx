@@ -971,7 +971,7 @@ const IncomingGoodsReceipt = () => {
                         setReceivedLinesOpen(true);
                       }}
                     >
-                      {receivedLinesCount} Received Lines
+                      {receivedLinesCount} {trans.receivedLines}
                     </Button>
                   )}
                 </div>
@@ -1040,7 +1040,7 @@ const IncomingGoodsReceipt = () => {
                         setReceivedLinesOpen(true);
                       }}
                     >
-                      {receivedLinesCount} Received Lines
+                      {receivedLinesCount} {trans.receivedLines}
                     </Button>
                   )}
                 </div>
@@ -1589,14 +1589,16 @@ const IncomingGoodsReceipt = () => {
           >
             <div className="border-b bg-black text-white rounded-t-lg px-4 py-2 text-sm font-semibold">
               <div className="flex items-center justify-between pr-8">
-                <span>{receivedLinesCount} Received Lines</span>
+                <span>
+                  {receivedLinesCount} {trans.receivedLines}
+                </span>
                 <Button
                   className="h-7 px-3 bg-green-600 hover:bg-green-700 text-white rounded-full"
                   variant="default"
                   disabled={isSubmitting || receivedLinesCount <= 0}
                   onClick={confirmAllReceivedLines}
                 >
-                  Confirm All
+                  {trans.confirmAll}
                 </Button>
               </div>
             </div>

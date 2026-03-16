@@ -52,6 +52,8 @@ type TranslationKeys =
   | "incomingConfirmAndPost"
   | "incomingConfirm"
   | "incomingReceive"
+  | "receivedLines"
+  | "confirmAll"
   | "infoStockArticle"
   | "infoStockLEInfo"
   | "infoStockCorrection"
@@ -174,6 +176,8 @@ const translations: Translations = {
     incomingConfirmAndPost: "Confirm & Post",
     incomingConfirm: "Confirm",
     incomingReceive: "Receive",
+    receivedLines: "Received Lines",
+    confirmAll: "Confirm All",
     infoStockArticle: "Item",
     infoStockLEInfo: "HU-Info",
     infoStockCorrection: "Correction",
@@ -293,6 +297,8 @@ const translations: Translations = {
     incomingConfirmAndPost: "Bestätigen & Buchen",
     incomingConfirm: "Bestätigen",
     incomingReceive: "Eingegangen",
+    receivedLines: "Eingegangene Zeilen",
+    confirmAll: "Alle bestätigen",
     infoStockArticle: "Artikel",
     infoStockLEInfo: "LE-Info",
     infoStockCorrection: "Korrektur",
@@ -412,6 +418,8 @@ const translations: Translations = {
     incomingConfirmAndPost: "Confirmar y contabilizar",
     incomingConfirm: "Confirmar",
     incomingReceive: "Recibir",
+    receivedLines: "Líneas recibidas",
+    confirmAll: "Confirmar todo",
     infoStockArticle: "Artículo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Corrección",
@@ -531,6 +539,8 @@ const translations: Translations = {
     incomingConfirmAndPost: "Confirmar e lançar",
     incomingConfirm: "Confirmar",
     incomingReceive: "Receber",
+    receivedLines: "Linhas recebidas",
+    confirmAll: "Confirmar tudo",
     infoStockArticle: "Artigo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Correção",
