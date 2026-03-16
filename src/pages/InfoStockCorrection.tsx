@@ -9,6 +9,13 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
@@ -68,6 +75,11 @@ const InfoStockCorrection = () => {
   // Quantity to submit (editable via +/- field)
   const [submitQuantity, setSubmitQuantity] = useState<string>("");
   const [submitQtyTouched, setSubmitQtyTouched] = useState<boolean>(false);
+
+  // Correction reason
+  const [reasons, setReasons] = useState<Array<{ Reason: string; Description?: string }>>([]);
+  const [reasonsLoading, setReasonsLoading] = useState(false);
+  const [reason, setReason] = useState<string>("");
 
   // Enablement and visibility
   const [warehouseEnabled, setWarehouseEnabled] = useState<boolean>(false);
@@ -238,6 +250,26 @@ const InfoStockCorrection = () => {
     return "en-US";
   }, [lang]);
 
+  const loadReasons = async () => {
+    setReasonsLoading(true);
+    const tid = showLoading(trans.pleaseWait);
+    const { data } = await supabase.functions.invoke("ln-reasons-list", {
+      body: { company: "1100", language: locale, reasonType: "InventoryAdjustment" },
+    });
+    dismissToast(tid as unknown as string);
+    const list = Array.isArray(data?.value) ? data.value : [];
+    setReasons(list);
+    setReasonsLoading(false);
+  };
+
+  useEffect(() => {
+    if (!showDetails) return;
+    if (reasonsLoading) return;
+    if (reasons.length > 0) return;
+    void loadReasons();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDetails]);
+
   // Enrich description for HUs by fetching item details (for the description box)
   const fetchItemDescription = async (itm?: string | null) => {
     const code = (itm || "").toString().trim();
@@ -336,8 +368,10 @@ const InfoStockCorrection = () => {
     const qtyOk = isFinite(nextQty) && nextQty > 0;
     const qtyChanged = isFinite(originalQty) && isFinite(nextQty) && nextQty !== originalQty;
 
-    return !!(baseOk && qtyOk && unitOk && qtyChanged) && !searching && !transferring;
-  }, [showDetails, lastMatchType, warehouse, location, quantity, submitQuantity, unit, searching, transferring, status]);
+    const reasonOk = (reason || "").trim().length > 0;
+
+    return !!(baseOk && qtyOk && unitOk && qtyChanged && reasonOk) && !searching && !transferring;
+  }, [showDetails, lastMatchType, warehouse, location, quantity, submitQuantity, unit, reason, searching, transferring, status]);
 
   const handleSearch = async (_withLoading = false) => {
     const input = query.trim();
@@ -487,6 +521,7 @@ const InfoStockCorrection = () => {
     setSubmitQtyTouched(false);
     setUnit("");
     setStatus("");
+    setReason("");
     setWarehouseEnabled(false);
     setShowDetails(false);
     setItemDescription("");
@@ -761,6 +796,32 @@ const InfoStockCorrection = () => {
                 >
                   <PlusCircle className="h-7 w-7 text-red-600" />
                 </Button>
+              </div>
+
+              {/* Reason */}
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-gray-700">
+                  {trans.correctionReasonLabel} <span className="text-red-600">*</span>
+                </div>
+                <Select value={reason} onValueChange={setReason}>
+                  <SelectTrigger className="h-10" disabled={reasonsLoading || reasons.length === 0}>
+                    <SelectValue
+                      placeholder={reasonsLoading ? trans.loadingEntries : trans.correctionSelectReason}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reasons.map((r) => (
+                      <SelectItem key={r.Reason} value={r.Reason}>
+                        <div className="flex flex-col">
+                          <div className="text-sm font-medium">{r.Reason}</div>
+                          {r.Description ? (
+                            <div className="text-xs text-muted-foreground">{r.Description}</div>
+                          ) : null}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Submit button */}

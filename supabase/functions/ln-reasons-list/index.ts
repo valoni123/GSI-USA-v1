@@ -22,6 +22,8 @@ function buildTokenUrl(pu: string, ot: string) {
 
 const escOdataString = (s: string) => s.replace(/'/g, "''");
 
+type AllowedReasonType = "RejectionOfGoods" | "InventoryAdjustment";
+
 serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -31,7 +33,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { language?: string; company?: string } = {};
+    let body: { language?: string; company?: string; reasonType?: AllowedReasonType } = {};
     try {
       body = await req.json();
     } catch {
@@ -40,6 +42,7 @@ serve(async (req) => {
 
     const language = body.language || "en-US";
     const companyOverride = (body.company || "").toString().trim();
+    const reasonType: AllowedReasonType = body.reasonType || "RejectionOfGoods";
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -64,7 +67,13 @@ serve(async (req) => {
     if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
 
     const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
-      ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
+      ci: string;
+      cs: string;
+      pu: string;
+      ot: string;
+      grant_type: string;
+      saak: string;
+      sask: string;
     };
     const grantType = grant_type === "password_credentials" ? "password" : grant_type;
 
@@ -89,37 +98,38 @@ serve(async (req) => {
     const tokenRes = await fetch(buildTokenUrl(pu, ot), {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${basic}`,
+        Authorization: `Basic ${basic}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: tokenParams.toString(),
     }).catch(() => null as unknown as Response);
     if (!tokenRes) return json({ ok: false, error: "token_network_error" }, 200);
-    const tokenJson = await tokenRes.json().catch(() => null) as any;
+    const tokenJson = (await tokenRes.json().catch(() => null)) as any;
     if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
       return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
     }
     const accessToken = tokenJson.access_token as string;
 
-    // OData: Reasons filtered by ReasonType 'RejectionOfGoods'
+    // OData: Reasons filtered by ReasonType
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const filter = `ReasonType eq tcapi.mcsLogisticMasterData.ReasonType'RejectionOfGoods'`;
+    const filter = `ReasonType eq tcapi.mcsLogisticMasterData.ReasonType'${escOdataString(reasonType)}'`;
     const qs = new URLSearchParams();
     qs.set("$filter", filter);
     qs.set("$select", "Reason,Description,ReasonType");
+    qs.set("$orderby", "Reason");
 
     const url = `${base}/${ti}/LN/lnapi/odata/tcapi.mcsLogisticMasterData/Reasons?${qs.toString()}`;
     const res = await fetch(url, {
       method: "GET",
       headers: {
-        "accept": "application/json",
+        accept: "application/json",
         "Content-Language": language,
         "X-Infor-LnCompany": company,
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     }).catch(() => null as unknown as Response);
     if (!res) return json({ ok: false, error: "odata_network_error" }, 200);
-    const ojson = await res.json().catch(() => null) as any;
+    const ojson = (await res.json().catch(() => null)) as any;
     if (!res.ok || !ojson) {
       const topMessage = ojson?.error?.message || "odata_error";
       const details = Array.isArray(ojson?.error?.details) ? ojson.error.details : [];

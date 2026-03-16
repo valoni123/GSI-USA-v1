@@ -58,6 +58,8 @@ type TranslationKeys =
   | "startInspectionTitle"
   | "startInspectionMessage"
   | "correctionSubmit"
+  | "correctionReasonLabel"
+  | "correctionSelectReason"
   | "infoStockArticle"
   | "infoStockLEInfo"
   | "infoStockCorrection"
@@ -186,6 +188,8 @@ const translations: Translations = {
     startInspectionTitle: "Start Inspection",
     startInspectionMessage: "Start Inspection for this Handling Unit?",
     correctionSubmit: "Correct",
+    correctionReasonLabel: "Reason",
+    correctionSelectReason: "Select reason",
     infoStockArticle: "Item",
     infoStockLEInfo: "HU-Info",
     infoStockCorrection: "Correction",
@@ -311,6 +315,8 @@ const translations: Translations = {
     startInspectionTitle: "Prüfung starten",
     startInspectionMessage: "Prüfung für diese Ladeeinheit starten?",
     correctionSubmit: "Korrigieren",
+    correctionReasonLabel: "Grund",
+    correctionSelectReason: "Grund wählen",
     infoStockArticle: "Artikel",
     infoStockLEInfo: "LE-Info",
     infoStockCorrection: "Korrektur",
@@ -436,6 +442,8 @@ const translations: Translations = {
     startInspectionTitle: "Iniciar inspección",
     startInspectionMessage: "¿Iniciar inspección para esta unidad de manejo?",
     correctionSubmit: "Corregir",
+    correctionReasonLabel: "Motivo",
+    correctionSelectReason: "Seleccionar motivo",
     infoStockArticle: "Artículo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Corrección",
@@ -561,6 +569,8 @@ const translations: Translations = {
     startInspectionTitle: "Iniciar inspeção",
     startInspectionMessage: "Iniciar inspeção para esta unidade de manuseio?",
     correctionSubmit: "Corrigir",
+    correctionReasonLabel: "Motivo",
+    correctionSelectReason: "Selecionar motivo",
     infoStockArticle: "Artigo",
     infoStockLEInfo: "HU - Info",
     infoStockCorrection: "Correção",
