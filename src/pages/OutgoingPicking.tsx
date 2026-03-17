@@ -280,7 +280,7 @@ const OutgoingPicking = () => {
 
       <div className="mx-auto max-w-md px-4 py-6 pb-10">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
-          <div className="flex items-end gap-2">
+          <div className="flex items-stretch gap-2">
             <div className="flex-1">
               <FloatingLabelInput
                 id="pickingRun"
@@ -326,7 +326,7 @@ const OutgoingPicking = () => {
             <button
               type="button"
               aria-label="Search positions"
-              className={`mb-2 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-input ${topSearchButtonClass}`}
+              className={`mt-[2px] inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-input ${topSearchButtonClass}`}
               onClick={reopenPicker}
               disabled={!run.trim() || lookupLoading}
             >
