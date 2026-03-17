@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User } from "lucide-react";
+import { CheckCircle2, LogOut, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import ScreenSpinner from "@/components/ScreenSpinner";
@@ -162,7 +162,7 @@ const OutgoingPicking = () => {
         return;
       }
 
-      if ((data.count ?? rows.length) > 1) {
+      if ((data.count ?? rows.length) > 1 || isPicked(rows[0]?.Picked)) {
         setPickerRows(rows);
         setPickerOpen(true);
         setSelectedRow(null);
@@ -189,6 +189,15 @@ const OutgoingPicking = () => {
     if (normalized.includes("production")) return "bg-[#78d8a3] text-black";
     return "bg-[#a876eb] text-white";
   };
+
+  const isPicked = (value: string) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    return ["yes", "ja", "true", "1", "picked", "gepickt"].includes(normalized);
+  };
+
+  const compactLocationFromLabel = lang === "de" ? "Lag.P. Von" : trans.locationFromLabel;
+  const compactLocationToLabel = lang === "de" ? "Lag.P. Nach" : trans.locationToLabel;
+  const compactAdvisedQuantityLabel = lang === "de" ? "Vorg. Menge" : trans.advisedQuantityLabel;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -318,59 +327,70 @@ const OutgoingPicking = () => {
             <DialogTitle>{trans.pickingSelectAdviceTitle}</DialogTitle>
           </DialogHeader>
           <div className="max-h-[70vh] overflow-auto p-3 space-y-3">
-            {pickerRows.map((row, index) => (
-              <button
-                key={`${row.Order}-${row.Set}-${row.Line}-${row.Sequence}-${index}`}
-                type="button"
-                className="w-full rounded-md border bg-gray-50 px-3 py-2.5 text-left hover:bg-gray-100"
-                onClick={() => applyRow(row)}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className={`inline-flex shrink-0 items-center rounded px-2.5 py-1 text-xs font-semibold ${orderOriginBadgeClass(row.OrderOrigin)}`}>
-                      {row.OrderOrigin || "-"}
-                    </span>
-                    <div className="min-w-0 text-sm font-medium text-gray-900 break-all">
-                      {row.Order || "-"}
+            {pickerRows.map((row, index) => {
+              const picked = isPicked(row.Picked);
+
+              return (
+                <button
+                  key={`${row.Order}-${row.Set}-${row.Line}-${row.Sequence}-${index}`}
+                  type="button"
+                  className={`w-full rounded-md border px-3 py-2.5 text-left ${picked ? "bg-gray-100 opacity-70 cursor-not-allowed" : "bg-gray-50 hover:bg-gray-100"}`}
+                  onClick={() => {
+                    if (picked) return;
+                    applyRow(row);
+                  }}
+                  disabled={picked}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className={`inline-flex shrink-0 items-center rounded px-2.5 py-1 text-xs font-semibold ${orderOriginBadgeClass(row.OrderOrigin)}`}>
+                        {row.OrderOrigin || "-"}
+                      </span>
+                      <div className="min-w-0 text-sm font-medium text-gray-900 break-all">
+                        {row.Order || "-"}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <div className="text-xs text-gray-500 break-all text-right">{row.Item || "-"}</div>
+                      {picked ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : null}
                     </div>
                   </div>
-                  <div className="shrink-0 text-xs text-gray-500">{trans.runLabel}: {row.Run || run.trim()}</div>
-                </div>
 
-                {row.ItemDescription ? (
-                  <div className="mt-2 text-xs text-gray-600 break-all">
-                    {row.ItemDescription}
-                  </div>
-                ) : null}
+                  {row.ItemDescription ? (
+                    <div className="mt-2 rounded-md bg-gray-100 px-2 py-1.5 text-xs text-gray-700 break-all">
+                      {row.ItemDescription}
+                    </div>
+                  ) : null}
 
-                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                  <div className="min-w-0">
-                    <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
-                    <span className="text-gray-900 break-all">{row.Item || "-"}</span>
+                  <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <div className="min-w-0">
+                      <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
+                      <span className="text-gray-900 break-all">{row.Item || "-"}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-gray-500">{trans.lotLabel}:</span>{" "}
+                      <span className="text-gray-900 break-all">{row.Lot || "-"}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-gray-500">{compactLocationFromLabel}:</span>{" "}
+                      <span className="text-gray-900 break-all">{row.Location || "-"}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-gray-500">{compactLocationToLabel}:</span>{" "}
+                      <span className="text-gray-900 break-all">{row.LocationTo || "-"}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-gray-500">{trans.warehouseLabel}:</span>{" "}
+                      <span className="text-gray-900 break-all">{row.Warehouse || "-"}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-gray-500">{compactAdvisedQuantityLabel}:</span>{" "}
+                      <span className="text-gray-900 break-all">{row.AdvisedQuantityInInventoryUnit} {row.Unit || ""}</span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-gray-500">{trans.lotLabel}:</span>{" "}
-                    <span className="text-gray-900 break-all">{row.Lot || "-"}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-gray-500">{trans.locationFromLabel}:</span>{" "}
-                    <span className="text-gray-900 break-all">{row.Location || "-"}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-gray-500">{trans.locationToLabel}:</span>{" "}
-                    <span className="text-gray-900 break-all">{row.LocationTo || "-"}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-gray-500">{trans.warehouseLabel}:</span>{" "}
-                    <span className="text-gray-900 break-all">{row.Warehouse || "-"}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-gray-500">{trans.advisedQuantityLabel}:</span>{" "}
-                    <span className="text-gray-900 break-all">{row.AdvisedQuantityInInventoryUnit} {row.Unit || ""}</span>
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
