@@ -798,6 +798,7 @@ const TransportLoad = () => {
       </div>
 
       {/* Blocking spinner while processing */}
+      {detailsLoading && <ScreenSpinner message={trans.checkingHandlingUnit} />}
       {listLoading && <ScreenSpinner message={trans.loadingList} />}
       {processing && <ScreenSpinner message={trans.pleaseWait} />}
       {moveBackProcessing && <ScreenSpinner message={trans.pleaseWait} />}
