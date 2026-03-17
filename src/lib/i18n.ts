@@ -135,7 +135,17 @@ type TranslationKeys =
   | "submitLabel"
   | "selectInspectionTitle"
   | "searchReasonPlaceholder"
-  | "noReasonsLabel";
+  | "noReasonsLabel"
+  | "runLabel"
+  | "orderOriginLabel"
+  | "setLabel"
+  | "lineLabel"
+  | "sequenceLabel"
+  | "advisedQuantityLabel"
+  | "pickedLabel"
+  | "pickingSelectAdviceTitle"
+  | "pickingNoAdvices"
+  | "pickingTimeout";
 
 type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
 
@@ -269,6 +279,16 @@ const translations: Translations = {
     selectInspectionTitle: "Select an inspection",
     searchReasonPlaceholder: "Search reason...",
     noReasonsLabel: "No reasons",
+    runLabel: "Run",
+    orderOriginLabel: "Order Origin",
+    setLabel: "Set",
+    lineLabel: "Line",
+    sequenceLabel: "Sequence",
+    advisedQuantityLabel: "Advised Quantity",
+    pickedLabel: "Picked",
+    pickingSelectAdviceTitle: "Select Picking Advice",
+    pickingNoAdvices: "No released outbound advices found for this run.",
+    pickingTimeout: "Picking request timed out",
   },
   de: {
     title: "Anmelden",
@@ -399,6 +419,16 @@ const translations: Translations = {
     selectInspectionTitle: "Prüfung auswählen",
     searchReasonPlaceholder: "Grund suchen...",
     noReasonsLabel: "Keine Gründe",
+    runLabel: "Lauf",
+    orderOriginLabel: "Auftragsherkunft",
+    setLabel: "Satz",
+    lineLabel: "Position",
+    sequenceLabel: "Folge",
+    advisedQuantityLabel: "Avisierte Menge",
+    pickedLabel: "Gepickt",
+    pickingSelectAdviceTitle: "Kommissionierauftrag auswählen",
+    pickingNoAdvices: "Keine freigegebenen Auslagerungspositionen für diesen Lauf gefunden.",
+    pickingTimeout: "Kommissionierabfrage hat Zeitüberschreitung",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -529,6 +559,16 @@ const translations: Translations = {
     selectInspectionTitle: "Seleccionar inspección",
     searchReasonPlaceholder: "Buscar motivo...",
     noReasonsLabel: "Sin motivos",
+    runLabel: "Ejecución",
+    orderOriginLabel: "Origen de orden",
+    setLabel: "Conjunto",
+    lineLabel: "Línea",
+    sequenceLabel: "Secuencia",
+    advisedQuantityLabel: "Cantidad aconsejada",
+    pickedLabel: "Surtido",
+    pickingSelectAdviceTitle: "Seleccionar consejo de surtido",
+    pickingNoAdvices: "No se encontraron avisos de salida liberados para esta ejecución.",
+    pickingTimeout: "La consulta de surtido agotó el tiempo",
   },
   "pt-BR": {
     title: "Entrar",
@@ -659,6 +699,16 @@ const translations: Translations = {
     selectInspectionTitle: "Selecionar inspeção",
     searchReasonPlaceholder: "Buscar motivo...",
     noReasonsLabel: "Sem motivos",
+    runLabel: "Execução",
+    orderOriginLabel: "Origem do pedido",
+    setLabel: "Conjunto",
+    lineLabel: "Linha",
+    sequenceLabel: "Sequência",
+    advisedQuantityLabel: "Quantidade avisada",
+    pickedLabel: "Separado",
+    pickingSelectAdviceTitle: "Selecionar conselho de separação",
+    pickingNoAdvices: "Nenhum aviso de saída liberado encontrado para esta execução.",
+    pickingTimeout: "A consulta de separação expirou",
   },
 };
 

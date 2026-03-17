@@ -8,10 +8,12 @@ import NotFound from "./pages/NotFound";
 import Menu from "./pages/Menu";
 import IncomingMenu from "./pages/IncomingMenu";
 import OutgoingMenu from "./pages/OutgoingMenu";
+import OutgoingPicking from "./pages/OutgoingPicking";
 import IncomingGoodsReceipt from "./pages/IncomingGoodsReceipt";
 import IncomingInspection from "./pages/incominginspection";
 import InfoStockMenu from "./pages/InfoStockMenu";
 import InfoStockArticle from "./pages/InfoStockArticle";
+
 import InfoStockTransfer from "./pages/InfoStockTransfer";
 import InfoStockCorrection from "./pages/InfoStockCorrection";
 import TransportMenu from "./pages/TransportMenu";
@@ -56,8 +58,10 @@ const App = () => (
             <Route path="/menu" element={<Menu />} />
             <Route path="/menu/incoming" element={<IncomingMenu />} />
             <Route path="/menu/outgoing" element={<OutgoingMenu />} />
+            <Route path="/menu/outgoing/picking" element={<OutgoingPicking />} />
             <Route path="/menu/incoming/goods-receipt" element={<IncomingGoodsReceipt />} />
             <Route path="/menu/incoming/inspection" element={<IncomingInspection />} />
+
             <Route path="/menu/info-stock" element={<InfoStockMenu />} />
             <Route path="/menu/info-stock/article" element={<InfoStockArticle />} />
             <Route path="/menu/info-stock/transfer" element={<InfoStockTransfer />} />
