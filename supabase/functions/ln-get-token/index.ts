@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const TOKEN_TIMEOUT_MS = 15000;
+
 function buildTokenUrl(pu: string, ot: string) {
   const base = pu.endsWith("/") ? pu : pu + "/";
   return base + ot.replace(/^\//, "");
@@ -19,6 +21,20 @@ function json(body: unknown, status = 200) {
   });
 }
 
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -29,33 +45,31 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    // Identify the GSI user row to update (passed from client after login)
     let body: { gsi_id?: string } = {};
     try {
       body = await req.json();
-    } catch {
-      // ignore; token retrieval does not require a body except for gsi_id storage
-    }
+    } catch {}
     const gsiId = body?.gsi_id;
 
-    // Supabase admin client (service role) to read config and decrypt
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+      console.error("[ln-get-token] missing env");
       return json({ ok: false, error: "env_missing" }, 500);
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get the active ionapi record with decrypted saak/sask
+    console.info("[ln-get-token] start", { gsiId: gsiId || null });
+
     const { data: rpcData, error: cfgErr } = await supabase.rpc("get_active_ionapi");
     if (cfgErr) {
-      console.error("get_active_ionapi error:", cfgErr);
+      console.error("[ln-get-token] get_active_ionapi error", { error: cfgErr });
       return json({ ok: false, error: "config_error" }, 500);
     }
 
     const cfg = Array.isArray(rpcData) ? rpcData[0] : rpcData;
     if (!cfg) {
+      console.warn("[ln-get-token] no active config");
       return json({ ok: false, error: "no_active_config" }, 200);
     }
 
@@ -64,15 +78,12 @@ serve(async (req) => {
     };
 
     if (!ci || !cs || !pu || !ot || !grant_type || !saak || !sask) {
+      console.warn("[ln-get-token] config incomplete");
       return json({ ok: false, error: "config_incomplete" }, 400);
     }
 
     const tokenUrl = buildTokenUrl(pu, ot);
-
-    // Basic auth header with client id/secret
     const basic = btoa(`${ci}:${cs}`);
-
-    // Prepare x-www-form-urlencoded body
     const params = new URLSearchParams();
     const grantType = grant_type === "password_credentials" ? "password" : grant_type;
     params.set("grant_type", grantType);
@@ -81,17 +92,26 @@ serve(async (req) => {
 
     let tokenRes: Response;
     try {
-      tokenRes = await fetch(tokenUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `Basic ${basic}`,
-          "Content-Type": "application/x-www-form-urlencoded",
+      console.info("[ln-get-token] requesting upstream token", { timeoutMs: TOKEN_TIMEOUT_MS });
+      tokenRes = await fetchWithTimeout(
+        tokenUrl,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Basic ${basic}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: params.toString(),
         },
-        body: params.toString(),
+        TOKEN_TIMEOUT_MS,
+      );
+    } catch (error) {
+      const isTimeout = error instanceof DOMException && error.name === "AbortError";
+      console.error("[ln-get-token] token request failed", {
+        isTimeout,
+        error: error instanceof Error ? error.message : String(error),
       });
-    } catch (e) {
-      console.error("Token request failed:", e);
-      return json({ ok: false, error: "network_error" }, 502);
+      return json({ ok: false, error: isTimeout ? "token_timeout" : "network_error" }, 502);
     }
 
     const contentType = tokenRes.headers.get("Content-Type") || "";
@@ -100,10 +120,10 @@ serve(async (req) => {
       : await tokenRes.text();
 
     if (!tokenRes.ok) {
+      console.error("[ln-get-token] upstream token error", { status: tokenRes.status });
       return json({ ok: false, error: "token_error", details: responseBody }, tokenRes.status);
     }
 
-    // Persist the encrypted token to the user's gsi_users row if provided
     if (gsiId) {
       const tokenText = typeof responseBody === "string" ? responseBody : JSON.stringify(responseBody);
       const { error: setErr } = await supabase.rpc("set_current_ln_token", {
@@ -111,15 +131,17 @@ serve(async (req) => {
         p_token: tokenText,
       });
       if (setErr) {
-        console.error("Failed to store current_ln_token:", setErr);
-        // Still return ok with token, but indicate storage error
+        console.error("[ln-get-token] failed to store current_ln_token", { error: setErr });
         return json({ ok: true, token: responseBody, stored: false }, 200);
       }
     }
 
+    console.info("[ln-get-token] success", { stored: !!gsiId });
     return json({ ok: true, token: responseBody, stored: !!gsiId }, 200);
   } catch (e) {
-    console.error("Unhandled error:", e);
+    console.error("[ln-get-token] unhandled error", {
+      error: e instanceof Error ? e.message : String(e),
+    });
     return json({ ok: false, error: "unhandled" }, 500);
   }
 });

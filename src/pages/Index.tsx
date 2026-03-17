@@ -22,15 +22,34 @@ const Index = () => {
 
   const navigate = useNavigate();
 
+  const invokeWithTimeout = async <T,>(
+    functionName: string,
+    body: Record<string, unknown>,
+    timeoutMs = 15000,
+  ): Promise<T> => {
+    return await Promise.race([
+      supabase.functions.invoke(functionName, { body }) as Promise<T>,
+      new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error("timeout")), timeoutMs);
+      }),
+    ]);
+  };
+
   const handleLogin = async ({ username, password, transportscreen }: { username: string; password: string; transportscreen?: boolean }) => {
     if (!username || !password) {
       showError(trans.emptyFields);
       return;
     }
     const id = showLoading(trans.signingIn);
-    const { data, error } = await supabase.functions.invoke("verify-gsi-login", {
-      body: { username, password },
-    });
+    let loginResult: { data: any; error: any };
+    try {
+      loginResult = await invokeWithTimeout<{ data: any; error: any }>("verify-gsi-login", { username, password });
+    } catch (error) {
+      dismissToast(id as unknown as string);
+      showError(error instanceof Error && error.message === "timeout" ? "Login verification timed out" : trans.invalidCredentials);
+      return;
+    }
+    const { data, error } = loginResult;
     dismissToast(id as unknown as string);
     if (error || !data || !data.ok) {
       showError(trans.invalidCredentials);
@@ -48,11 +67,16 @@ const Index = () => {
       localStorage.setItem("gsi.login", username);
     } catch {}
 
-    // Retrieve INFOR LN OAuth2 token
     const tid = showLoading(trans.retrievingToken);
-    const { data: tokenData, error: tokenErr } = await supabase.functions.invoke("ln-get-token", {
-      body: { gsi_id: gsiId },
-    });
+    let tokenResult: { data: any; error: any };
+    try {
+      tokenResult = await invokeWithTimeout<{ data: any; error: any }>("ln-get-token", { gsi_id: gsiId });
+    } catch (error) {
+      dismissToast(tid as unknown as string);
+      showError(error instanceof Error && error.message === "timeout" ? "Token request timed out" : trans.tokenFailed);
+      return;
+    }
+    const { data: tokenData, error: tokenErr } = tokenResult;
     dismissToast(tid as unknown as string);
     if (tokenErr || !tokenData || !tokenData.ok) {
       showError(trans.tokenFailed);
@@ -61,11 +85,9 @@ const Index = () => {
     showSuccess(trans.tokenReceived);
     try {
       localStorage.setItem("ln.token", JSON.stringify(tokenData.token));
-      // Reset cached transport count on login
       localStorage.setItem("transport.count", "0");
     } catch {}
 
-    // Decide destination based on Transportscreen checkbox
     if (transportscreen) {
       navigate("/transport/select");
     } else {

@@ -20,6 +20,7 @@ serve(async (req) => {
   try {
     payload = await req.json();
   } catch {
+    console.error("[verify-gsi-login] invalid json body");
     return new Response(JSON.stringify({ ok: false, error: "Invalid JSON" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -28,6 +29,7 @@ serve(async (req) => {
 
   const { username, password } = payload;
   if (!username || !password) {
+    console.warn("[verify-gsi-login] missing username or password");
     return new Response(JSON.stringify({ ok: false, error: "Missing username or password" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -39,13 +41,15 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   const uname = String(username).trim();
+  console.info("[verify-gsi-login] start", { username: uname });
+
   const { data, error } = await supabase.rpc("verify_gsi_user", {
     p_username: uname,
     p_password: password,
   });
 
   if (error) {
-    console.error("verify_gsi_user error:", error);
+    console.error("[verify-gsi-login] verify_gsi_user error", { error });
     return new Response(JSON.stringify({ ok: false, error: "Server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -54,12 +58,14 @@ serve(async (req) => {
 
   const rows = Array.isArray(data) ? data : data ? [data] : [];
   if (rows.length === 0) {
+    console.info("[verify-gsi-login] no matching user", { username: uname });
     return new Response(JSON.stringify({ ok: false }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
+  console.info("[verify-gsi-login] success", { username: uname, userId: rows[0]?.id ?? null });
   return new Response(JSON.stringify({ ok: true, user: rows[0] }), {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
