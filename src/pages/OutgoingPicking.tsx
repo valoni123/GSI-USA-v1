@@ -224,10 +224,13 @@ const OutgoingPicking = () => {
     return ["yes", "ja", "true", "1", "picked", "gepickt"].includes(normalized);
   };
 
-  const compactLocationFromLabel = lang === "de" ? "Lag.P. Von" : trans.locationFromLabel;
-  const compactLocationToLabel = lang === "de" ? "Lag.P. Nach" : trans.locationToLabel;
+  const compactLocationFromLabel = "From";
+  const compactLocationToLabel = "To";
   const compactAdvisedQuantityLabel = lang === "de" ? "Vorg. Menge" : trans.advisedQuantityLabel;
   const orderDetailsLabel = lang === "de" ? "Auftrag / Pos. / Folge / Satz" : "Order / Line / Sequence / Set";
+  const mainLocationFromLabel = "From";
+  const mainLocationToLabel = "To";
+  const pickerTitle = lang === "de" ? "Position auswählen" : trans.pickingSelectAdviceTitle;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -326,8 +329,8 @@ const OutgoingPicking = () => {
                   inputMode="decimal"
                 />
                 <FloatingLabelInput id="pickingUnit" label={trans.unitLabel} value={selectedRow.Unit || ""} disabled />
-                <FloatingLabelInput id="pickingLocationFrom" label={trans.locationFromLabel} value={locationFrom} onChange={(e) => setLocationFrom(e.target.value)} />
-                <FloatingLabelInput id="pickingLocationTo" label={trans.locationToLabel} value={locationTo} onChange={(e) => setLocationTo(e.target.value)} />
+                <FloatingLabelInput id="pickingLocationFrom" label={mainLocationFromLabel} value={locationFrom} onChange={(e) => setLocationFrom(e.target.value)} />
+                <FloatingLabelInput id="pickingLocationTo" label={mainLocationToLabel} value={locationTo} onChange={(e) => setLocationTo(e.target.value)} />
               </div>
 
               {selectedRow.ItemDescription ? (
@@ -356,7 +359,7 @@ const OutgoingPicking = () => {
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
         <DialogContent className="max-w-md p-0 overflow-hidden">
           <DialogHeader className="border-b bg-black px-4 py-3 text-white">
-            <DialogTitle>{trans.pickingSelectAdviceTitle}</DialogTitle>
+            <DialogTitle>{pickerTitle}</DialogTitle>
           </DialogHeader>
           <div className="max-h-[70vh] overflow-auto p-3 space-y-3">
             {pickerRows.map((row, index) => {
@@ -374,10 +377,11 @@ const OutgoingPicking = () => {
                   disabled={picked}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 items-center gap-2 flex-wrap">
                       <span className={`inline-flex shrink-0 items-center rounded px-2.5 py-1 text-xs font-semibold ${orderOriginBadgeClass(row.OrderOrigin)}`}>
                         {translateOrderOrigin(row.OrderOrigin)}
                       </span>
+                      <div className="text-sm font-medium text-gray-900">{row.Order || "-"}</div>
                       <div className="min-w-0 text-sm font-medium text-gray-900 break-all">
                         {formatItemNumber(row.Item)}
                       </div>
@@ -395,12 +399,12 @@ const OutgoingPicking = () => {
 
                   <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                     <div className="min-w-0">
-                      <span className="text-gray-500">{trans.orderLabel}:</span>{" "}
-                      <span className="text-gray-900 break-all">{row.Order || "-"}</span>
-                    </div>
-                    <div className="min-w-0">
                       <span className="text-gray-500">{trans.lotLabel}:</span>{" "}
                       <span className="text-gray-900 break-all">{row.Lot || "-"}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-gray-500">{trans.warehouseLabel}:</span>{" "}
+                      <span className="text-gray-900 break-all">{row.Warehouse || "-"}</span>
                     </div>
                     <div className="min-w-0">
                       <span className="text-gray-500">{compactLocationFromLabel}:</span>{" "}
@@ -410,11 +414,7 @@ const OutgoingPicking = () => {
                       <span className="text-gray-500">{compactLocationToLabel}:</span>{" "}
                       <span className="text-gray-900 break-all">{row.LocationTo || "-"}</span>
                     </div>
-                    <div className="min-w-0">
-                      <span className="text-gray-500">{trans.warehouseLabel}:</span>{" "}
-                      <span className="text-gray-900 break-all">{row.Warehouse || "-"}</span>
-                    </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 col-span-2">
                       <span className="text-gray-500">{compactAdvisedQuantityLabel}:</span>{" "}
                       <span className="text-gray-900 break-all">{row.AdvisedQuantityInInventoryUnit} {row.Unit || ""}</span>
                     </div>
