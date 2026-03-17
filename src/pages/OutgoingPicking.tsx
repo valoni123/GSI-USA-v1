@@ -251,6 +251,7 @@ const OutgoingPicking = () => {
   const orderDetailsLabel = lang === "de" ? "Auftrag / Pos. / Folge / Satz" : "Order / Line / Sequence / Set";
   const pickerTitle = lang === "de" ? "Position auswählen" : trans.pickingSelectAdviceTitle;
   const topSearchButtonClass = selectedRow ? orderOriginBadgeClass(selectedRow.OrderOrigin) : "bg-gray-200 text-gray-700";
+  const pickButtonLabel = lang === "de" ? "Entnehmen" : lang === "es-MX" ? "Surtir" : lang === "pt-BR" ? "Separar" : "Pick";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -393,6 +394,10 @@ const OutgoingPicking = () => {
                   <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 </div>
               ) : null}
+
+              <Button type="button" className="w-full h-12 text-base font-semibold">
+                {pickButtonLabel}
+              </Button>
             </div>
           )}
 
