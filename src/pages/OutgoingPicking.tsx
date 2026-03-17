@@ -435,9 +435,6 @@ const OutgoingPicking = () => {
                         {translateOrderOrigin(row.OrderOrigin)}
                       </span>
                       <div className="text-sm font-medium text-gray-900">{row.Order || "-"}</div>
-                      <div className="min-w-0 text-sm font-medium text-gray-900 break-all">
-                        {formatItemNumber(row.Item)}
-                      </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {picked ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : null}
@@ -450,7 +447,13 @@ const OutgoingPicking = () => {
                     </div>
                   ) : null}
 
+                  <div className="mt-2 text-sm">
+                    <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
+                    <span className="font-medium text-gray-900 break-all">{formatItemNumber(row.Item)}</span>
+                  </div>
+
                   <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+
                     <div className="min-w-0">
                       <span className="text-gray-500">{trans.lotLabel}:</span>{" "}
                       <span className="text-gray-900 break-all">{row.Lot || "-"}</span>
