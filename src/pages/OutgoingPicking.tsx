@@ -138,7 +138,12 @@ const OutgoingPicking = () => {
     return value || "-";
   };
 
-  const formatItemNumber = (value: string) => String(value || "").replace(/^0+/, "") || "-";
+  const formatItemNumber = (value: string) => {
+    const raw = String(value || "");
+    if (!raw) return "-";
+    const strippedNine = raw.replace(/^0{1,9}/, "");
+    return strippedNine || raw || "-";
+  };
 
   const applyRow = (row: PickingRow) => {
     setSelectedRow(row);
@@ -224,12 +229,11 @@ const OutgoingPicking = () => {
     return ["yes", "ja", "true", "1", "picked", "gepickt"].includes(normalized);
   };
 
-  const compactLocationFromLabel = "From";
-  const compactLocationToLabel = "To";
+  const fromLabel = lang === "de" ? "Von" : lang === "es-MX" ? "Desde" : lang === "pt-BR" ? "De" : "From";
+  const toLabel = lang === "de" ? "Nach" : lang === "es-MX" ? "Hacia" : lang === "pt-BR" ? "Para" : "To";
   const compactAdvisedQuantityLabel = lang === "de" ? "Vorg. Menge" : trans.advisedQuantityLabel;
+  const mainQuantityLabel = lang === "de" ? "Vorg. Menge" : trans.advisedQuantityLabel;
   const orderDetailsLabel = lang === "de" ? "Auftrag / Pos. / Folge / Satz" : "Order / Line / Sequence / Set";
-  const mainLocationFromLabel = "From";
-  const mainLocationToLabel = "To";
   const pickerTitle = lang === "de" ? "Position auswählen" : trans.pickingSelectAdviceTitle;
 
   return (
@@ -321,16 +325,22 @@ const OutgoingPicking = () => {
                   <FloatingLabelInput id="pickingItem" label={trans.itemLabel} value={formatItemNumber(selectedRow.Item)} disabled />
                 </div>
                 <FloatingLabelInput id="pickingWarehouse" label={trans.warehouseLabel} value={selectedRow.Warehouse || ""} disabled />
-                <FloatingLabelInput
-                  id="pickingQuantity"
-                  label={trans.advisedQuantityLabel}
-                  value={quantity}
-                  onChange={(e) => setQuantity(sanitizeQuantity(e.target.value))}
-                  inputMode="decimal"
-                />
-                <FloatingLabelInput id="pickingUnit" label={trans.unitLabel} value={selectedRow.Unit || ""} disabled />
-                <FloatingLabelInput id="pickingLocationFrom" label={mainLocationFromLabel} value={locationFrom} onChange={(e) => setLocationFrom(e.target.value)} />
-                <FloatingLabelInput id="pickingLocationTo" label={mainLocationToLabel} value={locationTo} onChange={(e) => setLocationTo(e.target.value)} />
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <FloatingLabelInput
+                      id="pickingQuantity"
+                      label={mainQuantityLabel}
+                      value={quantity}
+                      onChange={(e) => setQuantity(sanitizeQuantity(e.target.value))}
+                      inputMode="decimal"
+                    />
+                  </div>
+                  <div className="mb-2 min-w-[3.5rem] rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground text-center">
+                    {selectedRow.Unit || "-"}
+                  </div>
+                </div>
+                <FloatingLabelInput id="pickingLocationFrom" label={fromLabel} value={locationFrom} onChange={(e) => setLocationFrom(e.target.value)} />
+                <FloatingLabelInput id="pickingLocationTo" label={toLabel} value={locationTo} onChange={(e) => setLocationTo(e.target.value)} />
               </div>
 
               {selectedRow.ItemDescription ? (
@@ -406,12 +416,11 @@ const OutgoingPicking = () => {
                       <span className="text-gray-500">{trans.warehouseLabel}:</span>{" "}
                       <span className="text-gray-900 break-all">{row.Warehouse || "-"}</span>
                     </div>
-                    <div className="min-w-0">
-                      <span className="text-gray-500">{compactLocationFromLabel}:</span>{" "}
+                    <div className="min-w-0 col-span-2">
+                      <span className="text-gray-500">{fromLabel}:</span>{" "}
                       <span className="text-gray-900 break-all">{row.Location || "-"}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-gray-500">{compactLocationToLabel}:</span>{" "}
+                      <span className="mx-3 text-gray-400">|</span>
+                      <span className="text-gray-500">{toLabel}:</span>{" "}
                       <span className="text-gray-900 break-all">{row.LocationTo || "-"}</span>
                     </div>
                     <div className="min-w-0 col-span-2">
