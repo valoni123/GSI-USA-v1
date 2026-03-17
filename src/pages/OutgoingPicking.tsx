@@ -322,35 +322,52 @@ const OutgoingPicking = () => {
               <button
                 key={`${row.Order}-${row.Set}-${row.Line}-${row.Sequence}-${index}`}
                 type="button"
-                className="w-full rounded-md border bg-gray-50 px-3 py-3 text-left hover:bg-gray-100"
+                className="w-full rounded-md border bg-gray-50 px-3 py-2.5 text-left hover:bg-gray-100"
                 onClick={() => applyRow(row)}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <span className={`inline-flex items-center rounded px-2.5 py-1 text-xs font-semibold ${orderOriginBadgeClass(row.OrderOrigin)}`}>
-                    {row.OrderOrigin || "-"}
-                  </span>
-                  <div className="text-xs text-gray-500">{trans.runLabel}: {row.Run || run.trim()}</div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className={`inline-flex shrink-0 items-center rounded px-2.5 py-1 text-xs font-semibold ${orderOriginBadgeClass(row.OrderOrigin)}`}>
+                      {row.OrderOrigin || "-"}
+                    </span>
+                    <div className="min-w-0 text-sm font-medium text-gray-900 break-all">
+                      {row.Order || "-"}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-xs text-gray-500">{trans.runLabel}: {row.Run || run.trim()}</div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1 text-sm">
-                  <div className="text-gray-500">{trans.orderLabel}:</div>
-                  <div className="text-gray-900 break-all">{row.Order || "-"}</div>
-                  <div className="text-gray-500">{trans.itemLabel}:</div>
-                  <div className="text-gray-900 break-all">{row.Item || "-"}</div>
-                  <div className="text-gray-500">{trans.warehouseLabel}:</div>
-                  <div className="text-gray-900 break-all">{row.Warehouse || "-"}</div>
-                  <div className="text-gray-500">{trans.locationFromLabel}:</div>
-                  <div className="text-gray-900 break-all">{row.Location || "-"}</div>
-                  <div className="text-gray-500">{trans.locationToLabel}:</div>
-                  <div className="text-gray-900 break-all">{row.LocationTo || "-"}</div>
-                  <div className="text-gray-500">{trans.advisedQuantityLabel}:</div>
-                  <div className="text-gray-900 break-all">{row.AdvisedQuantityInInventoryUnit} {row.Unit || ""}</div>
-                  {row.Lot ? (
-                    <>
-                      <div className="text-gray-500">{trans.lotLabel}:</div>
-                      <div className="text-gray-900 break-all">{row.Lot}</div>
-                    </>
-                  ) : null}
+                {row.ItemDescription ? (
+                  <div className="mt-2 text-xs text-gray-600 break-all">
+                    {row.ItemDescription}
+                  </div>
+                ) : null}
+
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <div className="min-w-0">
+                    <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
+                    <span className="text-gray-900 break-all">{row.Item || "-"}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-gray-500">{trans.lotLabel}:</span>{" "}
+                    <span className="text-gray-900 break-all">{row.Lot || "-"}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-gray-500">{trans.locationFromLabel}:</span>{" "}
+                    <span className="text-gray-900 break-all">{row.Location || "-"}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-gray-500">{trans.locationToLabel}:</span>{" "}
+                    <span className="text-gray-900 break-all">{row.LocationTo || "-"}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-gray-500">{trans.warehouseLabel}:</span>{" "}
+                    <span className="text-gray-900 break-all">{row.Warehouse || "-"}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-gray-500">{trans.advisedQuantityLabel}:</span>{" "}
+                    <span className="text-gray-900 break-all">{row.AdvisedQuantityInInventoryUnit} {row.Unit || ""}</span>
+                  </div>
                 </div>
               </button>
             ))}
