@@ -88,117 +88,91 @@ serve(async (req) => {
     const accessToken = await getIonApiAccessToken(supabase);
     const base = cfg.iu.endsWith("/") ? cfg.iu.slice(0, -1) : cfg.iu;
 
-    const fetchForItemKey = async (itemKey: string) => {
-      const escapedWarehouse = warehouse.replace(/'/g, "''");
-      const escapedLocation = location.replace(/'/g, "''");
-      const path = `/${cfg.ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/Items(Item='${encodeURIComponent(itemKey)}')/HandlingUnitRefs`;
-      const params = new URLSearchParams();
-      params.set(
-        "$filter",
-        `Warehouse eq '${escapedWarehouse}' and Status ne whapi.wmdHandlingUnit.HandlingUnitStatus'Closed' and Location eq '${escapedLocation}'`,
-      );
-      params.set("$count", "true");
-      params.set("$select", SELECT_FIELDS);
+    const paddedItem = `${" ".repeat(9)}${item}`;
+    const escapedItem = paddedItem.replace(/'/g, "''");
+    const escapedWarehouse = warehouse.replace(/'/g, "''");
+    const escapedLocation = location.replace(/'/g, "''");
 
-      const url = `${base}${path}?${params.toString()}`;
-      console.info("[ln-handling-unit-stock] requesting upstream", {
-        itemKey,
-        warehouse,
-        location,
-        timeoutMs: REQUEST_TIMEOUT_MS,
-      });
+    const params = new URLSearchParams();
+    params.set(
+      "$filter",
+      `Item eq '${escapedItem}' and Warehouse eq '${escapedWarehouse}' and Location eq '${escapedLocation}' and Status ne whapi.wmdHandlingUnit.HandlingUnitStatus'Closed'`,
+    );
+    params.set("$count", "true");
+    params.set("$select", SELECT_FIELDS);
 
-      try {
-        const response = await fetchWithTimeout(
-          url,
-          {
-            method: "GET",
-            headers: {
-              accept: "application/json",
-              "Content-Language": language,
-              "X-Infor-LnCompany": company,
-              Authorization: `Bearer ${accessToken}`,
-            },
-          },
-          REQUEST_TIMEOUT_MS,
-        );
-
-        const payload = (await response.json().catch(() => null)) as any;
-        if (!response.ok || !payload) {
-          console.error("[ln-handling-unit-stock] upstream error", {
-            itemKey,
-            status: response.status,
-            error: payload?.error?.message || "odata_error",
-          });
-          return {
-            ok: false as const,
-            error: payload?.error?.message || "odata_error",
-            details: Array.isArray(payload?.error?.details) ? payload.error.details : [],
-          };
-        }
-
-        const rows = Array.isArray(payload.value)
-          ? payload.value.map((row: any) => ({
-              HandlingUnit: String(row?.HandlingUnit || ""),
-              Status: row?.Status == null ? null : String(row.Status),
-              Unit: row?.Unit == null ? null : String(row.Unit),
-              QuantityInInventoryUnit: toNumber(row?.QuantityInInventoryUnit),
-            }))
-          : [];
-
-        console.info("[ln-handling-unit-stock] upstream success", {
-          itemKey,
-          count: typeof payload?.["@odata.count"] === "number" ? payload["@odata.count"] : rows.length,
-          rows: rows.length,
-        });
-
-        return {
-          ok: true as const,
-          count: typeof payload?.["@odata.count"] === "number" ? payload["@odata.count"] : rows.length,
-          rows,
-        };
-      } catch (error) {
-        const isTimeout = error instanceof DOMException && error.name === "AbortError";
-        console.error("[ln-handling-unit-stock] upstream request failed", {
-          itemKey,
-          isTimeout,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return {
-          ok: false as const,
-          error: isTimeout ? "odata_timeout" : "odata_network_error",
-          details: [],
-        };
-      }
-    };
-
-    const candidates = Array.from(new Set([`${" ".repeat(9)}${item}`, item]));
-
-    let firstError: { error: unknown; details?: unknown } | null = null;
-    for (const candidate of candidates) {
-      const result = await fetchForItemKey(candidate);
-      if (result.ok) {
-        if (result.rows.length > 0 || candidate === candidates[candidates.length - 1]) {
-          console.info("[ln-handling-unit-stock] completed", {
-            item,
-            warehouse,
-            location,
-            rows: result.rows.length,
-          });
-          return json({ ok: true, count: result.count, rows: result.rows }, 200);
-        }
-      } else if (!firstError) {
-        firstError = { error: result.error, details: result.details };
-      }
-    }
-
-    console.warn("[ln-handling-unit-stock] completed with error", {
-      item,
+    const url = `${base}/${cfg.ti}/LN/lnapi/odata/whapi.wmdHandlingUnit/HandlingUnits?${params.toString()}`;
+    console.info("[ln-handling-unit-stock] requesting upstream", {
+      paddedItem,
       warehouse,
       location,
-      error: firstError?.error || "odata_error",
+      timeoutMs: REQUEST_TIMEOUT_MS,
     });
-    return json({ ok: false, error: firstError?.error || "odata_error", details: firstError?.details || [] }, 200);
+
+    try {
+      const response = await fetchWithTimeout(
+        url,
+        {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+            "Content-Language": language,
+            "X-Infor-LnCompany": company,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+        REQUEST_TIMEOUT_MS,
+      );
+
+      const payload = (await response.json().catch(() => null)) as any;
+      if (!response.ok || !payload) {
+        console.error("[ln-handling-unit-stock] upstream error", {
+          status: response.status,
+          error: payload?.error?.message || "odata_error",
+        });
+        return json(
+          {
+            ok: false,
+            error: payload?.error?.message || "odata_error",
+            details: Array.isArray(payload?.error?.details) ? payload.error.details : [],
+          },
+          200,
+        );
+      }
+
+      const rows = Array.isArray(payload.value)
+        ? payload.value.map((row: any) => ({
+            HandlingUnit: String(row?.HandlingUnit || ""),
+            Status: row?.Status == null ? null : String(row.Status),
+            Unit: row?.Unit == null ? null : String(row.Unit),
+            QuantityInInventoryUnit: toNumber(row?.QuantityInInventoryUnit),
+          }))
+        : [];
+
+      console.info("[ln-handling-unit-stock] completed", {
+        item,
+        warehouse,
+        location,
+        count: typeof payload?.["@odata.count"] === "number" ? payload["@odata.count"] : rows.length,
+        rows: rows.length,
+      });
+
+      return json(
+        {
+          ok: true,
+          count: typeof payload?.["@odata.count"] === "number" ? payload["@odata.count"] : rows.length,
+          rows,
+        },
+        200,
+      );
+    } catch (error) {
+      const isTimeout = error instanceof DOMException && error.name === "AbortError";
+      console.error("[ln-handling-unit-stock] upstream request failed", {
+        isTimeout,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return json({ ok: false, error: isTimeout ? "odata_timeout" : "odata_network_error", details: [] }, 200);
+    }
   } catch (error) {
     console.error("[ln-handling-unit-stock] unhandled error", {
       error: error instanceof Error ? error.message : String(error),
