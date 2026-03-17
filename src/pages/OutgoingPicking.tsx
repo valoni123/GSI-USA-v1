@@ -111,6 +111,35 @@ const OutgoingPicking = () => {
     return value;
   };
 
+  const translateOrderOrigin = (value: string) => {
+    const normalized = String(value || "").trim().toLowerCase();
+
+    if (normalized.includes("sales") || normalized.includes("verkauf")) {
+      if (lang === "de") return "Verkauf";
+      if (lang === "es-MX") return "Venta";
+      if (lang === "pt-BR") return "Vendas";
+      return "Sales";
+    }
+
+    if (normalized.includes("transfer") || normalized.includes("umbuchung")) {
+      if (lang === "de") return "Umbuchung";
+      if (lang === "es-MX") return "Transferencia";
+      if (lang === "pt-BR") return "Transferência";
+      return "Transfer";
+    }
+
+    if (normalized.includes("production") || normalized.includes("produktion")) {
+      if (lang === "de") return "Produktion";
+      if (lang === "es-MX") return "Producción";
+      if (lang === "pt-BR") return "Produção";
+      return "Production";
+    }
+
+    return value || "-";
+  };
+
+  const formatItemNumber = (value: string) => String(value || "").replace(/^0+/, "") || "-";
+
   const applyRow = (row: PickingRow) => {
     setSelectedRow(row);
     setQuantity(String(row.AdvisedQuantityInInventoryUnit ?? ""));
@@ -184,9 +213,9 @@ const OutgoingPicking = () => {
   const orderOriginBadgeClass = (value: string) => {
     if (!value) return "bg-gray-200 text-gray-800";
     const normalized = value.trim().toLowerCase();
-    if (normalized.includes("sales")) return "bg-[#55a3f3] text-black";
-    if (normalized.includes("transfer")) return "bg-[#fcc888] text-black";
-    if (normalized.includes("production")) return "bg-[#78d8a3] text-black";
+    if (normalized.includes("sales") || normalized.includes("verkauf")) return "bg-[#55a3f3] text-black";
+    if (normalized.includes("transfer") || normalized.includes("umbuchung")) return "bg-[#fcc888] text-black";
+    if (normalized.includes("production") || normalized.includes("produktion")) return "bg-[#78d8a3] text-black";
     return "bg-[#a876eb] text-white";
   };
 
@@ -198,6 +227,7 @@ const OutgoingPicking = () => {
   const compactLocationFromLabel = lang === "de" ? "Lag.P. Von" : trans.locationFromLabel;
   const compactLocationToLabel = lang === "de" ? "Lag.P. Nach" : trans.locationToLabel;
   const compactAdvisedQuantityLabel = lang === "de" ? "Vorg. Menge" : trans.advisedQuantityLabel;
+  const orderDetailsLabel = lang === "de" ? "Auftrag / Pos. / Folge / Satz" : "Order / Line / Sequence / Set";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -272,24 +302,22 @@ const OutgoingPicking = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className={`inline-flex items-center rounded px-3 py-1 text-xs font-semibold ${orderOriginBadgeClass(selectedRow.OrderOrigin)}`}>
-                  {trans.orderOriginLabel}: {selectedRow.OrderOrigin || "-"}
+                  {translateOrderOrigin(selectedRow.OrderOrigin)}
                 </span>
               </div>
 
+              <FloatingLabelInput
+                id="pickingOrderDetails"
+                label={orderDetailsLabel}
+                value={`${selectedRow.Order || "-"} / ${selectedRow.Line || "-"} / ${selectedRow.Sequence || "-"} / ${selectedRow.Set || "-"}`}
+                disabled
+              />
+
               <div className="grid grid-cols-2 gap-2">
-                <FloatingLabelInput id="pickingOrder" label={trans.orderLabel} value={selectedRow.Order || ""} disabled />
-                <FloatingLabelInput id="pickingSet" label={trans.setLabel} value={selectedRow.Set || ""} disabled />
-                <FloatingLabelInput id="pickingLine" label={trans.lineLabel} value={selectedRow.Line || ""} disabled />
-                <FloatingLabelInput id="pickingSequence" label={trans.sequenceLabel} value={selectedRow.Sequence || ""} disabled />
-                <FloatingLabelInput id="pickingItem" label={trans.itemLabel} value={selectedRow.Item || ""} disabled />
+                <div className="col-span-2">
+                  <FloatingLabelInput id="pickingItem" label={trans.itemLabel} value={formatItemNumber(selectedRow.Item)} disabled />
+                </div>
                 <FloatingLabelInput id="pickingWarehouse" label={trans.warehouseLabel} value={selectedRow.Warehouse || ""} disabled />
-              </div>
-
-              {selectedRow.ItemDescription ? (
-                <FloatingLabelInput id="pickingDescription" label={trans.itemDescriptionLabel} value={selectedRow.ItemDescription} disabled />
-              ) : null}
-
-              <div className="grid grid-cols-2 gap-2">
                 <FloatingLabelInput
                   id="pickingQuantity"
                   label={trans.advisedQuantityLabel}
@@ -298,18 +326,22 @@ const OutgoingPicking = () => {
                   inputMode="decimal"
                 />
                 <FloatingLabelInput id="pickingUnit" label={trans.unitLabel} value={selectedRow.Unit || ""} disabled />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
                 <FloatingLabelInput id="pickingLocationFrom" label={trans.locationFromLabel} value={locationFrom} onChange={(e) => setLocationFrom(e.target.value)} />
                 <FloatingLabelInput id="pickingLocationTo" label={trans.locationToLabel} value={locationTo} onChange={(e) => setLocationTo(e.target.value)} />
               </div>
 
+              {selectedRow.ItemDescription ? (
+                <div className="rounded-md border border-input bg-background px-3 py-2">
+                  <div className="text-xs text-muted-foreground">{trans.itemDescriptionLabel}</div>
+                  <div className="mt-1 min-h-[3.5rem] text-sm leading-5 text-foreground whitespace-normal break-words line-clamp-2">
+                    {selectedRow.ItemDescription}
+                  </div>
+                </div>
+              ) : null}
+
               {(selectedRow.Lot || lot) ? (
                 <FloatingLabelInput id="pickingLot" label={trans.lotLabel} value={lot} onChange={(e) => setLot(e.target.value)} />
               ) : null}
-
-              <FloatingLabelInput id="pickingPicked" label={trans.pickedLabel} value={selectedRow.Picked || ""} disabled />
             </div>
           )}
 
@@ -344,14 +376,13 @@ const OutgoingPicking = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2">
                       <span className={`inline-flex shrink-0 items-center rounded px-2.5 py-1 text-xs font-semibold ${orderOriginBadgeClass(row.OrderOrigin)}`}>
-                        {row.OrderOrigin || "-"}
+                        {translateOrderOrigin(row.OrderOrigin)}
                       </span>
                       <div className="min-w-0 text-sm font-medium text-gray-900 break-all">
-                        {row.Order || "-"}
+                        {formatItemNumber(row.Item)}
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <div className="text-xs text-gray-500 break-all text-right">{row.Item || "-"}</div>
                       {picked ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : null}
                     </div>
                   </div>
@@ -364,8 +395,8 @@ const OutgoingPicking = () => {
 
                   <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                     <div className="min-w-0">
-                      <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
-                      <span className="text-gray-900 break-all">{row.Item || "-"}</span>
+                      <span className="text-gray-500">{trans.orderLabel}:</span>{" "}
+                      <span className="text-gray-900 break-all">{row.Order || "-"}</span>
                     </div>
                     <div className="min-w-0">
                       <span className="text-gray-500">{trans.lotLabel}:</span>{" "}
