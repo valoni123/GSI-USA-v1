@@ -297,6 +297,8 @@ const InfoStockArticle = () => {
   // Clear handlers with re-fetch
   const clearItem = async () => {
     setItem("");
+    setWarehouse("");
+    setLocation("");
     setRows([]);
     setLocRows([]);
     setSelectedWarehouse(null);
@@ -371,6 +373,8 @@ const InfoStockArticle = () => {
               setHuStockRows([]);
               setHuStockOpen(false);
               if (v.trim() === "") {
+                setWarehouse("");
+                setLocation("");
                 setRows([]);
                 setLocRows([]);
                 setSelectedWarehouse(null);
