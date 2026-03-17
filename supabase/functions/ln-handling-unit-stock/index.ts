@@ -9,6 +9,9 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const REQUEST_TIMEOUT_MS = 15000;
+const SELECT_FIELDS = "HandlingUnit,Status,Unit,QuantityInInventoryUnit";
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -24,11 +27,23 @@ type RequestBody = {
   company?: string;
 };
 
-const SELECT_FIELDS = "HandlingUnit,Status,Unit,QuantityInInventoryUnit";
-
 function toNumber(value: unknown) {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 serve(async (req) => {
@@ -44,6 +59,7 @@ serve(async (req) => {
     try {
       body = await req.json();
     } catch {
+      console.error("[ln-handling-unit-stock] invalid json body");
       return json({ ok: false, error: "invalid_json" }, 200);
     }
 
@@ -53,14 +69,18 @@ serve(async (req) => {
     const language = (body.language || "en-US").trim() || "en-US";
 
     if (!item || !warehouse || !location) {
+      console.warn("[ln-handling-unit-stock] missing params", { item, warehouse, location });
       return json({ ok: false, error: "missing_params" }, 200);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
+      console.error("[ln-handling-unit-stock] missing env");
       return json({ ok: false, error: "env_missing" }, 200);
     }
+
+    console.info("[ln-handling-unit-stock] start", { item, warehouse, location, language });
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
     const company = (body.company || "").trim() || (await getCompanyFromParams(supabase));
@@ -81,43 +101,75 @@ serve(async (req) => {
       params.set("$select", SELECT_FIELDS);
 
       const url = `${base}${path}?${params.toString()}`;
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          accept: "application/json",
-          "Content-Language": language,
-          "X-Infor-LnCompany": company,
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }).catch(() => null as unknown as Response);
+      console.info("[ln-handling-unit-stock] requesting upstream", {
+        itemKey,
+        warehouse,
+        location,
+        timeoutMs: REQUEST_TIMEOUT_MS,
+      });
 
-      if (!response) {
-        return { ok: false as const, error: "odata_network_error" };
-      }
+      try {
+        const response = await fetchWithTimeout(
+          url,
+          {
+            method: "GET",
+            headers: {
+              accept: "application/json",
+              "Content-Language": language,
+              "X-Infor-LnCompany": company,
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+          REQUEST_TIMEOUT_MS,
+        );
 
-      const payload = (await response.json().catch(() => null)) as any;
-      if (!response.ok || !payload) {
+        const payload = (await response.json().catch(() => null)) as any;
+        if (!response.ok || !payload) {
+          console.error("[ln-handling-unit-stock] upstream error", {
+            itemKey,
+            status: response.status,
+            error: payload?.error?.message || "odata_error",
+          });
+          return {
+            ok: false as const,
+            error: payload?.error?.message || "odata_error",
+            details: Array.isArray(payload?.error?.details) ? payload.error.details : [],
+          };
+        }
+
+        const rows = Array.isArray(payload.value)
+          ? payload.value.map((row: any) => ({
+              HandlingUnit: String(row?.HandlingUnit || ""),
+              Status: row?.Status == null ? null : String(row.Status),
+              Unit: row?.Unit == null ? null : String(row.Unit),
+              QuantityInInventoryUnit: toNumber(row?.QuantityInInventoryUnit),
+            }))
+          : [];
+
+        console.info("[ln-handling-unit-stock] upstream success", {
+          itemKey,
+          count: typeof payload?.["@odata.count"] === "number" ? payload["@odata.count"] : rows.length,
+          rows: rows.length,
+        });
+
+        return {
+          ok: true as const,
+          count: typeof payload?.["@odata.count"] === "number" ? payload["@odata.count"] : rows.length,
+          rows,
+        };
+      } catch (error) {
+        const isTimeout = error instanceof DOMException && error.name === "AbortError";
+        console.error("[ln-handling-unit-stock] upstream request failed", {
+          itemKey,
+          isTimeout,
+          error: error instanceof Error ? error.message : String(error),
+        });
         return {
           ok: false as const,
-          error: payload?.error?.message || "odata_error",
-          details: Array.isArray(payload?.error?.details) ? payload.error.details : [],
+          error: isTimeout ? "odata_timeout" : "odata_network_error",
+          details: [],
         };
       }
-
-      const rows = Array.isArray(payload.value)
-        ? payload.value.map((row: any) => ({
-            HandlingUnit: String(row?.HandlingUnit || ""),
-            Status: row?.Status == null ? null : String(row.Status),
-            Unit: row?.Unit == null ? null : String(row.Unit),
-            QuantityInInventoryUnit: toNumber(row?.QuantityInInventoryUnit),
-          }))
-        : [];
-
-      return {
-        ok: true as const,
-        count: typeof payload?.["@odata.count"] === "number" ? payload["@odata.count"] : rows.length,
-        rows,
-      };
     };
 
     const candidates = Array.from(new Set([`${" ".repeat(9)}${item}`, item]));
@@ -127,6 +179,12 @@ serve(async (req) => {
       const result = await fetchForItemKey(candidate);
       if (result.ok) {
         if (result.rows.length > 0 || candidate === candidates[candidates.length - 1]) {
+          console.info("[ln-handling-unit-stock] completed", {
+            item,
+            warehouse,
+            location,
+            rows: result.rows.length,
+          });
           return json({ ok: true, count: result.count, rows: result.rows }, 200);
         }
       } else if (!firstError) {
@@ -134,8 +192,17 @@ serve(async (req) => {
       }
     }
 
+    console.warn("[ln-handling-unit-stock] completed with error", {
+      item,
+      warehouse,
+      location,
+      error: firstError?.error || "odata_error",
+    });
     return json({ ok: false, error: firstError?.error || "odata_error", details: firstError?.details || [] }, 200);
-  } catch {
+  } catch (error) {
+    console.error("[ln-handling-unit-stock] unhandled error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return json({ ok: false, error: { message: "unhandled" } }, 200);
   }
 });

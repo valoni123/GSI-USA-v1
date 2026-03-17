@@ -193,27 +193,43 @@ const InfoStockArticle = () => {
     if (openDialog) setHuStockOpen(true);
     setHuStockLoading(true);
     const tid = showLoading(trans.loadingList);
-    const { data, error } = await supabase.functions.invoke("ln-handling-unit-stock", {
-      body: {
-        item: trimmedItem,
-        warehouse: trimmedWarehouse,
-        location: trimmedLocation,
-        language: locale,
-        company: "1100",
-      },
-    });
-    dismissToast(tid as unknown as string);
 
-    if (error || !data || !data.ok) {
-      const msg = (data && (data.error?.message || data.error)) || "Failed";
-      showError(typeof msg === "string" ? msg : trans.loadingList);
+    try {
+      const result = await Promise.race([
+        supabase.functions.invoke("ln-handling-unit-stock", {
+          body: {
+            item: trimmedItem,
+            warehouse: trimmedWarehouse,
+            location: trimmedLocation,
+            language: locale,
+            company: "1100",
+          },
+        }),
+        new Promise<never>((_, reject) => {
+          window.setTimeout(() => reject(new Error("timeout")), 16000);
+        }),
+      ]);
+
+      const { data, error } = result as { data: any; error: any };
+      dismissToast(tid as unknown as string);
+
+      if (error || !data || !data.ok) {
+        const msg = (data && (data.error?.message || data.error)) || "Failed";
+        showError(typeof msg === "string" ? msg : trans.loadingList);
+        setHuStockRows([]);
+        setHuStockLoading(false);
+        return;
+      }
+
+      setHuStockRows(Array.isArray(data.rows) ? (data.rows as HandlingUnitStockRow[]) : []);
+      setHuStockLoading(false);
+    } catch (error) {
+
+      dismissToast(tid as unknown as string);
+      showError(error instanceof Error && error.message === "timeout" ? "HU Stock request timed out" : String(error));
       setHuStockRows([]);
       setHuStockLoading(false);
-      return;
     }
-
-    setHuStockRows(Array.isArray(data.rows) ? (data.rows as HandlingUnitStockRow[]) : []);
-    setHuStockLoading(false);
   };
 
   const openHuStock = async () => {

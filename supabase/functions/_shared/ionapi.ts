@@ -12,6 +12,8 @@ type IonApiConfig = {
   ti: string;
 };
 
+const TOKEN_TIMEOUT_MS = 15000;
+
 let cachedConfig: IonApiConfig | null = null;
 let cachedConfigAt = 0;
 
@@ -20,6 +22,20 @@ let cachedToken: { token: string; expiresAt: number } | null = null;
 function buildTokenUrl(pu: string, ot: string) {
   const base = pu.endsWith("/") ? pu : pu + "/";
   return base + ot.replace(/^\//, "");
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export async function getIonApiConfig(supabase: SupabaseClient): Promise<IonApiConfig> {
@@ -81,14 +97,24 @@ export async function getIonApiAccessToken(supabase: SupabaseClient): Promise<st
   tokenParams.set("username", cfg.saak);
   tokenParams.set("password", cfg.sask);
 
-  const tokenRes = await fetch(buildTokenUrl(cfg.pu, cfg.ot), {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: tokenParams.toString(),
-  });
+  let tokenRes: Response;
+  try {
+    tokenRes = await fetchWithTimeout(
+      buildTokenUrl(cfg.pu, cfg.ot),
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${basic}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: tokenParams.toString(),
+      },
+      TOKEN_TIMEOUT_MS,
+    );
+  } catch (error) {
+    const isTimeout = error instanceof DOMException && error.name === "AbortError";
+    throw new Error(isTimeout ? "token_timeout" : "token_error");
+  }
 
   const tokenJson = (await tokenRes.json().catch(() => null)) as any;
   if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
