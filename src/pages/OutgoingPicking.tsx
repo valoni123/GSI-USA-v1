@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, LogOut, User } from "lucide-react";
+import { CheckCircle2, LogOut, Search, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import ScreenSpinner from "@/components/ScreenSpinner";
@@ -155,7 +155,13 @@ const OutgoingPicking = () => {
     setInfoMessage("");
   };
 
-  const lookupRun = async (runValue?: string) => {
+  const lookupRun = async (
+    runValue?: string,
+    options?: {
+      forcePicker?: boolean;
+      bypassCache?: boolean;
+    }
+  ) => {
     const nextRun = (runValue ?? run).trim();
     if (!nextRun) {
       setRun("");
@@ -163,7 +169,7 @@ const OutgoingPicking = () => {
       clearSelection();
       return;
     }
-    if (lookupLoading || lastFetchedRun === nextRun) return;
+    if (lookupLoading || (!options?.bypassCache && lastFetchedRun === nextRun)) return;
 
     setLookupLoading(true);
     setInfoMessage("");
@@ -196,7 +202,7 @@ const OutgoingPicking = () => {
         return;
       }
 
-      if ((data.count ?? rows.length) > 1 || isPicked(rows[0]?.Picked)) {
+      if (options?.forcePicker || (data.count ?? rows.length) > 1 || isPicked(rows[0]?.Picked)) {
         setPickerRows(rows);
         setPickerOpen(true);
         setSelectedRow(null);
@@ -213,6 +219,15 @@ const OutgoingPicking = () => {
       clearSelection();
       showError(error instanceof Error && error.message === "timeout" ? trans.pickingTimeout : String(error));
     }
+  };
+
+  const reopenPicker = () => {
+    if (!run.trim() || lookupLoading) return;
+    if (pickerRows.length > 0) {
+      setPickerOpen(true);
+      return;
+    }
+    void lookupRun(run, { forcePicker: true, bypassCache: true });
   };
 
   const orderOriginBadgeClass = (value: string) => {
@@ -235,6 +250,7 @@ const OutgoingPicking = () => {
   const mainQuantityLabel = lang === "de" ? "Vorg. Menge" : trans.advisedQuantityLabel;
   const orderDetailsLabel = lang === "de" ? "Auftrag / Pos. / Folge / Satz" : "Order / Line / Sequence / Set";
   const pickerTitle = lang === "de" ? "Position auswählen" : trans.pickingSelectAdviceTitle;
+  const topSearchButtonClass = selectedRow ? orderOriginBadgeClass(selectedRow.OrderOrigin) : "bg-gray-200 text-gray-700";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -264,46 +280,59 @@ const OutgoingPicking = () => {
 
       <div className="mx-auto max-w-md px-4 py-6 pb-10">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
-          <FloatingLabelInput
-            id="pickingRun"
-            label={trans.runLabel}
-            ref={runRef}
-            value={run}
-            onChange={(e) => {
-              const value = e.target.value;
-              setRun(value);
-              if (value.trim() !== (lastFetchedRun || "")) {
-                clearSelection();
-              }
-              if (!value.trim()) {
-                setLastFetchedRun(null);
-              }
-            }}
-            onBlur={() => {
-              if (run.trim()) {
-                void lookupRun(run);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && run.trim()) {
-                e.preventDefault();
-                void lookupRun(run);
-              }
-            }}
-            onFocus={(e) => {
-              if (e.currentTarget.value.length > 0) e.currentTarget.select();
-            }}
-            onClick={(e) => {
-              if (e.currentTarget.value.length > 0) e.currentTarget.select();
-            }}
-            onClear={() => {
-              setRun("");
-              setLastFetchedRun(null);
-              clearSelection();
-              runRef.current?.focus();
-            }}
-            autoFocus
-          />
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <FloatingLabelInput
+                id="pickingRun"
+                label={trans.runLabel}
+                ref={runRef}
+                value={run}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setRun(value);
+                  if (value.trim() !== (lastFetchedRun || "")) {
+                    clearSelection();
+                  }
+                  if (!value.trim()) {
+                    setLastFetchedRun(null);
+                  }
+                }}
+                onBlur={() => {
+                  if (run.trim()) {
+                    void lookupRun(run);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && run.trim()) {
+                    e.preventDefault();
+                    void lookupRun(run);
+                  }
+                }}
+                onFocus={(e) => {
+                  if (e.currentTarget.value.length > 0) e.currentTarget.select();
+                }}
+                onClick={(e) => {
+                  if (e.currentTarget.value.length > 0) e.currentTarget.select();
+                }}
+                onClear={() => {
+                  setRun("");
+                  setLastFetchedRun(null);
+                  clearSelection();
+                  runRef.current?.focus();
+                }}
+                autoFocus
+              />
+            </div>
+            <button
+              type="button"
+              aria-label="Search positions"
+              className={`mb-2 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-input ${topSearchButtonClass}`}
+              onClick={reopenPicker}
+              disabled={!run.trim() || lookupLoading}
+            >
+              <Search className="h-5 w-5" />
+            </button>
+          </div>
 
           {selectedRow && (
             <div className="space-y-3">
@@ -339,8 +368,14 @@ const OutgoingPicking = () => {
                     {selectedRow.Unit || "-"}
                   </div>
                 </div>
-                <FloatingLabelInput id="pickingLocationFrom" label={fromLabel} value={locationFrom} onChange={(e) => setLocationFrom(e.target.value)} />
-                <FloatingLabelInput id="pickingLocationTo" label={toLabel} value={locationTo} onChange={(e) => setLocationTo(e.target.value)} />
+                <div className="relative">
+                  <FloatingLabelInput id="pickingLocationFrom" label={fromLabel} value={locationFrom} onChange={(e) => setLocationFrom(e.target.value)} className="pr-10" />
+                  <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </div>
+                <div className="relative">
+                  <FloatingLabelInput id="pickingLocationTo" label={toLabel} value={locationTo} onChange={(e) => setLocationTo(e.target.value)} className="pr-10" />
+                  <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </div>
               </div>
 
               {selectedRow.ItemDescription ? (
@@ -353,7 +388,10 @@ const OutgoingPicking = () => {
               ) : null}
 
               {(selectedRow.Lot || lot) ? (
-                <FloatingLabelInput id="pickingLot" label={trans.lotLabel} value={lot} onChange={(e) => setLot(e.target.value)} />
+                <div className="relative">
+                  <FloatingLabelInput id="pickingLot" label={trans.lotLabel} value={lot} onChange={(e) => setLot(e.target.value)} className="pr-10" />
+                  <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </div>
               ) : null}
             </div>
           )}
