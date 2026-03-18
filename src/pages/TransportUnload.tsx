@@ -193,16 +193,18 @@ const TransportUnload = () => {
   const unloadSingle = async (it: LoadedItem, attempt = 1): Promise<boolean> => {
     const employeeCode = getEmployeeCode();
     const hu = (it.HandlingUnit || "").trim();
+    const currentVehicleId = (localStorage.getItem("vehicle.id") || "").trim();
     const payload: Record<string, unknown> = {
       handlingUnit: hu,
       fromWarehouse: (it.Warehouse || "").trim(),
-      fromLocation: (it.LocationFrom || "").trim(),
+      fromLocation: hu ? (it.LocationFrom || "").trim() : currentVehicleId,
       toWarehouse: (it.Warehouse || "").trim(),
       toLocation: (it.LocationTo || "").trim(),
       employee: employeeCode,
       language: locale,
       company: "1100",
     };
+
     // For item-only moves, include item and OrderedQuantity
     if (!hu) {
       // IMPORTANT: Do NOT trim the item; LN expects 9 leading spaces
