@@ -76,6 +76,7 @@ const TransportLoad = () => {
   const [listOpen, setListOpen] = useState<boolean>(false);
   type LoadedListItem = {
     HandlingUnit: string;
+    Item: string;
     LocationFrom: string;
     LocationTo: string;
     Warehouse: string;
@@ -165,6 +166,7 @@ const TransportLoad = () => {
       const items = Array.isArray(data.items)
         ? (data.items as any[]).map((v) => ({
             HandlingUnit: String(v?.HandlingUnit ?? ""),
+            Item: String(v?.Item ?? ""),
             LocationFrom: String(v?.LocationFrom ?? ""),
             LocationTo: String(v?.LocationTo ?? ""),
             Warehouse: String(v?.Warehouse ?? ""),
@@ -196,7 +198,7 @@ const TransportLoad = () => {
     } catch {}
   };
 
-  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`;
+  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit || it.Item}`;
 
   const onMoveBack = async (it: LoadedListItem) => {
     const key = moveBackKey(it);
@@ -204,11 +206,13 @@ const TransportLoad = () => {
     const requestId = ++moveBackRequestIdRef.current;
     const currentItem = {
       HandlingUnit: (it.HandlingUnit || "").trim(),
+      Item: it.Item || "",
       Warehouse: (it.Warehouse || "").trim(),
       LocationFrom: (it.LocationFrom || "").trim(),
       TransportID: (it.TransportID || "").trim(),
       RunNumber: (it.RunNumber || "").trim(),
       ETag: (it.ETag || "").trim(),
+      OrderedQuantity: it.OrderedQuantity,
     };
     setMovingBackMap((m) => ({ ...m, [key]: true }));
     setMoveBackProcessing(true);
@@ -226,18 +230,35 @@ const TransportLoad = () => {
       setMoveBackProcessing(false);
       return;
     }
+    const movePayload: Record<string, unknown> = {
+      fromWarehouse: currentItem.Warehouse,
+      fromLocation: vid,
+      toWarehouse: currentItem.Warehouse,
+      toLocation: currentItem.LocationFrom,
+      employee: employeeCode,
+      language: locale,
+    };
+    if (currentItem.HandlingUnit) {
+      movePayload.handlingUnit = currentItem.HandlingUnit;
+    } else {
+      const rawQty = currentItem.OrderedQuantity;
+      const qty =
+        typeof rawQty === "number"
+          ? rawQty
+          : (typeof rawQty === "string" && rawQty.trim() ? Number(rawQty) : NaN);
+      if (!currentItem.Item || Number.isNaN(qty)) {
+        showError("Missing OrderedQuantity for item movement.");
+        setMovingBackMap((m) => ({ ...m, [key]: false }));
+        setMoveBackProcessing(false);
+        return;
+      }
+      movePayload.item = currentItem.Item;
+      movePayload.quantity = qty;
+    }
     const tid = showLoading(trans.executingMovement);
 
     const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
-      body: {
-        handlingUnit: currentItem.HandlingUnit,
-        fromWarehouse: currentItem.Warehouse,
-        fromLocation: vid,
-        toWarehouse: currentItem.Warehouse,
-        toLocation: currentItem.LocationFrom,
-        employee: employeeCode,
-        language: locale,
-      },
+      body: movePayload,
     });
     if (moveBackRequestIdRef.current !== requestId) {
       dismissToast(tid as unknown as string);
