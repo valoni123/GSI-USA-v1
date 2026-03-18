@@ -29,7 +29,15 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { transportId?: string; etag?: string; vehicleId?: string; completed?: string; language?: string; runNumber?: string } = {};
+    let body: {
+      transportId?: string;
+      etag?: string;
+      vehicleId?: string;
+      locationDevice?: string;
+      completed?: string;
+      language?: string;
+      runNumber?: string;
+    } = {};
     try {
       body = await req.json();
     } catch {
@@ -39,7 +47,8 @@ serve(async (req) => {
     const transportId = (body.transportId || "").trim();
     const runNumber = (body.runNumber || "").trim();
     const etag = (body.etag || "").trim();
-    const vehicleId = (body.vehicleId || "").trim();
+    const vehicleId = body.vehicleId === undefined ? undefined : (body.vehicleId || "").trim();
+    const locationDevice = body.locationDevice === undefined ? undefined : (body.locationDevice || "").trim();
     const completed = (body.completed || "").trim();
     const language = body.language || "de-DE";
 
@@ -56,7 +65,6 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
     const company = await getCompanyFromParams(supabase);
 
-    // Decrypted credentials via RPC
     const { data: cfgData, error: cfgErr } = await supabase.rpc("get_active_ionapi");
     if (cfgErr) {
       console.error("[ln-update-transport-order] get_active_ionapi error", cfgErr);
@@ -71,7 +79,6 @@ serve(async (req) => {
     };
     const grantType = grant_type === "password_credentials" ? "password" : grant_type;
 
-    // Get iu and ti from active row
     const { data: activeRow, error: activeErr } = await supabase
       .from("ionapi_oauth2")
       .select("iu, ti")
@@ -89,7 +96,6 @@ serve(async (req) => {
       return json({ ok: false, error: { message: "config_incomplete" } }, 200);
     }
 
-    // Token
     const basic = btoa(`${ci}:${cs}`);
     const tokenParams = new URLSearchParams();
     tokenParams.set("grant_type", grantType);
@@ -114,7 +120,6 @@ serve(async (req) => {
     }
     const accessToken = tokenJson.access_token as string;
 
-    // PATCH URL
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const encodedId = transportId.replace(/'/g, "''");
     const encodedRun = runNumber.replace(/'/g, "''");
@@ -124,18 +129,17 @@ serve(async (req) => {
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders(${keyPart})?$select=*`;
     const url = `${base}${path}`;
 
-    // Payload: set fields depending on inputs
     const patchBody: Record<string, unknown> = {};
     if (completed.toLowerCase() === "yes") {
       patchBody["Completed"] = "Yes";
     }
-    if (vehicleId) {
+    if (vehicleId !== undefined) {
       patchBody["VehicleID"] = vehicleId;
+    }
+    if (locationDevice !== undefined) {
+      patchBody["LocationDevice"] = locationDevice;
+    } else if (vehicleId !== undefined) {
       patchBody["LocationDevice"] = vehicleId;
-    } else {
-      // Clear assignment when vehicleId is empty string
-      patchBody["VehicleID"] = "";
-      patchBody["LocationDevice"] = "";
     }
 
     const patchRes = await fetch(url, {
