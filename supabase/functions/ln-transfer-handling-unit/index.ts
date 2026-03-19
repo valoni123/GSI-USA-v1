@@ -51,7 +51,6 @@ serve(async (req) => {
 
     const language = body.language || "en-US";
 
-    // Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
@@ -59,7 +58,6 @@ serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Company from params
     const { data: compRes, error: compErr } = await supabase
       .from("gsi000_params")
       .select("txgsi000_compnr, created_at")
@@ -71,7 +69,6 @@ serve(async (req) => {
     }
     const company = (compRes[0]?.txgsi000_compnr || "").toString().trim();
 
-    // OAuth config
     const { data: cfgData } = await supabase.rpc("get_active_ionapi");
     const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
     if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
@@ -81,7 +78,6 @@ serve(async (req) => {
     };
     const grantType = grant_type === "password_credentials" ? "password" : grant_type;
 
-    // iu & ti
     const { data: activeRow } = await supabase
       .from("ionapi_oauth2")
       .select("iu, ti")
@@ -92,7 +88,6 @@ serve(async (req) => {
     const iu: string = activeRow.iu;
     const ti: string = activeRow.ti;
 
-    // Token
     const basic = btoa(`${ci}:${cs}`);
     const tokenParams = new URLSearchParams();
     tokenParams.set("grant_type", grantType);
@@ -114,34 +109,30 @@ serve(async (req) => {
     }
     const accessToken = tokenJson.access_token as string;
 
-    // Build LN OData URL
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/txgsi.apiTRANSFER/GSITransfers`;
-    const url = `${base}${path}?$select=TransferID`;
+    const path = `/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/GSITransfers`;
+    const url = `${base}${path}?$select=*`;
 
-    // Build payload: prefer Artikel if present (ITEM flow), else Ladeeinheit (HU flow)
     const lnPayload: Record<string, unknown> = {
-      TransferID: "",
-      VonLager: (body.VonLager || "").trim(),
-      VonLagerplatz: (body.VonLagerplatz || "").trim(),
-      InLager: (body.InLager || "").trim(),
-      AufLagerplatz: (body.AufLagerplatz || "").trim(),
-      Menge: Number(body.Menge || 0),
+      FromWarehouse: (body.VonLager || "").trim(),
+      FromLocation: (body.VonLagerplatz || "").trim(),
+      ToWarehouse: (body.InLager || "").trim(),
+      ToLocation: (body.AufLagerplatz || "").trim(),
+      Quantity: Number(body.Menge || 0),
       LoginCode: (body.LoginCode || "").trim(),
-      Mitarbeiter: (body.Mitarbeiter || "").trim(),
+      Employee: (body.Mitarbeiter || "").trim(),
       FromWebserver: "Yes",
+      Automatisch: "No",
     };
 
     const artikelRaw = (body.Artikel || "").toString();
     const artikelTrim = artikelRaw.trim();
     if (artikelRaw || artikelTrim) {
-      // if Artikel provided, send it (assume UI already padded when needed)
-      lnPayload.Artikel = artikelRaw || artikelTrim;
+      lnPayload.Item = artikelRaw || artikelTrim;
     } else {
-      lnPayload.Ladeeinheit = (body.Ladeeinheit || "").toString().trim();
+      lnPayload.HandlingUnit = (body.Ladeeinheit || "").toString().trim();
     }
 
-    // POST to LN
     const lnRes = await fetch(url, {
       method: "POST",
       headers: {
