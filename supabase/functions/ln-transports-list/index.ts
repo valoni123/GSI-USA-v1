@@ -110,7 +110,7 @@ serve(async (req) => {
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
     const escapedVehicle = vehicleId.replace(/'/g, "''");
     const filter = `PlannedVehicle eq '${escapedVehicle}'`;
-    const selectFields = "TransportType,Item,HandlingUnit,LocationFrom,LocationTo";
+    const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo";
     const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
 
     const headers = {
@@ -148,6 +148,7 @@ serve(async (req) => {
     }
 
     const items = all.map((v: any) => ({
+      TransportID: v?.TransportID ?? "",
       TransportType: v?.TransportType ?? "",
       Item: v?.Item ?? "",
       HandlingUnit: v?.HandlingUnit ?? "",
