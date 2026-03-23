@@ -33,6 +33,7 @@ const TransportsList = () => {
 
   const [loading, setLoading] = useState(true);
   const [selecting, setSelecting] = useState(false);
+  const [loadedCount, setLoadedCount] = useState<number>(() => Number(localStorage.getItem("transport.count") || "0"));
   const [items, setItems] = useState<Array<{
     TransportID: string;
     TransportType: string;
@@ -52,22 +53,34 @@ const TransportsList = () => {
 
     if (!selectedVehicleId) {
       setItems([]);
+      setLoadedCount(0);
       setError("Missing vehicle");
       setLoading(false);
       return;
     }
 
-    const { data } = await supabase.functions.invoke("ln-transports-list", {
-      body: { vehicleId: selectedVehicleId, language: locale },
-    });
+    const [{ data: listData }, { data: countData }] = await Promise.all([
+      supabase.functions.invoke("ln-transports-list", {
+        body: { vehicleId: selectedVehicleId, language: locale },
+      }),
+      supabase.functions.invoke("ln-transport-count", {
+        body: { vehicleId: selectedVehicleId, language: locale, company: "1100" },
+      }),
+    ]);
 
-    if (data && data.ok) {
-      setItems(data.items || []);
+    if (listData && listData.ok) {
+      setItems(listData.items || []);
       setError(null);
     } else {
       setItems([]);
-      setError((data && (data.error?.message || data.error)) || "Failed to load");
+      setError((listData && (listData.error?.message || listData.error)) || "Failed to load");
     }
+
+    const nextCount = countData && countData.ok ? Number(countData.count || 0) : 0;
+    setLoadedCount(nextCount);
+    try {
+      localStorage.setItem("transport.count", String(nextCount));
+    } catch {}
 
     setLoading(false);
   };
@@ -99,6 +112,7 @@ const TransportsList = () => {
       localStorage.removeItem("gsi.login");
       localStorage.removeItem("vehicle.id");
       localStorage.removeItem("transports.vehicle.id");
+      localStorage.removeItem("transport.count");
     } catch {}
     showSuccess(trans.signedOut);
     setSignOutOpen(false);
@@ -113,13 +127,11 @@ const TransportsList = () => {
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between gap-3">
           <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/transports")} />
 
-          <div className="flex-1 font-bold text-lg text-center">
-            {trans.appTransports}
-            {selectedVehicleId && (
-              <span className="ml-3 inline-block text-xs text-gray-200 bg-white/10 border border-white/20 rounded-md px-2 py-1 align-middle">
-                {trans.loadVehicleId}: {selectedVehicleId}
-              </span>
-            )}
+          <div className="flex-1 font-bold text-lg text-center flex items-center justify-center gap-2">
+            <span>{trans.appTransports}</span>
+            <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-md bg-red-700 px-2 text-xs font-bold text-white leading-none">
+              {loadedCount}
+            </span>
           </div>
 
           <Button
