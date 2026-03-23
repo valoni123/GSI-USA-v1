@@ -114,6 +114,11 @@ const TransportGroup = () => {
   const [groupsDropdownOpen, setGroupsDropdownOpen] = useState(false);
   const [groupsDropdownLoading, setGroupsDropdownLoading] = useState(false);
   const [showAllSwitch, setShowAllSwitch] = useState(false);
+  const [vehicleInput, setVehicleInput] = useState("");
+  const [vehiclesList, setVehiclesList] = useState<Array<{ VehicleID: string; Description: string }>>([]);
+  const [vehiclesQuery, setVehiclesQuery] = useState("");
+  const [vehiclesDropdownOpen, setVehiclesDropdownOpen] = useState(false);
+  const [vehiclesDropdownLoading, setVehiclesDropdownLoading] = useState(false);
   const filteredGroups = groupsList.filter((g) => {
     const q = groupsQuery.trim().toLowerCase();
     if (!q) return true;
@@ -121,6 +126,11 @@ const TransportGroup = () => {
       g.PlanningGroupTransport.toLowerCase().includes(q) ||
       (g.Description || "").toLowerCase().includes(q)
     );
+  });
+  const filteredVehicles = vehiclesList.filter((v) => {
+    const q = vehiclesQuery.trim().toLowerCase();
+    if (!q) return true;
+    return v.VehicleID.toLowerCase().includes(q) || (v.Description || "").toLowerCase().includes(q);
   });
   const fetchGroups = async () => {
     const { data } = await supabase.functions.invoke("ln-transport-groups-list", { body: {} });
@@ -131,7 +141,19 @@ const TransportGroup = () => {
       setGroupsList([]);
     }
   };
+  const fetchVehicles = async () => {
+    const { data } = await supabase.functions.invoke("ln-vehicles-list", { body: { language: locale } });
+    if (data && data.ok) {
+      setVehiclesList((data.items || []) as Array<{ VehicleID: string; Description: string }>);
+      setVehiclesQuery("");
+    } else {
+      setVehiclesList([]);
+    }
+  };
   const onConfirmSwitch = () => {
+    const selectedVehicle = vehicleInput.trim();
+    if (!selectedVehicle) return;
+    localStorage.setItem("vehicle.id", selectedVehicle);
     if (showAllSwitch) {
       setSwitchOpen(false);
       navigate(`/transportgroup/ALL`);
@@ -202,7 +224,13 @@ const TransportGroup = () => {
               onClick={async () => {
                 setSwitchOpen(true);
                 setGroupsDropdownOpen(false);
-                setGroupInput("");
+                setVehiclesDropdownOpen(false);
+                setGroupInput((group || "").toUpperCase() === "ALL" ? "" : (group || "").toString());
+                setGroupsQuery((group || "").toUpperCase() === "ALL" ? "" : (group || "").toString());
+                const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+                setVehicleInput(storedVehicle);
+                setVehiclesQuery(storedVehicle);
+                setShowAllSwitch((group || "").toUpperCase() === "ALL");
                 await fetchGroups();
               }}
               aria-label="Switch planning group"
@@ -459,6 +487,7 @@ const TransportGroup = () => {
                 }}
                 onFocus={async () => {
                   setGroupsDropdownOpen(true);
+                  setVehiclesDropdownOpen(false);
                   if (groupsList.length === 0 && !groupsDropdownLoading) {
                     setGroupsDropdownLoading(true);
                     try {
@@ -486,14 +515,19 @@ const TransportGroup = () => {
                     }
                   }
                 }}
-                onClick={() => setGroupsDropdownOpen((o) => !o)}
+                onClick={() => {
+                  if (!showAllSwitch) setGroupsDropdownOpen((o) => !o);
+                }}
                 className="pr-10"
+                disabled={showAllSwitch}
               />
               <button
                 type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700"
+                className={`absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700 ${showAllSwitch ? "pointer-events-none opacity-40" : ""}`}
                 onClick={async () => {
+                  if (showAllSwitch) return;
                   setGroupsDropdownOpen((o) => !o);
+                  setVehiclesDropdownOpen(false);
                   if (groupsList.length === 0 && !groupsDropdownLoading) {
                     setGroupsDropdownLoading(true);
                     try {
@@ -507,7 +541,7 @@ const TransportGroup = () => {
               >
                 <Search className="h-5 w-5" />
               </button>
-              {groupsDropdownOpen && (
+              {groupsDropdownOpen && !showAllSwitch && (
                 <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow max-h-64 overflow-auto">
                   {groupsDropdownLoading ? (
                     <div className="px-3 py-2 text-sm text-gray-500">Loading…</div>
@@ -534,11 +568,103 @@ const TransportGroup = () => {
               )}
             </div>
 
+            <div className="relative">
+              <FloatingLabelInput
+                id="vehicleId"
+                label={trans.loadVehicleId}
+                value={vehicleInput}
+                onChange={(e) => {
+                  setVehicleInput(e.target.value);
+                  setVehiclesQuery(e.target.value);
+                  if (!vehiclesDropdownOpen) setVehiclesDropdownOpen(true);
+                }}
+                onFocus={async () => {
+                  setVehiclesDropdownOpen(true);
+                  setGroupsDropdownOpen(false);
+                  if (vehiclesList.length === 0 && !vehiclesDropdownLoading) {
+                    setVehiclesDropdownLoading(true);
+                    try {
+                      await fetchVehicles();
+                    } finally {
+                      setVehiclesDropdownLoading(false);
+                    }
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const q = vehicleInput.trim().toLowerCase();
+                    const first = filteredVehicles.find((v) =>
+                      v.VehicleID.toLowerCase().includes(q) ||
+                      (v.Description || "").toLowerCase().includes(q)
+                    );
+                    if (first) {
+                      setVehicleInput(first.VehicleID);
+                      setVehiclesQuery(first.VehicleID);
+                      setVehiclesDropdownOpen(false);
+                      return;
+                    }
+                    onConfirmSwitch();
+                  }
+                }}
+                onClick={() => setVehiclesDropdownOpen((o) => !o)}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700"
+                onClick={async () => {
+                  setVehiclesDropdownOpen((o) => !o);
+                  setGroupsDropdownOpen(false);
+                  if (vehiclesList.length === 0 && !vehiclesDropdownLoading) {
+                    setVehiclesDropdownLoading(true);
+                    try {
+                      await fetchVehicles();
+                    } finally {
+                      setVehiclesDropdownLoading(false);
+                    }
+                  }
+                }}
+                aria-label="Toggle vehicle list"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+              {vehiclesDropdownOpen && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow max-h-64 overflow-auto">
+                  {vehiclesDropdownLoading ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">Loading…</div>
+                  ) : filteredVehicles.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">No entries</div>
+                  ) : (
+                    filteredVehicles.map((v, idx) => (
+                      <button
+                        key={`${v.VehicleID}-${idx}`}
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0"
+                        onClick={() => {
+                          setVehicleInput(v.VehicleID);
+                          setVehiclesQuery(v.VehicleID);
+                          setVehiclesDropdownOpen(false);
+                        }}
+                      >
+                        <div className="text-sm font-medium">{v.VehicleID}</div>
+                        <div className="text-xs text-gray-500">{v.Description}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-2">
               <Checkbox
                 id="showAllTransportGroups"
                 checked={showAllSwitch}
-                onCheckedChange={(checked) => setShowAllSwitch(checked === true)}
+                onCheckedChange={(checked) => {
+                  const next = checked === true;
+                  setShowAllSwitch(next);
+                  if (next) setGroupsDropdownOpen(false);
+                }}
               />
               <label htmlFor="showAllTransportGroups" className="text-sm select-none cursor-pointer">
                 {trans.showAllTransports}
@@ -546,7 +672,11 @@ const TransportGroup = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={onConfirmSwitch}>
+            <Button
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+              disabled={!vehicleInput.trim() || (!showAllSwitch && !groupInput.trim())}
+              onClick={onConfirmSwitch}
+            >
               OK
             </Button>
           </DialogFooter>
