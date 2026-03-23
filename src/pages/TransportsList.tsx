@@ -301,8 +301,14 @@ const TransportsList = () => {
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between gap-3">
           <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu")} />
 
-          <div className="flex-1 font-bold text-lg text-center flex items-center justify-center gap-2">
-            <span className="uppercase">{trans.appTransports} ({items.length})</span>
+          <div className="flex-1 text-center flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/menu/transports")}
+              className="font-bold text-lg uppercase hover:opacity-80"
+            >
+              {trans.appTransports} ({items.length})
+            </button>
           </div>
 
           <Button

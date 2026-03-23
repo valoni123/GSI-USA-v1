@@ -260,8 +260,15 @@ const OutgoingPicking = () => {
           <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/outgoing")} />
 
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center">{trans.outgoingPicking}</div>
+            <button
+              type="button"
+              onClick={() => navigate("/menu/outgoing")}
+              className="font-bold text-lg tracking-wide text-center hover:opacity-80"
+            >
+              {trans.outgoingPicking}
+            </button>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
+
               <User className="h-4 w-4" />
               <span className="line-clamp-1">{fullName || ""}</span>
             </div>

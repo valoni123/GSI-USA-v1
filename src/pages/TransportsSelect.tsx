@@ -92,7 +92,15 @@ const TransportsSelect = () => {
           onPointerDownOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle>{trans.appTransports}</DialogTitle>
+            <DialogTitle>
+              <button
+                type="button"
+                onClick={() => navigate("/menu")}
+                className="font-semibold hover:opacity-80"
+              >
+                {trans.appTransports}
+              </button>
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 px-4 pb-4 pt-2 relative">

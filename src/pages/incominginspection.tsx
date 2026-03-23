@@ -399,8 +399,15 @@ const IncomingInspectionPage: React.FC = () => {
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
           <BackButton ariaLabel={trans.back} onClick={handleBack} />
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center">{trans.incomingWarehouseInspection.toUpperCase()}</div>
+            <button
+              type="button"
+              onClick={() => navigate("/menu/incoming")}
+              className="font-bold text-lg tracking-wide text-center hover:opacity-80"
+            >
+              {trans.incomingWarehouseInspection.toUpperCase()}
+            </button>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
+
               <User className="h-4 w-4" />
               <span className="line-clamp-1">{fullName || ""}</span>
             </div>

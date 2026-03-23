@@ -315,8 +315,18 @@ const TransportMenu = () => {
           />
 
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center">{trans.appTransport}</div>
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.removeItem("transport.selected");
+                navigate("/menu");
+              }}
+              className="font-bold text-lg tracking-wide text-center hover:opacity-80"
+            >
+              {trans.appTransport}
+            </button>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
+
               <User className="h-4 w-4" />
               <span className="line-clamp-1">{fullName || ""}</span>
             </div>

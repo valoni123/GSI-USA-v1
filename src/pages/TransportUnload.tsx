@@ -304,9 +304,16 @@ const TransportUnload = () => {
           <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/transport")} />
 
           <div className="flex flex-col items-center flex-1">
-            <div className="font-bold text-lg tracking-wide text-center flex items-center gap-2">
-              <span>{trans.transportUnload}</span>
+            <div className="text-center flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate("/menu/transport")}
+                className="font-bold text-lg tracking-wide hover:opacity-80"
+              >
+                {trans.transportUnload}
+              </button>
               <span className="bg-red-700 text-white rounded-md h-5 px-2 min-w-[20px] inline-flex items-center justify-center text-xs font-bold">
+
                 {loadedCount}
               </span>
             </div>
