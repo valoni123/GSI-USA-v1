@@ -226,6 +226,16 @@ const TransportGroup = () => {
   }, [group, locale]);
 
   const selectedVehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+  const getTransportTypeClasses = (transportType: string) => {
+    const normalized = (transportType || "").trim().toLowerCase();
+    if (normalized === "aisleout" || normalized === "aisle out") {
+      return "bg-yellow-100 text-yellow-900 border border-yellow-200";
+    }
+    if (normalized === "replenishment") {
+      return "bg-orange-100 text-orange-900 border border-orange-200";
+    }
+    return "bg-gray-100 text-gray-800 border border-gray-200";
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -325,10 +335,19 @@ const TransportGroup = () => {
                               className="grid grid-cols-10 gap-3 px-4 py-2 border-b text-sm"
                             >
                               <div className="break-all whitespace-nowrap">{it.TransportID || "-"}</div>
-                              <div className="break-all whitespace-nowrap">{it.TransportType || "-"}</div>
+                              <div className="break-all whitespace-nowrap">
+                                {it.TransportType ? (
+                                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getTransportTypeClasses(it.TransportType)}`}>
+                                    {it.TransportType}
+                                  </span>
+                                ) : (
+                                  "-"
+                                )}
+                              </div>
                               <div className="break-all whitespace-nowrap">{it.Item || "-"}</div>
                               <div className="break-all whitespace-nowrap">{it.HandlingUnit || "-"}</div>
                               <div className="break-all whitespace-nowrap">{it.Warehouse || "-"}</div>
+
                               <div className="break-all whitespace-nowrap">{it.LocationFrom || "-"}</div>
                               <div className="break-all whitespace-nowrap">{it.LocationTo || "-"}</div>
                               <div className="break-all whitespace-nowrap">
@@ -422,10 +441,19 @@ const TransportGroup = () => {
                         className="grid grid-cols-10 gap-3 px-4 py-2 border-b text-sm"
                       >
                         <div className="break-all whitespace-nowrap">{it.TransportID || "-"}</div>
-                        <div className="break-all whitespace-nowrap">{it.TransportType || "-"}</div>
+                        <div className="break-all whitespace-nowrap">
+                          {it.TransportType ? (
+                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getTransportTypeClasses(it.TransportType)}`}>
+                              {it.TransportType}
+                            </span>
+                          ) : (
+                            "-"
+                          )}
+                        </div>
                         <div className="break-all whitespace-nowrap">{it.Item || "-"}</div>
                         <div className="break-all whitespace-nowrap">{it.HandlingUnit || "-"}</div>
                         <div className="break-all whitespace-nowrap">{it.Warehouse || "-"}</div>
+
                         <div className="break-all whitespace-nowrap">{it.LocationFrom || "-"}</div>
                         <div className="break-all whitespace-nowrap">{it.LocationTo || "-"}</div>
                         <div className="break-all whitespace-nowrap">
