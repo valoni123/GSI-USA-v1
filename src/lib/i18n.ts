@@ -208,9 +208,10 @@ const translations: Translations = {
     startInspection: "Start Inspection",
     startInspectionTitle: "Start Inspection",
     startInspectionMessage: "Start Inspection for this Handling Unit?",
-    correctionSubmit: "Correct",
+    correctionSubmit: "Adjust",
     correctionReasonLabel: "Reason",
     correctionSelectReason: "Select reason",
+
     leInfoMove: "Move",
     leInfoPrintLabel: "Print Label",
     handlingUnitStockLabel: "HU Stock",
