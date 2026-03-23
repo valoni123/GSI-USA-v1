@@ -231,6 +231,9 @@ const TransportGroup = () => {
     if (normalized === "aisleout" || normalized === "aisle out") {
       return "bg-yellow-100 text-yellow-900 border border-yellow-200";
     }
+    if (normalized === "aislein" || normalized === "aisle in") {
+      return "bg-green-100 text-green-900 border border-green-200";
+    }
     if (normalized === "replenishment") {
       return "bg-orange-100 text-orange-900 border border-orange-200";
     }
