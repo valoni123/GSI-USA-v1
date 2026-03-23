@@ -469,7 +469,7 @@ const TransportLoad = () => {
     !detailsLoading &&
     vehicleEnabled &&
     vehicleId.trim().length > 0 &&
-    Boolean(resolvedLoadRef.current) &&
+    Boolean(result) &&
     resolvedRequestCode === handlingUnit.trim();
 
   const onLoadClick = async () => {
@@ -478,8 +478,19 @@ const TransportLoad = () => {
     lastLoadClickAtRef.current = now;
 
     if (processing || detailsLoading) return;
-    const currentResolved = resolvedLoadRef.current;
     const currentInput = handlingUnit.trim();
+    const currentResolved =
+      resolvedLoadRef.current ??
+      (result && resolvedRequestCode === currentInput
+        ? {
+            requestCode: resolvedRequestCode,
+            result,
+            etag,
+            quantity: huQuantity,
+            unit: huUnit,
+            matchType: (result.HandlingUnit || "").trim() ? "HU" as const : "ITEM" as const,
+          }
+        : null);
     if (!currentResolved || currentResolved.requestCode !== currentInput) {
       showError("Please wait until the current handling unit is fully resolved.");
       return;
