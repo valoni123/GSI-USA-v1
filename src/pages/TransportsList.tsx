@@ -128,15 +128,18 @@ const TransportsList = () => {
             {items.map((it, idx) => (
               <div
                 key={`${it.TransportID}-${it.HandlingUnit}-${idx}`}
-                className="rounded-xl border-2 border-gray-700 bg-white px-3 py-2 shadow-sm"
+                className="relative rounded-xl border-2 border-gray-700 bg-white px-3 pb-2 pt-4 shadow-sm"
               >
-                <div className="grid grid-cols-[78px_minmax(0,1fr)_minmax(0,1fr)] gap-3 items-center text-sm leading-5">
-                  <span className="font-semibold text-gray-700 whitespace-nowrap">{cleanValue(it.TransportID)}</span>
+                <span className="absolute -top-3 left-3 rounded-md bg-gray-100 px-2 py-0.5 text-sm font-semibold text-gray-700 border border-gray-300 leading-none">
+                  {cleanValue(it.TransportID)}
+                </span>
+
+                <div className="grid grid-cols-2 gap-3 items-center text-sm leading-5">
                   <div className="min-w-0 truncate text-gray-700">
                     <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
                     <span className="font-semibold text-gray-800">{cleanValue(it.Item)}</span>
                   </div>
-                  <div className="min-w-0 truncate text-gray-700">
+                  <div className="min-w-0 truncate text-gray-700 text-right">
                     <span className="text-gray-500">{huShortLabel}:</span>{" "}
                     <span className="font-semibold text-gray-800">{cleanValue(it.HandlingUnit)}</span>
                   </div>
@@ -147,7 +150,7 @@ const TransportsList = () => {
                     <span className="text-gray-500">{trans.fromLabel}:</span>{" "}
                     <span className="font-medium text-gray-800">{cleanValue(it.LocationFrom)}</span>
                   </div>
-                  <div className="min-w-0 truncate">
+                  <div className="min-w-0 truncate text-right">
                     <span className="text-gray-500">{trans.toLabel}:</span>{" "}
                     <span className="font-medium text-gray-800">{cleanValue(it.LocationTo)}</span>
                   </div>
