@@ -10,6 +10,7 @@ import { showSuccess } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
+import ScreenSpinner from "@/components/ScreenSpinner";
 
 const TransportGroup = () => {
   const { group } = useParams();
@@ -18,6 +19,7 @@ const TransportGroup = () => {
   const trans = useMemo(() => t(lang), [lang]);
 
   const [loading, setLoading] = useState(true);
+  const [switching, setSwitching] = useState(false);
   const [items, setItems] = useState<Array<{
     TransportID: string;
     TransportType: string;
@@ -57,7 +59,10 @@ const TransportGroup = () => {
     if (!vehicleId) {
       if (!silent) setError("Missing vehicle");
       setItems([]);
-      if (!silent) setLoading(false);
+      if (!silent) {
+        setLoading(false);
+        setSwitching(false);
+      }
       return;
     }
     const { data } = await supabase.functions.invoke("ln-transport-planning-list", {
@@ -71,7 +76,10 @@ const TransportGroup = () => {
     } else {
       if (!silent) setError((data && (data.error?.message || data.error)) || "Failed to load");
     }
-    if (!silent) setLoading(false);
+    if (!silent) {
+      setLoading(false);
+      setSwitching(false);
+    }
   };
 
   const loadGroupDescriptions = async () => {
@@ -150,19 +158,31 @@ const TransportGroup = () => {
       setVehiclesList([]);
     }
   };
-  const onConfirmSwitch = () => {
+  const onConfirmSwitch = async () => {
     const selectedVehicle = vehicleInput.trim();
     if (!selectedVehicle) return;
     localStorage.setItem("vehicle.id", selectedVehicle);
-    if (showAllSwitch) {
-      setSwitchOpen(false);
-      navigate(`/transportgroup/ALL`);
+
+    const targetGroup = showAllSwitch ? "ALL" : groupInput.trim();
+    if (!targetGroup) return;
+
+    setSwitchOpen(false);
+    setError(null);
+    setItems([]);
+    setPage(1);
+    setGroupPages({});
+    setLoading(true);
+    setSwitching(true);
+
+    const currentGroup = ((group || "").toString() || "").trim().toUpperCase();
+    const nextGroup = targetGroup.trim().toUpperCase();
+
+    if (currentGroup === nextGroup) {
+      await loadPlannings(false);
       return;
     }
-    const val = groupInput.trim();
-    if (!val) return;
-    setSwitchOpen(false);
-    navigate(`/transportgroup/${encodeURIComponent(val)}`);
+
+    navigate(`/transportgroup/${encodeURIComponent(targetGroup)}`);
   };
 
   const grouped = useMemo(() => {
@@ -207,6 +227,7 @@ const TransportGroup = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {switching && <ScreenSpinner message={trans.pleaseWait} />}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between">
           <div className="font-bold text-lg">
