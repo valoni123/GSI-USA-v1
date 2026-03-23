@@ -837,6 +837,27 @@ const TransportLoad = () => {
             }}
             readOnly={openedFromTransportsList}
           />
+
+          {openedFromTransportsList && result && (
+            <FloatingLabelInput
+              id="confirmHandlingUnit"
+              label="Handling Unit"
+              ref={confirmHuRef}
+              value={confirmHandlingUnit}
+              disabled={processing}
+              className="border-2 border-red-500 animate-pulse"
+              onChange={(e) => setConfirmHandlingUnit(e.target.value)}
+              onBlur={() => {
+                void handleConfirmHandlingUnit();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleConfirmHandlingUnit();
+                }
+              }}
+            />
+          )}
           {/* Red result area */}
           <div className="mt-2 rounded-md min-h-28 p-3">
             {detailsLoading ? (
@@ -866,26 +887,6 @@ const TransportLoad = () => {
               <div className="text-muted-foreground text-sm"> </div>
             )}
           </div>
-
-          {openedFromTransportsList && result && (
-            <FloatingLabelInput
-              id="confirmHandlingUnit"
-              label="Handling Unit"
-              ref={confirmHuRef}
-              value={confirmHandlingUnit}
-              disabled={processing}
-              onChange={(e) => setConfirmHandlingUnit(e.target.value)}
-              onBlur={() => {
-                void handleConfirmHandlingUnit();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void handleConfirmHandlingUnit();
-                }
-              }}
-            />
-          )}
         </Card>
       </div>
 
