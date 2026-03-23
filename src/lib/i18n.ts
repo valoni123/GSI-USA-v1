@@ -215,8 +215,9 @@ const translations: Translations = {
     handlingUnitStockLabel: "HU Stock",
     infoStockArticle: "Item",
     infoStockLEInfo: "HU-Info",
-    infoStockCorrection: "Correction",
+    infoStockCorrection: "Adjustment",
     infoStockTransfer: "Transfer",
+
     infoStockInventoryPos: "Inventory (Pos.)",
     infoStockInventory: "Inventory",
     infoStockPersonalInventory: "Personal Inventory",
