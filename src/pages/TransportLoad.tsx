@@ -486,7 +486,15 @@ const TransportLoad = () => {
   const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
 
-  const scanMatchesTopValue = confirmHandlingUnit.trim() !== "" && confirmHandlingUnit.trim() === handlingUnit.trim();
+  const sourceFlowIsItemOnly = openedFromTransportsList && result !== null && !(result?.HandlingUnit || "").trim();
+  const expectedConfirmValue = openedFromTransportsList
+    ? ((result?.HandlingUnit || "").trim() || (result?.LocationFrom || "").trim())
+    : "";
+  const confirmLabel = sourceFlowIsItemOnly ? trans.locationFromLabel : "Handling Unit";
+  const scanMatchesTopValue =
+    confirmHandlingUnit.trim() !== "" &&
+    expectedConfirmValue !== "" &&
+    confirmHandlingUnit.trim() === expectedConfirmValue;
 
   const canLoad =
     !detailsLoading &&
@@ -687,11 +695,10 @@ const TransportLoad = () => {
     if (!openedFromTransportsList) return;
     if (processing || detailsLoading) return;
 
-    const expected = handlingUnit.trim();
     const scanned = confirmHandlingUnit.trim();
     if (!scanned) return;
-    if (scanned !== expected) {
-      showError("Scanned Handling Unit does not match");
+    if (scanned !== expectedConfirmValue) {
+      showError(sourceFlowIsItemOnly ? "Scanned Location From does not match" : "Scanned Handling Unit does not match");
       setConfirmHandlingUnit("");
       setTimeout(() => confirmHuRef.current?.focus(), 50);
       return;
@@ -781,7 +788,7 @@ const TransportLoad = () => {
             }}
             readOnly={openedFromTransportsList}
           />
-          {locationRequired && (
+          {!openedFromTransportsList && locationRequired && (
             <FloatingLabelInput
               id="scanLocation"
               label={`${trans.locationFromLabel} *`}
@@ -822,6 +829,7 @@ const TransportLoad = () => {
               }}
             />
           )}
+
           <FloatingLabelInput
             id="vehicleId"
             label={trans.loadVehicleId}
@@ -838,10 +846,19 @@ const TransportLoad = () => {
             readOnly={openedFromTransportsList}
           />
 
+          {openedFromTransportsList && sourceFlowIsItemOnly && (
+            <FloatingLabelInput
+              id="sourceLocationFrom"
+              label={trans.locationFromLabel}
+              value={result?.LocationFrom || ""}
+              readOnly
+            />
+          )}
+
           {openedFromTransportsList && result && (
             <FloatingLabelInput
               id="confirmHandlingUnit"
-              label="Handling Unit"
+              label={confirmLabel}
               ref={confirmHuRef}
               value={confirmHandlingUnit}
               disabled={processing}
