@@ -302,10 +302,7 @@ const TransportsList = () => {
           <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu")} />
 
           <div className="flex-1 font-bold text-lg text-center flex items-center justify-center gap-2">
-            <span className="uppercase">{trans.appTransports}</span>
-            <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-md bg-red-700 px-2 text-xs font-bold text-white leading-none">
-              {items.length}
-            </span>
+            <span className="uppercase">{trans.appTransports} ({items.length})</span>
           </div>
 
           <Button
