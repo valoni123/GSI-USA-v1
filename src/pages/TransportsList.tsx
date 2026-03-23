@@ -136,33 +136,32 @@ const TransportsList = () => {
             {items.map((it, idx) => (
               <div
                 key={`${it.TransportID}-${it.HandlingUnit}-${idx}`}
-                className="rounded-xl border-2 border-gray-700 bg-white px-3 py-3 shadow-sm"
+                className="rounded-xl border-2 border-gray-700 bg-white px-3 py-2 shadow-sm"
               >
-                <div className="flex items-center gap-3">
-                  <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-medium ${getTransportTypeClasses(it.TransportType)}`}>
+                <div className="flex items-center gap-3 text-sm leading-5">
+                  <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-medium ${getTransportTypeClasses(it.TransportType)}`}>
                     {cleanValue(it.TransportType)}
                   </span>
-                  <span className="text-sm font-semibold text-gray-700">{cleanValue(it.TransportID)}</span>
+                  <span className="font-semibold text-gray-700 whitespace-nowrap">{cleanValue(it.TransportID)}</span>
+                  <div className="min-w-0 text-gray-700 truncate">
+                    <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
+                    <span className="font-semibold text-gray-800">{cleanValue(it.Item)}</span>
+                  </div>
                 </div>
 
-                <div className="mt-3 text-sm text-gray-700">
-                  <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
-                  <span className="font-semibold text-gray-800">{cleanValue(it.Item)}</span>
-                </div>
-
-                <div className="mt-2 text-sm text-gray-700">
+                <div className="mt-1 text-sm leading-5 text-gray-700 truncate">
                   <span className="text-gray-500">{trans.loadHandlingUnit}:</span>{" "}
                   <span className="font-semibold text-gray-800">{cleanValue(it.HandlingUnit)}</span>
                 </div>
 
-                <div className="mt-2 grid grid-cols-2 gap-3 text-sm text-gray-700">
-                  <div className="min-w-0">
-                    <span className="text-gray-500">{trans.locationFromLabel}:</span>{" "}
-                    <span className="font-medium text-gray-800 break-all">{cleanValue(it.LocationFrom)}</span>
+                <div className="mt-1 grid grid-cols-2 gap-3 text-sm leading-5 text-gray-700">
+                  <div className="min-w-0 truncate">
+                    <span className="text-gray-500">{trans.fromLabel}:</span>{" "}
+                    <span className="font-medium text-gray-800">{cleanValue(it.LocationFrom)}</span>
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-gray-500">{trans.locationToLabel}:</span>{" "}
-                    <span className="font-medium text-gray-800 break-all">{cleanValue(it.LocationTo)}</span>
+                  <div className="min-w-0 truncate">
+                    <span className="text-gray-500">{trans.toLabel}:</span>{" "}
+                    <span className="font-medium text-gray-800">{cleanValue(it.LocationTo)}</span>
                   </div>
                 </div>
               </div>
