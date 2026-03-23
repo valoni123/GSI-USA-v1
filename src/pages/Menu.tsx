@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Package, Box, Settings } from "lucide-react";
+import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Package, Box, Settings, Forklift } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -35,11 +35,11 @@ function Menu() {
     { key: "infoStock", label: trans.appInfoStock, icon: <Warehouse className="h-10 w-10 text-red-700" /> },
     { key: "containers", label: trans.appContainers, icon: <Box className="h-10 w-10 text-red-700" /> },
     { key: "transport", label: trans.appTransport, icon: <Package className="h-10 w-10 text-red-700" /> },
+    { key: "transports", label: trans.appTransports, icon: <Forklift className="h-10 w-10 text-red-700" /> },
     { key: "settings", label: trans.appSettings, icon: <Settings className="h-10 w-10 text-red-700" /> },
   ];
 
   const onConfirmSignOut = () => {
-    // Clear local session data
     try {
       localStorage.removeItem("ln.token");
       localStorage.removeItem("gsi.id");
@@ -52,7 +52,6 @@ function Menu() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top bar */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
           <div className="flex flex-col">
@@ -74,7 +73,6 @@ function Menu() {
         </div>
       </div>
 
-      {/* Grid of app tiles */}
       <div className="mx-auto max-w-md px-4 py-6 grid grid-cols-2 gap-4">
         {apps.map((app) => (
           <Card
@@ -91,11 +89,12 @@ function Menu() {
                 navigate("/menu/info-stock");
               }
               if (app.key === "transport") {
-                // Mark that we're entering Transport from the main menu and force dialog to open
                 sessionStorage.setItem("transport.fromMain", "1");
-                // Clear previous in-transport selection so user confirms Vehicle-ID again
                 sessionStorage.removeItem("transport.selected");
                 navigate("/menu/transport");
+              }
+              if (app.key === "transports") {
+                navigate("/menu/transports");
               }
             }}
           >
@@ -107,7 +106,6 @@ function Menu() {
         ))}
       </div>
 
-      {/* Sign-out confirmation dialog */}
       <SignOutConfirm
         open={signOutOpen}
         onOpenChange={setSignOutOpen}

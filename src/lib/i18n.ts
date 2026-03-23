@@ -33,7 +33,9 @@ type TranslationKeys =
   | "appInfoStock"
   | "appContainers"
   | "appTransport"
+  | "appTransports"
   | "appSettings"
+
   | "back"
   | "outgoingPicking"
   | "outgoingRelease"
@@ -176,7 +178,9 @@ const translations: Translations = {
     appInfoStock: "Info / Stock",
     appContainers: "Containers",
     appTransport: "Transport",
+    appTransports: "Transports",
     appSettings: "Settings",
+
     back: "Back",
     outgoingPicking: "Picking",
     outgoingRelease: "Release",
@@ -316,7 +320,9 @@ const translations: Translations = {
     appInfoStock: "Info / Bestand",
     appContainers: "Behälter",
     appTransport: "Transport",
+    appTransports: "Transporte",
     appSettings: "Einstellungen",
+
     back: "Zurück",
     outgoingPicking: "Kommissionierung",
     outgoingRelease: "Freigeben",
@@ -456,7 +462,9 @@ const translations: Translations = {
     appInfoStock: "Info / Inventario",
     appContainers: "Contenedores",
     appTransport: "Transporte",
+    appTransports: "Transportes",
     appSettings: "Configuración",
+
     back: "Atrás",
     outgoingPicking: "Preparación",
     outgoingRelease: "Liberar",
@@ -596,7 +604,9 @@ const translations: Translations = {
     appInfoStock: "Info / Estoque",
     appContainers: "Contêineres",
     appTransport: "Transporte",
+    appTransports: "Transportes",
     appSettings: "Configurações",
+
     back: "Voltar",
     outgoingPicking: "Separação",
     outgoingRelease: "Liberar",
