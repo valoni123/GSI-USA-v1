@@ -82,6 +82,7 @@ const TransportsList = () => {
 
     localStorage.setItem("vehicle.id", selectedVehicleId);
     sessionStorage.setItem("transport.load.prefill", prefillValue);
+    sessionStorage.setItem("transport.load.source", "transports-list");
     sessionStorage.setItem("transport.selected", "1");
     sessionStorage.removeItem("transport.fromMain");
     setSelecting(true);

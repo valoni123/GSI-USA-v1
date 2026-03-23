@@ -107,6 +107,16 @@ const TransportLoad = () => {
     return "en-US";
   }, [lang]);
   const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
+  const openedFromTransportsList = sessionStorage.getItem("transport.load.source") === "transports-list";
+
+  const goBackFromLoad = () => {
+    if (openedFromTransportsList) {
+      sessionStorage.removeItem("transport.load.source");
+      navigate("/menu/transports/list");
+      return;
+    }
+    navigate("/menu/transport");
+  };
 
   const clearResolvedLoad = () => {
     lookupRequestIdRef.current += 1;
@@ -630,6 +640,12 @@ const TransportLoad = () => {
       await fetchCount(selectedVehicle);
     }
     setProcessing(false);
+
+    if (openedFromTransportsList) {
+      sessionStorage.removeItem("transport.load.source");
+      navigate("/menu/transports/list");
+      return;
+    }
   };
 
   return (
@@ -637,7 +653,7 @@ const TransportLoad = () => {
       {/* Top bar */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/transport")} />
+          <BackButton ariaLabel={trans.back} onClick={goBackFromLoad} />
 
           <div className="flex flex-col items-center flex-1">
             <div className="font-bold text-lg tracking-wide text-center flex items-center gap-2 relative">
