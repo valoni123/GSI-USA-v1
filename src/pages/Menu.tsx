@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Box, Package, Settings, Forklift } from "lucide-react";
+import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Package, Box, Settings } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -35,11 +35,11 @@ function Menu() {
     { key: "infoStock", label: trans.appInfoStock, icon: <Warehouse className="h-10 w-10 text-red-700" /> },
     { key: "containers", label: trans.appContainers, icon: <Box className="h-10 w-10 text-red-700" /> },
     { key: "transport", label: trans.appTransport, icon: <Package className="h-10 w-10 text-red-700" /> },
-    { key: "transportWorkload", label: trans.appTransportWorkload, icon: <Forklift className="h-10 w-10 text-red-700" /> },
     { key: "settings", label: trans.appSettings, icon: <Settings className="h-10 w-10 text-red-700" /> },
   ];
 
   const onConfirmSignOut = () => {
+    // Clear local session data
     try {
       localStorage.removeItem("ln.token");
       localStorage.removeItem("gsi.id");
@@ -91,12 +91,11 @@ function Menu() {
                 navigate("/menu/info-stock");
               }
               if (app.key === "transport") {
+                // Mark that we're entering Transport from the main menu and force dialog to open
                 sessionStorage.setItem("transport.fromMain", "1");
+                // Clear previous in-transport selection so user confirms Vehicle-ID again
                 sessionStorage.removeItem("transport.selected");
                 navigate("/menu/transport");
-              }
-              if (app.key === "transportWorkload") {
-                navigate("/transport/select");
               }
             }}
           >
