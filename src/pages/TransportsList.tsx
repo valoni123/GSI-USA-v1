@@ -24,6 +24,12 @@ const TransportsList = () => {
     if (lang === "pt-BR") return "pt-BR";
     return "en-US";
   }, [lang]);
+  const huShortLabel = useMemo(() => {
+    if (lang === "de") return "LE";
+    if (lang === "es-MX") return "UH";
+    if (lang === "pt-BR") return "UM";
+    return "HU";
+  }, [lang]);
 
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<Array<{
@@ -38,20 +44,6 @@ const TransportsList = () => {
   const [signOutOpen, setSignOutOpen] = useState(false);
 
   const selectedVehicleId = (localStorage.getItem("transports.vehicle.id") || localStorage.getItem("vehicle.id") || "").trim();
-
-  const getTransportTypeClasses = (transportType: string) => {
-    const normalized = (transportType || "").trim().toLowerCase();
-    if (normalized === "aisleout" || normalized === "aisle out") {
-      return "bg-yellow-100 text-yellow-900 border border-yellow-200";
-    }
-    if (normalized === "aislein" || normalized === "aisle in") {
-      return "bg-green-100 text-green-900 border border-green-200";
-    }
-    if (normalized === "replenishment") {
-      return "bg-orange-100 text-orange-900 border border-orange-200";
-    }
-    return "bg-gray-100 text-gray-800 border border-gray-200";
-  };
 
   const loadItems = async () => {
     setLoading(true);
@@ -138,17 +130,16 @@ const TransportsList = () => {
                 key={`${it.TransportID}-${it.HandlingUnit}-${idx}`}
                 className="rounded-xl border-2 border-gray-700 bg-white px-3 py-2 shadow-sm"
               >
-                <div className="flex items-center gap-3 text-sm leading-5">
+                <div className="grid grid-cols-[78px_minmax(0,1fr)_minmax(0,1fr)] gap-3 items-center text-sm leading-5">
                   <span className="font-semibold text-gray-700 whitespace-nowrap">{cleanValue(it.TransportID)}</span>
-                  <div className="min-w-0 text-gray-700 truncate">
+                  <div className="min-w-0 truncate text-gray-700">
                     <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
                     <span className="font-semibold text-gray-800">{cleanValue(it.Item)}</span>
                   </div>
-                </div>
-
-                <div className="mt-1 text-sm leading-5 text-gray-700 truncate">
-                  <span className="text-gray-500">{trans.loadHandlingUnit}:</span>{" "}
-                  <span className="font-semibold text-gray-800">{cleanValue(it.HandlingUnit)}</span>
+                  <div className="min-w-0 truncate text-gray-700">
+                    <span className="text-gray-500">{huShortLabel}:</span>{" "}
+                    <span className="font-semibold text-gray-800">{cleanValue(it.HandlingUnit)}</span>
+                  </div>
                 </div>
 
                 <div className="mt-1 grid grid-cols-2 gap-3 text-sm leading-5 text-gray-700">
