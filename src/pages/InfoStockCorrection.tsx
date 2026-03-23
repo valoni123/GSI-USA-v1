@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { LogOut, Search, User, CheckSquare, Square, MinusCircle, PlusCircle } from "lucide-react";
 import LocationPickerDialog from "@/components/LocationPickerDialog";
 import ScreenSpinner from "@/components/ScreenSpinner";
@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const InfoStockCorrection = () => {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
 
   const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
@@ -412,10 +413,10 @@ const InfoStockCorrection = () => {
     return !!(baseOk && qtyOk && unitOk && qtyChanged && reasonOk) && !searching && !transferring;
   }, [showDetails, lastMatchType, warehouse, location, quantity, submitQuantity, unit, reason, searching, transferring, status]);
 
-  const handleSearch = async (_withLoading = false) => {
-    const input = query.trim();
+  const handleSearch = async (_withLoading = false, overrideQuery?: string) => {
+    const input = (overrideQuery ?? query).trim();
     if (!input) return;
-    if (lastSearched === input) return;
+    if (!overrideQuery && lastSearched === input) return;
 
     setSearching(true);
 
@@ -478,6 +479,17 @@ const InfoStockCorrection = () => {
     showError(trans.noEntries);
     setSearching(false);
   };
+
+  useEffect(() => {
+    const initialHu = (routerLocation.state as any)?.initialHandlingUnit;
+    if (typeof initialHu !== "string") return;
+    const value = initialHu.trim();
+    if (!value || query.trim()) return;
+    setQuery(value);
+    setLastSearched(null);
+    void handleSearch(true, value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Open and load warehouses for current item (picker)
   const openWarehousePicker = async () => {
@@ -660,12 +672,21 @@ const InfoStockCorrection = () => {
     }
   };
 
+  const handleBack = () => {
+    const returnTo = (routerLocation.state as any)?.returnTo;
+    if (returnTo?.path) {
+      navigate(returnTo.path, { state: returnTo.state });
+      return;
+    }
+    navigate("/menu/info-stock");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/info-stock")} />
+          <BackButton ariaLabel={trans.back} onClick={handleBack} />
 
           <div className="flex flex-col items-center flex-1">
             <div className="font-bold text-lg tracking-wide text-center">{trans.infoStockCorrection.toUpperCase()}</div>

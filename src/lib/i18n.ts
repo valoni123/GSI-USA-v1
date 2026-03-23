@@ -94,6 +94,7 @@ type TranslationKeys =
   | "selectLabel"
   | "loadAction"
   | "unloadAction"
+  | "adjustAction"
   | "quantityLabel"
   | "fromLabel"
   | "toLabel"
@@ -243,6 +244,7 @@ const translations: Translations = {
     selectLabel: "Select",
     loadAction: "Load",
     unloadAction: "Unload",
+    adjustAction: "Adjust",
     quantityLabel: "Quantity",
     fromLabel: "From",
     toLabel: "To",
@@ -388,6 +390,7 @@ const translations: Translations = {
     selectLabel: "Auswählen",
     loadAction: "LADEN",
     unloadAction: "ENTLADEN",
+    adjustAction: "Anpassen",
     quantityLabel: "Menge",
     fromLabel: "Von",
     toLabel: "Nach",
@@ -533,6 +536,7 @@ const translations: Translations = {
     selectLabel: "Seleccionar",
     loadAction: "Cargar",
     unloadAction: "Descargar",
+    adjustAction: "Ajustar",
     quantityLabel: "Cantidad",
     fromLabel: "Desde",
     toLabel: "Hasta",
@@ -678,6 +682,7 @@ const translations: Translations = {
     selectLabel: "Selecionar",
     loadAction: "Carregar",
     unloadAction: "Descarregar",
+    adjustAction: "Ajustar",
     quantityLabel: "Quantidade",
     fromLabel: "De",
     toLabel: "Para",

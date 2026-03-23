@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, User, Search, ClipboardCheck, ArrowRightLeft, Printer } from "lucide-react";
+import { LogOut, User, Search, ClipboardCheck, ArrowRightLeft, Printer, Eraser } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -234,6 +234,23 @@ const InfoStockLEInfo = () => {
     const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
     if (!hu) return;
     navigate("/menu/info-stock/transfer", {
+      state: {
+        initialHandlingUnit: hu,
+        returnTo: {
+          path: "/menu/info-stock/le-info",
+          state: {
+            initialHandlingUnit: hu,
+            returnTo: (routerLocation.state as any)?.returnTo,
+          },
+        },
+      },
+    });
+  };
+
+  const handleAdjust = () => {
+    const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
+    if (!hu) return;
+    navigate("/menu/info-stock/correction", {
       state: {
         initialHandlingUnit: hu,
         returnTo: {
@@ -489,7 +506,7 @@ const InfoStockLEInfo = () => {
           <button
             type="button"
             onClick={handleMove}
-            className="flex items-center justify-center gap-2 h-10 px-4 w-36 rounded-md shadow-lg text-sm font-semibold"
+            className="flex items-center justify-center gap-2 h-8 px-3 w-28 rounded-md shadow-lg text-xs font-semibold"
             style={{ backgroundColor: "#78d8a3", color: "#000000" }}
           >
             <ArrowRightLeft className="h-4 w-4" />
@@ -497,8 +514,17 @@ const InfoStockLEInfo = () => {
           </button>
           <button
             type="button"
+            onClick={handleAdjust}
+            className="flex items-center justify-center gap-2 h-8 px-3 w-28 rounded-md shadow-lg text-xs font-semibold"
+            style={{ backgroundColor: "#fdba74", color: "#000000" }}
+          >
+            <Eraser className="h-4 w-4" />
+            <span>{trans.adjustAction}</span>
+          </button>
+          <button
+            type="button"
             onClick={handlePrintLabel}
-            className="flex items-center justify-center gap-2 h-10 px-4 w-36 rounded-md shadow-lg text-sm font-semibold"
+            className="flex items-center justify-center gap-2 h-8 px-3 w-28 rounded-md shadow-lg text-xs font-semibold"
             style={{ backgroundColor: "#3f3f46", color: "#ffffff" }}
           >
             <Printer className="h-4 w-4" />
