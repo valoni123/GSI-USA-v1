@@ -53,9 +53,17 @@ const TransportGroup = () => {
     }
     const pg = (group || "").toString();
     const showAll = pg.toUpperCase() === "ALL";
+    const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+    if (!vehicleId) {
+      if (!silent) setError("Missing vehicle");
+      setItems([]);
+      if (!silent) setLoading(false);
+      return;
+    }
     const { data } = await supabase.functions.invoke("ln-transport-planning-list", {
-      body: { planningGroup: showAll ? "" : pg, showAll, language: locale },
+      body: { planningGroup: showAll ? "" : pg, vehicleId, showAll, language: locale },
     });
+
     if (data && data.ok) {
       setItems(data.items || []);
       setPage(1);

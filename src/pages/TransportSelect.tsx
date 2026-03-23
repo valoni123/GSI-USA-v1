@@ -9,7 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { Checkbox } from "@/components/ui/checkbox";
 
-type Item = { PlanningGroupTransport: string; Description: string };
+type GroupItem = { PlanningGroupTransport: string; Description: string };
+type VehicleItem = { VehicleID: string; Description: string };
 
 const TransportSelect = () => {
   const navigate = useNavigate();
@@ -18,19 +19,40 @@ const TransportSelect = () => {
 
   const [open, setOpen] = useState(true);
   const [group, setGroup] = useState("");
-  const [items, setItems] = useState<Item[]>([]);
-  const [query, setQuery] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [dropdownLoading, setDropdownLoading] = useState(false);
+  const [groupItems, setGroupItems] = useState<GroupItem[]>([]);
+  const [groupQuery, setGroupQuery] = useState("");
+  const [groupDropdownOpen, setGroupDropdownOpen] = useState(false);
+  const [groupDropdownLoading, setGroupDropdownLoading] = useState(false);
   const [showAll, setShowAll] = useState<boolean>(false);
 
+  const [vehicleId, setVehicleId] = useState("");
+  const [vehicleItems, setVehicleItems] = useState<VehicleItem[]>([]);
+  const [vehicleQuery, setVehicleQuery] = useState("");
+  const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false);
+  const [vehicleDropdownLoading, setVehicleDropdownLoading] = useState(false);
+
   useEffect(() => {
-    // ensure dialog opens on entry
     setOpen(true);
   }, []);
 
-  const filtered = items.filter((it) => {
-    const q = query.trim().toLowerCase();
+  useEffect(() => {
+    (async () => {
+      const gsiId = localStorage.getItem("gsi.id") || undefined;
+      const username = localStorage.getItem("gsi.username") || undefined;
+      const { data } = await supabase.functions.invoke("gsi-get-vehicle-id", {
+        body: { gsi_id: gsiId, username },
+      });
+      if (data && data.ok && typeof data.vehicleId === "string" && data.vehicleId) {
+        setVehicleId(data.vehicleId);
+        return;
+      }
+      const stored = (localStorage.getItem("vehicle.id") || "").trim();
+      if (stored) setVehicleId(stored);
+    })();
+  }, []);
+
+  const filteredGroups = groupItems.filter((it) => {
+    const q = groupQuery.trim().toLowerCase();
     if (!q) return true;
     return (
       it.PlanningGroupTransport.toLowerCase().includes(q) ||
@@ -38,23 +60,46 @@ const TransportSelect = () => {
     );
   });
 
+  const filteredVehicles = vehicleItems.filter((it) => {
+    const q = vehicleQuery.trim().toLowerCase();
+    if (!q) return true;
+    return it.VehicleID.toLowerCase().includes(q) || (it.Description || "").toLowerCase().includes(q);
+  });
+
   const fetchGroups = async () => {
     const { data } = await supabase.functions.invoke("ln-transport-groups-list", {
       body: { language: "en-US", company: "1100" },
     });
     if (data && data.ok) {
-      setItems((data.items || []) as Item[]);
-      setQuery("");
+      setGroupItems((data.items || []) as GroupItem[]);
+      setGroupQuery("");
     } else {
-      setItems([]);
+      setGroupItems([]);
+    }
+  };
+
+  const fetchVehicles = async () => {
+    const { data } = await supabase.functions.invoke("ln-vehicles-list", {
+      body: { language: "en-US", company: "1100" },
+    });
+    if (data && data.ok) {
+      setVehicleItems((data.items || []) as VehicleItem[]);
+      setVehicleQuery("");
+    } else {
+      setVehicleItems([]);
     }
   };
 
   const onConfirm = () => {
+    const vid = vehicleId.trim();
+    if (!vid) return;
+    localStorage.setItem("vehicle.id", vid);
+
     if (showAll) {
       navigate(`/transportgroup/ALL`);
       return;
     }
+
     const val = group.trim();
     if (!val) return;
     navigate(`/transportgroup/${encodeURIComponent(val)}`);
@@ -77,37 +122,147 @@ const TransportSelect = () => {
           <DialogHeader>
             <DialogTitle>{trans.planningGroupTransport}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 px-4 pb-4 pt-2 relative">
-            <FloatingLabelInput
-              id="planningGroup"
-              label={trans.planningGroupTransport}
-              value={group}
-              onChange={(e) => setGroup(e.target.value)}
-              autoFocus
-              className="pr-12"
-              disabled={showAll}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={`absolute right-6 top-2 text-gray-700 hover:text-gray-900 h-8 w-8 flex items-center justify-center ${showAll ? "pointer-events-none opacity-40" : ""}`}
-              aria-label="Search groups"
-              onClick={async () => {
-                if (showAll) return;
-                if (!dropdownOpen) {
-                  setDropdownOpen(true);
-                  setDropdownLoading(true);
-                  fetchGroups().finally(() => setDropdownLoading(false));
-                } else {
-                  setDropdownOpen(false);
-                }
-              }}
-            >
-              <Search className="h-6 w-6" />
-            </Button>
 
-            {/* SHOW ALL TRANSPORTS checkbox */}
+          <div className="space-y-4 px-4 pb-4 pt-2 relative">
+            <div className="relative">
+              <FloatingLabelInput
+                id="planningGroup"
+                label={trans.planningGroupTransport}
+                value={group}
+                onChange={(e) => {
+                  setGroup(e.target.value);
+                  setGroupQuery(e.target.value);
+                }}
+                autoFocus
+                className="pr-12"
+                disabled={showAll}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={`absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 text-gray-700 hover:text-gray-900 ${showAll ? "pointer-events-none opacity-40" : ""}`}
+                aria-label="Search groups"
+                onClick={async () => {
+                  if (showAll) return;
+                  if (!groupDropdownOpen) {
+                    setGroupDropdownOpen(true);
+                    setVehicleDropdownOpen(false);
+                    setGroupDropdownLoading(true);
+                    await fetchGroups();
+                    setGroupDropdownLoading(false);
+                  } else {
+                    setGroupDropdownOpen(false);
+                  }
+                }}
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+
+              {groupDropdownOpen && !showAll && (
+                <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-2 z-50">
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Search planning group..."
+                      value={groupQuery}
+                      onChange={(e) => setGroupQuery(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                    <div className="max-h-56 overflow-auto space-y-1">
+                      {groupDropdownLoading ? (
+                        <div className="text-xs text-muted-foreground px-1">Loading…</div>
+                      ) : filteredGroups.length === 0 ? (
+                        <div className="text-xs text-muted-foreground px-1">No groups</div>
+                      ) : (
+                        filteredGroups.map((v, idx) => (
+                          <button
+                            key={`${v.PlanningGroupTransport}-${idx}`}
+                            type="button"
+                            className="w-full text-left px-2 py-1 rounded hover:bg-gray-100"
+                            onClick={() => {
+                              setGroup(v.PlanningGroupTransport);
+                              setGroupDropdownOpen(false);
+                            }}
+                          >
+                            <div className="text-sm font-medium">{v.PlanningGroupTransport}</div>
+                            <div className="text-xs text-gray-600">{v.Description}</div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <FloatingLabelInput
+                id="vehicleId"
+                label={trans.loadVehicleId}
+                value={vehicleId}
+                onChange={(e) => {
+                  setVehicleId(e.target.value);
+                  setVehicleQuery(e.target.value);
+                }}
+                className="pr-12"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 text-gray-700 hover:text-gray-900"
+                aria-label="Search vehicles"
+                onClick={async () => {
+                  if (!vehicleDropdownOpen) {
+                    setVehicleDropdownOpen(true);
+                    setGroupDropdownOpen(false);
+                    setVehicleDropdownLoading(true);
+                    await fetchVehicles();
+                    setVehicleDropdownLoading(false);
+                  } else {
+                    setVehicleDropdownOpen(false);
+                  }
+                }}
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+
+              {vehicleDropdownOpen && (
+                <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-2 z-50">
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Search vehicle..."
+                      value={vehicleQuery}
+                      onChange={(e) => setVehicleQuery(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                    <div className="max-h-56 overflow-auto space-y-1">
+                      {vehicleDropdownLoading ? (
+                        <div className="text-xs text-muted-foreground px-1">Loading…</div>
+                      ) : filteredVehicles.length === 0 ? (
+                        <div className="text-xs text-muted-foreground px-1">No vehicles</div>
+                      ) : (
+                        filteredVehicles.map((v, idx) => (
+                          <button
+                            key={`${v.VehicleID}-${idx}`}
+                            type="button"
+                            className="w-full text-left px-2 py-1 rounded hover:bg-gray-100"
+                            onClick={() => {
+                              setVehicleId(v.VehicleID);
+                              setVehicleDropdownOpen(false);
+                            }}
+                          >
+                            <div className="text-sm font-medium">{v.VehicleID}</div>
+                            <div className="text-xs text-gray-600">{v.Description}</div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-3 mt-1">
               <Checkbox
                 id="showAllTransports"
@@ -115,56 +270,20 @@ const TransportSelect = () => {
                 onCheckedChange={(val) => {
                   const next = Boolean(val);
                   setShowAll(next);
-                  if (next) {
-                    setDropdownOpen(false);
-                  }
+                  if (next) setGroupDropdownOpen(false);
                 }}
               />
               <label htmlFor="showAllTransports" className="text-sm text-gray-800">
                 {trans.showAllTransports}
               </label>
             </div>
-
-            {dropdownOpen && !showAll && (
-              <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-2 z-50">
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Search…"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                  <div className="max-h-56 overflow-auto space-y-1">
-                    {dropdownLoading ? (
-                      <div className="text-xs text-muted-foreground px-1">Loading…</div>
-                    ) : filtered.length === 0 ? (
-                      <div className="text-xs text-muted-foreground px-1">No groups</div>
-                    ) : (
-                      filtered.map((v, idx) => (
-                        <button
-                          key={`${v.PlanningGroupTransport}-${idx}`}
-                          type="button"
-                          className="w-full text-left px-2 py-1 rounded hover:bg-gray-100"
-                          onClick={() => {
-                            setGroup(v.PlanningGroupTransport);
-                            setDropdownOpen(false);
-                          }}
-                        >
-                          <div className="text-sm font-medium">{v.PlanningGroupTransport}</div>
-                          <div className="text-xs text-gray-600">{v.Description}</div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
+
           <DialogFooter className="px-4 pb-4">
             <div className="w-full space-y-2">
               <Button
                 className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-                disabled={!showAll && !group.trim()}
+                disabled={!vehicleId.trim() || (!showAll && !group.trim())}
                 onClick={onConfirm}
               >
                 OK

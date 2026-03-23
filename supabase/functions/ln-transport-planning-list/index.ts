@@ -25,7 +25,6 @@ function toAbsoluteUrl(base: string, maybeUrl: string) {
   if (!u) return "";
   if (u.startsWith("http://") || u.startsWith("https://")) return u;
   if (u.startsWith("/")) return `${base}${u}`;
-  // If LN returns a relative URL without a leading slash, just append with slash.
   return `${base}/${u}`;
 }
 
@@ -38,7 +37,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { planningGroup?: string; language?: string; company?: string; showAll?: boolean } = {};
+    let body: { planningGroup?: string; vehicleId?: string; language?: string; company?: string; showAll?: boolean } = {};
     try {
       body = await req.json();
     } catch {
@@ -46,6 +45,7 @@ serve(async (req) => {
     }
 
     const planningGroup = (body.planningGroup || "").trim();
+    const vehicleId = (body.vehicleId || "").trim();
     const language = body.language || "en-US";
     const company = await (async () => {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -57,7 +57,10 @@ serve(async (req) => {
       return await getCompanyFromParams(supabase);
     })();
     const showAll = Boolean(body.showAll);
-    // Only require planningGroup when not in showAll mode
+
+    if (!vehicleId) {
+      return json({ ok: false, error: "missing_vehicle" }, 200);
+    }
     if (!showAll && !planningGroup) {
       return json({ ok: false, error: "missing_group" }, 200);
     }
@@ -69,7 +72,6 @@ serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get decrypted credentials
     const { data: cfgData, error: cfgErr } = await supabase.rpc("get_active_ionapi");
     if (cfgErr) return json({ ok: false, error: "config_error" }, 200);
     const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
@@ -96,7 +98,6 @@ serve(async (req) => {
     const iu: string = activeRow.iu;
     const ti: string = activeRow.ti;
 
-    // Token
     const basic = btoa(`${ci}:${cs}`);
     const tokenParams = new URLSearchParams();
     tokenParams.set("grant_type", grantType);
@@ -118,16 +119,14 @@ serve(async (req) => {
     }
     const accessToken = tokenJson.access_token as string;
 
-    // OData call (with paging support)
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = showAll
-      ? `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`
-      : `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/PlanningGroupTransports`;
-    const filter = `PlanningGroupTransport eq '${planningGroup.replace(/'/g, "''")}'`;
-
-    const firstUrl = showAll
-      ? `${base}${path}?$count=true&$select=*&$orderby=PlanningGroupTransport`
-      : `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
+    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
+    const escapedVehicle = vehicleId.replace(/'/g, "''");
+    const escapedGroup = planningGroup.replace(/'/g, "''");
+    const filter = showAll
+      ? `PlannedVehicle eq '${escapedVehicle}'`
+      : `PlanningGroupTransport eq '${escapedGroup}' and PlannedVehicle eq '${escapedVehicle}'`;
+    const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
 
     const headers = {
       accept: "application/json",
@@ -140,8 +139,6 @@ serve(async (req) => {
     const all: any[] = [];
     let nextUrl = firstUrl;
 
-    // LN OData typically pages results. Follow @odata.nextLink until exhausted.
-    // Cap iterations to avoid infinite loops if the upstream behaves unexpectedly.
     for (let i = 0; i < 50 && nextUrl; i++) {
       const odataRes = await fetch(nextUrl, { method: "GET", headers }).catch(() => null as unknown as Response);
       if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
