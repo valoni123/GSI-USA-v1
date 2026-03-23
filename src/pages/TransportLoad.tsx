@@ -106,6 +106,7 @@ const TransportLoad = () => {
     if (lang === "pt-BR") return "pt-BR";
     return "en-US";
   }, [lang]);
+  const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
 
   const clearResolvedLoad = () => {
     lookupRequestIdRef.current += 1;
@@ -132,6 +133,25 @@ const TransportLoad = () => {
   useEffect(() => {
     huRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    const prefill = (sessionStorage.getItem("transport.load.prefill") || "").trim();
+    if (!prefill) return;
+    sessionStorage.removeItem("transport.load.prefill");
+    setHandlingUnit(prefill);
+    setPendingPrefill(prefill);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingPrefill) return;
+    if (handlingUnit.trim() !== pendingPrefill.trim()) return;
+    const timeoutId = window.setTimeout(() => {
+      huRef.current?.focus();
+      void onHUBlur();
+      setPendingPrefill(null);
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [pendingPrefill, handlingUnit]);
 
   useEffect(() => {
     const cached = Number(localStorage.getItem("transport.count") || "0");

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { ChevronRight, LogOut } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -32,6 +32,7 @@ const TransportsList = () => {
   }, [lang]);
 
   const [loading, setLoading] = useState(true);
+  const [selecting, setSelecting] = useState(false);
   const [items, setItems] = useState<Array<{
     TransportID: string;
     TransportType: string;
@@ -75,6 +76,18 @@ const TransportsList = () => {
     loadItems();
   }, [locale]);
 
+  const onSelectTransport = (item: { HandlingUnit: string; Item: string }) => {
+    const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
+    if (!prefillValue) return;
+
+    localStorage.setItem("vehicle.id", selectedVehicleId);
+    sessionStorage.setItem("transport.load.prefill", prefillValue);
+    sessionStorage.setItem("transport.selected", "1");
+    sessionStorage.removeItem("transport.fromMain");
+    setSelecting(true);
+    navigate("/menu/transport/load");
+  };
+
   const onConfirmSignOut = () => {
     try {
       localStorage.removeItem("ln.token");
@@ -93,7 +106,7 @@ const TransportsList = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {loading && <ScreenSpinner message={trans.pleaseWait} />}
+      {(loading || selecting) && <ScreenSpinner message={trans.pleaseWait} />}
 
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between gap-3">
@@ -131,27 +144,32 @@ const TransportsList = () => {
                 className="relative rounded-xl border-2 border-gray-300 bg-white px-3 pb-2 pt-4 shadow-sm"
               >
                 <span className="absolute -top-3 left-3 rounded-md bg-gray-100 px-2 py-0.5 text-sm font-semibold text-gray-700 border border-gray-300 leading-none">
-
                   {cleanValue(it.TransportID)}
                 </span>
 
-                <div className="grid grid-cols-2 gap-3 items-center text-sm leading-5">
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_30px] gap-x-3 gap-y-1 items-center text-sm leading-5">
                   <div className="min-w-0 truncate text-gray-700">
                     <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
                     <span className="font-semibold text-gray-800">{cleanValue(it.Item)}</span>
                   </div>
-                  <div className="min-w-0 truncate text-gray-700 text-right">
+                  <div className="min-w-0 truncate text-gray-700">
                     <span className="text-gray-500">{huShortLabel}:</span>{" "}
                     <span className="font-semibold text-gray-800">{cleanValue(it.HandlingUnit)}</span>
                   </div>
-                </div>
+                  <button
+                    type="button"
+                    aria-label="Select transport"
+                    className="row-span-2 inline-flex h-7 w-7 items-center justify-center rounded-md border border-red-300 text-red-600 hover:bg-red-50"
+                    onClick={() => onSelectTransport(it)}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
 
-                <div className="mt-1 grid grid-cols-2 gap-3 text-sm leading-5 text-gray-700">
-                  <div className="min-w-0 truncate">
+                  <div className="min-w-0 truncate text-sm leading-5 text-gray-700">
                     <span className="text-gray-500">{trans.fromLabel}:</span>{" "}
                     <span className="font-medium text-gray-800">{cleanValue(it.LocationFrom)}</span>
                   </div>
-                  <div className="min-w-0 truncate text-right">
+                  <div className="min-w-0 truncate text-sm leading-5 text-gray-700">
                     <span className="text-gray-500">{trans.toLabel}:</span>{" "}
                     <span className="font-medium text-gray-800">{cleanValue(it.LocationTo)}</span>
                   </div>
