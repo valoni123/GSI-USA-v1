@@ -139,9 +139,6 @@ const TransportsList = () => {
                 className="rounded-xl border-2 border-gray-700 bg-white px-3 py-2 shadow-sm"
               >
                 <div className="flex items-center gap-3 text-sm leading-5">
-                  <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-medium ${getTransportTypeClasses(it.TransportType)}`}>
-                    {cleanValue(it.TransportType)}
-                  </span>
                   <span className="font-semibold text-gray-700 whitespace-nowrap">{cleanValue(it.TransportID)}</span>
                   <div className="min-w-0 text-gray-700 truncate">
                     <span className="text-gray-500">{trans.itemLabel}:</span>{" "}
