@@ -150,6 +150,14 @@ const TransportLoad = () => {
   }, [openedFromTransportsList]);
 
   useEffect(() => {
+    if (!openedFromTransportsList) return;
+    const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+    if (!storedVehicle) return;
+    setVehicleId(storedVehicle);
+    setVehicleEnabled(true);
+  }, [openedFromTransportsList]);
+
+  useEffect(() => {
     const prefill = (sessionStorage.getItem("transport.load.prefill") || "").trim();
     if (!prefill) return;
     sessionStorage.removeItem("transport.load.prefill");
