@@ -75,6 +75,7 @@ type TranslationKeys =
   | "transportLoad"
   | "transportUnload"
   | "loadHandlingUnit"
+  | "huOrItemLabel"
   | "loadVehicleId"
   | "checkingHandlingUnit"
   | "huNotFound"
@@ -181,6 +182,7 @@ const translations: Translations = {
     appTransports: "Transports",
     appSettings: "Settings",
 
+
     back: "Back",
     outgoingPicking: "Picking",
     outgoingRelease: "Release",
@@ -220,6 +222,7 @@ const translations: Translations = {
     transportLoad: "Load",
     transportUnload: "Unload",
     loadHandlingUnit: "Handling Unit",
+    huOrItemLabel: "HU / Item",
     loadVehicleId: "Vehicle ID",
     checkingHandlingUnit: "Checking handling unit…",
     huNotFound: "Handling Unit / Item not found in any transport order.",
@@ -323,6 +326,7 @@ const translations: Translations = {
     appTransports: "Transporte",
     appSettings: "Einstellungen",
 
+
     back: "Zurück",
     outgoingPicking: "Kommissionierung",
     outgoingRelease: "Freigeben",
@@ -362,6 +366,7 @@ const translations: Translations = {
     transportLoad: "Laden",
     transportUnload: "Entladen",
     loadHandlingUnit: "Ladeeinheit",
+    huOrItemLabel: "LE / Artikel",
     loadVehicleId: "Fahrzeug ID",
     checkingHandlingUnit: "Ladeeinheit wird geprüft…",
     huNotFound: "Ladeeinheit in keinem Transportauftrag gefunden.",
@@ -465,6 +470,7 @@ const translations: Translations = {
     appTransports: "Transportes",
     appSettings: "Configuración",
 
+
     back: "Atrás",
     outgoingPicking: "Preparación",
     outgoingRelease: "Liberar",
@@ -504,6 +510,7 @@ const translations: Translations = {
     transportLoad: "Cargar",
     transportUnload: "Descargar",
     loadHandlingUnit: "Unidad de manejo",
+    huOrItemLabel: "UH / Artículo",
     loadVehicleId: "ID del vehículo",
     checkingHandlingUnit: "Verificando unidad de manejo…",
     huNotFound: "Unidad de manejo no encontrada en ninguna orden de transporte.",
@@ -607,6 +614,7 @@ const translations: Translations = {
     appTransports: "Transportes",
     appSettings: "Configurações",
 
+
     back: "Voltar",
     outgoingPicking: "Separação",
     outgoingRelease: "Liberar",
@@ -646,6 +654,7 @@ const translations: Translations = {
     transportLoad: "Carregar",
     transportUnload: "Descarregar",
     loadHandlingUnit: "Unidade de manuseio",
+    huOrItemLabel: "UM / Item",
     loadVehicleId: "ID do veículo",
     checkingHandlingUnit: "Verificando unidade de manuseio…",
     huNotFound: "Unidade de manuseio não encontrada em nenhuma ordem de transporte.",
