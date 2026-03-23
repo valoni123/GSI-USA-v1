@@ -302,7 +302,7 @@ const TransportsList = () => {
           <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu")} />
 
           <div className="flex-1 font-bold text-lg text-center flex items-center justify-center gap-2">
-            <span>{trans.appTransports}</span>
+            <span className="uppercase">{trans.appTransports}</span>
             <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-md bg-red-700 px-2 text-xs font-bold text-white leading-none">
               {items.length}
             </span>
@@ -321,10 +321,10 @@ const TransportsList = () => {
       </div>
 
       <div className="mx-auto max-w-screen-2xl px-4 py-6">
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2 shadow-sm">
+        <div className="mb-4 grid grid-cols-3 gap-3 rounded-lg border bg-white px-3 py-2 shadow-sm">
           <button
             type="button"
-            className="inline-flex h-8 items-center rounded-md bg-green-500 px-4 text-sm font-bold uppercase text-black shadow hover:bg-green-600 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-green-500"
+            className="inline-flex h-8 items-center justify-center rounded-md bg-green-500 px-4 text-sm font-bold uppercase text-black shadow hover:bg-green-600 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-green-500"
             onClick={() => {
               void openLoadedList();
             }}
@@ -332,6 +332,14 @@ const TransportsList = () => {
           >
             {loadedCount} {trans.loadedUpperLabel}
           </button>
+
+          <Button
+            type="button"
+            className="h-8 bg-orange-500 px-4 text-sm font-bold uppercase text-white hover:bg-orange-600"
+            onClick={() => {}}
+          >
+            GET
+          </Button>
 
           <Button
             type="button"
