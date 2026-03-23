@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Package, Box, Settings, Forklift } from "lucide-react";
+import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Package, Settings, Forklift } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -33,7 +33,6 @@ function Menu() {
     { key: "incoming", label: trans.appIncoming, icon: <ArrowDownCircle className="h-10 w-10 text-red-700" /> },
     { key: "outgoing", label: trans.appOutgoing, icon: <ArrowUpCircle className="h-10 w-10 text-red-700" /> },
     { key: "infoStock", label: trans.appInfoStock, icon: <Warehouse className="h-10 w-10 text-red-700" /> },
-    { key: "containers", label: trans.appContainers, icon: <Box className="h-10 w-10 text-red-700" /> },
     { key: "transport", label: trans.appTransport, icon: <Package className="h-10 w-10 text-red-700" /> },
     { key: "transports", label: trans.appTransports, icon: <Forklift className="h-10 w-10 text-red-700" /> },
     { key: "settings", label: trans.appSettings, icon: <Settings className="h-10 w-10 text-red-700" /> },
