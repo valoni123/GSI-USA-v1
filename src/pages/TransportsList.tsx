@@ -426,15 +426,7 @@ const TransportsList = () => {
             <AlertDialogTitle>Move back</AlertDialogTitle>
           </AlertDialogHeader>
           <div className="text-sm text-gray-700">Do you really want to move it back?</div>
-          <AlertDialogFooter>
-            <AlertDialogAction
-              onClick={() => {
-                setConfirmMoveBackOpen(false);
-                setConfirmItem(null);
-              }}
-            >
-              Cancel
-            </AlertDialogAction>
+          <AlertDialogFooter className="flex-col gap-3 sm:flex-col">
             <AlertDialogAction
               onClick={async () => {
                 const it = confirmItem;
@@ -446,6 +438,15 @@ const TransportsList = () => {
               }}
             >
               Move back
+            </AlertDialogAction>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                setConfirmMoveBackOpen(false);
+                setConfirmItem(null);
+              }}
+            >
+              Cancel
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
