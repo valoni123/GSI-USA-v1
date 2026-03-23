@@ -27,6 +27,7 @@ const TransportGroup = () => {
     LocationFrom: string;
     LocationTo: string;
     VehicleID: string;
+    PlannedVehicle: string;
     PlannedDeliveryDate: string;
     PlanningGroupTransport?: string;
     Description?: string;
@@ -35,10 +36,7 @@ const TransportGroup = () => {
   const PAGE_SIZE = 20;
   const [page, setPage] = useState(1);
 
-  // NEW: map of PlanningGroupTransport → Description
   const [groupDescriptions, setGroupDescriptions] = useState<Record<string, string>>({});
-
-  // NEW: per-group pagination state for ALL view
   const [groupPages, setGroupPages] = useState<Record<string, number>>({});
 
   const locale = useMemo(() => {
@@ -60,7 +58,6 @@ const TransportGroup = () => {
     });
     if (data && data.ok) {
       setItems(data.items || []);
-      // Reset to first page whenever new items are loaded
       setPage(1);
       if (!silent) setError(null);
     } else {
@@ -69,7 +66,6 @@ const TransportGroup = () => {
     if (!silent) setLoading(false);
   };
 
-  // NEW: fetch all PlanningGroup descriptions
   const loadGroupDescriptions = async () => {
     const { data } = await supabase.functions.invoke("ln-transport-groups-list", {
       body: { language: locale },
@@ -149,7 +145,6 @@ const TransportGroup = () => {
     return map;
   }, [items]);
 
-  // Reset per-group pages when items or group change
   useEffect(() => {
     if ((group || "").toUpperCase() === "ALL") {
       const init: Record<string, number> = {};
@@ -172,7 +167,6 @@ const TransportGroup = () => {
   }, [items, page, group]);
 
   useEffect(() => {
-    // Load plannings and group descriptions
     loadPlannings(false);
     loadGroupDescriptions();
     const intervalId = setInterval(() => {
@@ -187,7 +181,6 @@ const TransportGroup = () => {
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between">
           <div className="font-bold text-lg">
             {trans.planningGroupTransport}{group?.toUpperCase() === "ALL" ? "" : `: ${group}`}
-            {/* Single-group: show description next to title */}
             {group?.toUpperCase() !== "ALL" && (
               <span className="ml-3 inline-block text-xs text-gray-200 bg-white/10 border border-white/20 rounded-md px-2 py-1">
                 {groupDescriptions[(group || "").toString()] || ""}
@@ -225,8 +218,8 @@ const TransportGroup = () => {
       <div className="mx-auto max-w-screen-2xl px-4 py-6">
         <div className="rounded-md border bg-white overflow-hidden">
           <div className="w-full overflow-x-auto">
-            <div className="min-w-[1100px]">
-              { (group || "").toUpperCase() === "ALL" ? (
+            <div className="min-w-[1280px]">
+              {(group || "").toUpperCase() === "ALL" ? (
                 Object.keys(grouped).sort().map((gkey) => {
                   const rowsAll = grouped[gkey] || [];
                   const desc = groupDescriptions[gkey] || "";
@@ -245,7 +238,7 @@ const TransportGroup = () => {
                         )}
                       </div>
                       <div className="rounded-md bg-gray-50 p-1 border">
-                        <div className="grid grid-cols-9 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
+                        <div className="grid grid-cols-10 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
                           <div className="whitespace-nowrap">{trans.transportIdLabel}</div>
                           <div className="whitespace-nowrap">{trans.transportTypeLabel}</div>
                           <div className="whitespace-nowrap">{trans.itemLabel}</div>
@@ -254,6 +247,7 @@ const TransportGroup = () => {
                           <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
                           <div className="whitespace-nowrap">{trans.locationToLabel}</div>
                           <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
+                          <div className="whitespace-nowrap">Planned Vehicle</div>
                           <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
                         </div>
                         {rowsAll.length === 0 ? (
@@ -262,7 +256,7 @@ const TransportGroup = () => {
                           rows.map((it, idx) => (
                             <div
                               key={`${it.TransportID}-${idx}`}
-                              className="grid grid-cols-9 gap-3 px-4 py-2 border-b text-sm"
+                              className="grid grid-cols-10 gap-3 px-4 py-2 border-b text-sm"
                             >
                               <div className="break-all whitespace-nowrap">{it.TransportID || "-"}</div>
                               <div className="break-all whitespace-nowrap">{it.TransportType || "-"}</div>
@@ -280,13 +274,13 @@ const TransportGroup = () => {
                                   "-"
                                 )}
                               </div>
+                              <div className="break-all whitespace-nowrap">{it.PlannedVehicle || "-"}</div>
                               <div className="break-all whitespace-nowrap">
                                 {it.PlannedDeliveryDate ? new Date(it.PlannedDeliveryDate).toLocaleString() : "-"}
                               </div>
                             </div>
                           ))
                         )}
-                        {/* Per-group pagination controls (ALL view) */}
                         {rowsAll.length > PAGE_SIZE && (
                           <div className="flex items-center justify-between px-4 py-3">
                             <div className="text-xs text-gray-600">
@@ -339,7 +333,7 @@ const TransportGroup = () => {
                 })
               ) : (
                 <>
-                  <div className="grid grid-cols-9 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
+                  <div className="grid grid-cols-10 gap-3 px-4 py-2 bg-gray-100 border-b text-xs font-semibold text-gray-700">
                     <div className="whitespace-nowrap">{trans.transportIdLabel}</div>
                     <div className="whitespace-nowrap">{trans.transportTypeLabel}</div>
                     <div className="whitespace-nowrap">{trans.itemLabel}</div>
@@ -348,6 +342,7 @@ const TransportGroup = () => {
                     <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
                     <div className="whitespace-nowrap">{trans.locationToLabel}</div>
                     <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
+                    <div className="whitespace-nowrap">Planned Vehicle</div>
                     <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
                   </div>
                   {loading ? (
@@ -358,7 +353,7 @@ const TransportGroup = () => {
                     pagedItems.map((it, idx) => (
                       <div
                         key={`${it.TransportID}-${idx}`}
-                        className="grid grid-cols-9 gap-3 px-4 py-2 border-b text-sm"
+                        className="grid grid-cols-10 gap-3 px-4 py-2 border-b text-sm"
                       >
                         <div className="break-all whitespace-nowrap">{it.TransportID || "-"}</div>
                         <div className="break-all whitespace-nowrap">{it.TransportType || "-"}</div>
@@ -376,13 +371,13 @@ const TransportGroup = () => {
                             "-"
                           )}
                         </div>
+                        <div className="break-all whitespace-nowrap">{it.PlannedVehicle || "-"}</div>
                         <div className="break-all whitespace-nowrap">
                           {it.PlannedDeliveryDate ? new Date(it.PlannedDeliveryDate).toLocaleString() : "-"}
                         </div>
                       </div>
                     ))
                   )}
-                  {/* Pagination controls (single-group view) */}
                   {items.length > 0 && (group || "").toUpperCase() !== "ALL" && (
                     <div className="flex items-center justify-between px-4 py-3">
                       <div className="text-xs text-gray-600">
@@ -397,7 +392,6 @@ const TransportGroup = () => {
                         >
                           Previous
                         </Button>
-                        {/* Simple numeric page buttons (limit to first/last and nearby pages) */}
                         {Array.from({ length: totalPages }).map((_, i) => {
                           const idx = i + 1;
                           const isCurrent = idx === page;
@@ -435,7 +429,121 @@ const TransportGroup = () => {
             </div>
           </div>
         </div>
+
+        {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
       </div>
+
+      <Dialog open={switchOpen} onOpenChange={setSwitchOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{trans.planningGroupTransport}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="relative">
+              <FloatingLabelInput
+                id="planningGroup"
+                label={trans.planningGroupTransport}
+                value={groupInput}
+                onChange={(e) => {
+                  setGroupInput(e.target.value);
+                  setGroupsQuery(e.target.value);
+                  if (!groupsDropdownOpen) setGroupsDropdownOpen(true);
+                }}
+                onFocus={async () => {
+                  setGroupsDropdownOpen(true);
+                  if (groupsList.length === 0 && !groupsDropdownLoading) {
+                    setGroupsDropdownLoading(true);
+                    try {
+                      await fetchGroups();
+                    } finally {
+                      setGroupsDropdownLoading(false);
+                    }
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (showAllSwitch) {
+                      onConfirmSwitch();
+                      return;
+                    }
+                    const q = groupInput.trim().toLowerCase();
+                    const first = filteredGroups.find((g) =>
+                      g.PlanningGroupTransport.toLowerCase().includes(q) ||
+                      (g.Description || "").toLowerCase().includes(q)
+                    );
+                    if (first) {
+                      setGroupInput(first.PlanningGroupTransport);
+                      setGroupsDropdownOpen(false);
+                    }
+                  }
+                }}
+                onClick={() => setGroupsDropdownOpen((o) => !o)}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700"
+                onClick={async () => {
+                  setGroupsDropdownOpen((o) => !o);
+                  if (groupsList.length === 0 && !groupsDropdownLoading) {
+                    setGroupsDropdownLoading(true);
+                    try {
+                      await fetchGroups();
+                    } finally {
+                      setGroupsDropdownLoading(false);
+                    }
+                  }
+                }}
+                aria-label="Toggle planning group list"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+              {groupsDropdownOpen && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow max-h-64 overflow-auto">
+                  {groupsDropdownLoading ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">Loading…</div>
+                  ) : filteredGroups.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">No entries</div>
+                  ) : (
+                    filteredGroups.map((v, idx) => (
+                      <button
+                        key={`${v.PlanningGroupTransport}-${idx}`}
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0"
+                        onClick={() => {
+                          setGroupInput(v.PlanningGroupTransport);
+                          setGroupsQuery(v.PlanningGroupTransport);
+                          setGroupsDropdownOpen(false);
+                        }}
+                      >
+                        <div className="text-sm font-medium">{v.PlanningGroupTransport}</div>
+                        <div className="text-xs text-gray-500">{v.Description}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="showAllTransportGroups"
+                checked={showAllSwitch}
+                onCheckedChange={(checked) => setShowAllSwitch(checked === true)}
+              />
+              <label htmlFor="showAllTransportGroups" className="text-sm select-none cursor-pointer">
+                {trans.showAllTransports}
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={onConfirmSwitch}>
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <SignOutConfirm
         open={signOutOpen}
@@ -446,106 +554,6 @@ const TransportGroup = () => {
         noLabel={trans.no}
         onConfirm={onConfirmSignOut}
       />
-
-      <Dialog open={switchOpen} onOpenChange={setSwitchOpen}>
-        <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">
-          <DialogHeader>
-            <DialogTitle>{trans.planningGroupTransport}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 px-4 pb-4 pt-2 relative">
-            <FloatingLabelInput
-              id="planningGroup"
-              label={trans.planningGroupTransport}
-              value={groupInput}
-              onChange={(e) => setGroupInput(e.target.value)}
-              autoFocus
-              className="pr-12"
-              disabled={showAllSwitch}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={`absolute right-6 top-2 text-gray-700 hover:text-gray-900 h-8 w-8 flex items-center justify-center ${showAllSwitch ? "pointer-events-none opacity-40" : ""}`}
-              aria-label="Search groups"
-              onClick={async () => {
-                if (showAllSwitch) return;
-                if (!groupsDropdownOpen) {
-                  setGroupsDropdownOpen(true);
-                  setGroupsDropdownLoading(true);
-                  fetchGroups().finally(() => setGroupsDropdownLoading(false));
-                } else {
-                  setGroupsDropdownOpen(false);
-                }
-              }}
-            >
-              <Search className="h-6 w-6" />
-            </Button>
-
-            {/* SHOW ALL TRANSPORTS checkbox */}
-            <div className="flex items-center gap-3 mt-1">
-              <Checkbox
-                id="showAllTransportsSwitch"
-                checked={showAllSwitch}
-                onCheckedChange={(val) => {
-                  const next = Boolean(val);
-                  setShowAllSwitch(next);
-                  if (next) {
-                    setGroupsDropdownOpen(false);
-                  }
-                }}
-              />
-              <label htmlFor="showAllTransportsSwitch" className="text-sm text-gray-800">
-                {trans.showAllTransports}
-              </label>
-            </div>
-
-            {groupsDropdownOpen && !showAllSwitch && (
-              <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-2 z-50">
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Search…"
-                    value={groupsQuery}
-                    onChange={(e) => setGroupsQuery(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                  <div className="max-h-56 overflow-auto space-y-1">
-                    {groupsDropdownLoading ? (
-                      <div className="text-xs text-muted-foreground px-1">Loading…</div>
-                    ) : filteredGroups.length === 0 ? (
-                      <div className="text-xs text-muted-foreground px-1">No groups</div>
-                    ) : (
-                      filteredGroups.map((v, idx) => (
-                        <button
-                          key={`${v.PlanningGroupTransport}-${idx}`}
-                          type="button"
-                          className="w-full text-left px-2 py-1 rounded hover:bg-gray-100"
-                          onClick={() => {
-                            setGroupInput(v.PlanningGroupTransport);
-                            setGroupsDropdownOpen(false);
-                          }}
-                        >
-                          <div className="text-sm font-medium">{v.PlanningGroupTransport}</div>
-                          <div className="text-xs text-gray-600">{v.Description}</div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter className="px-4 pb-4">
-            <Button
-              className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-              disabled={!showAllSwitch && !groupInput.trim()}
-              onClick={onConfirmSwitch}
-            >
-              OK
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

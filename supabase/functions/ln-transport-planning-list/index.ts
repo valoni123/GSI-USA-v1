@@ -174,6 +174,7 @@ serve(async (req) => {
       LocationFrom: v?.LocationFrom ?? "",
       LocationTo: v?.LocationTo ?? "",
       VehicleID: v?.VehicleID ?? "",
+      PlannedVehicle: v?.PlannedVehicle ?? "",
       PlannedDeliveryDate: v?.PlannedDeliveryDate ?? "",
       PlanningGroupTransport: v?.PlanningGroupTransport ?? "",
       Description: v?.Description ?? "",
