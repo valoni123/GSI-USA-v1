@@ -120,7 +120,7 @@ serve(async (req) => {
 
     // OData call (with paging support)
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/TransportPlannings`;
+    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/PlanningGroupTransports`;
     const filter = `PlanningGroupTransport eq '${planningGroup.replace(/'/g, "''")}'`;
 
     const firstUrl = showAll
