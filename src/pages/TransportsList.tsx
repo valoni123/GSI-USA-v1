@@ -54,6 +54,12 @@ const TransportsList = () => {
     if (lang === "pt-BR") return "pt-BR";
     return "en-US";
   }, [lang]);
+  const loadedLabel = useMemo(() => {
+    if (lang === "de") return "geladen";
+    if (lang === "es-MX") return "cargados";
+    if (lang === "pt-BR") return "carregados";
+    return "loaded";
+  }, [lang]);
   const huShortLabel = useMemo(() => {
     if (lang === "de") return "LE";
     if (lang === "es-MX") return "UH";
@@ -171,6 +177,13 @@ const TransportsList = () => {
   useEffect(() => {
     void loadPageData();
   }, [locale, selectedVehicleId]);
+
+  const openLoadedList = async () => {
+    setListOpen(true);
+    setListLoading(true);
+    await fetchLoadedList();
+    setListLoading(false);
+  };
 
   const onSelectTransport = (item: { HandlingUnit: string; Item: string }) => {
     const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
@@ -296,19 +309,9 @@ const TransportsList = () => {
 
           <div className="flex-1 font-bold text-lg text-center flex items-center justify-center gap-2">
             <span>{trans.appTransports}</span>
-            <button
-              type="button"
-              className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-md bg-red-700 px-2 text-xs font-bold text-white leading-none"
-              onClick={async () => {
-                setListOpen(true);
-                setListLoading(true);
-                await fetchLoadedList();
-                setListLoading(false);
-              }}
-              aria-label="Show loaded transports"
-            >
-              {loadedCount}
-            </button>
+            <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-md bg-red-700 px-2 text-xs font-bold text-white leading-none">
+              {items.length}
+            </span>
           </div>
 
           <Button
@@ -324,6 +327,26 @@ const TransportsList = () => {
       </div>
 
       <div className="mx-auto max-w-screen-2xl px-4 py-6">
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2 shadow-sm">
+          <button
+            type="button"
+            className="inline-flex items-center rounded-md bg-green-500 px-3 py-1 text-xs font-bold text-black shadow hover:bg-green-600"
+            onClick={() => {
+              void openLoadedList();
+            }}
+          >
+            {loadedCount} {loadedLabel}
+          </button>
+
+          <Button
+            type="button"
+            className="h-7 bg-black px-4 text-xs font-bold uppercase text-white hover:bg-gray-800"
+            onClick={() => navigate("/menu/transport/unload")}
+          >
+            {trans.unloadAction}
+          </Button>
+        </div>
+
         {items.length === 0 ? (
           <div className="rounded-md border bg-white px-4 py-3 text-sm text-muted-foreground">{trans.noEntries}</div>
         ) : (
