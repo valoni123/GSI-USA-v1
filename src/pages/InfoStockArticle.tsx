@@ -257,6 +257,103 @@ const InfoStockArticle = () => {
     });
   };
 
+  const openHuMove = (handlingUnitValue: string) => {
+    const value = (handlingUnitValue || "").trim();
+    if (!value) return;
+    setHuStockOpen(false);
+    navigate("/menu/info-stock/transfer", {
+      state: {
+        initialHandlingUnit: value,
+        returnTo: {
+          path: "/menu/info-stock/article",
+          state: {
+            initialItem: item.trim(),
+            initialWarehouse: warehouse.trim(),
+            initialLocation: location.trim(),
+            reopenHuStock: true,
+          },
+        },
+      },
+    });
+  };
+
+  const openHuAdjust = (handlingUnitValue: string) => {
+    const value = (handlingUnitValue || "").trim();
+    if (!value) return;
+    setHuStockOpen(false);
+    navigate("/menu/info-stock/correction", {
+      state: {
+        initialHandlingUnit: value,
+        returnTo: {
+          path: "/menu/info-stock/article",
+          state: {
+            initialItem: item.trim(),
+            initialWarehouse: warehouse.trim(),
+            initialLocation: location.trim(),
+            reopenHuStock: true,
+          },
+        },
+      },
+    });
+  };
+
+  const printHuLabel = (row: HandlingUnitStockRow) => {
+    const hu = (row?.HandlingUnit || "").trim();
+    if (!hu) return;
+
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    if (!w) return;
+
+    const doc = w.document;
+    doc.open();
+    doc.write(
+      `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>${hu}</title>
+      <style>
+        body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; padding:24px;}
+        .card{border:1px solid #ddd; border-radius:12px; padding:16px; max-width:420px;}
+        h1{font-size:20px; margin:0 0 12px;}
+        .row{display:flex; justify-content:space-between; gap:12px; font-size:14px; margin:6px 0;}
+        .k{color:#555;}
+        .v{font-weight:600; text-align:right; word-break:break-all;}
+      </style>
+      </head><body></body></html>`
+    );
+    doc.close();
+
+    const body = doc.body;
+    const card = doc.createElement("div");
+    card.className = "card";
+
+    const title = doc.createElement("h1");
+    title.textContent = `HU: ${hu}`;
+    card.appendChild(title);
+
+    const addRow = (k: string, v: string) => {
+      const rowEl = doc.createElement("div");
+      rowEl.className = "row";
+      const kEl = doc.createElement("div");
+      kEl.className = "k";
+      kEl.textContent = k;
+      const vEl = doc.createElement("div");
+      vEl.className = "v";
+      vEl.textContent = v;
+      rowEl.appendChild(kEl);
+      rowEl.appendChild(vEl);
+      card.appendChild(rowEl);
+    };
+
+    addRow("Item", item.trim() || "-");
+    addRow("Warehouse", warehouse.trim() || selectedWarehouse || "-");
+    addRow("Location", location.trim() || selectedLocation || "-");
+    addRow("Quantity", `${row.QuantityInInventoryUnit}${row.Unit ? ` ${row.Unit}` : ""}`);
+
+    body.appendChild(card);
+
+    w.focus();
+    w.print();
+  };
+
   useEffect(() => {
     const navState = (routerLocation.state as any) || {};
     const initialItem = (navState.initialItem || "").toString().trim();
@@ -656,6 +753,9 @@ const InfoStockArticle = () => {
         loading={huStockLoading}
         location={location.trim() || selectedLocation || undefined}
         onOpenHandlingUnit={openHuInfo}
+        onMoveHandlingUnit={openHuMove}
+        onAdjustHandlingUnit={openHuAdjust}
+        onPrintHandlingUnit={printHuLabel}
       />
 
       <SignOutConfirm

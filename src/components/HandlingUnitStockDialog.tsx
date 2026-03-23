@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ArrowUpRight, } from "lucide-react";
+import { ArrowRightLeft, ArrowUpRight, Eraser, Printer } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { type LanguageKey, t } from "@/lib/i18n";
 
@@ -18,6 +18,9 @@ type Props = {
   loading: boolean;
   location?: string;
   onOpenHandlingUnit: (handlingUnit: string) => void;
+  onMoveHandlingUnit: (handlingUnit: string) => void;
+  onAdjustHandlingUnit: (handlingUnit: string) => void;
+  onPrintHandlingUnit: (row: HandlingUnitStockRow) => void;
 };
 
 const normalizeStatus = (raw?: string | null): string | null => {
@@ -80,7 +83,20 @@ const statusStyle = (key: string | null) => {
   }
 };
 
-const HandlingUnitStockDialog = ({ open, onOpenChange, lang, rows, loading, location, onOpenHandlingUnit }: Props) => {
+const actionButtonClass = "inline-flex h-8 w-8 items-center justify-center rounded-md shadow disabled:cursor-not-allowed disabled:opacity-50";
+
+const HandlingUnitStockDialog = ({
+  open,
+  onOpenChange,
+  lang,
+  rows,
+  loading,
+  location,
+  onOpenHandlingUnit,
+  onMoveHandlingUnit,
+  onAdjustHandlingUnit,
+  onPrintHandlingUnit,
+}: Props) => {
   const trans = useMemo(() => t(lang), [lang]);
   const displayLocation = (location || "").trim();
 
@@ -101,39 +117,71 @@ const HandlingUnitStockDialog = ({ open, onOpenChange, lang, rows, loading, loca
               {rows.map((row, index) => {
                 const quantityText = `${row.QuantityInInventoryUnit}${row.Unit ? ` ${row.Unit}` : ""}`;
                 const key = normalizeStatus(row.Status);
+                const stockActionsEnabled = key === "instock";
+
                 return (
                   <div key={`${row.HandlingUnit}-${index}`} className="rounded-md border bg-gray-50 p-3">
-                    <div className="grid grid-cols-[138px_1fr_auto] gap-x-3 gap-y-2 text-sm items-center">
-                      <div className="font-semibold text-gray-700">{trans.loadHandlingUnit}:</div>
-                      <div className="break-all text-gray-900">{row.HandlingUnit || "-"}</div>
-                      <button
-                        type="button"
-                        aria-label={trans.infoStockLEInfo}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-zinc-700 text-white shadow hover:bg-zinc-800"
-                        onClick={() => onOpenHandlingUnit(row.HandlingUnit)}
-                      >
-                        <ArrowUpRight className="h-4 w-4" />
-                      </button>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-2 text-sm items-center">
+                          <div className="font-semibold text-gray-700">{trans.loadHandlingUnit}:</div>
+                          <div className="break-all text-gray-900">{row.HandlingUnit || "-"}</div>
 
-                      <div className="font-semibold text-gray-700">{trans.statusLabel}:</div>
-                      <div>
-                        <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${statusStyle(key)}`}>
-                          {statusLabel(key, lang)}
-                        </span>
+                          <div className="font-semibold text-gray-700">{trans.statusLabel}:</div>
+                          <div>
+                            <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${statusStyle(key)}`}>
+                              {statusLabel(key, lang)}
+                            </span>
+                          </div>
+
+                          <div className="font-semibold text-gray-700">{trans.quantityLabel}:</div>
+                          <div className="break-all text-gray-900">{quantityText}</div>
+
+                          {displayLocation && (
+                            <>
+                              <div className="font-semibold text-gray-700">{trans.locationLabel}:</div>
+                              <div className="break-all text-gray-900">{displayLocation}</div>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div />
 
-                      <div className="font-semibold text-gray-700">{trans.quantityLabel}:</div>
-                      <div className="break-all text-gray-900">{quantityText}</div>
-                      <div />
-
-                      {displayLocation && (
-                        <>
-                          <div className="font-semibold text-gray-700">{trans.locationLabel}:</div>
-                          <div className="break-all text-gray-900">{displayLocation}</div>
-                          <div />
-                        </>
-                      )}
+                      <div className="flex flex-col gap-2 pt-0.5">
+                        <button
+                          type="button"
+                          aria-label={trans.infoStockLEInfo}
+                          className={`${actionButtonClass} bg-zinc-700 text-white hover:bg-zinc-800`}
+                          onClick={() => onOpenHandlingUnit(row.HandlingUnit)}
+                        >
+                          <ArrowUpRight className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={trans.leInfoMove}
+                          className={`${actionButtonClass} bg-[#78d8a3] text-black hover:bg-[#69c892]`}
+                          onClick={() => onMoveHandlingUnit(row.HandlingUnit)}
+                          disabled={!stockActionsEnabled}
+                        >
+                          <ArrowRightLeft className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={trans.adjustAction}
+                          className={`${actionButtonClass} bg-[#fdba74] text-black hover:bg-[#f7a959]`}
+                          onClick={() => onAdjustHandlingUnit(row.HandlingUnit)}
+                          disabled={!stockActionsEnabled}
+                        >
+                          <Eraser className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={trans.leInfoPrintLabel}
+                          className={`${actionButtonClass} bg-[#3f3f46] text-white hover:bg-[#27272a]`}
+                          onClick={() => onPrintHandlingUnit(row)}
+                        >
+                          <Printer className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
