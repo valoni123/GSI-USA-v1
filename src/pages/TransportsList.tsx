@@ -324,18 +324,20 @@ const TransportsList = () => {
         <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2 shadow-sm">
           <button
             type="button"
-            className="inline-flex h-8 items-center rounded-md bg-green-500 px-4 text-sm font-bold uppercase text-black shadow hover:bg-green-600"
+            className="inline-flex h-8 items-center rounded-md bg-green-500 px-4 text-sm font-bold uppercase text-black shadow hover:bg-green-600 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-green-500"
             onClick={() => {
               void openLoadedList();
             }}
+            disabled={loadedCount === 0}
           >
             {loadedCount} {trans.loadedUpperLabel}
           </button>
 
           <Button
             type="button"
-            className="h-8 bg-black px-4 text-sm font-bold uppercase text-white hover:bg-gray-800"
+            className="h-8 bg-black px-4 text-sm font-bold uppercase text-white hover:bg-gray-800 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-black"
             onClick={() => navigate("/menu/transport/unload")}
+            disabled={loadedCount === 0}
           >
             {trans.unloadAction}
           </Button>
