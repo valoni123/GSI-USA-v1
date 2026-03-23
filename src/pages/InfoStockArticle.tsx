@@ -654,6 +654,7 @@ const InfoStockArticle = () => {
         lang={lang}
         rows={huStockRows}
         loading={huStockLoading}
+        location={location.trim() || selectedLocation || undefined}
         onOpenHandlingUnit={openHuInfo}
       />
 

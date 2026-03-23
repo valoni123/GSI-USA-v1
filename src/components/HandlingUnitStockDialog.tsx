@@ -16,6 +16,7 @@ type Props = {
   lang: LanguageKey;
   rows: HandlingUnitStockRow[];
   loading: boolean;
+  location?: string;
   onOpenHandlingUnit: (handlingUnit: string) => void;
 };
 
@@ -79,8 +80,9 @@ const statusStyle = (key: string | null) => {
   }
 };
 
-const HandlingUnitStockDialog = ({ open, onOpenChange, lang, rows, loading, onOpenHandlingUnit }: Props) => {
+const HandlingUnitStockDialog = ({ open, onOpenChange, lang, rows, loading, location, onOpenHandlingUnit }: Props) => {
   const trans = useMemo(() => t(lang), [lang]);
+  const displayLocation = (location || "").trim();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -124,6 +126,14 @@ const HandlingUnitStockDialog = ({ open, onOpenChange, lang, rows, loading, onOp
                       <div className="font-semibold text-gray-700">{trans.quantityLabel}:</div>
                       <div className="break-all text-gray-900">{quantityText}</div>
                       <div />
+
+                      {displayLocation && (
+                        <>
+                          <div className="font-semibold text-gray-700">{trans.locationLabel}:</div>
+                          <div className="break-all text-gray-900">{displayLocation}</div>
+                          <div />
+                        </>
+                      )}
                     </div>
                   </div>
                 );
