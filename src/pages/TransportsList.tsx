@@ -375,13 +375,12 @@ const TransportsList = () => {
       <Dialog open={listOpen} onOpenChange={setListOpen}>
         <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">
           <div className="text-sm">
-            <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 px-3 py-2 border-b rounded-t-lg bg-black text-white">
+            <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)_40px] gap-2 px-3 py-2 border-b rounded-t-lg bg-black text-white">
               <div className="font-semibold">{trans.huOrItemLabel}</div>
               <div className="font-semibold">{trans.fromLabel}</div>
               <div className="font-semibold">{trans.toLabel}</div>
               <div className="font-semibold text-right"> </div>
             </div>
-
             <div className="max-h-64 overflow-auto mt-0 space-y-2 px-2 py-2">
               {loadedItems.length === 0 ? (
                 <div className="text-xs text-muted-foreground px-1">{trans.noEntries}</div>
@@ -391,10 +390,10 @@ const TransportsList = () => {
                   return (
                     <div key={`${it.TransportID}-${it.RunNumber}-${idx}`}>
                       <div className="rounded-md bg-gray-100/80 px-3 py-2 shadow-sm">
-                        <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center text-xs">
-                          <div className="break-all">{it.HandlingUnit || it.Item || "-"}</div>
-                          <div className="break-all">{it.LocationFrom || "-"}</div>
-                          <div className="break-all">{it.LocationTo || "-"}</div>
+                        <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)_40px] gap-2 items-center text-xs">
+                          <div className="truncate">{it.HandlingUnit || it.Item || "-"}</div>
+                          <div className="truncate">{it.LocationFrom || "-"}</div>
+                          <div className="truncate">{it.LocationTo || "-"}</div>
                           <div className="flex justify-end">
                             <button
                               type="button"
