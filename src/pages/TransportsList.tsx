@@ -34,6 +34,7 @@ type PlanningItem = {
 
 type LoadedListItem = {
   HandlingUnit: string;
+  Item: string;
   LocationFrom: string;
   LocationTo: string;
   Warehouse: string;
@@ -135,6 +136,7 @@ const TransportsList = () => {
       const nextItems = Array.isArray(data.items)
         ? (data.items as any[]).map((v) => ({
             HandlingUnit: String(v?.HandlingUnit ?? ""),
+            Item: String(v?.Item ?? ""),
             LocationFrom: String(v?.LocationFrom ?? ""),
             LocationTo: String(v?.LocationTo ?? ""),
             Warehouse: String(v?.Warehouse ?? ""),
@@ -390,7 +392,7 @@ const TransportsList = () => {
                     <div key={`${it.TransportID}-${it.RunNumber}-${idx}`}>
                       <div className="rounded-md bg-gray-100/80 px-3 py-2 shadow-sm">
                         <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center text-xs">
-                          <div className="break-all">{it.HandlingUnit || "-"}</div>
+                          <div className="break-all">{it.HandlingUnit || it.Item || "-"}</div>
                           <div className="break-all">{it.LocationFrom || "-"}</div>
                           <div className="break-all">{it.LocationTo || "-"}</div>
                           <div className="flex justify-end">
