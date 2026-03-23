@@ -308,7 +308,8 @@ const TransportUnload = () => {
               <button
                 type="button"
                 onClick={() => navigate("/menu/transport")}
-                className="font-bold text-lg tracking-wide hover:opacity-80"
+                className="rounded-md bg-gray-200 px-4 py-1 font-bold text-lg tracking-wide text-black hover:opacity-80"
+
               >
                 {trans.transportUnload}
               </button>

@@ -924,7 +924,8 @@ const IncomingGoodsReceipt = () => {
             <button
               type="button"
               onClick={() => navigate("/menu/incoming")}
-              className="font-bold text-lg tracking-wide text-center hover:opacity-80"
+              className="rounded-md bg-gray-200 px-4 py-1 font-bold text-lg tracking-wide text-center text-black hover:opacity-80"
+
             >
               {trans.incomingGoodsReceipt.toUpperCase()}
             </button>

@@ -54,7 +54,8 @@ function Menu() {
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
           <div className="flex flex-col">
-            <div className="text-center w-full font-bold text-lg tracking-wide">{trans.menu}</div>
+            <div className="inline-flex self-center rounded-md bg-gray-200 px-4 py-1 text-center text-lg font-bold tracking-wide text-black">{trans.menu}</div>
+
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200 justify-center">
               <User className="h-4 w-4" />
               <span className="line-clamp-1">{fullName || ""}</span>
