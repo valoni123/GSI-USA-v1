@@ -146,45 +146,47 @@ const HandlingUnitStockDialog = ({
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-2 pt-0.5">
-                        <button
-                          type="button"
-                          aria-label={trans.infoStockLEInfo}
-                          className={`${actionButtonClass} bg-zinc-700 text-white hover:bg-zinc-800`}
-                          onClick={() => onOpenHandlingUnit(row.HandlingUnit)}
-                        >
-                          <ArrowUpRight className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={trans.leInfoMove}
-                          className={`${actionButtonClass} bg-[#78d8a3] text-black hover:bg-[#69c892]`}
-                          onClick={() => onMoveHandlingUnit(row.HandlingUnit)}
-                          disabled={!stockActionsEnabled}
-                        >
-                          <ArrowRightLeft className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={trans.adjustAction}
-                          className={`${actionButtonClass} bg-[#fdba74] text-black hover:bg-[#f7a959]`}
-                          onClick={() => onAdjustHandlingUnit(row.HandlingUnit)}
-                          disabled={!stockActionsEnabled}
-                        >
-                          <Eraser className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={trans.leInfoPrintLabel}
-                          className={`${actionButtonClass} bg-[#3f3f46] text-white hover:bg-[#27272a]`}
-                          onClick={() => onPrintHandlingUnit(row)}
-                        >
-                          <Printer className="h-4 w-4" />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        aria-label={trans.infoStockLEInfo}
+                        className={`${actionButtonClass} bg-zinc-700 text-white hover:bg-zinc-800`}
+                        onClick={() => onOpenHandlingUnit(row.HandlingUnit)}
+                      >
+                        <ArrowUpRight className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        aria-label={trans.leInfoMove}
+                        className={`${actionButtonClass} bg-[#78d8a3] text-black hover:bg-[#69c892]`}
+                        onClick={() => onMoveHandlingUnit(row.HandlingUnit)}
+                        disabled={!stockActionsEnabled}
+                      >
+                        <ArrowRightLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={trans.adjustAction}
+                        className={`${actionButtonClass} bg-[#fdba74] text-black hover:bg-[#f7a959]`}
+                        onClick={() => onAdjustHandlingUnit(row.HandlingUnit)}
+                        disabled={!stockActionsEnabled}
+                      >
+                        <Eraser className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={trans.leInfoPrintLabel}
+                        className={`${actionButtonClass} bg-[#3f3f46] text-white hover:bg-[#27272a]`}
+                        onClick={() => onPrintHandlingUnit(row)}
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 );
+
               })}
             </div>
           )}
