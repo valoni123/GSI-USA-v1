@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Search, User, CheckSquare, Square } from "lucide-react";
+import { LogOut, Search, User, CheckSquare, Square, Eraser, Printer } from "lucide-react";
 import LocationPickerDialog from "@/components/LocationPickerDialog";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import BackButton from "@/components/BackButton";
@@ -579,6 +579,80 @@ const InfoStockTransfer = () => {
     navigate("/menu/info-stock");
   };
 
+  const handleAdjust = () => {
+    const hu = (handlingUnit || query || "").trim();
+    if (!hu) return;
+    navigate("/menu/info-stock/correction", {
+      state: {
+        initialHandlingUnit: hu,
+        returnTo: {
+          path: "/menu/info-stock/transfer",
+          state: {
+            initialHandlingUnit: hu,
+            returnTo: (routerLocation.state as any)?.returnTo,
+          },
+        },
+      },
+    });
+  };
+
+  const handlePrintLabel = () => {
+    const hu = (handlingUnit || query || "").trim();
+    if (!hu) return;
+
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    if (!w) return;
+
+    const doc = w.document;
+    doc.open();
+    doc.write(
+      `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>${hu}</title>
+      <style>
+        body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; padding:24px;}
+        .card{border:1px solid #ddd; border-radius:12px; padding:16px; max-width:420px;}
+        h1{font-size:20px; margin:0 0 12px;}
+        .row{display:flex; justify-content:space-between; gap:12px; font-size:14px; margin:6px 0;}
+        .k{color:#555;}
+        .v{font-weight:600; text-align:right; word-break:break-all;}
+      </style>
+      </head><body></body></html>`
+    );
+    doc.close();
+
+    const body = doc.body;
+    const card = doc.createElement("div");
+    card.className = "card";
+
+    const title = doc.createElement("h1");
+    title.textContent = `HU: ${hu}`;
+    card.appendChild(title);
+
+    const addRow = (k: string, v: string) => {
+      const row = doc.createElement("div");
+      row.className = "row";
+      const kEl = doc.createElement("div");
+      kEl.className = "k";
+      kEl.textContent = k;
+      const vEl = doc.createElement("div");
+      vEl.className = "v";
+      vEl.textContent = v;
+      row.appendChild(kEl);
+      row.appendChild(vEl);
+      card.appendChild(row);
+    };
+
+    addRow("Item", (item || "-").toString());
+    addRow("Warehouse", (warehouse || "-").toString());
+    addRow("Location", (location || "-").toString());
+    addRow("Quantity", `${(quantity || "-").toString()} ${(unit || "").toString()}`.trim());
+
+    body.appendChild(card);
+
+    w.focus();
+    w.print();
+  };
+
   const resetAll = () => {
     setQuery("");
     setLastSearched(null);
@@ -752,7 +826,7 @@ const InfoStockTransfer = () => {
       </div>
 
       {/* Form */}
-      <div className="mx-auto max-w-md px-4 py-6 pb-6">
+      <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
           {/* Search row */}
           <div className="flex items-center gap-2">
@@ -1221,6 +1295,29 @@ const InfoStockTransfer = () => {
 
         </Card>
       </div>
+
+      {showDetails && (handlingUnit || query).trim() && (
+        <div className="fixed left-1/2 bottom-6 z-40 flex -translate-x-1/2 items-center gap-4">
+          <button
+            type="button"
+            onClick={handleAdjust}
+            className="flex h-8 w-28 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold shadow-lg"
+            style={{ backgroundColor: "#fdba74", color: "#000000" }}
+          >
+            <Eraser className="h-4 w-4" />
+            <span>{trans.adjustAction}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handlePrintLabel}
+            className="flex h-8 w-28 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold shadow-lg"
+            style={{ backgroundColor: "#3f3f46", color: "#ffffff" }}
+          >
+            <Printer className="h-4 w-4" />
+            <span>{trans.leInfoPrintLabel}</span>
+          </button>
+        </div>
+      )}
 
       <SignOutConfirm
         open={signOutOpen}
