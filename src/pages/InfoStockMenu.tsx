@@ -95,7 +95,8 @@ const InfoStockMenu = () => {
         {tiles.map((tile) => (
           <Card
             key={tile.key}
-            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99] min-h-[160px]"
+            className="rounded-xl border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-md shadow-gray-300/70 cursor-pointer active:scale-[0.99] min-h-[160px]"
+
             onClick={() => onTileClick(tile.key)}
           >
             <div className="h-14 w-14 rounded-md border-2 border-red-700 flex items-center justify-center overflow-hidden">

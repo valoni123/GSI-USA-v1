@@ -106,7 +106,8 @@ const OutgoingMenu = () => {
         {tiles.map((tile) => (
           <Card
             key={tile.key}
-            className="rounded-md border-2 border-gray-200 bg-white p-0 shadow-sm min-h-[160px] overflow-hidden"
+            className="rounded-xl border-2 border-gray-200 bg-white p-0 shadow-md shadow-gray-300/70 min-h-[160px] overflow-hidden"
+
           >
             <button
               type="button"

@@ -350,7 +350,8 @@ const TransportMenu = () => {
         {tiles.map((tile) => (
           <Card
             key={tile.key}
-            className="rounded-md border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-sm cursor-pointer active:scale-[0.99]"
+            className="rounded-xl border-2 border-gray-200 bg-white p-6 flex flex-col items-center justify-center gap-3 shadow-md shadow-gray-300/70 cursor-pointer active:scale-[0.99]"
+
             onClick={() => {
               if (tile.key === "load") {
                 navigate("/menu/transport/load");
