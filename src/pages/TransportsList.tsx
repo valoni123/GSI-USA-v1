@@ -128,9 +128,10 @@ const TransportsList = () => {
             {items.map((it, idx) => (
               <div
                 key={`${it.TransportID}-${it.HandlingUnit}-${idx}`}
-                className="relative rounded-xl border-2 border-gray-700 bg-white px-3 pb-2 pt-4 shadow-sm"
+                className="relative rounded-xl border-2 border-gray-300 bg-white px-3 pb-2 pt-4 shadow-sm"
               >
                 <span className="absolute -top-3 left-3 rounded-md bg-gray-100 px-2 py-0.5 text-sm font-semibold text-gray-700 border border-gray-300 leading-none">
+
                   {cleanValue(it.TransportID)}
                 </span>
 
