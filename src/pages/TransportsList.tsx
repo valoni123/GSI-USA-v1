@@ -391,10 +391,15 @@ const TransportsList = () => {
                     <div key={`${it.TransportID}-${it.RunNumber}-${idx}`}>
                       <div className="rounded-md bg-gray-100/80 px-3 py-2 shadow-sm">
                         <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)_40px] gap-2 items-center text-xs">
-                          <div className="truncate">{it.HandlingUnit || it.Item || "-"}</div>
+                          <div className="truncate">
+                            <span className="inline-block max-w-full truncate rounded-md bg-gray-200 px-2 py-1">
+                              {it.HandlingUnit || it.Item || "-"}
+                            </span>
+                          </div>
                           <div className="truncate">{it.LocationFrom || "-"}</div>
                           <div className="truncate">{it.LocationTo || "-"}</div>
                           <div className="flex justify-end">
+
                             <button
                               type="button"
                               className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50"
