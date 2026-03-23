@@ -225,6 +225,8 @@ const TransportGroup = () => {
     return () => clearInterval(intervalId);
   }, [group, locale]);
 
+  const selectedVehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {(loading || switching) && <ScreenSpinner message={trans.pleaseWait} />}
@@ -238,7 +240,13 @@ const TransportGroup = () => {
                 {groupDescriptions[(group || "").toString()] || ""}
               </span>
             )}
+            {selectedVehicleId && (
+              <span className="ml-3 inline-block text-xs text-gray-200 bg-white/10 border border-white/20 rounded-md px-2 py-1">
+                {trans.loadVehicleId}: {selectedVehicleId}
+              </span>
+            )}
           </div>
+
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
