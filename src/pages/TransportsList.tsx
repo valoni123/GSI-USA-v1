@@ -125,9 +125,10 @@ const TransportsList = () => {
 
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between gap-3">
-          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/transports")} />
+          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu")} />
 
           <div className="flex-1 font-bold text-lg text-center flex items-center justify-center gap-2">
+
             <span>{trans.appTransports}</span>
             <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-md bg-red-700 px-2 text-xs font-bold text-white leading-none">
               {loadedCount}
