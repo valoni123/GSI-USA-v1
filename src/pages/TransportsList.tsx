@@ -54,12 +54,6 @@ const TransportsList = () => {
     if (lang === "pt-BR") return "pt-BR";
     return "en-US";
   }, [lang]);
-  const loadedLabel = useMemo(() => {
-    if (lang === "de") return "geladen";
-    if (lang === "es-MX") return "cargados";
-    if (lang === "pt-BR") return "carregados";
-    return "loaded";
-  }, [lang]);
   const huShortLabel = useMemo(() => {
     if (lang === "de") return "LE";
     if (lang === "es-MX") return "UH";
@@ -330,17 +324,17 @@ const TransportsList = () => {
         <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2 shadow-sm">
           <button
             type="button"
-            className="inline-flex items-center rounded-md bg-green-500 px-3 py-1 text-xs font-bold text-black shadow hover:bg-green-600"
+            className="inline-flex h-8 items-center rounded-md bg-green-500 px-4 text-sm font-bold uppercase text-black shadow hover:bg-green-600"
             onClick={() => {
               void openLoadedList();
             }}
           >
-            {loadedCount} {loadedLabel}
+            {loadedCount} {trans.loadedUpperLabel}
           </button>
 
           <Button
             type="button"
-            className="h-7 bg-black px-4 text-xs font-bold uppercase text-white hover:bg-gray-800"
+            className="h-8 bg-black px-4 text-sm font-bold uppercase text-white hover:bg-gray-800"
             onClick={() => navigate("/menu/transport/unload")}
           >
             {trans.unloadAction}
