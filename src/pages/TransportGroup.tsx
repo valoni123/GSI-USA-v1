@@ -227,8 +227,9 @@ const TransportGroup = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {switching && <ScreenSpinner message={trans.pleaseWait} />}
+      {(loading || switching) && <ScreenSpinner message={trans.pleaseWait} />}
       <div className="sticky top-0 z-10 bg-black text-white">
+
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between">
           <div className="font-bold text-lg">
             {trans.planningGroupTransport}{group?.toUpperCase() === "ALL" ? "" : `: ${group}`}

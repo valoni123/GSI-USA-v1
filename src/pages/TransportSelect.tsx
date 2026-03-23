@@ -8,6 +8,7 @@ import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { Checkbox } from "@/components/ui/checkbox";
+import ScreenSpinner from "@/components/ScreenSpinner";
 
 type GroupItem = { PlanningGroupTransport: string; Description: string };
 type VehicleItem = { VehicleID: string; Description: string };
@@ -18,6 +19,7 @@ const TransportSelect = () => {
   const trans = useMemo(() => t(lang), [lang]);
 
   const [open, setOpen] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [group, setGroup] = useState("");
   const [groupItems, setGroupItems] = useState<GroupItem[]>([]);
   const [groupQuery, setGroupQuery] = useState("");
@@ -94,6 +96,7 @@ const TransportSelect = () => {
     const vid = vehicleId.trim();
     if (!vid) return;
     localStorage.setItem("vehicle.id", vid);
+    setSubmitting(true);
 
     if (showAll) {
       navigate(`/transportgroup/ALL`);
@@ -101,12 +104,16 @@ const TransportSelect = () => {
     }
 
     const val = group.trim();
-    if (!val) return;
+    if (!val) {
+      setSubmitting(false);
+      return;
+    }
     navigate(`/transportgroup/${encodeURIComponent(val)}`);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {submitting && <ScreenSpinner message={trans.pleaseWait} />}
       <Dialog
         open={open}
         onOpenChange={(o) => {
@@ -135,16 +142,16 @@ const TransportSelect = () => {
                 }}
                 autoFocus
                 className="pr-12"
-                disabled={showAll}
+                disabled={showAll || submitting}
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className={`absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 text-gray-700 hover:text-gray-900 ${showAll ? "pointer-events-none opacity-40" : ""}`}
+                className={`absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 text-gray-700 hover:text-gray-900 ${showAll || submitting ? "pointer-events-none opacity-40" : ""}`}
                 aria-label="Search groups"
                 onClick={async () => {
-                  if (showAll) return;
+                  if (showAll || submitting) return;
                   if (!groupDropdownOpen) {
                     setGroupDropdownOpen(true);
                     setVehicleDropdownOpen(false);
@@ -159,7 +166,7 @@ const TransportSelect = () => {
                 <Search className="h-5 w-5" />
               </Button>
 
-              {groupDropdownOpen && !showAll && (
+              {groupDropdownOpen && !showAll && !submitting && (
                 <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-2 z-50">
                   <div className="space-y-2">
                     <Input
@@ -205,14 +212,16 @@ const TransportSelect = () => {
                   setVehicleQuery(e.target.value);
                 }}
                 className="pr-12"
+                disabled={submitting}
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 text-gray-700 hover:text-gray-900"
+                className={`absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 text-gray-700 hover:text-gray-900 ${submitting ? "pointer-events-none opacity-40" : ""}`}
                 aria-label="Search vehicles"
                 onClick={async () => {
+                  if (submitting) return;
                   if (!vehicleDropdownOpen) {
                     setVehicleDropdownOpen(true);
                     setGroupDropdownOpen(false);
@@ -227,7 +236,7 @@ const TransportSelect = () => {
                 <Search className="h-5 w-5" />
               </Button>
 
-              {vehicleDropdownOpen && (
+              {vehicleDropdownOpen && !submitting && (
                 <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-2 z-50">
                   <div className="space-y-2">
                     <Input
@@ -272,6 +281,7 @@ const TransportSelect = () => {
                   setShowAll(next);
                   if (next) setGroupDropdownOpen(false);
                 }}
+                disabled={submitting}
               />
               <label htmlFor="showAllTransports" className="text-sm text-gray-800">
                 {trans.showAllTransports}
@@ -283,7 +293,7 @@ const TransportSelect = () => {
             <div className="w-full space-y-2">
               <Button
                 className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-                disabled={!vehicleId.trim() || (!showAll && !group.trim())}
+                disabled={submitting || !vehicleId.trim() || (!showAll && !group.trim())}
                 onClick={onConfirm}
               >
                 OK
@@ -292,6 +302,7 @@ const TransportSelect = () => {
                 type="button"
                 variant="outline"
                 className="w-full h-10"
+                disabled={submitting}
                 onClick={() => {
                   setOpen(false);
                   navigate("/");
