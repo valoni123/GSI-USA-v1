@@ -109,7 +109,7 @@ serve(async (req) => {
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
     const escapedVehicle = vehicleId.replace(/'/g, "''");
-    const filter = `PlannedVehicle eq '${escapedVehicle}'`;
+    const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq ''`;
     const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo";
     const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
 
