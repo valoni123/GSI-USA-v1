@@ -53,6 +53,7 @@ const TransportLoad = () => {
   const huRef = useRef<HTMLInputElement | null>(null);
   const locationRef = useRef<HTMLInputElement | null>(null);
   const vehicleRef = useRef<HTMLInputElement | null>(null);
+  const confirmHuRef = useRef<HTMLInputElement | null>(null);
   const lookupRequestIdRef = useRef(0);
   const loadRequestIdRef = useRef(0);
   const moveBackRequestIdRef = useRef(0);
@@ -60,6 +61,7 @@ const TransportLoad = () => {
   const [handlingUnit, setHandlingUnit] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
+  const [confirmHandlingUnit, setConfirmHandlingUnit] = useState<string>("");
   const [result, setResult] = useState<{ TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null>(null);
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
@@ -138,11 +140,14 @@ const TransportLoad = () => {
     setHuItemLabel("Handling Unit / Item");
     setSelectOpen(false);
     setSelectItems([]);
+    setConfirmHandlingUnit("");
   };
 
   useEffect(() => {
-    huRef.current?.focus();
-  }, []);
+    if (!openedFromTransportsList) {
+      huRef.current?.focus();
+    }
+  }, [openedFromTransportsList]);
 
   useEffect(() => {
     const prefill = (sessionStorage.getItem("transport.load.prefill") || "").trim();
@@ -162,6 +167,14 @@ const TransportLoad = () => {
     }, 0);
     return () => window.clearTimeout(timeoutId);
   }, [pendingPrefill, handlingUnit]);
+
+  useEffect(() => {
+    if (!openedFromTransportsList || !result) return;
+    const timeoutId = window.setTimeout(() => {
+      confirmHuRef.current?.focus();
+    }, 50);
+    return () => window.clearTimeout(timeoutId);
+  }, [openedFromTransportsList, result]);
 
   useEffect(() => {
     const cached = Number(localStorage.getItem("transport.count") || "0");
@@ -465,11 +478,14 @@ const TransportLoad = () => {
   const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
 
+  const scanMatchesTopValue = confirmHandlingUnit.trim() !== "" && confirmHandlingUnit.trim() === handlingUnit.trim();
+
   const canLoad =
     !detailsLoading &&
     vehicleId.trim().length > 0 &&
     Boolean(result) &&
-    (!locationRequired || vehicleEnabled);
+    (!locationRequired || vehicleEnabled) &&
+    (!openedFromTransportsList || scanMatchesTopValue);
 
   const onLoadClick = async () => {
     const now = Date.now();
@@ -659,6 +675,22 @@ const TransportLoad = () => {
     }
   };
 
+  const handleConfirmHandlingUnit = async () => {
+    if (!openedFromTransportsList) return;
+    if (processing || detailsLoading) return;
+
+    const expected = handlingUnit.trim();
+    const scanned = confirmHandlingUnit.trim();
+    if (!scanned) return;
+    if (scanned !== expected) {
+      showError("Scanned Handling Unit does not match");
+      setConfirmHandlingUnit("");
+      setTimeout(() => confirmHuRef.current?.focus(), 50);
+      return;
+    }
+    await onLoadClick();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
@@ -739,6 +771,7 @@ const TransportLoad = () => {
                 e.currentTarget.select();
               }
             }}
+            readOnly={openedFromTransportsList}
           />
           {locationRequired && (
             <FloatingLabelInput
@@ -794,6 +827,7 @@ const TransportLoad = () => {
             onClick={(e) => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
+            readOnly={openedFromTransportsList}
           />
           {/* Red result area */}
           <div className="mt-2 rounded-md min-h-28 p-3">
@@ -824,6 +858,26 @@ const TransportLoad = () => {
               <div className="text-muted-foreground text-sm"> </div>
             )}
           </div>
+
+          {openedFromTransportsList && result && (
+            <FloatingLabelInput
+              id="confirmHandlingUnit"
+              label="Handling Unit"
+              ref={confirmHuRef}
+              value={confirmHandlingUnit}
+              disabled={processing}
+              onChange={(e) => setConfirmHandlingUnit(e.target.value)}
+              onBlur={() => {
+                void handleConfirmHandlingUnit();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleConfirmHandlingUnit();
+                }
+              }}
+            />
+          )}
         </Card>
       </div>
 
