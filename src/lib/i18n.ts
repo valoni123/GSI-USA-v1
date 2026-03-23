@@ -33,6 +33,7 @@ type TranslationKeys =
   | "appInfoStock"
   | "appContainers"
   | "appTransport"
+  | "appTransportWorkload"
   | "appSettings"
   | "back"
   | "outgoingPicking"
@@ -117,39 +118,9 @@ type TranslationKeys =
   | "targetLocationLabel"
   | "statusLabel"
   | "lotLabel"
-  | "blockedLabel"
-  | "blockedFullyLabel"
-  | "blockedOutboundLabel"
-  | "blockedTransferIssueLabel"
-  | "blockedCycleCountingLabel"
-  | "blockedAssemblyLabel"
-  | "receivedSuccessfully"
-  | "inspectionQueryLabel"
-  | "helpLabel"
-  | "propertiesLabel"
-  | "orderLabel"
-  | "inspectionLabel"
-  | "approvedQuantityLabel"
-  | "rejectedQuantityLabel"
-  | "rejectReasonLabel"
-  | "submitLabel"
-  | "selectInspectionTitle"
-  | "searchReasonPlaceholder"
-  | "noReasonsLabel"
-  | "runLabel"
-  | "orderOriginLabel"
-  | "setLabel"
-  | "lineLabel"
-  | "sequenceLabel"
-  | "advisedQuantityLabel"
-  | "pickedLabel"
-  | "pickingSelectAdviceTitle"
-  | "pickingNoAdvices"
-  | "pickingTimeout";
+  | "blockedLabel";
 
-type Translations = Record<LanguageKey, Record<TranslationKeys, string>>;
-
-const translations: Translations = {
+export const translations: Record<LanguageKey, Record<TranslationKeys, string>> = {
   en: {
     title: "Sign in",
     username: "User",
@@ -176,6 +147,7 @@ const translations: Translations = {
     appInfoStock: "Info / Stock",
     appContainers: "Containers",
     appTransport: "Transport",
+    appTransportWorkload: "Transport Workload",
     appSettings: "Settings",
     back: "Back",
     outgoingPicking: "Picking",
@@ -261,34 +233,6 @@ const translations: Translations = {
     statusLabel: "Status",
     lotLabel: "Lot",
     blockedLabel: "Blocked",
-    blockedFullyLabel: "Fully",
-    blockedOutboundLabel: "For Outbound",
-    blockedTransferIssueLabel: "For Transfer Issue",
-    blockedCycleCountingLabel: "For Cycle Counting",
-    blockedAssemblyLabel: "For Assembly",
-    receivedSuccessfully: "Received successfully...",
-    inspectionQueryLabel: "Order Number / Inspection / Handling Unit",
-    helpLabel: "Help",
-    propertiesLabel: "Properties",
-    orderLabel: "Order",
-    inspectionLabel: "Inspection",
-    approvedQuantityLabel: "Approved Quantity",
-    rejectedQuantityLabel: "Rejected Quantity",
-    rejectReasonLabel: "Reject Reason",
-    submitLabel: "SUBMIT",
-    selectInspectionTitle: "Select an inspection",
-    searchReasonPlaceholder: "Search reason...",
-    noReasonsLabel: "No reasons",
-    runLabel: "Run",
-    orderOriginLabel: "Order Origin",
-    setLabel: "Set",
-    lineLabel: "Line",
-    sequenceLabel: "Sequence",
-    advisedQuantityLabel: "Advised Quantity",
-    pickedLabel: "Picked",
-    pickingSelectAdviceTitle: "Select Picking Advice",
-    pickingNoAdvices: "No released outbound advices found for this run.",
-    pickingTimeout: "Picking request timed out",
   },
   de: {
     title: "Anmelden",
@@ -316,6 +260,7 @@ const translations: Translations = {
     appInfoStock: "Info / Bestand",
     appContainers: "Behälter",
     appTransport: "Transport",
+    appTransportWorkload: "Transport Auslastung",
     appSettings: "Einstellungen",
     back: "Zurück",
     outgoingPicking: "Kommissionierung",
@@ -401,34 +346,6 @@ const translations: Translations = {
     statusLabel: "Status",
     lotLabel: "Charge",
     blockedLabel: "Gesperrt",
-    blockedFullyLabel: "Vollständig",
-    blockedOutboundLabel: "Für Auslagerung",
-    blockedTransferIssueLabel: "Für Umlagerung (Entnahme)",
-    blockedCycleCountingLabel: "Für Inventur",
-    blockedAssemblyLabel: "Für Zusammenstellung",
-    receivedSuccessfully: "Erfolgreich empfangen...",
-    inspectionQueryLabel: "Auftragsnummer / Prüfung / Ladeeinheit",
-    helpLabel: "Hilfe",
-    propertiesLabel: "Eigenschaften",
-    orderLabel: "Auftrag",
-    inspectionLabel: "Prüfung",
-    approvedQuantityLabel: "Genehmigte Menge",
-    rejectedQuantityLabel: "Abgelehnte Menge",
-    rejectReasonLabel: "Ablehnungsgrund",
-    submitLabel: "SENDEN",
-    selectInspectionTitle: "Prüfung auswählen",
-    searchReasonPlaceholder: "Grund suchen...",
-    noReasonsLabel: "Keine Gründe",
-    runLabel: "Lauf",
-    orderOriginLabel: "Auftragsherkunft",
-    setLabel: "Satz",
-    lineLabel: "Position",
-    sequenceLabel: "Folge",
-    advisedQuantityLabel: "Avisierte Menge",
-    pickedLabel: "Gepickt",
-    pickingSelectAdviceTitle: "Kommissionierauftrag auswählen",
-    pickingNoAdvices: "Keine freigegebenen Auslagerungspositionen für diesen Lauf gefunden.",
-    pickingTimeout: "Kommissionierabfrage hat Zeitüberschreitung",
   },
   "es-MX": {
     title: "Iniciar sesión",
@@ -456,6 +373,7 @@ const translations: Translations = {
     appInfoStock: "Info / Inventario",
     appContainers: "Contenedores",
     appTransport: "Transporte",
+    appTransportWorkload: "Carga de Transporte",
     appSettings: "Configuración",
     back: "Atrás",
     outgoingPicking: "Preparación",
@@ -541,34 +459,6 @@ const translations: Translations = {
     statusLabel: "Estado",
     lotLabel: "Lote",
     blockedLabel: "Bloqueado",
-    blockedFullyLabel: "Totalmente",
-    blockedOutboundLabel: "Para salida",
-    blockedTransferIssueLabel: "Para traslado (emisión)",
-    blockedCycleCountingLabel: "Para conteo cíclico",
-    blockedAssemblyLabel: "Para ensamblaje",
-    receivedSuccessfully: "Recibido correctamente...",
-    inspectionQueryLabel: "Número de orden / Inspección / Unidad de manejo",
-    helpLabel: "Ayuda",
-    propertiesLabel: "Propiedades",
-    orderLabel: "Orden",
-    inspectionLabel: "Inspección",
-    approvedQuantityLabel: "Cantidad aprobada",
-    rejectedQuantityLabel: "Cantidad rechazada",
-    rejectReasonLabel: "Motivo de rechazo",
-    submitLabel: "ENVIAR",
-    selectInspectionTitle: "Seleccionar inspección",
-    searchReasonPlaceholder: "Buscar motivo...",
-    noReasonsLabel: "Sin motivos",
-    runLabel: "Ejecución",
-    orderOriginLabel: "Origen de orden",
-    setLabel: "Conjunto",
-    lineLabel: "Línea",
-    sequenceLabel: "Secuencia",
-    advisedQuantityLabel: "Cantidad aconsejada",
-    pickedLabel: "Surtido",
-    pickingSelectAdviceTitle: "Seleccionar consejo de surtido",
-    pickingNoAdvices: "No se encontraron avisos de salida liberados para esta ejecución.",
-    pickingTimeout: "La consulta de surtido agotó el tiempo",
   },
   "pt-BR": {
     title: "Entrar",
@@ -596,6 +486,7 @@ const translations: Translations = {
     appInfoStock: "Info / Estoque",
     appContainers: "Contêineres",
     appTransport: "Transporte",
+    appTransportWorkload: "Carga de Transporte",
     appSettings: "Configurações",
     back: "Voltar",
     outgoingPicking: "Separação",
@@ -681,37 +572,7 @@ const translations: Translations = {
     statusLabel: "Status",
     lotLabel: "Lote",
     blockedLabel: "Bloqueado",
-    blockedFullyLabel: "Total",
-    blockedOutboundLabel: "Para expedição",
-    blockedTransferIssueLabel: "Para transferência (baixa)",
-    blockedCycleCountingLabel: "Para contagem cíclica",
-    blockedAssemblyLabel: "Para montagem",
-    receivedSuccessfully: "Recebido com sucesso...",
-    inspectionQueryLabel: "Número do pedido / Inspeção / Unidade de manuseio",
-    helpLabel: "Ajuda",
-    propertiesLabel: "Propriedades",
-    orderLabel: "Pedido",
-    inspectionLabel: "Inspeção",
-    approvedQuantityLabel: "Quantidade aprovada",
-    rejectedQuantityLabel: "Quantidade rejeitada",
-    rejectReasonLabel: "Motivo da rejeição",
-    submitLabel: "ENVIAR",
-    selectInspectionTitle: "Selecionar inspeção",
-    searchReasonPlaceholder: "Buscar motivo...",
-    noReasonsLabel: "Sem motivos",
-    runLabel: "Execução",
-    orderOriginLabel: "Origem do pedido",
-    setLabel: "Conjunto",
-    lineLabel: "Linha",
-    sequenceLabel: "Sequência",
-    advisedQuantityLabel: "Quantidade avisada",
-    pickedLabel: "Separado",
-    pickingSelectAdviceTitle: "Selecionar conselho de separação",
-    pickingNoAdvices: "Nenhum aviso de saída liberado encontrado para esta execução.",
-    pickingTimeout: "A consulta de separação expirou",
   },
 };
 
-export function t(lang: LanguageKey) {
-  return translations[lang];
-}
+export const t = (lang: LanguageKey) => translations[lang] || translations.en;
