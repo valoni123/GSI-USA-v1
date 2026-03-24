@@ -1,10 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, User, ArrowRight } from "lucide-react";
 import HelpMenu from "@/components/HelpMenu";
 import BackButton from "@/components/BackButton";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
@@ -62,6 +69,9 @@ const TransportUnload = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [processing, setProcessing] = useState<boolean>(false);
+  const [targetLocationDialogOpen, setTargetLocationDialogOpen] = useState(false);
+  const [targetLocationScan, setTargetLocationScan] = useState("");
+  const targetLocationRef = useRef<HTMLInputElement | null>(null);
   // NEW: map HU → Quantity and Unit
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [units, setUnits] = useState<Record<string, string>>({});
@@ -181,6 +191,18 @@ const TransportUnload = () => {
     return items.every((it) => (it.LocationTo || "").trim() === first);
   }, [items]);
 
+  const commonTargetLocation = useMemo(() => {
+    if (!allSameLocationTo || items.length === 0) return "";
+    return (items[0]?.LocationTo || "").trim();
+  }, [allSameLocationTo, items]);
+
+  const targetLocationMismatchMessage = useMemo(() => {
+    if (lang === "de") return "Gescanter Ziel-Lagerplatz stimmt nicht überein";
+    if (lang === "es-MX") return "La ubicación destino escaneada no coincide";
+    if (lang === "pt-BR") return "O local de destino escaneado não corresponde";
+    return "Scanned Target Location does not match";
+  }, [lang]);
+
   const getEmployeeCode = () => {
     return (
       (localStorage.getItem("gsi.employee") ||
@@ -294,6 +316,27 @@ const TransportUnload = () => {
       await fetchCount(); // refresh via REST after UNLOAD
     }
     setProcessing(false);
+  };
+
+  const openTargetLocationDialog = () => {
+    if (!allSameLocationTo || items.length === 0 || processing) return;
+    setTargetLocationScan("");
+    setTargetLocationDialogOpen(true);
+    setTimeout(() => targetLocationRef.current?.focus(), 50);
+  };
+
+  const confirmUnloadWithTargetLocation = async () => {
+    const scanned = targetLocationScan.trim();
+    if (!scanned || !commonTargetLocation) return;
+    if (scanned !== commonTargetLocation) {
+      showError(targetLocationMismatchMessage);
+      setTargetLocationScan("");
+      setTimeout(() => targetLocationRef.current?.focus(), 50);
+      return;
+    }
+
+    setTargetLocationDialogOpen(false);
+    await unloadAll();
   };
 
   return (
@@ -457,12 +500,68 @@ const TransportUnload = () => {
                 : "w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100"
             }
             disabled={!allSameLocationTo || items.length === 0 || processing}
-            onClick={unloadAll}
+            onClick={openTargetLocationDialog}
           >
             {trans.unloadAction} ({loadedCount})
           </Button>
         </div>
       </div>
+
+      <Dialog open={targetLocationDialogOpen} onOpenChange={setTargetLocationDialogOpen}>
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md overflow-hidden rounded-lg bg-white p-0">
+          <DialogHeader className="border-b bg-black px-4 py-3 text-left">
+            <DialogTitle className="text-sm font-semibold text-white">{trans.unloadAction}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 p-4">
+            <FloatingLabelInput
+              id="expectedTargetLocation"
+              label={trans.targetLocationLabel}
+              value={commonTargetLocation}
+              disabled
+            />
+
+            <FloatingLabelInput
+              id="scanTargetLocation"
+              ref={targetLocationRef}
+              autoFocus
+              label={`${trans.targetLocationLabel} *`}
+              value={targetLocationScan}
+              disabled={processing}
+              onChange={(e) => setTargetLocationScan(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  void confirmUnloadWithTargetLocation();
+                }
+              }}
+            />
+
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 flex-1"
+                onClick={() => {
+                  setTargetLocationDialogOpen(false);
+                  setTargetLocationScan("");
+                }}
+              >
+                {trans.no}
+              </Button>
+              <Button
+                type="button"
+                className="h-11 flex-1 bg-red-600 text-white hover:bg-red-700"
+                disabled={!targetLocationScan.trim() || processing}
+                onClick={() => {
+                  void confirmUnloadWithTargetLocation();
+                }}
+              >
+                {trans.unloadAction}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Sign-out confirmation dialog */}
       <SignOutConfirm
