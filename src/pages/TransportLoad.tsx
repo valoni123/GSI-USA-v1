@@ -128,6 +128,43 @@ const TransportLoad = () => {
   const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
   const openedFromTransportsList = sessionStorage.getItem("transport.load.source") === "transports-list";
 
+  const matchesTransportLine = (
+    row: {
+      TransportID?: string;
+      RunNumber?: string;
+      Item?: string;
+      HandlingUnit?: string;
+      LocationFrom?: string;
+      LocationTo?: string;
+    } | null | undefined,
+    selected: {
+      TransportID?: string;
+      RunNumber?: string;
+      Item?: string;
+      HandlingUnit?: string;
+      LocationFrom?: string;
+      LocationTo?: string;
+    } | null | undefined,
+  ) => {
+    if (!row || !selected) return false;
+
+    const selectedRunNumber = String(selected.RunNumber ?? "").trim();
+    if (selectedRunNumber) {
+      return (
+        String(row.TransportID ?? "") === String(selected.TransportID ?? "") &&
+        String(row.RunNumber ?? "") === selectedRunNumber
+      );
+    }
+
+    return (
+      String(row.TransportID ?? "") === String(selected.TransportID ?? "") &&
+      String(row.HandlingUnit ?? "") === String(selected.HandlingUnit ?? "") &&
+      String(row.Item ?? "") === String(selected.Item ?? "") &&
+      String(row.LocationFrom ?? "") === String(selected.LocationFrom ?? "") &&
+      String(row.LocationTo ?? "") === String(selected.LocationTo ?? "")
+    );
+  };
+
   const goBackFromLoad = () => {
     if (openedFromTransportsList) {
       sessionStorage.removeItem("transport.load.source");
@@ -506,10 +543,31 @@ const TransportLoad = () => {
       return;
     }
 
-    const items = (ordData.items || []) as Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity: number | null }>;
-    const first = ordData.first as { TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null;
+    const items = (ordData.items || []) as Array<{
+      TransportID: string;
+      RunNumber: string;
+      Item: string;
+      HandlingUnit: string;
+      Warehouse: string;
+      LocationFrom: string;
+      LocationTo: string;
+      ETag: string;
+      OrderedQuantity: number | null;
+    }>;
+    const first = ordData.first as {
+      TransportID?: string;
+      RunNumber?: string;
+      Item?: string;
+      HandlingUnit?: string;
+      Warehouse?: string;
+      LocationFrom?: string;
+      LocationTo?: string;
+      ETag?: string;
+      OrderedQuantity?: number | null;
+    } | null;
 
-    if ((ordData.count ?? items.length ?? 0) > 1) {
+    const directMatch = items.find((it) => matchesTransportLine(it, result));
+    if ((ordData.count ?? items.length ?? 0) > 1 && !directMatch) {
       setSelectItems(items);
       setLastFetchedHu(requestCode);
       setSelectOpen(true);
@@ -517,7 +575,7 @@ const TransportLoad = () => {
       return;
     }
 
-    const nextResult = first || null;
+    const nextResult = directMatch || first || null;
     setResult(nextResult);
     setLastFetchedHu(requestCode);
     const etagValue = nextResult && typeof nextResult.ETag === "string" ? nextResult.ETag : "";
@@ -704,10 +762,7 @@ const TransportLoad = () => {
     }
 
     const orderItems = Array.isArray(ordData.items) ? ordData.items : [];
-    const resolvedItem = orderItems.find((row: any) =>
-      String(row?.TransportID ?? "") === String(currentResolved.result.TransportID ?? "") &&
-      String(row?.RunNumber ?? "") === String(currentResolved.result.RunNumber ?? "")
-    );
+    const resolvedItem = orderItems.find((row: any) => matchesTransportLine(row, currentResolved.result));
     const refreshedResult = (resolvedItem || ordData.first || null) as NonNullable<typeof result> | null;
     if (!refreshedResult) {
       dismissToast(verifyTid as unknown as string);
