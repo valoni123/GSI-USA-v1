@@ -128,7 +128,7 @@ const TransportUnload = () => {
     if (!vid) {
       setLoadedCount(0);
       try { localStorage.setItem("transport.count", "0"); } catch {}
-      return;
+      return 0;
     }
     const { data } = await supabase.functions.invoke("ln-transport-count", {
       body: { vehicleId: vid, language: locale, company: "1100" },
@@ -138,6 +138,7 @@ const TransportUnload = () => {
     try {
       localStorage.setItem("transport.count", String(next));
     } catch {}
+    return next;
   };
 
   // NEW: fetch quantities and units for current items
@@ -302,7 +303,11 @@ const TransportUnload = () => {
     if (successCount > 0) {
       showSuccess(`${trans.unloadedSuccessfully} (${successCount})`);
       await fetchLoaded();
-      await fetchCount(); // refresh via REST after UNLOAD
+      const nextCount = await fetchCount(); // refresh via REST after UNLOAD
+      if (nextCount === 0) {
+        navigate("/menu/transports/list");
+        return;
+      }
     }
     setProcessing(false);
   };
@@ -461,7 +466,11 @@ const TransportUnload = () => {
                                     if (ok) {
                                       showSuccess(trans.unloadedSuccessfully);
                                       await fetchLoaded();
-                                      await fetchCount();
+                                      const nextCount = await fetchCount();
+                                      if (nextCount === 0) {
+                                        navigate("/menu/transports/list");
+                                        return;
+                                      }
                                     }
                                     setProcessing(false);
                                   }}
