@@ -1,19 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, LogOut, RotateCcw } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import ScreenSpinner from "@/components/ScreenSpinner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +39,7 @@ type LoadedListItem = {
 
 const TransportsList = () => {
   const navigate = useNavigate();
+  const moveBackLocationRef = useRef<HTMLInputElement | null>(null);
   const lang: LanguageKey = ((localStorage.getItem("app.lang") as LanguageKey) || "en");
   const trans = useMemo(() => t(lang), [lang]);
   const locale = useMemo(() => {
@@ -71,8 +65,9 @@ const TransportsList = () => {
   const [loadedItems, setLoadedItems] = useState<LoadedListItem[]>([]);
   const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
   const [listOpen, setListOpen] = useState(false);
-  const [confirmMoveBackOpen, setConfirmMoveBackOpen] = useState(false);
-  const [confirmItem, setConfirmItem] = useState<LoadedListItem | null>(null);
+  const [moveBackDialogOpen, setMoveBackDialogOpen] = useState(false);
+  const [moveBackItem, setMoveBackItem] = useState<LoadedListItem | null>(null);
+  const [moveBackLocation, setMoveBackLocation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [signOutOpen, setSignOutOpen] = useState(false);
 
@@ -228,7 +223,7 @@ const TransportsList = () => {
 
   const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`;
 
-  const onMoveBack = async (it: LoadedListItem) => {
+  const onMoveBack = async (it: LoadedListItem, targetLocationOverride?: string) => {
     const key = moveBackKey(it);
     if (movingBackMap[key] || moveBackProcessing) return;
 
@@ -255,12 +250,18 @@ const TransportsList = () => {
       return;
     }
 
+    const targetLocation = (targetLocationOverride || currentItem.LocationFrom).trim();
+    if (!targetLocation) {
+      showError("Missing target location.");
+      return;
+    }
+
     const movePayload: Record<string, unknown> = {
       handlingUnit: currentItem.HandlingUnit,
       fromWarehouse: currentItem.Warehouse,
       fromLocation: selectedVehicleId,
       toWarehouse: currentItem.Warehouse,
-      toLocation: currentItem.LocationFrom,
+      toLocation: targetLocation,
       employee: employeeCode,
       language: locale,
     };
@@ -324,10 +325,32 @@ const TransportsList = () => {
       return;
     }
 
+    await Promise.all([loadPlanningItems(), fetchLoadedCount(), fetchLoadedList()]);
     showSuccess("Moved back");
-    await Promise.all([loadPlanningItems(), fetchLoadedList()]);
     setMovingBackMap((m) => ({ ...m, [key]: false }));
     setMoveBackProcessing(false);
+  };
+
+  const openMoveBackDialog = (it: LoadedListItem) => {
+    if (moveBackProcessing || Boolean(movingBackMap[moveBackKey(it)])) return;
+    setMoveBackItem(it);
+    setMoveBackLocation((it.LocationFrom || "").trim());
+    setMoveBackDialogOpen(true);
+    window.setTimeout(() => moveBackLocationRef.current?.focus(), 50);
+  };
+
+  const closeMoveBackDialog = () => {
+    setMoveBackDialogOpen(false);
+    setMoveBackItem(null);
+    setMoveBackLocation("");
+  };
+
+  const confirmMoveBack = async () => {
+    const it = moveBackItem;
+    const targetLocation = moveBackLocation.trim();
+    if (!it || !targetLocation) return;
+    closeMoveBackDialog();
+    await onMoveBack(it, targetLocation);
   };
 
   const onConfirmSignOut = () => {
@@ -491,10 +514,7 @@ const TransportsList = () => {
                             <button
                               type="button"
                               className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                              onClick={() => {
-                                setConfirmItem(it);
-                                setConfirmMoveBackOpen(true);
-                              }}
+                              onClick={() => openMoveBackDialog(it)}
                               disabled={moveBackProcessing || Boolean(movingBackMap[key])}
                               aria-label="Move back"
                             >
@@ -514,37 +534,54 @@ const TransportsList = () => {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={confirmMoveBackOpen} onOpenChange={setConfirmMoveBackOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Move back</AlertDialogTitle>
-          </AlertDialogHeader>
-          <div className="text-sm text-gray-700">Do you really want to move it back?</div>
-          <AlertDialogFooter className="flex-col gap-3 sm:flex-col">
-            <AlertDialogAction
-              onClick={async () => {
-                const it = confirmItem;
-                setConfirmMoveBackOpen(false);
-                setConfirmItem(null);
-                if (it) {
-                  await onMoveBack(it);
+      <Dialog
+        open={moveBackDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeMoveBackDialog();
+          }
+        }}
+      >
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md overflow-hidden rounded-lg bg-white p-0">
+          <div className="border-b bg-black px-4 py-3 text-left text-sm font-semibold text-white">Move back</div>
+          <div className="space-y-4 p-4">
+            <FloatingLabelInput
+              id="moveBackLocation"
+              ref={moveBackLocationRef}
+              autoFocus
+              label={`${trans.targetLocationLabel} *`}
+              value={moveBackLocation}
+              disabled={moveBackProcessing}
+              onChange={(e) => setMoveBackLocation(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  void confirmMoveBack();
                 }
               }}
-            >
-              Move back
-            </AlertDialogAction>
-            <AlertDialogAction
-              className="bg-red-600 text-white hover:bg-red-700"
-              onClick={() => {
-                setConfirmMoveBackOpen(false);
-                setConfirmItem(null);
-              }}
-            >
-              Cancel
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            />
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 flex-1"
+                onClick={closeMoveBackDialog}
+              >
+                {trans.cancel}
+              </Button>
+              <Button
+                type="button"
+                className="h-11 flex-1 bg-red-600 text-white hover:bg-red-700"
+                disabled={!moveBackLocation.trim() || moveBackProcessing}
+                onClick={() => {
+                  void confirmMoveBack();
+                }}
+              >
+                Move back
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <SignOutConfirm
         open={signOutOpen}
