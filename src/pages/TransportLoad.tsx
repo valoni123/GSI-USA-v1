@@ -788,36 +788,51 @@ const TransportLoad = () => {
       {/* Form area */}
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
-          <FloatingLabelInput
-            id="handlingUnit"
-            label={huItemLabel}
-            autoFocus
-            ref={huRef}
-            value={handlingUnit}
-            disabled={processing}
-            onChange={(e) => {
-              const v = e.target.value;
-              setHandlingUnit(v);
-              const trimmed = v.trim();
-              if (!trimmed) {
-                resetResolvedState();
-                return;
-              }
-              if (trimmed !== (lastFetchedHu || "")) {
-                resetResolvedState();
-              }
-            }}
-            onBlur={onHUBlur}
-            onFocus={(e) => {
-              if (e.currentTarget.value.length > 0) e.currentTarget.select();
-            }}
-            onClick={(e) => {
-              if (e.currentTarget.value.length > 0) {
-                e.currentTarget.select();
-              }
-            }}
-            readOnly={openedFromTransportsList}
-          />
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <FloatingLabelInput
+                id="handlingUnit"
+                label={huItemLabel}
+                autoFocus
+                ref={huRef}
+                value={handlingUnit}
+                disabled={processing}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setHandlingUnit(v);
+                  const trimmed = v.trim();
+                  if (!trimmed) {
+                    resetResolvedState();
+                    return;
+                  }
+                  if (trimmed !== (lastFetchedHu || "")) {
+                    resetResolvedState();
+                  }
+                }}
+                onBlur={onHUBlur}
+                onFocus={(e) => {
+                  if (e.currentTarget.value.length > 0) e.currentTarget.select();
+                }}
+                onClick={(e) => {
+                  if (e.currentTarget.value.length > 0) {
+                    e.currentTarget.select();
+                  }
+                }}
+                readOnly={openedFromTransportsList}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 w-12 shrink-0 border-orange-300 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:opacity-50"
+              disabled={!canAdjust}
+              onClick={() => setConfirmAdjustOpen(true)}
+              aria-label={trans.adjustAction}
+              title={trans.adjustAction}
+            >
+              <Eraser className="h-5 w-5" />
+            </Button>
+          </div>
           {!openedFromTransportsList && locationRequired && (
             <FloatingLabelInput
               id="scanLocation"
@@ -940,17 +955,6 @@ const TransportLoad = () => {
       {/* Bottom action bar */}
       <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
         <div className="mx-auto max-w-md px-4 py-3 flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 w-12 shrink-0 border-orange-300 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:opacity-50"
-            disabled={!canAdjust}
-            onClick={() => setConfirmAdjustOpen(true)}
-            aria-label={trans.adjustAction}
-            title={trans.adjustAction}
-          >
-            <Eraser className="h-5 w-5" />
-          </Button>
           <Button
             className={
               canLoad && !processing
