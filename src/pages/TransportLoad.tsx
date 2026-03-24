@@ -554,6 +554,7 @@ const TransportLoad = () => {
     navigate("/menu/info-stock/correction", {
       state: {
         initialHandlingUnit: queryValue,
+        lockInitialQuery: openedFromTransportsList,
         returnTo: {
           path: "/menu/transport/load",
         },

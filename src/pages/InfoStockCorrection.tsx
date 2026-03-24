@@ -33,6 +33,7 @@ const InfoStockCorrection = () => {
   const trans = useMemo(() => t(lang), [lang]);
   const permissions = useMemo(() => getStoredGsiPermissions(), []);
   const canMove = hasPermission(permissions, "trans");
+  const lockInitialQuery = Boolean((routerLocation.state as any)?.lockInitialQuery);
 
   const [fullName, setFullName] = useState<string>("");
   useEffect(() => {
@@ -809,7 +810,10 @@ const InfoStockCorrection = () => {
                 label={queryLabel}
                 ref={huRef}
                 value={query}
+                readOnly={lockInitialQuery}
+                className={lockInitialQuery ? "bg-gray-100 text-gray-700" : undefined}
                 onChange={(e) => {
+                  if (lockInitialQuery) return;
                   const v = e.target.value;
                   setQuery(v);
                   setLastSearched(null);
@@ -819,11 +823,13 @@ const InfoStockCorrection = () => {
                   setLastMatchType(null);
                 }}
                 onKeyDown={(e) => {
+                  if (lockInitialQuery) return;
                   if (e.key === "Enter") {
                     void handleSearch(true);
                   }
                 }}
                 onBlur={() => {
+                  if (lockInitialQuery) return;
                   if (query.trim()) {
                     void handleSearch(true);
                   }
@@ -834,7 +840,7 @@ const InfoStockCorrection = () => {
                 onClick={(e) => {
                   if (e.currentTarget.value.length > 0) e.currentTarget.select();
                 }}
-                onClear={() => {
+                onClear={lockInitialQuery ? undefined : () => {
                   setQuery("");
                   setLastSearched(null);
                   setItem("");
@@ -857,9 +863,12 @@ const InfoStockCorrection = () => {
               type="button"
               variant="outline"
               size="icon"
-              className={query.trim() ? "h-10 w-10 bg-red-600 hover:bg-red-700 text-white" : "h-10 w-10 text-gray-700 hover:text-gray-900"}
+              className={lockInitialQuery
+                ? "h-10 w-10 bg-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-500"
+                : query.trim() ? "h-10 w-10 bg-red-600 hover:bg-red-700 text-white" : "h-10 w-10 text-gray-700 hover:text-gray-900"}
               aria-label={trans.searchLabel}
               onClick={() => handleSearch(true)}
+              disabled={lockInitialQuery}
             >
               <Search className="h-5 w-5" />
             </Button>
