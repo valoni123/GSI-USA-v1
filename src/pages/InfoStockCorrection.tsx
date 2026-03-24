@@ -729,60 +729,7 @@ const InfoStockCorrection = () => {
   };
 
   const handlePrintLabel = () => {
-    const hu = (handlingUnit || query || "").trim();
-    if (!hu) return;
-
-    const w = window.open("", "_blank", "noopener,noreferrer");
-    if (!w) return;
-
-    const doc = w.document;
-    doc.open();
-    doc.write(
-      `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
-      <title>${hu}</title>
-      <style>
-        body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; padding:24px;}
-        .card{border:1px solid #ddd; border-radius:12px; padding:16px; max-width:420px;}
-        h1{font-size:20px; margin:0 0 12px;}
-        .row{display:flex; justify-content:space-between; gap:12px; font-size:14px; margin:6px 0;}
-        .k{color:#555;}
-        .v{font-weight:600; text-align:right; word-break:break-all;}
-      </style>
-      </head><body></body></html>`
-    );
-    doc.close();
-
-    const body = doc.body;
-    const card = doc.createElement("div");
-    card.className = "card";
-
-    const title = doc.createElement("h1");
-    title.textContent = `HU: ${hu}`;
-    card.appendChild(title);
-
-    const addRow = (k: string, v: string) => {
-      const row = doc.createElement("div");
-      row.className = "row";
-      const kEl = doc.createElement("div");
-      kEl.className = "k";
-      kEl.textContent = k;
-      const vEl = doc.createElement("div");
-      vEl.className = "v";
-      vEl.textContent = v;
-      row.appendChild(kEl);
-      row.appendChild(vEl);
-      card.appendChild(row);
-    };
-
-    addRow("Item", (item || "-").toString());
-    addRow("Warehouse", (warehouse || "-").toString());
-    addRow("Location", (location || "-").toString());
-    addRow("Quantity", `${(quantity || "-").toString()} ${(unit || "").toString()}`.trim());
-
-    body.appendChild(card);
-
-    w.focus();
-    w.print();
+    return;
   };
 
   return (
