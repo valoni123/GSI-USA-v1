@@ -191,18 +191,6 @@ const TransportUnload = () => {
     return items.every((it) => (it.LocationTo || "").trim() === first);
   }, [items]);
 
-  const commonTargetLocation = useMemo(() => {
-    if (!allSameLocationTo || items.length === 0) return "";
-    return (items[0]?.LocationTo || "").trim();
-  }, [allSameLocationTo, items]);
-
-  const targetLocationMismatchMessage = useMemo(() => {
-    if (lang === "de") return "Gescanter Ziel-Lagerplatz stimmt nicht überein";
-    if (lang === "es-MX") return "La ubicación destino escaneada no coincide";
-    if (lang === "pt-BR") return "O local de destino escaneado não corresponde";
-    return "Scanned Target Location does not match";
-  }, [lang]);
-
   const getEmployeeCode = () => {
     return (
       (localStorage.getItem("gsi.employee") ||
@@ -212,16 +200,17 @@ const TransportUnload = () => {
     ).trim();
   };
 
-  const unloadSingle = async (it: LoadedItem, attempt = 1): Promise<boolean> => {
+  const unloadSingle = async (it: LoadedItem, attempt = 1, targetLocationOverride?: string): Promise<boolean> => {
     const employeeCode = getEmployeeCode();
     const hu = (it.HandlingUnit || "").trim();
     const currentVehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+    const targetLocation = (targetLocationOverride || it.LocationTo || "").trim();
     const payload: Record<string, unknown> = {
       handlingUnit: hu,
       fromWarehouse: (it.Warehouse || "").trim(),
       fromLocation: hu ? (it.LocationFrom || "").trim() : currentVehicleId,
       toWarehouse: (it.Warehouse || "").trim(),
-      toLocation: (it.LocationTo || "").trim(),
+      toLocation: targetLocation,
       employee: employeeCode,
       language: locale,
       company: "1100",
@@ -261,7 +250,7 @@ const TransportUnload = () => {
 
       if (attempt < MAX_UNLOAD_RETRY && isQtyTimingIssue) {
         // Removed delay; retry immediately
-        return unloadSingle(it, attempt + 1);
+        return unloadSingle(it, attempt + 1, targetLocationOverride);
       }
 
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
@@ -271,7 +260,7 @@ const TransportUnload = () => {
 
     // After successful move, PATCH the TransportOrder: Completed='Yes', clear VehicleID and set LocationDevice to ToLocation
     const patchTid = showLoading(trans.updatingTransportOrder);
-    const toLoc = (it.LocationTo || "").trim();
+    const toLoc = targetLocation;
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: (it.TransportID || "").trim(),
@@ -298,12 +287,12 @@ const TransportUnload = () => {
     return true;
   };
 
-  const unloadAll = async () => {
-    if (!allSameLocationTo || items.length === 0) return;
+  const unloadAll = async (targetLocation: string) => {
+    if (items.length === 0) return;
     setProcessing(true);
     let successCount = 0;
     for (const it of items) {
-      const ok = await unloadSingle(it);
+      const ok = await unloadSingle(it, 1, targetLocation);
       if (!ok) {
         break; // Stop on first error
       }
@@ -319,7 +308,7 @@ const TransportUnload = () => {
   };
 
   const openTargetLocationDialog = () => {
-    if (!allSameLocationTo || items.length === 0 || processing) return;
+    if (items.length === 0 || processing) return;
     setTargetLocationScan("");
     setTargetLocationDialogOpen(true);
     setTimeout(() => targetLocationRef.current?.focus(), 50);
@@ -327,16 +316,11 @@ const TransportUnload = () => {
 
   const confirmUnloadWithTargetLocation = async () => {
     const scanned = targetLocationScan.trim();
-    if (!scanned || !commonTargetLocation) return;
-    if (scanned !== commonTargetLocation) {
-      showError(targetLocationMismatchMessage);
-      setTargetLocationScan("");
-      setTimeout(() => targetLocationRef.current?.focus(), 50);
-      return;
-    }
+    if (!scanned) return;
 
     setTargetLocationDialogOpen(false);
-    await unloadAll();
+    setTargetLocationScan("");
+    await unloadAll(scanned);
   };
 
   return (
@@ -495,11 +479,11 @@ const TransportUnload = () => {
         <div className="mx-auto max-w-md px-4 py-3">
           <Button
             className={
-              allSameLocationTo && items.length > 0 && !processing
+              items.length > 0 && !processing
                 ? "w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white"
                 : "w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100"
             }
-            disabled={!allSameLocationTo || items.length === 0 || processing}
+            disabled={items.length === 0 || processing}
             onClick={openTargetLocationDialog}
           >
             {trans.unloadAction} ({loadedCount})
@@ -514,13 +498,6 @@ const TransportUnload = () => {
           </DialogHeader>
 
           <div className="space-y-4 p-4">
-            <FloatingLabelInput
-              id="expectedTargetLocation"
-              label={trans.targetLocationLabel}
-              value={commonTargetLocation}
-              disabled
-            />
-
             <FloatingLabelInput
               id="scanTargetLocation"
               ref={targetLocationRef}
