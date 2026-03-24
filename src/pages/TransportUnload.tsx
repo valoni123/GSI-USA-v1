@@ -71,6 +71,7 @@ const TransportUnload = () => {
   const [processing, setProcessing] = useState<boolean>(false);
   const [targetLocationDialogOpen, setTargetLocationDialogOpen] = useState(false);
   const [targetLocationScan, setTargetLocationScan] = useState("");
+  const [pendingUnloadItem, setPendingUnloadItem] = useState<LoadedItem | null>(null);
   const targetLocationRef = useRef<HTMLInputElement | null>(null);
   // NEW: map HU → Quantity and Unit
   const [quantities, setQuantities] = useState<Record<string, string>>({});
@@ -314,6 +315,15 @@ const TransportUnload = () => {
 
   const openTargetLocationDialog = () => {
     if (items.length === 0 || processing) return;
+    setPendingUnloadItem(null);
+    setTargetLocationScan("");
+    setTargetLocationDialogOpen(true);
+    setTimeout(() => targetLocationRef.current?.focus(), 50);
+  };
+
+  const openSingleTargetLocationDialog = (item: LoadedItem) => {
+    if (processing) return;
+    setPendingUnloadItem(item);
     setTargetLocationScan("");
     setTargetLocationDialogOpen(true);
     setTimeout(() => targetLocationRef.current?.focus(), 50);
@@ -323,8 +333,27 @@ const TransportUnload = () => {
     const scanned = targetLocationScan.trim();
     if (!scanned) return;
 
+    const singleItem = pendingUnloadItem;
     setTargetLocationDialogOpen(false);
     setTargetLocationScan("");
+    setPendingUnloadItem(null);
+
+    if (singleItem) {
+      setProcessing(true);
+      const ok = await unloadSingle(singleItem, 1, scanned);
+      if (ok) {
+        showSuccess(trans.unloadedSuccessfully);
+        await fetchLoaded();
+        const nextCount = await fetchCount();
+        if (nextCount === 0) {
+          navigate("/menu/transports/list");
+          return;
+        }
+      }
+      setProcessing(false);
+      return;
+    }
+
     await unloadAll(scanned);
   };
 
@@ -460,20 +489,7 @@ const TransportUnload = () => {
                                   className="bg-red-600 hover:bg-red-700 text-white h-6 w-6 sm:h-7 sm:w-7 rounded-[3px] p-0 shadow disabled:opacity-50 disabled:cursor-not-allowed"
                                   aria-label="Unload"
                                   disabled={processing}
-                                  onClick={async () => {
-                                    setProcessing(true);
-                                    const ok = await unloadSingle(it);
-                                    if (ok) {
-                                      showSuccess(trans.unloadedSuccessfully);
-                                      await fetchLoaded();
-                                      const nextCount = await fetchCount();
-                                      if (nextCount === 0) {
-                                        navigate("/menu/transports/list");
-                                        return;
-                                      }
-                                    }
-                                    setProcessing(false);
-                                  }}
+                                  onClick={() => openSingleTargetLocationDialog(it)}
                                 >
                                   <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                 </Button>
@@ -539,6 +555,7 @@ const TransportUnload = () => {
                 onClick={() => {
                   setTargetLocationDialogOpen(false);
                   setTargetLocationScan("");
+                  setPendingUnloadItem(null);
                 }}
               >
                 {trans.cancel}
