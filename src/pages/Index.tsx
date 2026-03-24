@@ -59,6 +59,7 @@ const Index = () => {
     const gsiId = data.user?.id as string | undefined;
     const fullName = data.user?.full_name as string | undefined;
     const userUsername = data.user?.username as string | undefined;
+    const loginUsername = userUsername || username;
     try {
       if (gsiId) localStorage.setItem("gsi.id", gsiId);
       if (fullName) localStorage.setItem("gsi.full_name", fullName);
@@ -87,6 +88,18 @@ const Index = () => {
       localStorage.setItem("ln.token", JSON.stringify(tokenData.token));
       localStorage.setItem("transport.count", "0");
     } catch {}
+
+    void (async () => {
+      try {
+        const { data: vehicleData } = await supabase.functions.invoke("gsi-get-vehicle-id", {
+          body: { gsi_id: gsiId, username: loginUsername },
+        });
+        const vehicleId = typeof vehicleData?.vehicleId === "string" ? vehicleData.vehicleId.trim() : "";
+        if (!vehicleData?.ok || !vehicleId) return;
+        localStorage.setItem("vehicle.id", vehicleId);
+        localStorage.setItem("transports.vehicle.id", vehicleId);
+      } catch {}
+    })();
 
     if (transportscreen) {
       navigate("/transport/select");
