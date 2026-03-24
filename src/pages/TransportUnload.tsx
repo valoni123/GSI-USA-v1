@@ -342,7 +342,8 @@ const TransportUnload = () => {
       {/* List area */}
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-0">
-          <div className="max-h-[calc(100dvh-13rem)] min-h-[18rem] overflow-x-hidden overflow-y-scroll overscroll-contain rounded-md pr-1 touch-pan-y [-webkit-overflow-scrolling:touch] [scrollbar-width:auto] [scrollbar-color:#9ca3af_transparent] [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400">
+          <div className="max-h-[calc(100dvh-13rem)] min-h-[18rem] overflow-x-hidden overflow-y-scroll overscroll-contain rounded-md pr-0 touch-pan-y [-webkit-overflow-scrolling:touch] [scrollbar-width:auto] [scrollbar-color:#6b7280_#e5e7eb] [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:rounded-r-md [&::-webkit-scrollbar-track]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-[3px] [&::-webkit-scrollbar-thumb]:border-gray-200 [&::-webkit-scrollbar-thumb]:bg-gray-500">
+
             {loading ? (
 
               <div className="p-3 text-sm text-muted-foreground">{trans.loadingList}</div>
