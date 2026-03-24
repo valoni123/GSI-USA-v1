@@ -64,6 +64,7 @@ const TransportsList = () => {
   const [loading, setLoading] = useState(true);
   const [selecting, setSelecting] = useState(false);
   const [listLoading, setListLoading] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const [moveBackProcessing, setMoveBackProcessing] = useState(false);
   const [loadedCount, setLoadedCount] = useState<number>(() => Number(localStorage.getItem("transport.count") || "0"));
   const [items, setItems] = useState<PlanningItem[]>([]);
@@ -177,6 +178,39 @@ const TransportsList = () => {
     setListLoading(true);
     await fetchLoadedList();
     setListLoading(false);
+  };
+
+  const onGetClick = async () => {
+    if (!selectedVehicleId || assigning) return;
+
+    setAssigning(true);
+    const tid = showLoading(trans.pleaseWait);
+    const { data, error } = await supabase.functions.invoke("ln-assign-transport-orders", {
+      body: {
+        plannedVehicle: selectedVehicleId,
+        language: locale,
+        company: "1100",
+      },
+    });
+    dismissToast(tid as unknown as string);
+
+    if (error || !data || !data.ok) {
+      const err = (data && data.error) || error;
+      const top = err?.message || "Assignment failed";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      setAssigning(false);
+      return;
+    }
+
+    await Promise.all([
+      loadPlanningItems(),
+      fetchLoadedCount(),
+      listOpen ? fetchLoadedList() : Promise.resolve(),
+    ]);
+    showSuccess("GET completed");
+    setAssigning(false);
   };
 
   const onSelectTransport = (item: { HandlingUnit: string; Item: string }) => {
@@ -315,7 +349,7 @@ const TransportsList = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {(loading || selecting || listLoading || moveBackProcessing) && <ScreenSpinner message={trans.pleaseWait} />}
+      {(loading || selecting || listLoading || moveBackProcessing || assigning) && <ScreenSpinner message={trans.pleaseWait} />}
 
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between gap-3">
@@ -360,10 +394,13 @@ const TransportsList = () => {
           <Button
             type="button"
             className="h-8 bg-orange-500 px-4 text-sm font-bold uppercase text-white hover:bg-orange-600"
-            onClick={() => {}}
-          >
-            GET
-          </Button>
+            onClick={() => {
+              void onGetClick();
+            }}
+            disabled={!selectedVehicleId || assigning}
+           >
+             GET
+           </Button>
 
           <Button
             type="button"
