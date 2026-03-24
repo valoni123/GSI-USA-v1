@@ -579,6 +579,10 @@ const TransportLoad = () => {
         lockInitialQuery: openedFromTransportsList,
         returnTo: {
           path: "/menu/transport/load",
+          state: {
+            prefillHandlingUnit: queryValue,
+            transportLoadSource: openedFromTransportsList ? "transports-list" : "transport-load",
+          },
         },
       },
     });

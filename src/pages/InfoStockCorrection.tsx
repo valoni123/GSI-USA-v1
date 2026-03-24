@@ -673,6 +673,27 @@ const InfoStockCorrection = () => {
 
       showSuccess(trans.correctionSubmit);
       setTransferring(false);
+
+      const returnTo = (routerLocation.state as any)?.returnTo;
+      const returnPath = typeof returnTo?.path === "string" ? returnTo.path : "";
+      const returnState = returnTo?.state as { prefillHandlingUnit?: string; transportLoadSource?: string } | undefined;
+
+      if (returnPath === "/menu/transport/load") {
+        const prefillHandlingUnit = (returnState?.prefillHandlingUnit || query || handlingUnit || item || "").trim();
+        if (prefillHandlingUnit) {
+          sessionStorage.setItem("transport.load.prefill", prefillHandlingUnit);
+        }
+
+        if (returnState?.transportLoadSource === "transports-list") {
+          sessionStorage.setItem("transport.load.source", "transports-list");
+        } else {
+          sessionStorage.removeItem("transport.load.source");
+        }
+
+        navigate(returnPath, { state: returnState });
+        return;
+      }
+
       resetAll();
     } catch (e) {
       setTransferring(false);
