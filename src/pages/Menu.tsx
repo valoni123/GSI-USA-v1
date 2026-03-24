@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Package, Settings, Forklift } from "lucide-react";
+import { LogOut, ArrowDownCircle, ArrowUpCircle, Warehouse, Package, Settings, Forklift } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
+import UserIdentity from "@/components/UserIdentity";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
 
@@ -56,10 +57,7 @@ function Menu() {
           <div className="flex flex-col">
             <div className="inline-flex self-center rounded-md bg-gray-200 px-4 py-1 text-center text-lg font-bold tracking-wide text-black">{trans.menu}</div>
 
-            <div className="mt-2 flex items-center gap-2 text-sm text-gray-200 justify-center">
-              <User className="h-4 w-4" />
-              <span className="line-clamp-1">{fullName || ""}</span>
-            </div>
+            <UserIdentity fullName={fullName} className="mt-2 flex items-center gap-2 text-sm text-gray-200 justify-center" />
           </div>
           <Button
             variant="ghost"

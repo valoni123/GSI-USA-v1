@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, LogOut, Search, User } from "lucide-react";
+import { CheckCircle2, LogOut, Search } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import ScreenSpinner from "@/components/ScreenSpinner";
@@ -16,6 +16,7 @@ import {
 import { type LanguageKey, t } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
+import UserIdentity from "@/components/UserIdentity";
 
 type PickingRow = {
   Run: string;
@@ -268,11 +269,7 @@ const OutgoingPicking = () => {
             >
               {trans.outgoingPicking}
             </button>
-            <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
-
-              <User className="h-4 w-4" />
-              <span className="line-clamp-1">{fullName || ""}</span>
-            </div>
+            <UserIdentity fullName={fullName} />
           </div>
 
           <Button

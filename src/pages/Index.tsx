@@ -87,9 +87,13 @@ const Index = () => {
     try {
       localStorage.setItem("ln.token", JSON.stringify(tokenData.token));
       localStorage.setItem("transport.count", "0");
+      localStorage.removeItem("vehicle.id");
+      localStorage.removeItem("transports.vehicle.id");
+      localStorage.removeItem("transport.planning.count");
     } catch {}
 
     void (async () => {
+
       try {
         const { data: vehicleData } = await supabase.functions.invoke("gsi-get-vehicle-id", {
           body: { gsi_id: gsiId, username: loginUsername },
@@ -98,8 +102,11 @@ const Index = () => {
         if (!vehicleData?.ok || !vehicleId) return;
         localStorage.setItem("vehicle.id", vehicleId);
         localStorage.setItem("transports.vehicle.id", vehicleId);
+        window.dispatchEvent(new Event("vehicle-id-updated"));
       } catch {}
     })();
+
+    window.dispatchEvent(new Event("auth-state-updated"));
 
     if (transportscreen) {
       navigate("/transport/select");
