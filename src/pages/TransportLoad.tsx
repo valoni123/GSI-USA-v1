@@ -468,10 +468,7 @@ const TransportLoad = () => {
         return;
       }
       const qtyData = infoRes.data;
-      const fallbackQuantity = nextResult && typeof nextResult.OrderedQuantity === "number" ? String(nextResult.OrderedQuantity) : "";
-      const qty = qtyData && qtyData.ok && qtyData.quantity != null && String(qtyData.quantity).trim() !== ""
-        ? String(qtyData.quantity)
-        : fallbackQuantity;
+      const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
       const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
       setHuQuantity(qty);
       setHuUnit(unit);
@@ -654,8 +651,7 @@ const TransportLoad = () => {
         setProcessing(false);
         return;
       }
-      const fallbackQuantity = typeof refreshedResult.OrderedQuantity === "number" ? String(refreshedResult.OrderedQuantity) : "";
-      refreshedQuantity = huData.quantity != null && String(huData.quantity).trim() !== "" ? String(huData.quantity) : fallbackQuantity;
+      refreshedQuantity = String(huData.quantity ?? "");
       refreshedUnit = String(huData.unit ?? "");
     } else {
       refreshedQuantity = typeof refreshedResult.OrderedQuantity === "number" ? String(refreshedResult.OrderedQuantity) : "";
@@ -1226,11 +1222,11 @@ const TransportLoad = () => {
                         const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
                           body: { handlingUnit: chosenHU, language: locale },
                         });
+                        if (handlingUnit.trim() !== currentInput) {
+                          return;
+                        }
                         const qtyData = infoRes.data;
-                        const fallbackQuantity = typeof nextResult.OrderedQuantity === "number" ? String(nextResult.OrderedQuantity) : "";
-                        const qty = qtyData && qtyData.ok && qtyData.quantity != null && String(qtyData.quantity).trim() !== ""
-                          ? String(qtyData.quantity)
-                          : fallbackQuantity;
+                        const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
                         const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
                         setHuQuantity(qty);
                         setHuUnit(unit);
