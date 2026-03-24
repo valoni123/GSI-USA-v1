@@ -239,22 +239,17 @@ const IncomingInspectionPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const company = "1100";
-      const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
-      const params = new URLSearchParams({ q, company });
-      const resp = await fetch(`${url}?${params.toString()}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
+      const { data, error } = await supabase.functions.invoke("ln-warehouse-inspections", {
+        body: { q },
       });
 
-      const data = await resp.json();
-      if (!resp.ok) {
-        showError(data?.error || "Unable to fetch inspections");
+      if (error) {
+        showError("Unable to fetch inspections");
         return;
       }
 
-      const count = data?.["@odata.count"] ?? 0;
-      const value = Array.isArray(data?.value) ? data.value : [];
+      const count = (data as any)?.["@odata.count"] ?? 0;
+      const value = Array.isArray((data as any)?.value) ? (data as any).value : [];
 
       const hasInspectionMatch = value.some((v: any) => typeof v?.Inspection === "string" && v.Inspection === q);
       const hasOrderMatch = value.some((v: any) => typeof v?.Order === "string" && v.Order === q);

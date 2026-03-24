@@ -205,12 +205,16 @@ const TransportUnload = () => {
   const unloadSingle = async (it: LoadedItem, attempt = 1, targetLocationOverride?: string): Promise<boolean> => {
     const employeeCode = getEmployeeCode();
     const hu = (it.HandlingUnit || "").trim();
-    const currentVehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+    const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
     const targetLocation = (targetLocationOverride || it.LocationTo || "").trim();
+    if (!targetLocation) {
+      showError("Missing target location.");
+      return false;
+    }
     const payload: Record<string, unknown> = {
       handlingUnit: hu,
       fromWarehouse: (it.Warehouse || "").trim(),
-      fromLocation: hu ? (it.LocationFrom || "").trim() : currentVehicleId,
+      fromLocation: hu ? (it.LocationFrom || "").trim() : vehicleId,
       toWarehouse: (it.Warehouse || "").trim(),
       toLocation: targetLocation,
       employee: employeeCode,
@@ -231,9 +235,15 @@ const TransportUnload = () => {
         showError("Missing OrderedQuantity for item movement.");
         return false;
       }
+      if (!vehicleId) {
+        showError("No vehicle selected. Please set a Vehicle ID.");
+        return false;
+      }
+      payload.fromLocation = vehicleId;
       payload.item = item;
       payload.quantity = qty;
     }
+
     const tid = showLoading(trans.executingMovement);
     const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
     dismissToast(tid as unknown as string);
