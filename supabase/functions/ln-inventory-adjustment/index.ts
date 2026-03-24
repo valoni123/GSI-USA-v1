@@ -29,24 +29,50 @@ serve(async (req) => {
       language?: string;
       company?: string;
       handlingUnit?: string;
+      warehouse?: string;
+      location?: string;
+      item?: string;
       deviation?: number;
       reason?: string;
       loginCode?: string;
       employee?: string;
       scan1?: string;
       transactionId?: string;
+      sequenceNumber?: number;
+      fromWebservice?: string;
     };
 
     const language = body.language || "en-US";
     const companyOverride = (body.company || "").toString().trim();
 
     const handlingUnit = (body.handlingUnit || "").toString().trim();
+    const warehouse = (body.warehouse || "").toString().trim();
+    const location = (body.location || "").toString().trim();
+    const rawItem = (body.item || "").toString();
+    const trimmedItem = rawItem.trim();
+    const item = trimmedItem
+      ? rawItem === trimmedItem
+        ? `         ${trimmedItem}`
+        : rawItem
+      : "";
     const reason = (body.reason || "").toString().trim();
     const loginCode = (body.loginCode || "").toString().trim();
     const employee = (body.employee || "").toString().trim();
     const deviation = Number(body.deviation);
+    const transactionId = (body.transactionId || "").toString();
+    const sequenceNumber = Number.isFinite(Number(body.sequenceNumber)) ? Number(body.sequenceNumber) : 0;
+    const fromWebservice = (body.fromWebservice || "Yes").toString() || "Yes";
+    const isHuAdjustment = Boolean(handlingUnit);
 
-    if (!handlingUnit || !reason || !loginCode || !employee || !Number.isFinite(deviation)) {
+    if (!reason || !loginCode || !employee || !Number.isFinite(deviation)) {
+      return json({ ok: false, error: "invalid_payload" }, 200);
+    }
+
+    if (isHuAdjustment) {
+      if (!handlingUnit) {
+        return json({ ok: false, error: "invalid_payload" }, 200);
+      }
+    } else if (!warehouse || !location || !trimmedItem) {
       return json({ ok: false, error: "invalid_payload" }, 200);
     }
 
@@ -78,21 +104,40 @@ serve(async (req) => {
 
     const url = `${base}/${cfg.ti}/LN/lnapi/odata/txgsi.Adjustments/GSIAdjustments?${qs.toString()}`;
 
-    const payload = {
-      TransactionID: (body.transactionId || "").toString(),
-      HandlingUnit: handlingUnit,
-      Deviation: deviation,
-      ReasonForStockCorrection: reason,
-      Scan1: (body.scan1 || "").toString(),
-      LoginCode: loginCode,
-      Employee: employee,
-      FromWebservice: "Yes",
-    };
+    const payload = isHuAdjustment
+      ? {
+          TransactionID: transactionId,
+          SequenceNumber: sequenceNumber,
+          HandlingUnit: handlingUnit,
+          Deviation: deviation,
+          ReasonForStockCorrection: reason,
+          Scan1: (body.scan1 || "").toString(),
+          LoginCode: loginCode,
+          Employee: employee,
+          FromWebservice: fromWebservice,
+        }
+      : {
+          TransactionID: transactionId,
+          SequenceNumber: sequenceNumber,
+          HandlingUnit: "",
+          Warehouse: warehouse,
+          Location: location,
+          Item: item,
+          Deviation: deviation,
+          ReasonForStockCorrection: reason,
+          LoginCode: loginCode,
+          Employee: employee,
+          FromWebservice: fromWebservice,
+        };
 
     console.log("[ln-inventory-adjustment] posting adjustment", {
       company,
       language,
+      mode: isHuAdjustment ? "HU" : "ITEM",
       handlingUnit,
+      warehouse,
+      location,
+      item,
       deviation,
       reason,
     });
