@@ -523,7 +523,7 @@ const TransportUnload = () => {
                   setTargetLocationScan("");
                 }}
               >
-                {trans.no}
+                {trans.cancel}
               </Button>
               <Button
                 type="button"

@@ -27,6 +27,7 @@ type TranslationKeys =
   | "signOutQuestion"
   | "yes"
   | "no"
+  | "cancel"
   | "signedOut"
   | "appIncoming"
   | "appOutgoing"
@@ -175,6 +176,7 @@ const translations: Translations = {
     signOutQuestion: "Do you want to sign out?",
     yes: "Yes",
     no: "No",
+    cancel: "Cancel",
     signedOut: "Signed out",
     appIncoming: "Incoming",
     appOutgoing: "Outgoing",
@@ -323,6 +325,7 @@ const translations: Translations = {
     signOutQuestion: "Möchten Sie sich wirklich abmelden?",
     yes: "Ja",
     no: "Nein",
+    cancel: "Abbrechen",
     signedOut: "Abgemeldet",
     appIncoming: "Eingang",
     appOutgoing: "Ausgang",
@@ -469,6 +472,7 @@ const translations: Translations = {
     signOutQuestion: "¿Desea cerrar sesión?",
     yes: "Sí",
     no: "No",
+    cancel: "Cancelar",
     signedOut: "Sesión cerrada",
     appIncoming: "Entrada",
     appOutgoing: "Salida",
@@ -615,7 +619,8 @@ const translations: Translations = {
     signOutQuestion: "Deseja sair?",
     yes: "Sim",
     no: "Não",
-    signedOut: "Desconectado",
+    cancel: "Cancelar",
+    signedOut: "Sessão encerrada",
     appIncoming: "Entrada",
     appOutgoing: "Saída",
     appInfoStock: "Info / Estoque",
