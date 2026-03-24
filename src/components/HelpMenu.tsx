@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
+import { getStoredGsiPermissions } from "@/lib/gsi-permissions";
 
 type HelpMenuProps = {
   topic: string; // e.g., "login", "transport-load", "transport-unload", "hu-info"
@@ -22,6 +23,17 @@ type HelpMenuProps = {
 const HelpMenu: React.FC<HelpMenuProps> = ({ topic, className, colorMode = "dark", lang }) => {
   const currentLang = lang || ((localStorage.getItem("app.lang") as LanguageKey) || "en");
   const trans = t(currentLang);
+  const permissions = getStoredGsiPermissions();
+  const hasStoredSession = Boolean(
+    (localStorage.getItem("gsi.id") || "").trim() &&
+    (localStorage.getItem("gsi.login") || "").trim() &&
+    (localStorage.getItem("ln.token") || "").trim()
+  );
+
+  if (!hasStoredSession || !permissions.admin) {
+    return null;
+  }
+
   const baseBtn =
     colorMode === "dark"
       ? "text-white hover:bg-white/10 h-9 px-2"
