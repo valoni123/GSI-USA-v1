@@ -618,52 +618,56 @@ const InfoStockCorrection = () => {
     setTransferring(true);
 
     try {
-      if (lastMatchType === "HU") {
-        const hu = (handlingUnit || query || "").trim();
-        const deviation = Number(submitQuantity);
-        const reasonCode = (reason || "").trim();
+      const deviation = Number(submitQuantity);
+      const reasonCode = (reason || "").trim();
 
-        const loginCode =
-          (localStorage.getItem("gsi.login") ||
-            localStorage.getItem("gsi.employee") ||
-            localStorage.getItem("gsi.username") ||
-            "")
-            .toString()
-            .trim();
+      const loginCode =
+        (localStorage.getItem("gsi.login") ||
+          localStorage.getItem("gsi.employee") ||
+          localStorage.getItem("gsi.username") ||
+          "")
+          .toString()
+          .trim();
 
-        const employee =
-          (localStorage.getItem("gsi.employee") ||
-            localStorage.getItem("gsi.login") ||
-            localStorage.getItem("gsi.username") ||
-            "")
-            .toString()
-            .trim();
+      const employee =
+        (localStorage.getItem("gsi.employee") ||
+          localStorage.getItem("gsi.login") ||
+          localStorage.getItem("gsi.username") ||
+          "")
+          .toString()
+          .trim();
 
-        const tid = showLoading(trans.pleaseWait);
-        const { data, error } = await supabase.functions.invoke("ln-inventory-adjustment", {
-          body: {
-            company: "1100",
-            language: locale,
-            handlingUnit: hu,
-            deviation,
-            reason: reasonCode,
-            loginCode,
-            employee,
-          },
-        });
-        dismissToast(tid as unknown as string);
+      const tid = showLoading(trans.pleaseWait);
+      const { data, error } = await supabase.functions.invoke("ln-inventory-adjustment", {
+        body: {
+          company: "1100",
+          language: locale,
+          handlingUnit: lastMatchType === "HU" ? (handlingUnit || query || "").trim() : "",
+          warehouse: lastMatchType === "ITEM" ? (warehouse || "").trim() : "",
+          location: lastMatchType === "ITEM" ? (location || "").trim() : "",
+          item: lastMatchType === "ITEM" ? (item || "") : "",
+          deviation,
+          reason: reasonCode,
+          loginCode,
+          employee,
+          transactionId: "",
+          sequenceNumber: 0,
+          fromWebservice: "Yes",
+        },
+      });
+      dismissToast(tid as unknown as string);
 
-        if (error || !data || !data.ok) {
-          showError(trans.tokenFailed);
-          setTransferring(false);
-          return;
-        }
-
-        showSuccess(trans.correctionSubmit);
-      } else {
-        showSuccess("Submitted");
+      if (error || !data || !data.ok) {
+        const err = (data && data.error) || error;
+        const top = err?.message || trans.tokenFailed;
+        const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+        const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+        showError(message);
+        setTransferring(false);
+        return;
       }
 
+      showSuccess(trans.correctionSubmit);
       setTransferring(false);
       resetAll();
     } catch (e) {
