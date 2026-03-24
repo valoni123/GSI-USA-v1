@@ -323,12 +323,21 @@ const TransportUnload = () => {
     await unloadAll(scanned);
   };
 
+  const handleBack = () => {
+    if (window.history.state?.idx > 0) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/menu/transport");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
-          <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu/transport")} />
+          <BackButton ariaLabel={trans.back} onClick={handleBack} />
 
           <div className="flex flex-col items-center flex-1">
             <div className="text-center flex items-center gap-2">
