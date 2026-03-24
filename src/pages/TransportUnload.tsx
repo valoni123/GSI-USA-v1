@@ -342,8 +342,9 @@ const TransportUnload = () => {
       {/* List area */}
       <div className="mx-auto max-w-md px-4 py-6 pb-24">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-0">
-          <div className="max-h-[50vh] overflow-x-hidden overflow-y-auto rounded-md">
+          <div className="max-h-[calc(100dvh-13rem)] min-h-[18rem] overflow-x-hidden overflow-y-scroll overscroll-contain rounded-md pr-1 touch-pan-y [-webkit-overflow-scrolling:touch] [scrollbar-width:auto] [scrollbar-color:#9ca3af_transparent] [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400">
             {loading ? (
+
               <div className="p-3 text-sm text-muted-foreground">{trans.loadingList}</div>
             ) : items.length === 0 ? (
               <div className="p-3 text-sm text-muted-foreground">{trans.noEntries}</div>
