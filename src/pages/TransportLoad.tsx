@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, RotateCcw } from "lucide-react";
+import { ArrowLeft, LogOut, User, RotateCcw } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import HelpMenu from "@/components/HelpMenu";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
-import UserIdentity from "@/components/UserIdentity";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -743,7 +742,10 @@ const TransportLoad = () => {
                 {loadedCount}
               </button>
             </div>
-            <UserIdentity fullName={fullName} />
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
+              <User className="h-4 w-4" />
+              <span className="line-clamp-1">{fullName || ""}</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-1">

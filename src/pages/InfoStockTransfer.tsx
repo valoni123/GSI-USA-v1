@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Search, CheckSquare, Square, Eraser, Printer } from "lucide-react";
+import { LogOut, Search, User, CheckSquare, Square, Eraser, Printer } from "lucide-react";
 import LocationPickerDialog from "@/components/LocationPickerDialog";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import BackButton from "@/components/BackButton";
@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
-import UserIdentity from "@/components/UserIdentity";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -815,7 +814,11 @@ const InfoStockTransfer = () => {
             >
               {trans.infoStockTransfer.toUpperCase()}
             </button>
-            <UserIdentity fullName={fullName} />
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
+
+              <User className="h-4 w-4" />
+              <span className="line-clamp-1">{fullName || ""}</span>
+            </div>
           </div>
 
           <Button

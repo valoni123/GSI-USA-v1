@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Search, ClipboardCheck, ArrowRightLeft, Printer, Eraser } from "lucide-react";
+import { LogOut, User, Search, ClipboardCheck, ArrowRightLeft, Printer, Eraser } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
-import HandlingUnitStockDialog, { type HandlingUnitStockRow } from "@/components/HandlingUnitStockDialog";
-import UserIdentity from "@/components/UserIdentity";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, showSuccess, dismissToast } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -339,7 +337,11 @@ const InfoStockLEInfo = () => {
             >
               {trans.infoStockLEInfo}
             </button>
-            <UserIdentity fullName={fullName} />
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
+
+              <User className="h-4 w-4" />
+              <span className="line-clamp-1">{fullName || ""}</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-1">

@@ -25,7 +25,6 @@ import TransportGroup from "./pages/TransportGroup";
 import TransportsSelect from "./pages/TransportsSelect";
 import TransportsList from "./pages/TransportsList";
 import Docs from "./pages/Docs";
-import { TransportPlanningAlertProvider } from "./components/TransportPlanningAlertProvider";
 
 const queryClient = new QueryClient();
 
@@ -52,38 +51,36 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <TransportPlanningAlertProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/docs" element={<Docs />} />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/docs" element={<Docs />} />
 
-            <Route element={<ProtectedRoute />}>
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/menu/incoming" element={<IncomingMenu />} />
-              <Route path="/menu/outgoing" element={<OutgoingMenu />} />
-              <Route path="/menu/outgoing/picking" element={<OutgoingPicking />} />
-              <Route path="/menu/incoming/goods-receipt" element={<IncomingGoodsReceipt />} />
-              <Route path="/menu/incoming/inspection" element={<IncomingInspection />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/menu" element={<Menu />} />
+            <Route path="/menu/incoming" element={<IncomingMenu />} />
+            <Route path="/menu/outgoing" element={<OutgoingMenu />} />
+            <Route path="/menu/outgoing/picking" element={<OutgoingPicking />} />
+            <Route path="/menu/incoming/goods-receipt" element={<IncomingGoodsReceipt />} />
+            <Route path="/menu/incoming/inspection" element={<IncomingInspection />} />
 
-              <Route path="/menu/info-stock" element={<InfoStockMenu />} />
-              <Route path="/menu/info-stock/article" element={<InfoStockArticle />} />
-              <Route path="/menu/info-stock/transfer" element={<InfoStockTransfer />} />
-              <Route path="/menu/info-stock/correction" element={<InfoStockCorrection />} />
-              <Route path="/menu/info-stock/le-info" element={<InfoStockLEInfo />} />
-              <Route path="/menu/transport" element={<TransportMenu />} />
-              <Route path="/menu/transport/load" element={<TransportLoad />} />
-              <Route path="/menu/transport/unload" element={<TransportUnload />} />
-              <Route path="/menu/transports" element={<TransportsSelect />} />
-              <Route path="/menu/transports/list" element={<TransportsList />} />
-              <Route path="/transport/select" element={<TransportSelect />} />
-              <Route path="/transportgroup/:group" element={<TransportGroup />} />
-            </Route>
+            <Route path="/menu/info-stock" element={<InfoStockMenu />} />
+            <Route path="/menu/info-stock/article" element={<InfoStockArticle />} />
+            <Route path="/menu/info-stock/transfer" element={<InfoStockTransfer />} />
+            <Route path="/menu/info-stock/correction" element={<InfoStockCorrection />} />
+            <Route path="/menu/info-stock/le-info" element={<InfoStockLEInfo />} />
+            <Route path="/menu/transport" element={<TransportMenu />} />
+            <Route path="/menu/transport/load" element={<TransportLoad />} />
+            <Route path="/menu/transport/unload" element={<TransportUnload />} />
+            <Route path="/menu/transports" element={<TransportsSelect />} />
+            <Route path="/menu/transports/list" element={<TransportsList />} />
+            <Route path="/transport/select" element={<TransportSelect />} />
+            <Route path="/transportgroup/:group" element={<TransportGroup />} />
+          </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TransportPlanningAlertProvider>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

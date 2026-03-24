@@ -1,22 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, Search, Check } from "lucide-react";
+import { ArrowLeft, LogOut, User, Search } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
-import ScreenSpinner from "@/components/ScreenSpinner";
-import InspectionResultsDialog from "@/components/InspectionResultsDialog";
-import InspectionLinePickerDialog from "@/components/InspectionLinePickerDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import ReasonPickerDialog from "@/components/ReasonPickerDialog";
-import UserIdentity from "@/components/UserIdentity";
+import ScreenSpinner from "@/components/ScreenSpinner";
 
 const IncomingGoodsReceipt = () => {
   const navigate = useNavigate();
@@ -933,7 +929,11 @@ const IncomingGoodsReceipt = () => {
             >
               {trans.incomingGoodsReceipt.toUpperCase()}
             </button>
-            <UserIdentity fullName={fullName} />
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
+
+              <User className="h-4 w-4" />
+              <span className="line-clamp-1">{fullName || ""}</span>
+            </div>
           </div>
 
           <Button

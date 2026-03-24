@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, ArrowRight } from "lucide-react";
+import { LogOut, User, ArrowRight } from "lucide-react";
 import HelpMenu from "@/components/HelpMenu";
 import BackButton from "@/components/BackButton";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
@@ -18,7 +18,6 @@ import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast
 import { type LanguageKey, t } from "@/lib/i18n";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ScreenSpinner from "@/components/ScreenSpinner";
-import UserIdentity from "@/components/UserIdentity";
 
 type LoadedItem = {
   TransportID?: string;
@@ -360,7 +359,10 @@ const TransportUnload = () => {
                 {loadedCount}
               </span>
             </div>
-            <UserIdentity fullName={fullName} />
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
+              <User className="h-4 w-4" />
+              <span className="line-clamp-1">{fullName || ""}</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-1">

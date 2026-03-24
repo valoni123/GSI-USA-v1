@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, LogOut, Search, Check } from "lucide-react";
+import { ArrowLeft, LogOut, User, Search, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import ScreenSpinner from "@/components/ScreenSpinner";
@@ -11,7 +11,6 @@ import InspectionLinePickerDialog from "@/components/InspectionLinePickerDialog"
 import SignOutConfirm from "@/components/SignOutConfirm";
 import BackButton from "@/components/BackButton";
 import ReasonPickerDialog from "@/components/ReasonPickerDialog";
-import UserIdentity from "@/components/UserIdentity";
 import { supabase } from "@/integrations/supabase/client";
 import { t, type LanguageKey } from "@/lib/i18n";
 import { showSuccess, showError } from "@/utils/toast";
@@ -408,7 +407,11 @@ const IncomingInspectionPage: React.FC = () => {
             >
               {trans.incomingWarehouseInspection.toUpperCase()}
             </button>
-            <UserIdentity fullName={fullName} />
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
+
+              <User className="h-4 w-4" />
+              <span className="line-clamp-1">{fullName || ""}</span>
+            </div>
           </div>
           <Button
             variant="ghost"
