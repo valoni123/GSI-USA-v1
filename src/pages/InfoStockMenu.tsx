@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
+import { clearStoredGsiPermissions, getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
@@ -20,17 +21,20 @@ const InfoStockMenu = () => {
   const trans = useMemo(() => t(lang), [lang]);
 
   const [fullName, setFullName] = useState<string>("");
+
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
     if (name) setFullName(name);
   }, []);
 
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
   const onConfirmSignOut = () => {
     try {
       localStorage.removeItem("ln.token");
       localStorage.removeItem("gsi.id");
       localStorage.removeItem("gsi.full_name");
+      clearStoredGsiPermissions();
     } catch {}
     showSuccess(trans.signedOut);
     setSignOutOpen(false);
@@ -38,13 +42,13 @@ const InfoStockMenu = () => {
   };
 
   const tiles: Tile[] = [
-    { key: "article", label: trans.infoStockArticle, icon: <Box className="h-10 w-10 text-red-700" /> },
-    { key: "leInfo", label: trans.infoStockLEInfo, icon: <Info className="h-10 w-10 text-red-700" /> },
-    { key: "correction", label: trans.infoStockCorrection, icon: <Eraser className="h-10 w-10 text-red-700" /> },
-    { key: "transfer", label: trans.infoStockTransfer, icon: <ArrowLeftRight className="h-10 w-10 text-red-700" /> },
-    { key: "inventoryPos", label: trans.infoStockInventoryPos, icon: <ListChecks className="h-10 w-10 text-red-700" /> },
-    { key: "inventory", label: trans.infoStockInventory, icon: <ClipboardList className="h-10 w-10 text-red-700" /> },
-    { key: "personalInventory", label: trans.infoStockPersonalInventory, icon: <ListChecks className="h-10 w-10 text-red-700" /> },
+    ...(hasPermission(permissions, "itif") ? [{ key: "article", label: trans.infoStockArticle, icon: <Box className="h-10 w-10 text-red-700" /> }] : []),
+    ...(hasPermission(permissions, "huif") ? [{ key: "leInfo", label: trans.infoStockLEInfo, icon: <Info className="h-10 w-10 text-red-700" /> }] : []),
+    ...(hasPermission(permissions, "corr") ? [{ key: "correction", label: trans.infoStockCorrection, icon: <Eraser className="h-10 w-10 text-red-700" /> }] : []),
+    ...(hasPermission(permissions, "trans") ? [{ key: "transfer", label: trans.infoStockTransfer, icon: <ArrowLeftRight className="h-10 w-10 text-red-700" /> }] : []),
+    ...(hasPermission(permissions, "cntg") ? [{ key: "inventoryPos", label: trans.infoStockInventoryPos, icon: <ListChecks className="h-10 w-10 text-red-700" /> }] : []),
+    ...(hasPermission(permissions, "cntg") ? [{ key: "inventory", label: trans.infoStockInventory, icon: <ClipboardList className="h-10 w-10 text-red-700" /> }] : []),
+    ...(hasPermission(permissions, "cntg") ? [{ key: "personalInventory", label: trans.infoStockPersonalInventory, icon: <ListChecks className="h-10 w-10 text-red-700" /> }] : []),
   ];
 
   const onTileClick = (key: string) => {

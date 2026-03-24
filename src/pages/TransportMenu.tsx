@@ -20,6 +20,7 @@ import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import ScreenSpinner from "@/components/ScreenSpinner";
+import { clearStoredGsiPermissions, getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
@@ -39,6 +40,7 @@ const TransportMenu = () => {
   }, []);
 
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
   const onConfirmSignOut = () => {
     try {
       localStorage.removeItem("ln.token");
@@ -46,6 +48,7 @@ const TransportMenu = () => {
       localStorage.removeItem("gsi.full_name");
       // Clear cached transport count on sign-out to avoid stale badges
       localStorage.removeItem("transport.count");
+      clearStoredGsiPermissions();
     } catch {}
     showSuccess(trans.signedOut);
     setSignOutOpen(false);
@@ -53,26 +56,30 @@ const TransportMenu = () => {
   };
 
   const tiles: Tile[] = [
-    {
-      key: "load",
-      label: trans.transportLoad,
-      icon: (
-        <div className="relative flex items-center justify-center">
-          <Forklift className="h-10 w-10 text-red-700" />
-          <ArrowBigLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
-        </div>
-      ),
-    },
-    {
-      key: "unload",
-      label: trans.transportUnload,
-      icon: (
-        <div className="relative flex items-center justify-center">
-          <Forklift className="h-10 w-10 text-red-700 transform scale-x-[-1]" />
-          <ArrowBigRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
-        </div>
-      ),
-    },
+    ...(hasPermission(permissions, "trlo")
+      ? [{
+          key: "load",
+          label: trans.transportLoad,
+          icon: (
+            <div className="relative flex items-center justify-center">
+              <Forklift className="h-10 w-10 text-red-700" />
+              <ArrowBigLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
+            </div>
+          ),
+        }]
+      : []),
+    ...(hasPermission(permissions, "trul")
+      ? [{
+          key: "unload",
+          label: trans.transportUnload,
+          icon: (
+            <div className="relative flex items-center justify-center">
+              <Forklift className="h-10 w-10 text-red-700 transform scale-x-[-1]" />
+              <ArrowBigRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
+            </div>
+          ),
+        }]
+      : []),
   ];
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [listOpen, setListOpen] = useState<boolean>(false);
@@ -368,25 +375,27 @@ const TransportMenu = () => {
           </Card>
         ))}
         {/* Center badge between tiles */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <button
-            type="button"
-            className="bg-red-700 text-white rounded-md h-6 px-2 min-w-[24px] inline-flex items-center justify-center text-sm font-bold shadow focus:outline-none"
-            onClick={async () => {
-              const vid = (localStorage.getItem("vehicle.id") || "").trim();
-              if (!vid) return;
-              const willOpen = !listOpen;
-              setListOpen(willOpen);
-              if (willOpen) {
-                setListLoading(true);
-                await fetchList(vid);
-                setListLoading(false);
-              }
-            }}
-          >
-            {loadedCount}
-          </button>
-        </div>
+        {tiles.length > 0 && (
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <button
+              type="button"
+              className="bg-red-700 text-white rounded-md h-6 px-2 min-w-[24px] inline-flex items-center justify-center text-sm font-bold shadow focus:outline-none"
+              onClick={async () => {
+                const vid = (localStorage.getItem("vehicle.id") || "").trim();
+                if (!vid) return;
+                const willOpen = !listOpen;
+                setListOpen(willOpen);
+                if (willOpen) {
+                  setListLoading(true);
+                  await fetchList(vid);
+                  setListLoading(false);
+                }
+              }}
+            >
+              {loadedCount}
+            </button>
+          </div>
+        )}
         {/* Overlay list dialog */}
         <Dialog open={listOpen} onOpenChange={setListOpen}>
           <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
+import { getStoredGsiPermissions, hasPermission, clearStoredGsiPermissions } from "@/lib/gsi-permissions";
 
 const IncomingMenu = () => {
   const navigate = useNavigate();
@@ -18,17 +19,20 @@ const IncomingMenu = () => {
   const trans = useMemo(() => t(lang), [lang]);
 
   const [fullName, setFullName] = useState<string>("");
+
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
     if (name) setFullName(name);
   }, []);
 
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
   const onConfirmSignOut = () => {
     try {
       localStorage.removeItem("ln.token");
       localStorage.removeItem("gsi.id");
       localStorage.removeItem("gsi.full_name");
+      clearStoredGsiPermissions();
     } catch {}
     showSuccess(trans.signedOut);
     setSignOutOpen(false);
@@ -36,26 +40,20 @@ const IncomingMenu = () => {
   };
 
   const tiles = [
-    {
-      key: "goodsReceipt",
-      label: trans.incomingGoodsReceipt,
-      icon: <ArrowDown className="h-10 w-10 text-red-700" />,
-    },
-    {
-      key: "warehouseInspection",
-      label: trans.incomingWarehouseInspection,
-      icon: <Search className="h-10 w-10 text-red-700" />,
-    },
-    {
-      key: "putawaySuggestions",
-      label: trans.incomingPutawaySuggestions,
-      icon: <Box className="h-10 w-10 text-red-700" />,
-    },
-    {
-      key: "deliveryNotice",
-      label: trans.incomingDeliveryNotice,
-      icon: <Clock className="h-10 w-10 text-red-700" />,
-    },
+    ...(hasPermission(permissions, "rece")
+      ? [{
+          key: "goodsReceipt",
+          label: trans.incomingGoodsReceipt,
+          icon: <ArrowDown className="h-10 w-10 text-red-700" />,
+        }]
+      : []),
+    ...(hasPermission(permissions, "insp")
+      ? [{
+          key: "warehouseInspection",
+          label: trans.incomingWarehouseInspection,
+          icon: <Search className="h-10 w-10 text-red-700" />,
+        }]
+      : []),
   ] as const;
 
   return (

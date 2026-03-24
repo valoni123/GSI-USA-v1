@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
+import { canAccessIncomingMenu, canAccessInfoStockMenu, canAccessOutgoingMenu, canAccessTransportMenus, clearStoredGsiPermissions, getStoredGsiPermissions } from "@/lib/gsi-permissions";
 
 type AppTile = {
   key: string;
@@ -28,13 +29,24 @@ function Menu() {
   }, []);
 
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
 
   const apps: AppTile[] = [
-    { key: "incoming", label: trans.appIncoming, icon: <ArrowDownCircle className="h-10 w-10 text-red-700" /> },
-    { key: "outgoing", label: trans.appOutgoing, icon: <ArrowUpCircle className="h-10 w-10 text-red-700" /> },
-    { key: "infoStock", label: trans.appInfoStock, icon: <Warehouse className="h-10 w-10 text-red-700" /> },
-    { key: "transport", label: trans.appTransport, icon: <Package className="h-10 w-10 text-red-700" /> },
-    { key: "transports", label: trans.appTransports, icon: <Forklift className="h-10 w-10 text-red-700" /> },
+    ...(canAccessIncomingMenu(permissions)
+      ? [{ key: "incoming", label: trans.appIncoming, icon: <ArrowDownCircle className="h-10 w-10 text-red-700" /> }]
+      : []),
+    ...(canAccessOutgoingMenu(permissions)
+      ? [{ key: "outgoing", label: trans.appOutgoing, icon: <ArrowUpCircle className="h-10 w-10 text-red-700" /> }]
+      : []),
+    ...(canAccessInfoStockMenu(permissions)
+      ? [{ key: "infoStock", label: trans.appInfoStock, icon: <Warehouse className="h-10 w-10 text-red-700" /> }]
+      : []),
+    ...(canAccessTransportMenus(permissions)
+      ? [{ key: "transport", label: trans.appTransport, icon: <Package className="h-10 w-10 text-red-700" /> }]
+      : []),
+    ...(canAccessTransportMenus(permissions)
+      ? [{ key: "transports", label: trans.appTransports, icon: <Forklift className="h-10 w-10 text-red-700" /> }]
+      : []),
     { key: "settings", label: trans.appSettings, icon: <Settings className="h-10 w-10 text-red-700" /> },
   ];
 
@@ -43,6 +55,7 @@ function Menu() {
       localStorage.removeItem("ln.token");
       localStorage.removeItem("gsi.id");
       localStorage.removeItem("gsi.full_name");
+      clearStoredGsiPermissions();
     } catch {}
     showSuccess(trans.signedOut);
     setSignOutOpen(false);

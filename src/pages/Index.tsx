@@ -6,6 +6,7 @@ import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { normalizeGsiPermissions, setStoredGsiPermissions } from "@/lib/gsi-permissions";
 
 const Index = () => {
   const [lang, setLang] = useState<LanguageKey>(() => {
@@ -66,6 +67,7 @@ const Index = () => {
       if (userUsername) localStorage.setItem("gsi.username", userUsername);
       localStorage.setItem("gsi.employee", username);
       localStorage.setItem("gsi.login", username);
+      setStoredGsiPermissions(normalizeGsiPermissions(data.user));
     } catch {}
 
     const tid = showLoading(trans.retrievingToken);
@@ -87,6 +89,16 @@ const Index = () => {
     try {
       localStorage.setItem("ln.token", JSON.stringify(tokenData.token));
       localStorage.setItem("transport.count", "0");
+    } catch {}
+
+    try {
+      const permissionsResult = await invokeWithTimeout<{ data: any; error: any }>("gsi-get-user-permissions", {
+        gsi_id: gsiId,
+        username: loginUsername,
+      }, 8000);
+      if (permissionsResult?.data?.ok) {
+        setStoredGsiPermissions(permissionsResult.data.permissions);
+      }
     } catch {}
 
     void (async () => {

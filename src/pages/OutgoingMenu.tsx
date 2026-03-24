@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
+import { clearStoredGsiPermissions, getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const OutgoingMenu = () => {
   const navigate = useNavigate();
@@ -18,12 +19,14 @@ const OutgoingMenu = () => {
   const trans = useMemo(() => t(lang), [lang]);
 
   const [fullName, setFullName] = useState<string>("");
+
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
     if (name) setFullName(name);
   }, []);
 
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
   const onConfirmSignOut = () => {
     try {
       localStorage.removeItem("ln.token");
@@ -32,6 +35,7 @@ const OutgoingMenu = () => {
       localStorage.removeItem("gsi.username");
       localStorage.removeItem("gsi.employee");
       localStorage.removeItem("gsi.login");
+      clearStoredGsiPermissions();
     } catch {}
     showSuccess(trans.signedOut);
     setSignOutOpen(false);
@@ -39,31 +43,41 @@ const OutgoingMenu = () => {
   };
 
   const tiles = [
-    {
-      key: "picking",
-      label: trans.outgoingPicking,
-      icon: <ClipboardList className="h-10 w-10 text-red-700" />,
-    },
-    {
-      key: "release",
-      label: trans.outgoingRelease,
-      icon: <CheckCircle2 className="h-10 w-10 text-red-700" />,
-    },
-    {
-      key: "shipment",
-      label: trans.outgoingShipment,
-      icon: <Send className="h-10 w-10 text-red-700" />,
-    },
-    {
-      key: "loading",
-      label: trans.outgoingLoading,
-      icon: <Truck className="h-10 w-10 text-red-700" />,
-    },
-    {
-      key: "personalPicking",
-      label: trans.outgoingPersonalPicking,
-      icon: <ListChecks className="h-10 w-10 text-red-700" />,
-    },
+    ...(hasPermission(permissions, "pick")
+      ? [{
+          key: "picking",
+          label: trans.outgoingPicking,
+          icon: <ClipboardList className="h-10 w-10 text-red-700" />,
+        }]
+      : []),
+    ...(hasPermission(permissions, "rele")
+      ? [{
+          key: "release",
+          label: trans.outgoingRelease,
+          icon: <CheckCircle2 className="h-10 w-10 text-red-700" />,
+        }]
+      : []),
+    ...(hasPermission(permissions, "ship")
+      ? [{
+          key: "shipment",
+          label: trans.outgoingShipment,
+          icon: <Send className="h-10 w-10 text-red-700" />,
+        }]
+      : []),
+    ...(hasPermission(permissions, "load")
+      ? [{
+          key: "loading",
+          label: trans.outgoingLoading,
+          icon: <Truck className="h-10 w-10 text-red-700" />,
+        }]
+      : []),
+    ...(hasPermission(permissions, "pick")
+      ? [{
+          key: "personalPicking",
+          label: trans.outgoingPersonalPicking,
+          icon: <ListChecks className="h-10 w-10 text-red-700" />,
+        }]
+      : []),
   ] as const;
 
   return (
