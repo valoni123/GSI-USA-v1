@@ -1047,7 +1047,7 @@ const TransportLoad = () => {
             <AlertDialogTitle>{trans.adjustAction}</AlertDialogTitle>
           </AlertDialogHeader>
           <div className="text-sm text-gray-700">{trans.adjustQuestion}</div>
-          <AlertDialogFooter className="gap-3 sm:flex-col sm:space-x-0">
+          <AlertDialogFooter className="flex-col gap-3 sm:flex-col sm:space-x-0">
             <AlertDialogAction
               className="w-full"
               onClick={() => {
