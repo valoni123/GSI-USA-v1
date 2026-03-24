@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, RotateCcw } from "lucide-react";
+import { ArrowLeft, LogOut, User, RotateCcw, Eraser } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -485,6 +485,7 @@ const TransportLoad = () => {
 
   const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
+  const [confirmAdjustOpen, setConfirmAdjustOpen] = useState<boolean>(false);
 
   const sourceFlowIsItemOnly = openedFromTransportsList && result !== null && !(result?.HandlingUnit || "").trim();
   const expectedConfirmValue = openedFromTransportsList
@@ -502,6 +503,27 @@ const TransportLoad = () => {
     Boolean(result) &&
     (!locationRequired || vehicleEnabled) &&
     (!openedFromTransportsList || scanMatchesTopValue);
+
+  const canAdjust = !detailsLoading && !processing && Boolean(result);
+
+  const handleAdjust = () => {
+    const queryValue =
+      resolvedLoadRef.current?.requestCode?.trim() ||
+      handlingUnit.trim() ||
+      (result?.HandlingUnit || "").trim() ||
+      (result?.Item || "").trim();
+
+    if (!queryValue) return;
+
+    navigate("/menu/info-stock/correction", {
+      state: {
+        initialHandlingUnit: queryValue,
+        returnTo: {
+          path: "/menu/transport/load",
+        },
+      },
+    });
+  };
 
   const onLoadClick = async () => {
     const now = Date.now();
@@ -917,12 +939,23 @@ const TransportLoad = () => {
 
       {/* Bottom action bar */}
       <div className="fixed inset-x-0 bottom-0 bg-white border-t shadow-sm">
-        <div className="mx-auto max-w-md px-4 py-3">
+        <div className="mx-auto max-w-md px-4 py-3 flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 w-12 shrink-0 border-orange-300 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:opacity-50"
+            disabled={!canAdjust}
+            onClick={() => setConfirmAdjustOpen(true)}
+            aria-label={trans.adjustAction}
+            title={trans.adjustAction}
+          >
+            <Eraser className="h-5 w-5" />
+          </Button>
           <Button
             className={
               canLoad && !processing
-                ? "w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white"
-                : "w-full h-12 text-base bg-gray-600 text-white disabled:opacity-100"
+                ? "h-12 flex-1 text-base bg-red-600 hover:bg-red-700 text-white"
+                : "h-12 flex-1 text-base bg-gray-600 text-white disabled:opacity-100"
             }
             disabled={!canLoad || processing}
             onClick={onLoadClick}
@@ -997,6 +1030,31 @@ const TransportLoad = () => {
               }}
             >
               Move back
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Adjust dialog */}
+      <AlertDialog open={confirmAdjustOpen} onOpenChange={setConfirmAdjustOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{trans.adjustAction}</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="text-sm text-gray-700">{trans.adjustQuestion}</div>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => setConfirmAdjustOpen(false)}
+            >
+              {trans.cancel}
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmAdjustOpen(false);
+                handleAdjust();
+              }}
+            >
+              {trans.yes}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
