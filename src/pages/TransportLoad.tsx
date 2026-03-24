@@ -10,6 +10,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogFooter,
   AlertDialogHeader,
@@ -1046,13 +1047,9 @@ const TransportLoad = () => {
             <AlertDialogTitle>{trans.adjustAction}</AlertDialogTitle>
           </AlertDialogHeader>
           <div className="text-sm text-gray-700">{trans.adjustQuestion}</div>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-3 sm:flex-col sm:space-x-0">
             <AlertDialogAction
-              onClick={() => setConfirmAdjustOpen(false)}
-            >
-              {trans.cancel}
-            </AlertDialogAction>
-            <AlertDialogAction
+              className="w-full"
               onClick={() => {
                 setConfirmAdjustOpen(false);
                 handleAdjust();
@@ -1060,6 +1057,12 @@ const TransportLoad = () => {
             >
               {trans.yes}
             </AlertDialogAction>
+            <AlertDialogCancel
+              className="mt-0 w-full border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white"
+              onClick={() => setConfirmAdjustOpen(false)}
+            >
+              {trans.cancel}
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
