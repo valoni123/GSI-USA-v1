@@ -99,6 +99,17 @@ const TransportLoad = () => {
     unit: string;
     matchType: "HU" | "ITEM";
   };
+  type SelectedTransportItem = {
+    TransportID: string;
+    RunNumber: string;
+    Item: string;
+    HandlingUnit: string;
+    Warehouse: string;
+    LocationFrom: string;
+    LocationTo: string;
+    ETag: string;
+    OrderedQuantity?: number | null;
+  };
   const [listItems, setListItems] = useState<LoadedListItem[]>([]);
   const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
   const [moveBackProcessing, setMoveBackProcessing] = useState<boolean>(false);
@@ -164,12 +175,87 @@ const TransportLoad = () => {
   }, [openedFromTransportsList]);
 
   useEffect(() => {
+    const rawSelected = sessionStorage.getItem("transport.load.selected-item");
+    if (rawSelected) {
+      sessionStorage.removeItem("transport.load.selected-item");
+      try {
+        const selected = JSON.parse(rawSelected) as SelectedTransportItem;
+        const requestCode = ((selected.HandlingUnit || "").trim() || (selected.Item || "").trim());
+        if (!requestCode) return;
+
+        const nextResult = {
+          TransportID: selected.TransportID,
+          RunNumber: selected.RunNumber,
+          Item: selected.Item,
+          HandlingUnit: selected.HandlingUnit,
+          Warehouse: selected.Warehouse,
+          LocationFrom: selected.LocationFrom,
+          LocationTo: selected.LocationTo,
+          ETag: selected.ETag,
+          OrderedQuantity: selected.OrderedQuantity ?? null,
+        };
+
+        setHandlingUnit(requestCode);
+        setPendingPrefill(null);
+        setResult(nextResult);
+        setLastFetchedHu(requestCode);
+        setEtag(selected.ETag || "");
+        setSelectOpen(false);
+        setSelectItems([]);
+
+        const chosenHU = (selected.HandlingUnit || "").trim();
+        if (chosenHU) {
+          setHuItemLabel("Handling Unit");
+          setLocationRequired(false);
+          void (async () => {
+            const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
+              body: { handlingUnit: chosenHU, language: locale },
+            });
+            const qtyData = infoRes.data;
+            const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+            const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
+            setHuQuantity(qty);
+            setHuUnit(unit);
+            setVehicleEnabled(true);
+            const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+            if (storedVehicle) setVehicleId(storedVehicle);
+            resolvedLoadRef.current = {
+              requestCode,
+              result: nextResult,
+              etag: selected.ETag || "",
+              quantity: qty,
+              unit,
+              matchType: "HU",
+            };
+            setResolvedRequestCode(requestCode);
+          })();
+        } else {
+          setHuItemLabel("Item");
+          setLocationRequired(true);
+          const qty = typeof selected.OrderedQuantity === "number" ? String(selected.OrderedQuantity) : "";
+          setHuQuantity(qty);
+          setHuUnit("");
+          setVehicleEnabled(false);
+          resolvedLoadRef.current = {
+            requestCode,
+            result: nextResult,
+            etag: selected.ETag || "",
+            quantity: qty,
+            unit: "",
+            matchType: "ITEM",
+          };
+          setResolvedRequestCode(requestCode);
+        }
+        return;
+      } catch {}
+    }
+
     const prefill = (sessionStorage.getItem("transport.load.prefill") || "").trim();
     if (!prefill) return;
     sessionStorage.removeItem("transport.load.prefill");
     setHandlingUnit(prefill);
     setPendingPrefill(prefill);
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (!pendingPrefill) return;
@@ -863,7 +949,7 @@ const TransportLoad = () => {
               variant="outline"
               className={canAdjustPermission
                 ? "h-12 w-12 shrink-0 border-orange-300 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:opacity-50"
-                : "h-12 w-12 shrink-0 border-gray-300 bg-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-500 disabled:opacity-100"}
+                : "h-12 w-12 shrink-0 border-gray-300 bg-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-500 disabled:opacity-100" }
               disabled={!canAdjust}
               onClick={() => setConfirmAdjustOpen(true)}
               aria-label={trans.adjustAction}
