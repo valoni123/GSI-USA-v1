@@ -200,11 +200,13 @@ const TransportsList = () => {
 
     const currentItem = {
       HandlingUnit: (it.HandlingUnit || "").trim(),
+      Item: (it.Item ?? "").toString(),
       Warehouse: (it.Warehouse || "").trim(),
       LocationFrom: (it.LocationFrom || "").trim(),
       TransportID: (it.TransportID || "").trim(),
       RunNumber: (it.RunNumber || "").trim(),
       ETag: (it.ETag || "").trim(),
+      OrderedQuantity: it.OrderedQuantity ?? null,
     };
 
     const employeeCode = (
@@ -219,20 +221,38 @@ const TransportsList = () => {
       return;
     }
 
+    const movePayload: Record<string, unknown> = {
+      handlingUnit: currentItem.HandlingUnit,
+      fromWarehouse: currentItem.Warehouse,
+      fromLocation: selectedVehicleId,
+      toWarehouse: currentItem.Warehouse,
+      toLocation: currentItem.LocationFrom,
+      employee: employeeCode,
+      language: locale,
+    };
+
+    if (!currentItem.HandlingUnit) {
+      const rawQty = currentItem.OrderedQuantity as string | number | null;
+      const qty =
+        typeof rawQty === "number"
+          ? rawQty
+          : (typeof rawQty === "string" && rawQty.trim() ? Number(rawQty) : NaN);
+
+      if (!currentItem.Item || Number.isNaN(qty)) {
+        showError("Missing OrderedQuantity for item movement.");
+        return;
+      }
+
+      movePayload.item = currentItem.Item;
+      movePayload.quantity = qty;
+    }
+
     setMovingBackMap((m) => ({ ...m, [key]: true }));
     setMoveBackProcessing(true);
 
     const tid = showLoading(trans.executingMovement);
     const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
-      body: {
-        handlingUnit: currentItem.HandlingUnit,
-        fromWarehouse: currentItem.Warehouse,
-        fromLocation: selectedVehicleId,
-        toWarehouse: currentItem.Warehouse,
-        toLocation: currentItem.LocationFrom,
-        employee: employeeCode,
-        language: locale,
-      },
+      body: movePayload,
     });
 
     if (moveErr || !moveData || !moveData.ok) {
