@@ -20,6 +20,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const InfoStockCorrection = () => {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ const InfoStockCorrection = () => {
     return saved || "en";
   });
   const trans = useMemo(() => t(lang), [lang]);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
+  const canMove = hasPermission(permissions, "trans");
 
   const [fullName, setFullName] = useState<string>("");
   useEffect(() => {
@@ -686,6 +689,7 @@ const InfoStockCorrection = () => {
   };
 
   const handleMove = () => {
+    if (!canMove) return;
     const hu = (handlingUnit || query || "").trim();
     if (!hu || normalizeStatus(status) !== "instock") return;
     navigate("/menu/info-stock/transfer", {
@@ -1179,9 +1183,12 @@ const InfoStockCorrection = () => {
           <button
             type="button"
             onClick={handleMove}
-            disabled={normalizeStatus(status) !== "instock"}
-            className="flex h-8 w-28 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: "#78d8a3", color: "#000000" }}
+            disabled={!canMove || normalizeStatus(status) !== "instock"}
+            className="flex h-8 w-28 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold shadow-lg disabled:cursor-not-allowed disabled:opacity-100"
+            style={{
+              backgroundColor: canMove && normalizeStatus(status) === "instock" ? "#78d8a3" : "#d1d5db",
+              color: canMove && normalizeStatus(status) === "instock" ? "#000000" : "#6b7280",
+            }}
           >
             <ArrowRightLeft className="h-4 w-4" />
             <span>{trans.leInfoMove}</span>

@@ -12,6 +12,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const InfoStockTransfer = () => {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ const InfoStockTransfer = () => {
     return saved || "en";
   });
   const trans = useMemo(() => t(lang), [lang]);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
+  const canAdjust = hasPermission(permissions, "corr");
 
   const [fullName, setFullName] = useState<string>("");
   useEffect(() => {
@@ -580,6 +583,7 @@ const InfoStockTransfer = () => {
   };
 
   const handleAdjust = () => {
+    if (!canAdjust) return;
     const hu = (handlingUnit || query || "").trim();
     if (!hu) return;
     navigate("/menu/info-stock/correction", {
@@ -1309,9 +1313,12 @@ const InfoStockTransfer = () => {
           <button
             type="button"
             onClick={handleAdjust}
-            disabled={!(handlingUnit || "").trim() || normalizeStatus(status) !== "instock"}
-            className="flex h-8 w-28 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: "#fdba74", color: "#000000" }}
+            disabled={!canAdjust || !(handlingUnit || "").trim() || normalizeStatus(status) !== "instock"}
+            className="flex h-8 w-28 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold shadow-lg disabled:cursor-not-allowed disabled:opacity-100"
+            style={{
+              backgroundColor: canAdjust && (handlingUnit || "").trim() && normalizeStatus(status) === "instock" ? "#fdba74" : "#d1d5db",
+              color: canAdjust && (handlingUnit || "").trim() && normalizeStatus(status) === "instock" ? "#000000" : "#6b7280",
+            }}
           >
             <Eraser className="h-4 w-4" />
             <span>{trans.adjustAction}</span>

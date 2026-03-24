@@ -10,6 +10,7 @@ import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const cleanValue = (value: string) => {
   const trimmed = (value || "").trim();
@@ -54,6 +55,9 @@ const TransportsList = () => {
     if (lang === "pt-BR") return "UM";
     return "HU";
   }, [lang]);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
+  const canLoadTransport = hasPermission(permissions, "trlo");
+  const canUnloadTransport = hasPermission(permissions, "trul");
 
   const [loading, setLoading] = useState(true);
   const [selecting, setSelecting] = useState(false);
@@ -176,7 +180,7 @@ const TransportsList = () => {
   };
 
   const onGetClick = async () => {
-    if (!selectedVehicleId || assigning) return;
+    if (!selectedVehicleId || assigning || !canLoadTransport) return;
 
     setAssigning(true);
     const tid = showLoading(trans.pleaseWait);
@@ -209,6 +213,7 @@ const TransportsList = () => {
   };
 
   const onSelectTransport = (item: { HandlingUnit: string; Item: string }) => {
+    if (!canLoadTransport) return;
     const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
     if (!prefillValue) return;
 
@@ -224,6 +229,7 @@ const TransportsList = () => {
   const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`;
 
   const onMoveBack = async (it: LoadedListItem, targetLocationOverride?: string) => {
+    if (!canLoadTransport) return;
     const key = moveBackKey(it);
     if (movingBackMap[key] || moveBackProcessing) return;
 
@@ -332,6 +338,7 @@ const TransportsList = () => {
   };
 
   const openMoveBackDialog = (it: LoadedListItem) => {
+    if (!canLoadTransport) return;
     if (moveBackProcessing || Boolean(movingBackMap[moveBackKey(it)])) return;
     setMoveBackItem(it);
     setMoveBackLocation((it.LocationFrom || "").trim());
@@ -416,20 +423,24 @@ const TransportsList = () => {
 
           <Button
             type="button"
-            className="h-8 bg-orange-500 px-4 text-sm font-bold uppercase text-white hover:bg-orange-600"
+            className={canLoadTransport
+              ? "h-8 bg-orange-500 px-4 text-sm font-bold uppercase text-white hover:bg-orange-600 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-orange-500"
+              : "h-8 bg-gray-300 px-4 text-sm font-bold uppercase text-gray-500 hover:bg-gray-300"}
             onClick={() => {
               void onGetClick();
             }}
-            disabled={!selectedVehicleId || assigning}
+            disabled={!selectedVehicleId || assigning || !canLoadTransport}
            >
              GET
            </Button>
 
           <Button
             type="button"
-            className="h-8 bg-black px-4 text-sm font-bold uppercase text-white hover:bg-gray-800 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-black"
+            className={canUnloadTransport
+              ? "h-8 bg-black px-4 text-sm font-bold uppercase text-white hover:bg-gray-800 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-black"
+              : "h-8 bg-gray-300 px-4 text-sm font-bold uppercase text-gray-500 hover:bg-gray-300"}
             onClick={() => navigate("/menu/transport/unload")}
-            disabled={loadedCount === 0}
+            disabled={loadedCount === 0 || !canUnloadTransport}
           >
             {trans.unloadAction}
           </Button>
@@ -460,8 +471,9 @@ const TransportsList = () => {
                   <button
                     type="button"
                     aria-label="Select transport"
-                    className="row-span-2 inline-flex h-7 w-7 items-center justify-center rounded-md border border-red-300 text-red-600 hover:bg-red-50"
+                    className={`row-span-2 inline-flex h-7 w-7 items-center justify-center rounded-md border ${canLoadTransport ? "border-red-300 text-red-600 hover:bg-red-50" : "border-gray-300 text-gray-400 cursor-not-allowed"}`}
                     onClick={() => onSelectTransport(it)}
+                    disabled={!canLoadTransport}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
@@ -513,9 +525,11 @@ const TransportsList = () => {
 
                             <button
                               type="button"
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                              onClick={() => openMoveBackDialog(it)}
-                              disabled={moveBackProcessing || Boolean(movingBackMap[key])}
+                              className={`inline-flex items-center justify-center h-7 w-7 rounded-md border ${canLoadTransport ? "border-red-600 text-red-600 hover:bg-red-50" : "border-gray-300 text-gray-400 cursor-not-allowed"} disabled:opacity-100`}
+                              onClick={() => {
+                                openMoveBackDialog(it);
+                              }}
+                              disabled={!canLoadTransport || moveBackProcessing || Boolean(movingBackMap[`${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`])}
                               aria-label="Move back"
                             >
                               <RotateCcw className="h-4 w-4" />

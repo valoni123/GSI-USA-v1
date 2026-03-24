@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
 import ScreenSpinner from "@/components/ScreenSpinner";
+import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const TransportLoad = () => {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ const TransportLoad = () => {
     return saved || "en";
   });
   const trans = useMemo(() => t(lang), [lang]);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
+  const canAdjustPermission = hasPermission(permissions, "corr");
 
   const [fullName, setFullName] = useState<string>("");
   useEffect(() => {
@@ -536,9 +539,10 @@ const TransportLoad = () => {
     (!locationRequired || vehicleEnabled) &&
     (!openedFromTransportsList || scanMatchesTopValue);
 
-  const canAdjust = !detailsLoading && !processing && Boolean(result);
+  const canAdjust = !detailsLoading && !processing && Boolean(result) && canAdjustPermission;
 
   const handleAdjust = () => {
+    if (!canAdjustPermission) return;
     const queryValue =
       resolvedLoadRef.current?.requestCode?.trim() ||
       handlingUnit.trim() ||
@@ -856,7 +860,9 @@ const TransportLoad = () => {
             <Button
               type="button"
               variant="outline"
-              className="h-12 w-12 shrink-0 border-orange-300 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:opacity-50"
+              className={canAdjustPermission
+                ? "h-12 w-12 shrink-0 border-orange-300 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:opacity-50"
+                : "h-12 w-12 shrink-0 border-gray-300 bg-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-500 disabled:opacity-100"}
               disabled={!canAdjust}
               onClick={() => setConfirmAdjustOpen(true)}
               aria-label={trans.adjustAction}

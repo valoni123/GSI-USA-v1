@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import HelpMenu from "@/components/HelpMenu";
+import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 type HUInfo = {
   handlingUnit?: string | null;
@@ -38,6 +39,10 @@ const InfoStockLEInfo = () => {
     return saved || "en";
   });
   const trans = useMemo(() => t(lang), [lang]);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
+  const canStartInspection = hasPermission(permissions, "insp");
+  const canMove = hasPermission(permissions, "trans");
+  const canAdjust = hasPermission(permissions, "corr");
 
   const [fullName, setFullName] = useState<string>("");
   useEffect(() => {
@@ -221,6 +226,10 @@ const InfoStockLEInfo = () => {
   };
 
   const startInspection = () => {
+    if (!canStartInspection) {
+      setConfirmOpen(false);
+      return;
+    }
     const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
     if (!hu) {
       setConfirmOpen(false);
@@ -231,6 +240,7 @@ const InfoStockLEInfo = () => {
   };
 
   const handleMove = () => {
+    if (!canMove) return;
     const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
     if (!hu) return;
     navigate("/menu/info-stock/transfer", {
@@ -248,6 +258,7 @@ const InfoStockLEInfo = () => {
   };
 
   const handleAdjust = () => {
+    if (!canAdjust) return;
     const hu = (data?.handlingUnit || handlingUnit || "").toString().trim();
     if (!hu) return;
     navigate("/menu/info-stock/correction", {
@@ -498,11 +509,12 @@ const InfoStockLEInfo = () => {
         <div className={toBeInspectedBarClass}>
           <button
             type="button"
-            onClick={() => setConfirmOpen(true)}
-            className="flex items-center justify-center gap-2 h-10 px-4 rounded-md shadow-lg"
-            style={{ backgroundColor: "#a876eb", color: "#ffffff" }}
+            onClick={() => canStartInspection && setConfirmOpen(true)}
+            disabled={!canStartInspection}
+            className={`flex items-center justify-center gap-2 h-10 px-4 rounded-md shadow-lg ${canStartInspection ? "" : "cursor-not-allowed bg-gray-300 text-gray-500"}`}
+            style={canStartInspection ? { backgroundColor: "#a876eb", color: "#ffffff" } : undefined}
           >
-            <ClipboardCheck className="h-4 w-4 text-white" />
+            <ClipboardCheck className={`h-4 w-4 ${canStartInspection ? "text-white" : "text-gray-500"}`} />
             <span className="text-sm font-semibold">{trans.startInspection}</span>
           </button>
         </div>
@@ -514,8 +526,9 @@ const InfoStockLEInfo = () => {
           <button
             type="button"
             onClick={handleMove}
-            className="flex items-center justify-center gap-2 h-8 px-3 w-28 rounded-md shadow-lg text-xs font-semibold"
-            style={{ backgroundColor: "#78d8a3", color: "#000000" }}
+            disabled={!canMove}
+            className={`flex items-center justify-center gap-2 h-8 px-3 w-28 rounded-md shadow-lg text-xs font-semibold ${canMove ? "" : "cursor-not-allowed bg-gray-300 text-gray-500"}`}
+            style={canMove ? { backgroundColor: "#78d8a3", color: "#000000" } : undefined}
           >
             <ArrowRightLeft className="h-4 w-4" />
             <span>{trans.leInfoMove}</span>
@@ -523,8 +536,9 @@ const InfoStockLEInfo = () => {
           <button
             type="button"
             onClick={handleAdjust}
-            className="flex items-center justify-center gap-2 h-8 px-3 w-28 rounded-md shadow-lg text-xs font-semibold"
-            style={{ backgroundColor: "#fdba74", color: "#000000" }}
+            disabled={!canAdjust}
+            className={`flex items-center justify-center gap-2 h-8 px-3 w-28 rounded-md shadow-lg text-xs font-semibold ${canAdjust ? "" : "cursor-not-allowed bg-gray-300 text-gray-500"}`}
+            style={canAdjust ? { backgroundColor: "#fdba74", color: "#000000" } : undefined}
           >
             <Eraser className="h-4 w-4" />
             <span>{trans.adjustAction}</span>

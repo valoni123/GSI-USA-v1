@@ -21,6 +21,9 @@ type Props = {
   onMoveHandlingUnit: (handlingUnit: string) => void;
   onAdjustHandlingUnit: (handlingUnit: string) => void;
   onPrintHandlingUnit: (row: HandlingUnitStockRow) => void;
+  canOpenHandlingUnit: boolean;
+  canMoveHandlingUnit: boolean;
+  canAdjustHandlingUnit: boolean;
 };
 
 const normalizeStatus = (raw?: string | null): string | null => {
@@ -96,6 +99,9 @@ const HandlingUnitStockDialog = ({
   onMoveHandlingUnit,
   onAdjustHandlingUnit,
   onPrintHandlingUnit,
+  canOpenHandlingUnit,
+  canMoveHandlingUnit,
+  canAdjustHandlingUnit,
 }: Props) => {
   const trans = useMemo(() => t(lang), [lang]);
   const displayLocation = (location || "").trim();
@@ -118,6 +124,9 @@ const HandlingUnitStockDialog = ({
                 const quantityText = `${row.QuantityInInventoryUnit}${row.Unit ? ` ${row.Unit}` : ""}`;
                 const key = normalizeStatus(row.Status);
                 const stockActionsEnabled = key === "instock";
+                const canOpen = canOpenHandlingUnit;
+                const canMove = stockActionsEnabled && canMoveHandlingUnit;
+                const canAdjust = stockActionsEnabled && canAdjustHandlingUnit;
 
                 return (
                   <div key={`${row.HandlingUnit}-${index}`} className="rounded-md border bg-gray-50 p-3">
@@ -150,26 +159,27 @@ const HandlingUnitStockDialog = ({
                         <button
                           type="button"
                           aria-label={trans.infoStockLEInfo}
-                          className={`${actionButtonClass} bg-zinc-700 text-white hover:bg-zinc-800`}
+                          className={`${actionButtonClass} ${canOpen ? "bg-zinc-700 text-white hover:bg-zinc-800" : "bg-gray-300 text-gray-500"}`}
                           onClick={() => onOpenHandlingUnit(row.HandlingUnit)}
+                          disabled={!canOpen}
                         >
                           <ArrowUpRight className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
                           aria-label={trans.leInfoMove}
-                          className={`${actionButtonClass} bg-[#78d8a3] text-black hover:bg-[#69c892]`}
+                          className={`${actionButtonClass} ${canMove ? "bg-[#78d8a3] text-black hover:bg-[#69c892]" : "bg-gray-300 text-gray-500"}`}
                           onClick={() => onMoveHandlingUnit(row.HandlingUnit)}
-                          disabled={!stockActionsEnabled}
+                          disabled={!canMove}
                         >
                           <ArrowRightLeft className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
                           aria-label={trans.adjustAction}
-                          className={`${actionButtonClass} bg-[#fdba74] text-black hover:bg-[#f7a959]`}
+                          className={`${actionButtonClass} ${canAdjust ? "bg-[#fdba74] text-black hover:bg-[#f7a959]" : "bg-gray-300 text-gray-500"}`}
                           onClick={() => onAdjustHandlingUnit(row.HandlingUnit)}
-                          disabled={!stockActionsEnabled}
+                          disabled={!canAdjust}
                         >
                           <Eraser className="h-4 w-4" />
                         </button>

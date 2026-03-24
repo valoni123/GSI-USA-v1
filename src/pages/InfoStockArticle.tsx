@@ -11,6 +11,7 @@ import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess, showError, showLoading, dismissToast } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import ScreenSpinner from "@/components/ScreenSpinner";
+import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const InfoStockArticle = () => {
   const navigate = useNavigate();
@@ -21,6 +22,10 @@ const InfoStockArticle = () => {
     return saved || "en";
   });
   const trans = useMemo(() => t(lang), [lang]);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
+  const canOpenHuInfo = hasPermission(permissions, "huif");
+  const canMoveHu = hasPermission(permissions, "trans");
+  const canAdjustHu = hasPermission(permissions, "corr");
 
   const [fullName, setFullName] = useState<string>("");
   useEffect(() => {
@@ -238,6 +243,7 @@ const InfoStockArticle = () => {
   };
 
   const openHuInfo = (handlingUnitValue: string) => {
+    if (!canOpenHuInfo) return;
     const value = (handlingUnitValue || "").trim();
     if (!value) return;
     setHuStockOpen(false);
@@ -258,6 +264,7 @@ const InfoStockArticle = () => {
   };
 
   const openHuMove = (handlingUnitValue: string) => {
+    if (!canMoveHu) return;
     const value = (handlingUnitValue || "").trim();
     if (!value) return;
     setHuStockOpen(false);
@@ -278,6 +285,7 @@ const InfoStockArticle = () => {
   };
 
   const openHuAdjust = (handlingUnitValue: string) => {
+    if (!canAdjustHu) return;
     const value = (handlingUnitValue || "").trim();
     if (!value) return;
     setHuStockOpen(false);
@@ -756,6 +764,9 @@ const InfoStockArticle = () => {
         onMoveHandlingUnit={openHuMove}
         onAdjustHandlingUnit={openHuAdjust}
         onPrintHandlingUnit={printHuLabel}
+        canOpenHandlingUnit={canOpenHuInfo}
+        canMoveHandlingUnit={canMoveHu}
+        canAdjustHandlingUnit={canAdjustHu}
       />
 
       <SignOutConfirm
