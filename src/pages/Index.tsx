@@ -60,7 +60,8 @@ const Index = () => {
     const gsiId = data.user?.id as string | undefined;
     const fullName = data.user?.full_name as string | undefined;
     const userUsername = data.user?.username as string | undefined;
-    const permissions = normalizeGsiPermissions(data.user);
+    const initialPermissions = normalizeGsiPermissions(data.user);
+    let effectivePermissions = initialPermissions;
     const loginUsername = (userUsername || "").trim();
     if (!loginUsername) {
       showError("Missing GSI username.");
@@ -74,7 +75,7 @@ const Index = () => {
       localStorage.setItem("gsi.login", loginUsername);
       localStorage.removeItem("vehicle.id");
       localStorage.removeItem("transports.vehicle.id");
-      setStoredGsiPermissions(permissions);
+      setStoredGsiPermissions(initialPermissions);
     } catch {}
 
     const tid = showLoading(trans.retrievingToken);
@@ -104,7 +105,8 @@ const Index = () => {
         username: loginUsername,
       }, 8000);
       if (permissionsResult?.data?.ok) {
-        setStoredGsiPermissions(permissionsResult.data.permissions);
+        effectivePermissions = normalizeGsiPermissions(permissionsResult.data.permissions);
+        setStoredGsiPermissions(effectivePermissions);
       }
     } catch {}
 
@@ -124,7 +126,7 @@ const Index = () => {
       } catch {}
     })();
 
-    if (transportscreen && permissions.admin) {
+    if (transportscreen && effectivePermissions.admin) {
       navigate("/transport/select");
     } else {
       navigate("/menu");
