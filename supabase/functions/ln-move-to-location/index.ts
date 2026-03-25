@@ -39,6 +39,7 @@ serve(async (req) => {
       toLocation?: string;
       employee?: string;
       language?: string;
+      scan1?: string;
     } = {};
     try {
       body = await req.json();
@@ -59,6 +60,7 @@ serve(async (req) => {
     const toLocation = (body.toLocation || "").trim();
     const employee = (body.employee || "").trim();
     const language = body.language || "de-DE";
+    const scan1 = (body.scan1 || "").trim();
 
     // Validate: either a HU move (handlingUnit) or an item move (item + quantity),
     // and always require the common fields.
@@ -162,6 +164,7 @@ serve(async (req) => {
       Employee: employee,
       FromWebserver: "Yes",
       Automatisch: "No",
+      Scan1: scan1,
     };
     if (handlingUnit) {
       // Handling Unit move

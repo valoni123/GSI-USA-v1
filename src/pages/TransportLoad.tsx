@@ -820,6 +820,7 @@ const TransportLoad = () => {
       toLocation: snapVehicleId,
       employee: employeeCode,
       language: snapLocale,
+      scan1: (refreshedResult.TransportID || "").trim(),
     };
     if (refreshedMatchType === "HU") {
       payload.handlingUnit = (refreshedResult.HandlingUnit || "").trim();
@@ -847,32 +848,6 @@ const TransportLoad = () => {
       return;
     }
     showSuccess(trans.loadedSuccessfully);
-
-    const patchTid = showLoading(trans.updatingTransportOrder);
-    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
-      body: {
-        transportId: (refreshedResult.TransportID || "").trim(),
-        runNumber: (refreshedResult.RunNumber || "").trim(),
-        etag: refreshedEtag,
-        vehicleId: snapVehicleId,
-        language: snapLocale,
-        company: "1100",
-      },
-    });
-    dismissToast(patchTid as unknown as string);
-    if (loadRequestIdRef.current !== requestId) {
-      setProcessing(false);
-      return;
-    }
-    if (patchErr || !patchData || !patchData.ok) {
-      const err = (patchData && patchData.error) || patchErr;
-      const top = err?.message || "Unbekannter Fehler";
-      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
-      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
-      showError(message);
-      setProcessing(false);
-      return;
-    }
 
     setHandlingUnit("");
     resetResolvedState();
