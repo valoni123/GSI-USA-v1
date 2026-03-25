@@ -44,10 +44,11 @@ serve(async (req) => {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const fields = "username,full_name,admin";
 
   const usernameResult = await supabase
     .from("gsi_users")
-    .select("full_name")
+    .select(fields)
     .ilike("username", loginValue)
     .limit(1)
     .maybeSingle();
@@ -60,7 +61,12 @@ serve(async (req) => {
   }
 
   if (usernameResult.data?.full_name) {
-    return new Response(JSON.stringify({ ok: true, full_name: usernameResult.data.full_name }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      full_name: usernameResult.data.full_name,
+      username: usernameResult.data.username ?? null,
+      admin: usernameResult.data.admin === true || String(usernameResult.data.admin ?? "").toLowerCase() === "true",
+    }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -68,7 +74,7 @@ serve(async (req) => {
 
   const mailResult = await supabase
     .from("gsi_users")
-    .select("full_name")
+    .select(fields)
     .ilike("mail", loginValue)
     .limit(1)
     .maybeSingle();
@@ -80,7 +86,12 @@ serve(async (req) => {
     });
   }
 
-  return new Response(JSON.stringify({ ok: true, full_name: mailResult.data?.full_name || null }), {
+  return new Response(JSON.stringify({
+    ok: true,
+    full_name: mailResult.data?.full_name || null,
+    username: mailResult.data?.username || null,
+    admin: mailResult.data?.admin === true || String(mailResult.data?.admin ?? "").toLowerCase() === "true",
+  }), {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
