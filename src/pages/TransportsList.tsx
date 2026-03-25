@@ -79,12 +79,6 @@ const TransportsList = () => {
   const selectedVehicleId = (localStorage.getItem("transports.vehicle.id") || localStorage.getItem("vehicle.id") || "").trim();
 
   const loadPlanningItems = async () => {
-    if (!selectedVehicleId) {
-      setItems([]);
-      setError("Missing vehicle");
-      return;
-    }
-
     const { data } = await supabase.functions.invoke("ln-transports-list", {
       body: { vehicleId: selectedVehicleId, language: locale },
     });
