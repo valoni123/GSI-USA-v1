@@ -46,6 +46,9 @@ serve(async (req) => {
 
     const vehicleId = (body.vehicleId || "").trim();
     const language = body.language || "en-US";
+    if (!vehicleId) {
+      return json({ ok: false, error: "missing_vehicle" }, 200);
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -106,7 +109,7 @@ serve(async (req) => {
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
     const escapedVehicle = vehicleId.replace(/'/g, "''");
-    const filter = escapedVehicle ? `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq ''` : `VehicleID eq ''`;
+    const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq ''`;
     const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo";
     const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
 

@@ -70,11 +70,8 @@ const TransportsSelect = () => {
 
   const onConfirm = () => {
     const vid = vehicleId.trim();
-    if (vid) {
-      localStorage.setItem("transports.vehicle.id", vid);
-    } else {
-      localStorage.removeItem("transports.vehicle.id");
-    }
+    if (!vid) return;
+    localStorage.setItem("transports.vehicle.id", vid);
     setSubmitting(true);
     navigate("/menu/transports/list");
   };
@@ -182,7 +179,7 @@ const TransportsSelect = () => {
             <div className="w-full space-y-2">
               <Button
                 className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-                disabled={submitting}
+                disabled={submitting || !vehicleId.trim()}
                 onClick={onConfirm}
               >
                 OK

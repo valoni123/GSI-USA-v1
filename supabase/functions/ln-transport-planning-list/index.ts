@@ -37,7 +37,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { planningGroup?: string; vehicleId?: string; showAll?: boolean; language?: string } = {};
+    let body: { planningGroup?: string; vehicleId?: string; language?: string; company?: string; showAll?: boolean } = {};
     try {
       body = await req.json();
     } catch {
@@ -46,7 +46,6 @@ serve(async (req) => {
 
     const planningGroup = (body.planningGroup || "").trim();
     const vehicleId = (body.vehicleId || "").trim();
-    const showAll = body.showAll === true;
     const language = body.language || "en-US";
     const company = await (async () => {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -57,6 +56,8 @@ serve(async (req) => {
       const supabase = createClient(supabaseUrl, serviceRoleKey);
       return await getCompanyFromParams(supabase);
     })();
+    const showAll = Boolean(body.showAll);
+
     if (!vehicleId) {
       return json({ ok: false, error: "missing_vehicle" }, 200);
     }
@@ -123,11 +124,9 @@ serve(async (req) => {
     const escapedVehicle = vehicleId.replace(/'/g, "''");
     const escapedGroup = planningGroup.replace(/'/g, "''");
     const filter = showAll
-      ? (escapedVehicle ? `PlannedVehicle eq '${escapedVehicle}'` : "")
-      : (escapedVehicle
-          ? `PlanningGroupTransport eq '${escapedGroup}' and PlannedVehicle eq '${escapedVehicle}'`
-          : `PlanningGroupTransport eq '${escapedGroup}'`);
-    const firstUrl = `${base}${path}${filter ? `?$filter=${encodeURIComponent(filter)}&$count=true&$select=*` : `?$count=true&$select=*`}`;
+      ? `PlannedVehicle eq '${escapedVehicle}'`
+      : `PlanningGroupTransport eq '${escapedGroup}' and PlannedVehicle eq '${escapedVehicle}'`;
+    const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
 
     const headers = {
       accept: "application/json",
