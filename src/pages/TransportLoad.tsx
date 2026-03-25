@@ -25,7 +25,6 @@ import { getStoredGsiUsername } from "@/lib/gsi-user";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const MAX_BLOCKING_SPINNER_MS = 10_000;
-const MOVE_BACK_TIMEOUT_MS = 10_000;
 
 const TransportLoad = () => {
   const navigate = useNavigate();
@@ -406,18 +405,6 @@ const TransportLoad = () => {
     closeMoveBackDialog();
     await onMoveBack(it, targetLocation);
   };
-
-  useEffect(() => {
-    if (!moveBackProcessing) return;
-
-    const timeoutId = window.setTimeout(() => {
-      moveBackRequestIdRef.current += 1;
-      setMovingBackMap({});
-      setMoveBackProcessing(false);
-    }, MOVE_BACK_TIMEOUT_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [moveBackProcessing]);
 
   const onHUBlur = async () => {
     const huRaw = handlingUnit;
