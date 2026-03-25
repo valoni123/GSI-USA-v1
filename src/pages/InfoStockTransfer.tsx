@@ -1,18 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Search, User, CheckSquare, Square, Eraser, Printer } from "lucide-react";
-import LocationPickerDialog from "@/components/LocationPickerDialog";
-import ScreenSpinner from "@/components/ScreenSpinner";
+import { useNavigate } from "react-router-dom";
+import { LogOut, User, ArrowRightLeft, Printer } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
+import { Input } from "@/components/ui/input";
+import LocationPickerDialog from "@/components/LocationPickerDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 
 const InfoStockTransfer = () => {
   const navigate = useNavigate();
@@ -634,14 +633,9 @@ const InfoStockTransfer = () => {
 
   const doTransfer = async () => {
     if (!canTransfer) return;
-    const employeeCode = (
-      (localStorage.getItem("gsi.employee") ||
-        localStorage.getItem("gsi.username") ||
-        localStorage.getItem("gsi.login") ||
-        "") as string
-    ).trim();
+    const employeeCode = getStoredGsiUsername();
 
-    const loginCode = (localStorage.getItem("gsi.login") || employeeCode).trim();
+    const loginCode = getStoredGsiUsername();
 
     const isHU = lastMatchType === "HU" && (handlingUnit || "").trim().length > 0;
 

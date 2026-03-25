@@ -20,6 +20,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const InfoStockCorrection = () => {
@@ -625,21 +626,8 @@ const InfoStockCorrection = () => {
       const deviation = Number(submitQuantity);
       const reasonCode = (reason || "").trim();
 
-      const loginCode =
-        (localStorage.getItem("gsi.login") ||
-          localStorage.getItem("gsi.employee") ||
-          localStorage.getItem("gsi.username") ||
-          "")
-          .toString()
-          .trim();
-
-      const employee =
-        (localStorage.getItem("gsi.employee") ||
-          localStorage.getItem("gsi.login") ||
-          localStorage.getItem("gsi.username") ||
-          "")
-          .toString()
-          .trim();
+      const loginCode = getStoredGsiUsername();
+      const employee = getStoredGsiUsername();
 
       const tid = showLoading(trans.pleaseWait);
       const { data, error } = await supabase.functions.invoke("ln-inventory-adjustment", {

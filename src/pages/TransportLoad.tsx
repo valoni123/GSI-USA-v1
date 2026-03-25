@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
 import ScreenSpinner from "@/components/ScreenSpinner";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const TransportLoad = () => {
@@ -274,12 +275,7 @@ const TransportLoad = () => {
     setMovingBackMap((m) => ({ ...m, [key]: true }));
     setMoveBackProcessing(true);
 
-    const employeeCode = (
-      (localStorage.getItem("gsi.employee") ||
-        localStorage.getItem("gsi.username") ||
-        localStorage.getItem("gsi.login") ||
-        "") as string
-    ).trim();
+    const employeeCode = getStoredGsiUsername();
     const vid = (localStorage.getItem("vehicle.id") || "").trim();
     if (!vid) {
       showError("No vehicle selected. Please set a Vehicle ID.");
@@ -618,12 +614,7 @@ const TransportLoad = () => {
 
     const snapVehicleId = vehicleId.trim();
     const snapLocale = locale;
-    const employeeCode = (
-      (localStorage.getItem("gsi.employee") ||
-        localStorage.getItem("gsi.username") ||
-        localStorage.getItem("gsi.login") ||
-        "") as string
-    ).trim();
+    const employeeCode = getStoredGsiUsername();
 
     // Re-resolve the current scanned code right before loading so a fast previous scan
     // can never leak old result/quantity data into the movement request.

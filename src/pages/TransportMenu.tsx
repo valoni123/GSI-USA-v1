@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import { clearStoredGsiPermissions, getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
@@ -57,28 +58,32 @@ const TransportMenu = () => {
 
   const tiles: Tile[] = [
     ...(hasPermission(permissions, "trlo")
-      ? [{
-          key: "load",
-          label: trans.transportLoad,
-          icon: (
-            <div className="relative flex items-center justify-center">
-              <Forklift className="h-10 w-10 text-red-700" />
-              <ArrowBigLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
-            </div>
-          ),
-        }]
+      ? [
+          {
+            key: "load",
+            label: trans.transportLoad,
+            icon: (
+              <div className="relative flex items-center justify-center">
+                <Forklift className="h-10 w-10 text-red-700" />
+                <ArrowBigLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
+              </div>
+            ),
+          },
+        ]
       : []),
     ...(hasPermission(permissions, "trul")
-      ? [{
-          key: "unload",
-          label: trans.transportUnload,
-          icon: (
-            <div className="relative flex items-center justify-center">
-              <Forklift className="h-10 w-10 text-red-700 transform scale-x-[-1]" />
-              <ArrowBigRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
-            </div>
-          ),
-        }]
+      ? [
+          {
+            key: "unload",
+            label: trans.transportUnload,
+            icon: (
+              <div className="relative flex items-center justify-center">
+                <Forklift className="h-10 w-10 text-red-700 transform scale-x-[-1]" />
+                <ArrowBigRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
   const [loadedCount, setLoadedCount] = useState<number>(0);
@@ -189,12 +194,7 @@ const TransportMenu = () => {
       setMoveBackProcessing(false);
       return;
     }
-    const employeeCode = (
-      (localStorage.getItem("gsi.employee") ||
-        localStorage.getItem("gsi.username") ||
-        localStorage.getItem("gsi.login") ||
-        "") as string
-    ).trim();
+    const employeeCode = getStoredGsiUsername();
 
     const movePayload: Record<string, unknown> = {
       fromWarehouse: currentItem.Warehouse,

@@ -16,6 +16,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ScreenSpinner from "@/components/ScreenSpinner";
 
@@ -194,12 +195,7 @@ const TransportUnload = () => {
   }, [items]);
 
   const getEmployeeCode = () => {
-    return (
-      (localStorage.getItem("gsi.employee") ||
-        localStorage.getItem("gsi.username") ||
-        localStorage.getItem("gsi.login") ||
-        "") as string
-    ).trim();
+    return getStoredGsiUsername();
   };
 
   const unloadSingle = async (it: LoadedItem, attempt = 1, targetLocationOverride?: string): Promise<boolean> => {

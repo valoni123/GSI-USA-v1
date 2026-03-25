@@ -60,13 +60,17 @@ const Index = () => {
     const gsiId = data.user?.id as string | undefined;
     const fullName = data.user?.full_name as string | undefined;
     const userUsername = data.user?.username as string | undefined;
-    const loginUsername = userUsername || username;
+    const loginUsername = (userUsername || "").trim();
+    if (!loginUsername) {
+      showError("Missing GSI username.");
+      return;
+    }
     try {
       if (gsiId) localStorage.setItem("gsi.id", gsiId);
       if (fullName) localStorage.setItem("gsi.full_name", fullName);
-      if (userUsername) localStorage.setItem("gsi.username", userUsername);
-      localStorage.setItem("gsi.employee", username);
-      localStorage.setItem("gsi.login", username);
+      localStorage.setItem("gsi.username", loginUsername);
+      localStorage.setItem("gsi.employee", loginUsername);
+      localStorage.setItem("gsi.login", loginUsername);
       setStoredGsiPermissions(normalizeGsiPermissions(data.user));
     } catch {}
 
