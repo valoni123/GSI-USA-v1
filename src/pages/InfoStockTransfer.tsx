@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { clearStoredGsiPermissions, getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 import { getStoredGsiUsername } from "@/lib/gsi-user";
 
+const MAX_BLOCKING_SPINNER_MS = 10_000;
+
 const InfoStockTransfer = () => {
   const navigate = useNavigate();
   const routerLocation = useLocation();
@@ -195,6 +197,23 @@ const InfoStockTransfer = () => {
   const [searching, setSearching] = useState<boolean>(false);
   const [checkingTargetLocation, setCheckingTargetLocation] = useState<boolean>(false);
   const [transferring, setTransferring] = useState<boolean>(false);
+  const [showBlockingSpinner, setShowBlockingSpinner] = useState<boolean>(false);
+
+  const blockingBusy = searching || checkingTargetLocation || transferring;
+
+  useEffect(() => {
+    if (!blockingBusy) {
+      setShowBlockingSpinner(false);
+      return;
+    }
+
+    setShowBlockingSpinner(true);
+    const timeoutId = window.setTimeout(() => {
+      setShowBlockingSpinner(false);
+    }, MAX_BLOCKING_SPINNER_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [blockingBusy]);
 
   const [focusTargetLocTick, setFocusTargetLocTick] = useState(0);
   useEffect(() => {
@@ -1076,7 +1095,7 @@ const InfoStockTransfer = () => {
             </div>
           )}
 
-          {(searching || checkingTargetLocation || transferring) && <ScreenSpinner message={trans.pleaseWait} />}
+          {(showBlockingSpinner && (searching || checkingTargetLocation || transferring)) && <ScreenSpinner message={trans.pleaseWait} />}
 
           {/* Item warehouse picker dialog */}
           <Dialog open={warehousePickerOpen} onOpenChange={setWarehousePickerOpen}>

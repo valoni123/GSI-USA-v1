@@ -24,6 +24,8 @@ import ScreenSpinner from "@/components/ScreenSpinner";
 import { getStoredGsiUsername } from "@/lib/gsi-user";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
+const MAX_BLOCKING_SPINNER_MS = 10_000;
+
 const TransportLoad = () => {
   const navigate = useNavigate();
 
@@ -539,6 +541,23 @@ const TransportLoad = () => {
   const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
   const [confirmAdjustOpen, setConfirmAdjustOpen] = useState<boolean>(false);
+  const [showBlockingSpinner, setShowBlockingSpinner] = useState<boolean>(false);
+
+  const blockingBusy = detailsLoading || listLoading || processing || moveBackProcessing;
+
+  useEffect(() => {
+    if (!blockingBusy) {
+      setShowBlockingSpinner(false);
+      return;
+    }
+
+    setShowBlockingSpinner(true);
+    const timeoutId = window.setTimeout(() => {
+      setShowBlockingSpinner(false);
+    }, MAX_BLOCKING_SPINNER_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [blockingBusy]);
 
   const sourceFlowIsItemOnly = openedFromTransportsList && result !== null && !(result?.HandlingUnit || "").trim();
   const expectedConfirmValue = openedFromTransportsList
@@ -1028,10 +1047,10 @@ const TransportLoad = () => {
       </div>
 
       {/* Blocking spinner while processing */}
-      {detailsLoading && <ScreenSpinner message={trans.checkingHandlingUnit} />}
-      {listLoading && <ScreenSpinner message={trans.loadingList} />}
-      {processing && <ScreenSpinner message={trans.pleaseWait} />}
-      {moveBackProcessing && <ScreenSpinner message={trans.pleaseWait} />}
+      {showBlockingSpinner && detailsLoading && <ScreenSpinner message={trans.checkingHandlingUnit} />}
+      {showBlockingSpinner && listLoading && <ScreenSpinner message={trans.loadingList} />}
+      {showBlockingSpinner && processing && <ScreenSpinner message={trans.pleaseWait} />}
+      {showBlockingSpinner && moveBackProcessing && <ScreenSpinner message={trans.pleaseWait} />}
 
       {/* Error dialog: HU not found */}
       <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
