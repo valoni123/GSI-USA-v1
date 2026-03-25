@@ -44,21 +44,44 @@ serve(async (req) => {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
-  const { data, error } = await supabase
+  const requested = uname.toLowerCase();
+
+  const { data: usernameMatch, error: usernameError } = await supabase
     .from("gsi_users")
     .select("full_name")
-    .eq("username", uname)
+    .ilike("username", requested)
     .limit(1)
     .maybeSingle();
 
-  if (error) {
+  if (usernameError) {
     return new Response(JSON.stringify({ ok: false, error: "query_error" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  return new Response(JSON.stringify({ ok: true, full_name: data?.full_name || null }), {
+  if (usernameMatch?.full_name) {
+    return new Response(JSON.stringify({ ok: true, full_name: usernameMatch.full_name }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const { data: mailMatch, error: mailError } = await supabase
+    .from("gsi_users")
+    .select("full_name")
+    .ilike("mail", requested)
+    .limit(1)
+    .maybeSingle();
+
+  if (mailError) {
+    return new Response(JSON.stringify({ ok: false, error: "query_error" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  return new Response(JSON.stringify({ ok: true, full_name: mailMatch?.full_name || null }), {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });

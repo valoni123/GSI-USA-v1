@@ -65,8 +65,8 @@ const Index = () => {
       if (gsiId) localStorage.setItem("gsi.id", gsiId);
       if (fullName) localStorage.setItem("gsi.full_name", fullName);
       if (userUsername) localStorage.setItem("gsi.username", userUsername);
-      localStorage.setItem("gsi.employee", username);
-      localStorage.setItem("gsi.login", username);
+      localStorage.setItem("gsi.employee", loginUsername);
+      localStorage.setItem("gsi.login", loginUsername);
       setStoredGsiPermissions(normalizeGsiPermissions(data.user));
     } catch {}
 
