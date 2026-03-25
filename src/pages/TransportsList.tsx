@@ -245,12 +245,17 @@ const TransportsList = () => {
     if (!prefillValue) return;
 
     localStorage.setItem("vehicle.id", selectedVehicleId);
-    sessionStorage.setItem("transport.load.prefill", prefillValue);
-    sessionStorage.setItem("transport.load.source", "transports-list");
+    sessionStorage.setItem("transport.line.load.prefill", prefillValue);
+    sessionStorage.setItem("transport.line.load.vehicle", selectedVehicleId);
     sessionStorage.setItem("transport.selected", "1");
     sessionStorage.removeItem("transport.fromMain");
     setSelecting(true);
-    navigate("/menu/transport/load");
+    navigate("/menu/transports/load", {
+      state: {
+        prefillValue,
+        vehicleId: selectedVehicleId,
+      },
+    });
   };
 
   const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`;
