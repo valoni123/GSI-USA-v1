@@ -76,7 +76,6 @@ const TransportLoad = () => {
   const [huUnit, setHuUnit] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
   const [huItemLabel, setHuItemLabel] = useState<string>("Handling Unit / Item");
-  const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [etag, setEtag] = useState<string>("");
   const [selectOpen, setSelectOpen] = useState<boolean>(false);
@@ -520,28 +519,6 @@ const TransportLoad = () => {
     setHuUnit(resolved.unit);
 
     if (resolved.matchType === "HU") {
-      const chosenHU = (nextResult.HandlingUnit || "").trim();
-      const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
-      if (selectedVehicle) {
-        const preTid = showLoading(trans.checkingHandlingUnit);
-        const { data: loadedData } = await supabase.functions.invoke("ln-transport-loaded-check", {
-          body: { handlingUnit: chosenHU, vehicleId: selectedVehicle, language: locale },
-        });
-        dismissToast(preTid as unknown as string);
-        if (!isLatestRequest()) {
-          setDetailsLoading(false);
-          return;
-        }
-        if (loadedData && loadedData.ok && Number(loadedData.count || 0) > 0) {
-          setLoadedErrorOpen(true);
-          resetResolvedState();
-          setHandlingUnit("");
-          setDetailsLoading(false);
-          setTimeout(() => huRef.current?.focus(), 50);
-          return;
-        }
-      }
-
       setVehicleEnabled(true);
       const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
       if (storedVehicle) setVehicleId(storedVehicle);
@@ -589,9 +566,10 @@ const TransportLoad = () => {
     return () => window.clearTimeout(timeoutId);
   }, [blockingBusy]);
 
-  const expectedConfirmValue = openedFromTransportsList
-    ? ((result?.HandlingUnit || "").trim() || (result?.Item || "").trim() || handlingUnit.trim())
-    : "";
+  const expectedConfirmValue =
+    openedFromTransportsList
+      ? ((result?.HandlingUnit || "").trim() || (result?.Item || "").trim() || handlingUnit.trim())
+      : "";
   const confirmLabel = (result?.HandlingUnit || "").trim() ? "Handling Unit" : trans.itemLabel;
 
   const scanMatchesTopValue =
@@ -1028,26 +1006,6 @@ const TransportLoad = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={onErrorConfirm}>OK</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Error dialog: HU already loaded */}
-      <AlertDialog open={loadedErrorOpen} onOpenChange={setLoadedErrorOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{trans.huAlreadyLoaded}</AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction
-              onClick={() => {
-                setLoadedErrorOpen(false);
-                // Everything is already cleared in the blur handler; ensure focus on HU
-                setTimeout(() => huRef.current?.focus(), 50);
-              }}
-            >
-              OK
-            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
