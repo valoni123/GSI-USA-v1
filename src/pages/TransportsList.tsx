@@ -11,6 +11,7 @@ import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 
 const cleanValue = (value: string) => {
   const trimmed = (value || "").trim();
@@ -244,12 +245,7 @@ const TransportsList = () => {
       OrderedQuantity: it.OrderedQuantity ?? null,
     };
 
-    const employeeCode = (
-      (localStorage.getItem("gsi.employee") ||
-        localStorage.getItem("gsi.username") ||
-        localStorage.getItem("gsi.login") ||
-        "") as string
-    ).trim();
+    const employeeCode = getStoredGsiUsername();
 
     if (!selectedVehicleId) {
       showError("No vehicle selected. Please set a Vehicle ID.");

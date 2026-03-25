@@ -12,6 +12,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import BackButton from "@/components/BackButton";
 import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 import { t, type LanguageKey } from "@/lib/i18n";
 import { showSuccess, showError } from "@/utils/toast";
 
@@ -157,7 +158,7 @@ const IncomingInspectionPage: React.FC = () => {
     const inspectionSeq = getSequence(selectedLine);
     const inspectionLine = getInspectionLine(selectedLine) || (singleLineOnly ? 1 : 0);
 
-    const emp = (localStorage.getItem("gsi.employee") || "").toString();
+    const emp = getStoredGsiUsername();
 
     const payload = {
       TransactionID: "",
@@ -297,9 +298,9 @@ const IncomingInspectionPage: React.FC = () => {
       setLinesLoading(true);
       const insp = (selectedLine?.Inspection || "").toString().trim();
       const seq = Number(
-        selectedLine?.InspectionSequence ??
-        selectedLine?.Sequence ??
-        selectedLine?.OrderSequence ??
+        selectedLine?.InspectionSequence ?? 
+        selectedLine?.Sequence ?? 
+        selectedLine?.OrderSequence ?? 
         0
       );
       if (!insp || !seq) {

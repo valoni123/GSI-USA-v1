@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { LogOut, User, ArrowRightLeft, Printer } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { LogOut, User, ArrowRightLeft, Printer, Search, Eraser } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,9 +8,12 @@ import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Input } from "@/components/ui/input";
 import LocationPickerDialog from "@/components/LocationPickerDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
+import ScreenSpinner from "@/components/ScreenSpinner";
+import { Dialog, DialogContent, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { clearStoredGsiPermissions, getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 import { getStoredGsiUsername } from "@/lib/gsi-user";
 
 const InfoStockTransfer = () => {
