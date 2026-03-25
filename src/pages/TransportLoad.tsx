@@ -121,6 +121,7 @@ const TransportLoad = () => {
   }, [lang]);
   const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
   const openedFromTransportsList = sessionStorage.getItem("transport.load.source") === "transports-list";
+  const selectedTransportId = openedFromTransportsList ? (sessionStorage.getItem("transport.load.transportId") || "").trim() : "";
 
   const resolveLoadCode = async (requestCode: string): Promise<ResolvedLoadData | null> => {
     const trimmedCode = requestCode.trim();
@@ -184,6 +185,7 @@ const TransportLoad = () => {
   const goBackFromLoad = () => {
     if (openedFromTransportsList) {
       sessionStorage.removeItem("transport.load.source");
+      sessionStorage.removeItem("transport.load.transportId");
       navigate("/menu/transports/list");
       return;
     }
@@ -741,6 +743,7 @@ const TransportLoad = () => {
 
     if (openedFromTransportsList) {
       sessionStorage.removeItem("transport.load.source");
+      sessionStorage.removeItem("transport.load.transportId");
       navigate("/menu/transports/list");
       return;
     }
@@ -964,6 +967,12 @@ const TransportLoad = () => {
             ) : result ? (
               <div className="text-sm">
                 <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-1 items-start">
+                  {selectedTransportId ? (
+                    <>
+                      <div className="font-semibold text-gray-700">{trans.transportIdLabel}:</div>
+                      <div className="break-all text-gray-900">{selectedTransportId}</div>
+                    </>
+                  ) : null}
                   <div className="font-semibold text-gray-700">{trans.itemLabel}:</div>
                   <div className="break-all text-gray-900">{result.Item ?? "-"}</div>
 
