@@ -122,6 +122,18 @@ const TransportLoad = () => {
   const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
   const openedFromTransportsList = sessionStorage.getItem("transport.load.source") === "transports-list";
 
+  type SelectedTransportPrefill = {
+    TransportID?: string;
+    RunNumber?: string;
+    Item?: string;
+    HandlingUnit?: string;
+    Warehouse?: string;
+    LocationFrom?: string;
+    LocationTo?: string;
+    ETag?: string;
+    OrderedQuantity?: number | null;
+  };
+
   const goBackFromLoad = () => {
     if (openedFromTransportsList) {
       sessionStorage.removeItem("transport.load.source");
@@ -169,14 +181,6 @@ const TransportLoad = () => {
   }, [openedFromTransportsList]);
 
   useEffect(() => {
-    const prefill = (sessionStorage.getItem("transport.load.prefill") || "").trim();
-    if (!prefill) return;
-    sessionStorage.removeItem("transport.load.prefill");
-    setHandlingUnit(prefill);
-    setPendingPrefill(prefill);
-  }, []);
-
-  useEffect(() => {
     if (!pendingPrefill) return;
     if (handlingUnit.trim() !== pendingPrefill.trim()) return;
     const timeoutId = window.setTimeout(() => {
@@ -218,6 +222,99 @@ const TransportLoad = () => {
       active = false;
     };
   }, [locale]);
+
+  useEffect(() => {
+    if (!openedFromTransportsList) return;
+    const rawSelected = sessionStorage.getItem("transport.load.selectedItem");
+    if (!rawSelected) return;
+
+    let selected: SelectedTransportPrefill | null = null;
+    try {
+      selected = JSON.parse(rawSelected) as SelectedTransportPrefill;
+    } catch {
+      selected = null;
+    }
+
+    if (!selected) return;
+
+    sessionStorage.removeItem("transport.load.selectedItem");
+    sessionStorage.removeItem("transport.load.prefill");
+
+    const requestCode = ((selected.HandlingUnit || "").trim() || (selected.Item || "").trim());
+    if (!requestCode) return;
+
+    const nextResult = {
+      TransportID: selected.TransportID || "",
+      RunNumber: selected.RunNumber || "",
+      Item: selected.Item || "",
+      HandlingUnit: selected.HandlingUnit || "",
+      Warehouse: selected.Warehouse || "",
+      LocationFrom: selected.LocationFrom || "",
+      LocationTo: selected.LocationTo || "",
+      ETag: selected.ETag || "",
+      OrderedQuantity: typeof selected.OrderedQuantity === "number" ? selected.OrderedQuantity : null,
+    };
+
+    setHandlingUnit(requestCode);
+    setPendingPrefill(null);
+    setResult(nextResult);
+    setLastFetchedHu(requestCode);
+    setEtag(nextResult.ETag || "");
+    setLocationRequired(!(nextResult.HandlingUnit || "").trim());
+    setLocationScan("");
+
+    if ((nextResult.HandlingUnit || "").trim()) {
+      setHuItemLabel("Handling Unit");
+      setVehicleEnabled(true);
+      const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+      if (storedVehicle) setVehicleId(storedVehicle);
+      resolvedLoadRef.current = {
+        requestCode,
+        result: nextResult,
+        etag: nextResult.ETag || "",
+        quantity: "",
+        unit: "",
+        matchType: "HU",
+      };
+      setResolvedRequestCode(requestCode);
+
+      void (async () => {
+        const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
+          body: { handlingUnit: nextResult.HandlingUnit || "", language: locale },
+        });
+        const qtyData = infoRes.data;
+        const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+        const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
+        setHuQuantity(qty);
+        setHuUnit(unit);
+        resolvedLoadRef.current = {
+          requestCode,
+          result: nextResult,
+          etag: nextResult.ETag || "",
+          quantity: qty,
+          unit,
+          matchType: "HU",
+        };
+        setResolvedRequestCode(requestCode);
+      })();
+      return;
+    }
+
+    setHuItemLabel("Item");
+    const qty = typeof nextResult.OrderedQuantity === "number" ? String(nextResult.OrderedQuantity) : "";
+    setHuQuantity(qty);
+    setHuUnit("");
+    setVehicleEnabled(false);
+    resolvedLoadRef.current = {
+      requestCode,
+      result: nextResult,
+      etag: nextResult.ETag || "",
+      quantity: qty,
+      unit: "",
+      matchType: "ITEM",
+    };
+    setResolvedRequestCode(requestCode);
+  }, [openedFromTransportsList, locale]);
 
   const fetchList = async (vid: string) => {
     const { data } = await supabase.functions.invoke("ln-transport-list", {
@@ -648,62 +745,66 @@ const TransportLoad = () => {
     const snapLocale = locale;
     const employeeCode = getStoredGsiUsername();
 
-    // Re-resolve the current scanned code right before loading so a fast previous scan
-    // can never leak old result/quantity data into the movement request.
-    const verifyTid = showLoading(trans.checkingHandlingUnit);
-    const { data: ordData, error: ordErr } = await supabase.functions.invoke("ln-transport-orders", {
-      body: { handlingUnit: currentInput, language: snapLocale },
-    });
-    if (loadRequestIdRef.current !== requestId || handlingUnit.trim() !== currentInput) {
-      dismissToast(verifyTid as unknown as string);
-      setProcessing(false);
-      return;
-    }
-    if (ordErr || !ordData || !ordData.ok || (ordData.count ?? 0) === 0) {
-      dismissToast(verifyTid as unknown as string);
-      showError(trans.huNotFound);
-      setProcessing(false);
-      return;
-    }
+    let refreshedResult = currentResolved.result;
+    let refreshedMatchType: "HU" | "ITEM" = currentResolved.matchType;
+    let refreshedEtag = currentResolved.etag;
+    let refreshedQuantity = currentResolved.quantity;
+    let refreshedUnit = currentResolved.unit;
 
-    const orderItems = Array.isArray(ordData.items) ? ordData.items : [];
-    const resolvedItem = orderItems.find((row: any) =>
-      String(row?.TransportID ?? "") === String(currentResolved.result.TransportID ?? "") &&
-      String(row?.RunNumber ?? "") === String(currentResolved.result.RunNumber ?? "")
-    );
-    const refreshedResult = (resolvedItem || ordData.first || null) as NonNullable<typeof result> | null;
-    if (!refreshedResult) {
-      dismissToast(verifyTid as unknown as string);
-      showError(trans.huNotFound);
-      setProcessing(false);
-      return;
-    }
-
-    const refreshedMatchType: "HU" | "ITEM" = (refreshedResult.HandlingUnit || "").trim() ? "HU" : "ITEM";
-    const refreshedEtag = typeof refreshedResult.ETag === "string" ? refreshedResult.ETag : "";
-    let refreshedQuantity = "";
-    let refreshedUnit = "";
-
-    if (refreshedMatchType === "HU") {
-      const resolvedHu = (refreshedResult.HandlingUnit || "").trim();
-      const { data: huData, error: huErr } = await supabase.functions.invoke("ln-handling-unit-info", {
-        body: { handlingUnit: resolvedHu, language: snapLocale },
+    if (!openedFromTransportsList) {
+      const verifyTid = showLoading(trans.checkingHandlingUnit);
+      const { data: ordData, error: ordErr } = await supabase.functions.invoke("ln-transport-orders", {
+        body: { handlingUnit: currentInput, language: snapLocale },
       });
       if (loadRequestIdRef.current !== requestId || handlingUnit.trim() !== currentInput) {
         dismissToast(verifyTid as unknown as string);
         setProcessing(false);
         return;
       }
-      if (huErr || !huData || !huData.ok) {
+      if (ordErr || !ordData || !ordData.ok || (ordData.count ?? 0) === 0) {
         dismissToast(verifyTid as unknown as string);
         showError(trans.huNotFound);
         setProcessing(false);
         return;
       }
-      refreshedQuantity = String(huData.quantity ?? "");
-      refreshedUnit = String(huData.unit ?? "");
-    } else {
-      refreshedQuantity = typeof refreshedResult.OrderedQuantity === "number" ? String(refreshedResult.OrderedQuantity) : "";
+
+      const orderItems = Array.isArray(ordData.items) ? ordData.items : [];
+      const resolvedItem = orderItems.find((row: any) =>
+        String(row?.TransportID ?? "") === String(currentResolved.result.TransportID ?? "") &&
+        String(row?.RunNumber ?? "") === String(currentResolved.result.RunNumber ?? "")
+      );
+      refreshedResult = (resolvedItem || ordData.first || null) as NonNullable<typeof result> | null;
+      if (!refreshedResult) {
+        dismissToast(verifyTid as unknown as string);
+        showError(trans.huNotFound);
+        setProcessing(false);
+        return;
+      }
+
+      refreshedMatchType = (refreshedResult.HandlingUnit || "").trim() ? "HU" : "ITEM";
+      refreshedEtag = typeof refreshedResult.ETag === "string" ? refreshedResult.ETag : "";
+      refreshedQuantity = "";
+      refreshedUnit = "";
+
+      if (refreshedMatchType === "HU") {
+        const resolvedHu = (refreshedResult.HandlingUnit || "").trim();
+        const { data: huData, error: huErr } = await supabase.functions.invoke("ln-handling-unit-info", {
+          body: { handlingUnit: resolvedHu, language: snapLocale },
+        });
+        if (loadRequestIdRef.current !== requestId || handlingUnit.trim() !== currentInput) {
+          setProcessing(false);
+          return;
+        }
+        if (huErr || !huData || !huData.ok) {
+          showError(trans.huNotFound);
+          setProcessing(false);
+          return;
+        }
+        refreshedQuantity = String(huData.quantity ?? "");
+        refreshedUnit = String(huData.unit ?? "");
+      } else {
+        refreshedQuantity = typeof refreshedResult.OrderedQuantity === "number" ? String(refreshedResult.OrderedQuantity) : "";
+      }
     }
 
     resolvedLoadRef.current = {
@@ -719,7 +820,6 @@ const TransportLoad = () => {
     setEtag(refreshedEtag);
     setHuQuantity(refreshedQuantity);
     setHuUnit(refreshedUnit);
-    dismissToast(verifyTid as unknown as string);
 
     const payload: Record<string, unknown> = {
       fromWarehouse: (refreshedResult.Warehouse || "").trim(),
@@ -912,7 +1012,7 @@ const TransportLoad = () => {
               variant="outline"
               className={canAdjustPermission
                 ? "h-12 w-12 shrink-0 border-orange-300 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:opacity-50"
-                : "h-12 w-12 shrink-0 border-gray-300 bg-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-500 disabled:opacity-100"}
+                : "h-12 w-12 shrink-0 border-gray-300 bg-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-500 disabled:opacity-100" }
               disabled={!canAdjust}
               onClick={() => setConfirmAdjustOpen(true)}
               aria-label={trans.adjustAction}
