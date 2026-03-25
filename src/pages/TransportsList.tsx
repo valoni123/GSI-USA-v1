@@ -65,8 +65,11 @@ const TransportsList = () => {
   const [listLoading, setListLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [moveBackProcessing, setMoveBackProcessing] = useState(false);
+  const [planningLoadingMore, setPlanningLoadingMore] = useState(false);
   const [loadedCount, setLoadedCount] = useState<number>(() => Number(localStorage.getItem("transport.count") || "0"));
   const [items, setItems] = useState<PlanningItem[]>([]);
+  const [planningTotalCount, setPlanningTotalCount] = useState(0);
+  const [planningNextPageUrl, setPlanningNextPageUrl] = useState<string | null>(null);
   const [loadedItems, setLoadedItems] = useState<LoadedListItem[]>([]);
   const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
   const [listOpen, setListOpen] = useState(false);
@@ -78,25 +81,45 @@ const TransportsList = () => {
 
   const selectedVehicleId = (localStorage.getItem("transports.vehicle.id") || localStorage.getItem("vehicle.id") || "").trim();
 
-  const loadPlanningItems = async () => {
+  const loadPlanningItems = async ({ append = false, nextPageUrl = "" }: { append?: boolean; nextPageUrl?: string } = {}) => {
     if (!selectedVehicleId) {
       setItems([]);
+      setPlanningTotalCount(0);
+      setPlanningNextPageUrl(null);
       setError("Missing vehicle");
       return;
     }
 
     const { data } = await supabase.functions.invoke("ln-transports-list", {
-      body: { vehicleId: selectedVehicleId, language: locale },
+      body: { vehicleId: selectedVehicleId, language: locale, nextPageUrl },
     });
 
     if (data && data.ok) {
-      setItems(data.items || []);
+      const nextItems = Array.isArray(data.items) ? (data.items as PlanningItem[]) : [];
+      setItems((current) => (append ? [...current, ...nextItems] : nextItems));
+      if (typeof data.count === "number") {
+        setPlanningTotalCount(Number(data.count));
+      } else if (!append) {
+        setPlanningTotalCount(nextItems.length);
+      }
+      setPlanningNextPageUrl(typeof data.nextPageUrl === "string" && data.nextPageUrl.trim() ? data.nextPageUrl : null);
       setError(null);
       return;
     }
 
-    setItems([]);
+    if (!append) {
+      setItems([]);
+      setPlanningTotalCount(0);
+    }
+    setPlanningNextPageUrl(null);
     setError((data && (data.error?.message || data.error)) || "Failed to load");
+  };
+
+  const loadMorePlanningItems = async () => {
+    if (!planningNextPageUrl || planningLoadingMore) return;
+    setPlanningLoadingMore(true);
+    await loadPlanningItems({ append: true, nextPageUrl: planningNextPageUrl });
+    setPlanningLoadingMore(false);
   };
 
   const fetchLoadedCount = async () => {
@@ -165,8 +188,9 @@ const TransportsList = () => {
 
   const loadPageData = async () => {
     setLoading(true);
-    await Promise.all([loadPlanningItems(), fetchLoadedCount()]);
+    await loadPlanningItems();
     setLoading(false);
+    void fetchLoadedCount();
   };
 
   useEffect(() => {
@@ -206,9 +230,9 @@ const TransportsList = () => {
 
     await Promise.all([
       loadPlanningItems(),
-      fetchLoadedCount(),
       listOpen ? fetchLoadedList() : Promise.resolve(),
     ]);
+    void fetchLoadedCount();
     showSuccess("GET completed");
     setAssigning(false);
   };
@@ -327,7 +351,8 @@ const TransportsList = () => {
       return;
     }
 
-    await Promise.all([loadPlanningItems(), fetchLoadedCount(), fetchLoadedList()]);
+    await Promise.all([loadPlanningItems(), fetchLoadedList()]);
+    void fetchLoadedCount();
     showSuccess("Moved back");
     setMovingBackMap((m) => ({ ...m, [key]: false }));
     setMoveBackProcessing(false);
@@ -373,6 +398,8 @@ const TransportsList = () => {
     navigate("/");
   };
 
+  const visibleCount = planningTotalCount > 0 ? planningTotalCount : items.length;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {(loading || selecting || listLoading || moveBackProcessing || assigning) && <ScreenSpinner message={trans.pleaseWait} />}
@@ -386,9 +413,8 @@ const TransportsList = () => {
               type="button"
               onClick={() => navigate("/menu/transports")}
               className="rounded-md bg-gray-200 px-4 py-1 font-bold text-lg uppercase text-black hover:opacity-80"
-
             >
-              {trans.appTransports} ({items.length})
+              {trans.appTransports} ({visibleCount})
             </button>
           </div>
 
@@ -426,9 +452,9 @@ const TransportsList = () => {
               void onGetClick();
             }}
             disabled={!selectedVehicleId || assigning || !canLoadTransport}
-           >
-             GET
-           </Button>
+          >
+            GET
+          </Button>
 
           <Button
             type="button"
@@ -485,6 +511,20 @@ const TransportsList = () => {
                 </div>
               </div>
             ))}
+
+            {planningNextPageUrl && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-11"
+                onClick={() => {
+                  void loadMorePlanningItems();
+                }}
+                disabled={planningLoadingMore}
+              >
+                {planningLoadingMore ? trans.loadingList : trans.loadMore}
+              </Button>
+            )}
           </div>
         )}
 
@@ -518,19 +558,17 @@ const TransportsList = () => {
                           <div className="truncate">{it.LocationFrom || "-"}</div>
                           <div className="truncate">{it.LocationTo || "-"}</div>
                           <div className="flex justify-end">
-
                             <button
                               type="button"
                               className={`inline-flex items-center justify-center h-7 w-7 rounded-md border ${canLoadTransport ? "border-red-600 text-red-600 hover:bg-red-50" : "border-gray-300 text-gray-400 cursor-not-allowed"} disabled:opacity-100`}
                               onClick={() => {
                                 openMoveBackDialog(it);
                               }}
-                              disabled={!canLoadTransport || moveBackProcessing || Boolean(movingBackMap[`${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`])}
+                              disabled={!canLoadTransport || moveBackProcessing || Boolean(movingBackMap[key])}
                               aria-label="Move back"
                             >
                               <RotateCcw className="h-4 w-4" />
                             </button>
-
                           </div>
                         </div>
                       </div>

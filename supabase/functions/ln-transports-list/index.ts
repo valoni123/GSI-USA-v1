@@ -37,7 +37,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { vehicleId?: string; language?: string } = {};
+    let body: { vehicleId?: string; language?: string; nextPageUrl?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -46,7 +46,8 @@ serve(async (req) => {
 
     const vehicleId = (body.vehicleId || "").trim();
     const language = body.language || "en-US";
-    if (!vehicleId) {
+    const nextPageUrl = (body.nextPageUrl || "").trim();
+    if (!vehicleId && !nextPageUrl) {
       return json({ ok: false, error: "missing_vehicle" }, 200);
     }
 
@@ -108,10 +109,15 @@ serve(async (req) => {
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
-    const escapedVehicle = vehicleId.replace(/'/g, "''");
-    const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq ''`;
-    const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo";
-    const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
+    const requestUrl = (() => {
+      if (nextPageUrl) {
+        return nextPageUrl;
+      }
+      const escapedVehicle = vehicleId.replace(/'/g, "''");
+      const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq ''`;
+      const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo";
+      return `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
+    })();
 
     const headers = {
       accept: "application/json",
@@ -120,34 +126,21 @@ serve(async (req) => {
       Authorization: `Bearer ${accessToken}`,
     } as const;
 
-    let count = 0;
-    const all: any[] = [];
-    let nextUrl = firstUrl;
-
-    for (let i = 0; i < 50 && nextUrl; i++) {
-      const odataRes = await fetch(nextUrl, { method: "GET", headers }).catch(() => null as unknown as Response);
-      if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
-      const odataJson = (await odataRes.json().catch(() => null)) as any;
-      if (!odataRes.ok || !odataJson) {
-        const top = odataJson?.error?.message || "odata_error";
-        const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
-        return json({ ok: false, error: { message: top, details } }, 200);
-      }
-
-      if (i === 0) {
-        count = odataJson["@odata.count"] ?? 0;
-      }
-
-      const pageItems = Array.isArray(odataJson.value) ? odataJson.value : [];
-      all.push(...pageItems);
-
-      const maybeNext = (odataJson["@odata.nextLink"] || odataJson["odata.nextLink"] || "") as string;
-      nextUrl = maybeNext ? toAbsoluteUrl(base, maybeNext) : "";
-
-      if (count && all.length >= count) break;
+    const odataRes = await fetch(requestUrl, { method: "GET", headers }).catch(() => null as unknown as Response);
+    if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
+    const odataJson = (await odataRes.json().catch(() => null)) as any;
+    if (!odataRes.ok || !odataJson) {
+      const top = odataJson?.error?.message || "odata_error";
+      const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
+      return json({ ok: false, error: { message: top, details } }, 200);
     }
 
-    const items = all.map((v: any) => ({
+    const count = typeof odataJson["@odata.count"] === "number" ? odataJson["@odata.count"] : null;
+    const maybeNext = (odataJson["@odata.nextLink"] || odataJson["odata.nextLink"] || "") as string;
+    const resolvedNextPageUrl = maybeNext ? toAbsoluteUrl(base, maybeNext) : null;
+    const pageItems = Array.isArray(odataJson.value) ? odataJson.value : [];
+
+    const items = pageItems.map((v: any) => ({
       TransportID: v?.TransportID ?? "",
       TransportType: v?.TransportType ?? "",
       Item: v?.Item ?? "",
@@ -156,7 +149,7 @@ serve(async (req) => {
       LocationTo: v?.LocationTo ?? "",
     }));
 
-    return json({ ok: true, count, items }, 200);
+    return json({ ok: true, count, items, nextPageUrl: resolvedNextPageUrl }, 200);
   } catch {
     return json({ ok: false, error: "unhandled" }, 200);
   }
