@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Package, Settings, Forklift } from "lucide-react";
+import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Settings, Forklift } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -40,9 +40,6 @@ function Menu() {
       : []),
     ...(canAccessInfoStockMenu(permissions)
       ? [{ key: "infoStock", label: trans.appInfoStock, icon: <Warehouse className="h-10 w-10 text-red-700" /> }]
-      : []),
-    ...(canAccessTransportMenus(permissions)
-      ? [{ key: "transport", label: trans.appTransport, icon: <Package className="h-10 w-10 text-red-700" /> }]
       : []),
     ...(canAccessTransportMenus(permissions)
       ? [{ key: "transports", label: trans.appTransports, icon: <Forklift className="h-10 w-10 text-red-700" /> }]
@@ -101,11 +98,6 @@ function Menu() {
               }
               if (app.key === "infoStock") {
                 navigate("/menu/info-stock");
-              }
-              if (app.key === "transport") {
-                sessionStorage.setItem("transport.fromMain", "1");
-                sessionStorage.removeItem("transport.selected");
-                navigate("/menu/transport");
               }
               if (app.key === "transports") {
                 navigate("/menu/transports");
