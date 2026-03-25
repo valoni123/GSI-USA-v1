@@ -22,15 +22,11 @@ const cleanValue = (value: string) => {
 
 type PlanningItem = {
   TransportID: string;
-  RunNumber: string;
   TransportType: string;
   Item: string;
   HandlingUnit: string;
-  Warehouse: string;
   LocationFrom: string;
   LocationTo: string;
-  ETag: string;
-  OrderedQuantity?: number | string | null;
 };
 
 type LoadedListItem = {
@@ -246,27 +242,13 @@ const TransportsList = () => {
     });
   };
 
-  const onSelectTransport = (item: PlanningItem) => {
+  const onSelectTransport = (item: { HandlingUnit: string; Item: string }) => {
     if (!canLoadTransport) return;
     const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
     if (!prefillValue) return;
 
     localStorage.setItem("vehicle.id", selectedVehicleId);
     sessionStorage.setItem("transport.load.prefill", prefillValue);
-    sessionStorage.setItem(
-      "transport.load.selectedItem",
-      JSON.stringify({
-        TransportID: item.TransportID,
-        RunNumber: item.RunNumber,
-        Item: item.Item,
-        HandlingUnit: item.HandlingUnit,
-        Warehouse: item.Warehouse,
-        LocationFrom: item.LocationFrom,
-        LocationTo: item.LocationTo,
-        ETag: item.ETag,
-        OrderedQuantity: item.OrderedQuantity ?? null,
-      }),
-    );
     sessionStorage.setItem("transport.load.source", "transports-list");
     sessionStorage.setItem("transport.selected", "1");
     sessionStorage.removeItem("transport.fromMain");
