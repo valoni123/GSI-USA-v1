@@ -125,7 +125,7 @@ const Index = () => {
     })();
 
     if (transportscreen && permissions.admin) {
-      navigate("/transport/select");
+      navigate("/menu/transports");
     } else {
       navigate("/menu");
     }
