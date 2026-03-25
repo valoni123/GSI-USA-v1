@@ -56,15 +56,6 @@ const TransportGroup = () => {
     const pg = (group || "").toString();
     const showAll = pg.toUpperCase() === "ALL";
     const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
-    if (!vehicleId) {
-      if (!silent) setError("Missing vehicle");
-      setItems([]);
-      if (!silent) {
-        setLoading(false);
-        setSwitching(false);
-      }
-      return;
-    }
     const { data } = await supabase.functions.invoke("ln-transport-planning-list", {
       body: { planningGroup: showAll ? "" : pg, vehicleId, showAll, language: locale },
     });
@@ -160,8 +151,11 @@ const TransportGroup = () => {
   };
   const onConfirmSwitch = async () => {
     const selectedVehicle = vehicleInput.trim();
-    if (!selectedVehicle) return;
-    localStorage.setItem("vehicle.id", selectedVehicle);
+    if (selectedVehicle) {
+      localStorage.setItem("vehicle.id", selectedVehicle);
+    } else {
+      localStorage.removeItem("vehicle.id");
+    }
 
     const targetGroup = showAllSwitch ? "ALL" : groupInput.trim();
     if (!targetGroup) return;
@@ -735,7 +729,7 @@ const TransportGroup = () => {
           <DialogFooter>
             <Button
               className="w-full bg-red-600 hover:bg-red-700 text-white"
-              disabled={!vehicleInput.trim() || (!showAllSwitch && !groupInput.trim())}
+              disabled={!showAllSwitch && !groupInput.trim()}
               onClick={onConfirmSwitch}
             >
               OK
