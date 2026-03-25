@@ -72,6 +72,8 @@ const Index = () => {
       localStorage.setItem("gsi.username", loginUsername);
       localStorage.setItem("gsi.employee", loginUsername);
       localStorage.setItem("gsi.login", loginUsername);
+      localStorage.removeItem("vehicle.id");
+      localStorage.removeItem("transports.vehicle.id");
       setStoredGsiPermissions(permissions);
     } catch {}
 
@@ -112,7 +114,11 @@ const Index = () => {
           body: { gsi_id: gsiId, username: loginUsername },
         });
         const vehicleId = typeof vehicleData?.vehicleId === "string" ? vehicleData.vehicleId.trim() : "";
-        if (!vehicleData?.ok || !vehicleId) return;
+        if (!vehicleData?.ok || !vehicleId) {
+          localStorage.removeItem("vehicle.id");
+          localStorage.removeItem("transports.vehicle.id");
+          return;
+        }
         localStorage.setItem("vehicle.id", vehicleId);
         localStorage.setItem("transports.vehicle.id", vehicleId);
       } catch {}
