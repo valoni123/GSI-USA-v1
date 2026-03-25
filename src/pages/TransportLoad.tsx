@@ -76,6 +76,7 @@ const TransportLoad = () => {
   const [huUnit, setHuUnit] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
   const [huItemLabel, setHuItemLabel] = useState<string>("Handling Unit / Item");
+  const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [etag, setEtag] = useState<string>("");
   const [selectOpen, setSelectOpen] = useState<boolean>(false);
@@ -120,7 +121,6 @@ const TransportLoad = () => {
   }, [lang]);
   const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
   const openedFromTransportsList = sessionStorage.getItem("transport.load.source") === "transports-list";
-  const selectedTransportId = openedFromTransportsList ? (sessionStorage.getItem("transport.load.transportId") || "").trim() : "";
 
   const resolveLoadCode = async (requestCode: string): Promise<ResolvedLoadData | null> => {
     const trimmedCode = requestCode.trim();
@@ -184,7 +184,6 @@ const TransportLoad = () => {
   const goBackFromLoad = () => {
     if (openedFromTransportsList) {
       sessionStorage.removeItem("transport.load.source");
-      sessionStorage.removeItem("transport.load.transportId");
       navigate("/menu/transports/list");
       return;
     }
@@ -519,6 +518,28 @@ const TransportLoad = () => {
     setHuUnit(resolved.unit);
 
     if (resolved.matchType === "HU") {
+      const chosenHU = (nextResult.HandlingUnit || "").trim();
+      const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+      if (selectedVehicle) {
+        const preTid = showLoading(trans.checkingHandlingUnit);
+        const { data: loadedData } = await supabase.functions.invoke("ln-transport-loaded-check", {
+          body: { handlingUnit: chosenHU, vehicleId: selectedVehicle, language: locale },
+        });
+        dismissToast(preTid as unknown as string);
+        if (!isLatestRequest()) {
+          setDetailsLoading(false);
+          return;
+        }
+        if (loadedData && loadedData.ok && Number(loadedData.count || 0) > 0) {
+          setLoadedErrorOpen(true);
+          resetResolvedState();
+          setHandlingUnit("");
+          setDetailsLoading(false);
+          setTimeout(() => huRef.current?.focus(), 50);
+          return;
+        }
+      }
+
       setVehicleEnabled(true);
       const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
       if (storedVehicle) setVehicleId(storedVehicle);
@@ -566,10 +587,9 @@ const TransportLoad = () => {
     return () => window.clearTimeout(timeoutId);
   }, [blockingBusy]);
 
-  const expectedConfirmValue =
-    openedFromTransportsList
-      ? ((result?.HandlingUnit || "").trim() || (result?.Item || "").trim() || handlingUnit.trim())
-      : "";
+  const expectedConfirmValue = openedFromTransportsList
+    ? ((result?.HandlingUnit || "").trim() || (result?.Item || "").trim() || handlingUnit.trim())
+    : "";
   const confirmLabel = (result?.HandlingUnit || "").trim() ? "Handling Unit" : trans.itemLabel;
 
   const scanMatchesTopValue =
@@ -721,7 +741,6 @@ const TransportLoad = () => {
 
     if (openedFromTransportsList) {
       sessionStorage.removeItem("transport.load.source");
-      sessionStorage.removeItem("transport.load.transportId");
       navigate("/menu/transports/list");
       return;
     }
@@ -945,12 +964,6 @@ const TransportLoad = () => {
             ) : result ? (
               <div className="text-sm">
                 <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-1 items-start">
-                  {selectedTransportId ? (
-                    <>
-                      <div className="font-semibold text-gray-700">{trans.transportIdLabel}:</div>
-                      <div className="break-all text-gray-900">{selectedTransportId}</div>
-                    </>
-                  ) : null}
                   <div className="font-semibold text-gray-700">{trans.itemLabel}:</div>
                   <div className="break-all text-gray-900">{result.Item ?? "-"}</div>
 
@@ -1006,6 +1019,26 @@ const TransportLoad = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={onErrorConfirm}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Error dialog: HU already loaded */}
+      <AlertDialog open={loadedErrorOpen} onOpenChange={setLoadedErrorOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{trans.huAlreadyLoaded}</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => {
+                setLoadedErrorOpen(false);
+                // Everything is already cleared in the blur handler; ensure focus on HU
+                setTimeout(() => huRef.current?.focus(), 50);
+              }}
+            >
+              OK
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

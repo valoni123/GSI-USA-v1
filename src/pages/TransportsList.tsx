@@ -242,7 +242,7 @@ const TransportsList = () => {
     });
   };
 
-  const onSelectTransport = (item: { TransportID: string; HandlingUnit: string; Item: string }) => {
+  const onSelectTransport = (item: { HandlingUnit: string; Item: string }) => {
     if (!canLoadTransport) return;
     const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
     if (!prefillValue) return;
@@ -250,7 +250,6 @@ const TransportsList = () => {
     localStorage.setItem("vehicle.id", selectedVehicleId);
     sessionStorage.setItem("transport.load.prefill", prefillValue);
     sessionStorage.setItem("transport.load.source", "transports-list");
-    sessionStorage.setItem("transport.load.transportId", (item.TransportID || "").trim());
     sessionStorage.setItem("transport.selected", "1");
     sessionStorage.removeItem("transport.fromMain");
     setSelecting(true);
