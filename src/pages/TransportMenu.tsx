@@ -25,6 +25,8 @@ import { getStoredGsiUsername } from "@/lib/gsi-user";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
+const MOVE_BACK_TIMEOUT_MS = 10_000;
+
 const TransportMenu = () => {
   const navigate = useNavigate();
 
@@ -282,6 +284,18 @@ const TransportMenu = () => {
     setMovingBackMap((m) => ({ ...m, [key]: false }));
     setMoveBackProcessing(false);
   };
+
+  useEffect(() => {
+    if (!moveBackProcessing) return;
+
+    const timeoutId = window.setTimeout(() => {
+      moveBackRequestIdRef.current += 1;
+      setMovingBackMap({});
+      setMoveBackProcessing(false);
+    }, MOVE_BACK_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [moveBackProcessing]);
 
   // Ensure we read cached count immediately on mount and set up focus/visibility refresh
   useEffect(() => {

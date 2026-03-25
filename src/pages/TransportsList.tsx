@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 import { getStoredGsiUsername } from "@/lib/gsi-user";
 
+const MOVE_BACK_TIMEOUT_MS = 10_000;
+
 const cleanValue = (value: string) => {
   const trimmed = (value || "").trim();
   return trimmed || "-";
@@ -42,6 +44,7 @@ type LoadedListItem = {
 const TransportsList = () => {
   const navigate = useNavigate();
   const moveBackLocationRef = useRef<HTMLInputElement | null>(null);
+  const moveBackRequestIdRef = useRef(0);
   const lang: LanguageKey = ((localStorage.getItem("app.lang") as LanguageKey) || "en");
   const trans = useMemo(() => t(lang), [lang]);
   const locale = useMemo(() => {
@@ -259,6 +262,7 @@ const TransportsList = () => {
     if (!canLoadTransport) return;
     const key = moveBackKey(it);
     if (movingBackMap[key] || moveBackProcessing) return;
+    const requestId = ++moveBackRequestIdRef.current;
 
     const currentItem = {
       HandlingUnit: (it.HandlingUnit || "").trim(),
@@ -318,6 +322,13 @@ const TransportsList = () => {
       body: movePayload,
     });
 
+    if (moveBackRequestIdRef.current !== requestId) {
+      dismissToast(tid as unknown as string);
+      setMovingBackMap((m) => ({ ...m, [key]: false }));
+      setMoveBackProcessing(false);
+      return;
+    }
+
     if (moveErr || !moveData || !moveData.ok) {
       dismissToast(tid as unknown as string);
       const err = (moveData && moveData.error) || moveErr;
@@ -341,6 +352,12 @@ const TransportsList = () => {
       },
     });
     dismissToast(tid as unknown as string);
+
+    if (moveBackRequestIdRef.current !== requestId) {
+      setMovingBackMap((m) => ({ ...m, [key]: false }));
+      setMoveBackProcessing(false);
+      return;
+    }
 
     if (patchErr || !patchData || !patchData.ok) {
       const err = (patchData && patchData.error) || patchErr;
@@ -382,6 +399,18 @@ const TransportsList = () => {
     closeMoveBackDialog();
     await onMoveBack(it, targetLocation);
   };
+
+  useEffect(() => {
+    if (!moveBackProcessing) return;
+
+    const timeoutId = window.setTimeout(() => {
+      moveBackRequestIdRef.current += 1;
+      setMovingBackMap({});
+      setMoveBackProcessing(false);
+    }, MOVE_BACK_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [moveBackProcessing]);
 
   const onConfirmSignOut = () => {
     try {
