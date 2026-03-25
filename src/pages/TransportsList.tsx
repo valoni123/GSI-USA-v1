@@ -228,13 +228,15 @@ const TransportsList = () => {
       return;
     }
 
-    await Promise.all([
+    setAssigning(false);
+    showSuccess("GET completed");
+
+    void Promise.all([
       loadPlanningItems(),
       listOpen ? fetchLoadedList() : Promise.resolve(),
-    ]);
-    void fetchLoadedCount();
-    showSuccess("GET completed");
-    setAssigning(false);
+    ]).finally(() => {
+      void fetchLoadedCount();
+    });
   };
 
   const onSelectTransport = (item: { HandlingUnit: string; Item: string }) => {
