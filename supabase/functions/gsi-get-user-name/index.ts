@@ -26,8 +26,8 @@ serve(async (req) => {
     });
   }
 
-  const uname = (payload.username || "").trim();
-  if (!uname) {
+  const loginValue = (payload.username || "").trim();
+  if (!loginValue) {
     return new Response(JSON.stringify({ ok: false, error: "missing_username" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -44,21 +44,43 @@ serve(async (req) => {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
-  const { data, error } = await supabase
+
+  const usernameResult = await supabase
     .from("gsi_users")
     .select("full_name")
-    .eq("username", uname)
+    .ilike("username", loginValue)
     .limit(1)
     .maybeSingle();
 
-  if (error) {
+  if (usernameResult.error) {
     return new Response(JSON.stringify({ ok: false, error: "query_error" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  return new Response(JSON.stringify({ ok: true, full_name: data?.full_name || null }), {
+  if (usernameResult.data?.full_name) {
+    return new Response(JSON.stringify({ ok: true, full_name: usernameResult.data.full_name }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const mailResult = await supabase
+    .from("gsi_users")
+    .select("full_name")
+    .ilike("mail", loginValue)
+    .limit(1)
+    .maybeSingle();
+
+  if (mailResult.error) {
+    return new Response(JSON.stringify({ ok: false, error: "query_error" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  return new Response(JSON.stringify({ ok: true, full_name: mailResult.data?.full_name || null }), {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
