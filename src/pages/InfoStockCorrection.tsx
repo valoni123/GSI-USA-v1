@@ -624,9 +624,7 @@ const InfoStockCorrection = () => {
     setTransferring(true);
 
     try {
-      const originalQty = Number(quantity);
-      const targetQty = Number(submitQuantity);
-      const deviation = targetQty - originalQty;
+      const deviation = Number(submitQuantity);
       const reasonCode = (reason || "").trim();
 
       const loginCode = getStoredGsiUsername();
