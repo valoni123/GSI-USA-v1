@@ -229,7 +229,8 @@ const InfoStockCorrection = () => {
   const handleSubmitQuantityBlur = () => {
     const s = sanitizeQuantity(submitQuantity || "");
     const num = s === "" ? NaN : Number(s);
-    if (!isFinite(num) || num <= 0) {
+    const allowZero = lastMatchType === "HU";
+    if (!isFinite(num) || num < 0 || (!allowZero && num === 0)) {
       setSubmitQuantity("");
       return;
     }
@@ -410,7 +411,7 @@ const InfoStockCorrection = () => {
 
     const originalQty = Number(quantity);
     const nextQty = Number(submitQuantity);
-    const qtyOk = isFinite(nextQty) && nextQty > 0;
+    const qtyOk = isFinite(nextQty) && (lastMatchType === "HU" ? nextQty >= 0 : nextQty > 0);
     const qtyChanged = isFinite(originalQty) && isFinite(nextQty) && nextQty !== originalQty;
 
     const reasonOk = (reason || "").trim().length > 0;
@@ -623,7 +624,9 @@ const InfoStockCorrection = () => {
     setTransferring(true);
 
     try {
-      const deviation = Number(submitQuantity);
+      const originalQty = Number(quantity);
+      const targetQty = Number(submitQuantity);
+      const deviation = targetQty - originalQty;
       const reasonCode = (reason || "").trim();
 
       const loginCode = getStoredGsiUsername();
