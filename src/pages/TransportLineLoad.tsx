@@ -193,7 +193,7 @@ const TransportLineLoad = () => {
 
           <FloatingLabelInput
             id="transportLineLoadLocationFromScan"
-            label="Location From"
+            label={handlingUnit.trim() ? "Handling Unit" : "Location From"}
             value={locationFromScan}
             onChange={(e) => setLocationFromScan(e.target.value)}
             autoFocus
