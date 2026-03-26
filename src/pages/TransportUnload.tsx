@@ -34,6 +34,7 @@ type LoadedItem = {
 
 const TransportUnload = () => {
   const navigate = useNavigate();
+  const loadingSpinnerTimeoutRef = useRef<number | null>(null);
 
   const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
@@ -97,6 +98,13 @@ const TransportUnload = () => {
     }
     // Show overlay while loading
     setLoading(true);
+    if (loadingSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(loadingSpinnerTimeoutRef.current);
+    }
+    loadingSpinnerTimeoutRef.current = window.setTimeout(() => {
+      setLoading(false);
+      loadingSpinnerTimeoutRef.current = null;
+    }, 7000);
     const tid = showLoading(trans.loadingEntries);
     const { data } = await supabase.functions.invoke("ln-transport-list", {
       body: { vehicleId, language: locale, company: "1100" },
@@ -121,6 +129,10 @@ const TransportUnload = () => {
       // Clear quantities/units
       setQuantities({});
       setUnits({});
+    }
+    if (loadingSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(loadingSpinnerTimeoutRef.current);
+      loadingSpinnerTimeoutRef.current = null;
     }
     setLoading(false);
   };
@@ -180,6 +192,14 @@ const TransportUnload = () => {
     const cached = Number(localStorage.getItem("transport.count") || "0");
     setLoadedCount(cached);
   }, [locale]);
+
+  useEffect(() => {
+    return () => {
+      if (loadingSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(loadingSpinnerTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // REMOVED: auto-refresh quantities when items change; we now await fetchQuantities inside fetchLoaded
   // useEffect(() => {
