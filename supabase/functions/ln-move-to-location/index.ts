@@ -30,6 +30,7 @@ serve(async (req) => {
     }
 
     let body: {
+      transferId?: string;
       handlingUnit?: string;
       item?: string;
       quantity?: number | string;
@@ -37,6 +38,8 @@ serve(async (req) => {
       fromLocation?: string;
       toWarehouse?: string;
       toLocation?: string;
+      scan1?: string;
+      loginCode?: string;
       employee?: string;
       language?: string;
     } = {};
@@ -47,6 +50,7 @@ serve(async (req) => {
     }
 
     const handlingUnit = (body.handlingUnit || "").trim();
+    const transferId = (body.transferId || "").trim();
     const itemRaw = typeof body.item === "string" ? body.item : "";
     const itemTrim = itemRaw.trim();
     const quantityNum =
@@ -57,7 +61,9 @@ serve(async (req) => {
     const fromLocation = (body.fromLocation || "").trim();
     const toWarehouse = (body.toWarehouse || "").trim();
     const toLocation = (body.toLocation || "").trim();
+    const scan1 = (body.scan1 || "").trim();
     const employee = (body.employee || "").trim();
+    const loginCode = (body.loginCode || employee).trim();
     const language = body.language || "de-DE";
 
     // Validate: either a HU move (handlingUnit) or an item move (item + quantity),
@@ -150,24 +156,25 @@ serve(async (req) => {
     // Build LN OData URL
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/GSITransfers`;
-    const url = `${base}${path}?$select=*`;
+    const url = `${base}${path}?$select=TransferID`;
 
     // Request body for movement (send either HandlingUnit OR Item+Quantity)
     const movementBody: Record<string, unknown> = {
+      TransferID: transferId,
       FromWarehouse: fromWarehouse,
       FromLocation: fromLocation,
       ToWarehouse: toWarehouse,
       ToLocation: toLocation,
-      LoginCode: "",
+      LoginCode: loginCode,
       Employee: employee,
       FromWebserver: "Yes",
-      Automatisch: "No",
     };
+    if (scan1) {
+      movementBody.Scan1 = scan1;
+    }
     if (handlingUnit) {
-      // Handling Unit move
       movementBody.HandlingUnit = handlingUnit;
     } else if (itemTrim) {
-      // Item move (do not send HandlingUnit; send Item exactly as given by caller, including leading spaces)
       movementBody.Item = itemRaw;
       if (typeof quantityNum === "number" && !Number.isNaN(quantityNum)) {
         movementBody.Quantity = quantityNum;

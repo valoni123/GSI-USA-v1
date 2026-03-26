@@ -8,12 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
-import { showError, showSuccess } from "@/utils/toast";
+import { showError, showLoading, showSuccess, dismissToast } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 
 type TransportLineLoadState = {
   prefillValue?: string;
   vehicleId?: string;
   transportId?: string;
+  runNumber?: string;
+  etag?: string;
   item?: string;
   handlingUnit?: string;
   locationFrom?: string;
@@ -45,6 +49,12 @@ const TransportLineLoad = () => {
     return saved || "en";
   });
   const trans = useMemo(() => t(lang), [lang]);
+  const locale = useMemo(() => {
+    if (lang === "de") return "de-DE";
+    if (lang === "es-MX") return "es-MX";
+    if (lang === "pt-BR") return "pt-BR";
+    return "en-US";
+  }, [lang]);
   const permissions = useMemo(() => getStoredGsiPermissions(), []);
   const canAdjust = hasPermission(permissions, "corr");
 
@@ -60,6 +70,9 @@ const TransportLineLoad = () => {
   const [warehouse, setWarehouse] = useState("");
   const [orderedQuantity, setOrderedQuantity] = useState<number | string | null>(null);
   const [orderUnit, setOrderUnit] = useState("");
+  const [runNumber, setRunNumber] = useState("");
+  const [etag, setEtag] = useState("");
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
@@ -91,6 +104,8 @@ const TransportLineLoad = () => {
     setWarehouse((routeState?.warehouse || storedState?.warehouse || "").trim());
     setOrderedQuantity(routeState?.orderedQuantity ?? storedState?.orderedQuantity ?? null);
     setOrderUnit((routeState?.orderUnit || storedState?.orderUnit || "").trim());
+    setRunNumber((routeState?.runNumber || storedState?.runNumber || "").trim());
+    setEtag((routeState?.etag || storedState?.etag || "").trim());
 
     sessionStorage.removeItem("transport.line.load.prefill");
     sessionStorage.removeItem("transport.line.load.vehicle");
@@ -113,6 +128,8 @@ const TransportLineLoad = () => {
             prefillValue: value,
             vehicleId,
             transportId,
+            runNumber,
+            etag,
             item,
             handlingUnit,
             locationFrom,
@@ -133,9 +150,101 @@ const TransportLineLoad = () => {
     showError(mismatchMessage);
   };
 
-  const handleLoadClick = () => {
-    if (scanMatches) return;
-    showError(mismatchMessage);
+  const handleLoadClick = async () => {
+    if (!scanMatches || processing) {
+      if (!scanMatches) {
+        showError(mismatchMessage);
+      }
+      return;
+    }
+
+    const employeeCode = getStoredGsiUsername();
+    const selectedVehicleId = vehicleId.trim();
+    const sourceWarehouse = warehouse.trim();
+    const sourceLocation = locationFrom.trim();
+    const currentTransportId = transportId.trim();
+    const currentHandlingUnit = handlingUnit.trim();
+    const currentItem = item.trim();
+
+    if (!employeeCode || !selectedVehicleId || !sourceWarehouse || !sourceLocation || !currentTransportId || !etag.trim()) {
+      showError("Missing transport data.");
+      return;
+    }
+
+    const movePayload: Record<string, unknown> = {
+      transferId: "",
+      fromWarehouse: sourceWarehouse,
+      fromLocation: sourceLocation,
+      toWarehouse: sourceWarehouse,
+      toLocation: selectedVehicleId,
+      scan1: currentTransportId,
+      loginCode: employeeCode,
+      employee: employeeCode,
+      language: locale,
+    };
+
+    if (currentHandlingUnit) {
+      movePayload.handlingUnit = currentHandlingUnit;
+    } else {
+      const quantityNumber =
+        typeof orderedQuantity === "number"
+          ? orderedQuantity
+          : Number(String(orderedQuantity ?? "").trim() || "0");
+
+      if (!currentItem || Number.isNaN(quantityNumber) || quantityNumber <= 0) {
+        showError("Missing item quantity.");
+        return;
+      }
+
+      movePayload.item = `${" ".repeat(9)}${currentItem}`;
+      movePayload.quantity = quantityNumber;
+    }
+
+    setProcessing(true);
+
+    const tid = showLoading(trans.executingMovement);
+    const { data, error } = await supabase.functions.invoke("ln-move-to-location", {
+      body: movePayload,
+    });
+    dismissToast(tid as unknown as string);
+
+    if (error || !data || !data.ok) {
+      const err = (data && data.error) || error;
+      const top = err?.message || "Unbekannter Fehler";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      setProcessing(false);
+      return;
+    }
+
+    showSuccess(trans.loadedSuccessfully);
+
+    const patchTid = showLoading(trans.updatingTransportOrder);
+    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
+      body: {
+        transportId: currentTransportId,
+        runNumber,
+        etag: etag.trim(),
+        vehicleId: selectedVehicleId,
+        language: locale,
+        company: "1100",
+      },
+    });
+    dismissToast(patchTid as unknown as string);
+
+    if (patchErr || !patchData || !patchData.ok) {
+      const err = (patchData && patchData.error) || patchErr;
+      const top = err?.message || "Unbekannter Fehler";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      setProcessing(false);
+      return;
+    }
+
+    setProcessing(false);
+    navigate("/menu/transports/list");
   };
 
   const onConfirmSignOut = () => {
@@ -263,7 +372,7 @@ const TransportLineLoad = () => {
           <Button
             type="button"
             className="w-full bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
-            disabled={!scanMatches}
+            disabled={!scanMatches || processing}
             onClick={handleLoadClick}
           >
             LOAD

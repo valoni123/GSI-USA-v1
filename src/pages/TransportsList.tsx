@@ -275,6 +275,8 @@ const TransportsList = () => {
       prefillValue,
       vehicleId: selectedVehicleId,
       transportId: (item.TransportID || "").trim(),
+      runNumber: (item.RunNumber || "").trim(),
+      etag: (item.ETag || "").trim(),
       item: (item.Item || "").trim(),
       handlingUnit: (item.HandlingUnit || "").trim(),
       locationFrom: (item.LocationFrom || "").trim(),
