@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, User } from "lucide-react";
+import { Eraser, LogOut, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { type LanguageKey, t } from "@/lib/i18n";
+import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 import { showSuccess } from "@/utils/toast";
 
 type TransportLineLoadState = {
@@ -24,6 +25,8 @@ const TransportLineLoad = () => {
     return saved || "en";
   });
   const trans = useMemo(() => t(lang), [lang]);
+  const permissions = useMemo(() => getStoredGsiPermissions(), []);
+  const canAdjust = hasPermission(permissions, "corr");
 
   const [fullName, setFullName] = useState("");
   const [signOutOpen, setSignOutOpen] = useState(false);
@@ -52,6 +55,25 @@ const TransportLineLoad = () => {
     sessionStorage.removeItem("transport.line.load.prefill");
     sessionStorage.removeItem("transport.line.load.vehicle");
   }, [routeState]);
+
+  const handleAdjust = () => {
+    if (!canAdjust) return;
+    const value = transportValue.trim();
+    if (!value) return;
+
+    navigate("/menu/info-stock/correction", {
+      state: {
+        initialHandlingUnit: value,
+        returnTo: {
+          path: "/menu/transports/load",
+          state: {
+            prefillValue: value,
+            vehicleId,
+          },
+        },
+      },
+    });
+  };
 
   const onConfirmSignOut = () => {
     try {
@@ -104,12 +126,29 @@ const TransportLineLoad = () => {
 
       <div className="mx-auto max-w-md px-4 py-6">
         <Card className="rounded-md border-2 border-gray-200 bg-white p-4 space-y-4">
-          <FloatingLabelInput
-            id="transportLineLoadValue"
-            label="Handling Unit / Item"
-            value={transportValue}
-            onChange={(e) => setTransportValue(e.target.value)}
-          />
+          <div className="flex items-start gap-3">
+            <div className="flex-1">
+              <FloatingLabelInput
+                id="transportLineLoadValue"
+                label="Handling Unit / Item"
+                value={transportValue}
+                onChange={(e) => setTransportValue(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className={canAdjust
+                ? "mt-1 h-12 w-12 shrink-0 border-orange-300 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:opacity-50"
+                : "mt-1 h-12 w-12 shrink-0 border-gray-300 bg-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-500 disabled:opacity-100"}
+              disabled={!canAdjust || !transportValue.trim()}
+              onClick={handleAdjust}
+              aria-label={trans.adjustAction}
+              title={trans.adjustAction}
+            >
+              <Eraser className="h-5 w-5" />
+            </Button>
+          </div>
 
           <FloatingLabelInput
             id="transportLineLoadVehicle"
