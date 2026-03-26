@@ -13,6 +13,15 @@ import { showSuccess } from "@/utils/toast";
 type TransportLineLoadState = {
   prefillValue?: string;
   vehicleId?: string;
+  transportId?: string;
+  item?: string;
+  handlingUnit?: string;
+  locationFrom?: string;
+};
+
+const displayValue = (value: string) => {
+  const trimmed = (value || "").trim();
+  return trimmed || "-";
 };
 
 const TransportLineLoad = () => {
@@ -32,6 +41,11 @@ const TransportLineLoad = () => {
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [transportValue, setTransportValue] = useState("");
   const [vehicleId, setVehicleId] = useState("");
+  const [locationFrom, setLocationFrom] = useState("");
+  const [locationFromScan, setLocationFromScan] = useState("");
+  const [transportId, setTransportId] = useState("");
+  const [item, setItem] = useState("");
+  const [handlingUnit, setHandlingUnit] = useState("");
 
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
@@ -39,18 +53,27 @@ const TransportLineLoad = () => {
   }, []);
 
   useEffect(() => {
+    const storedStateRaw = sessionStorage.getItem("transport.line.load.state");
+    const storedState = storedStateRaw ? (JSON.parse(storedStateRaw) as TransportLineLoadState) : null;
     const storedPrefill = (sessionStorage.getItem("transport.line.load.prefill") || "").trim();
-    const storedVehicle = (
+    const storedVehicle = (sessionStorage.getItem("transport.line.load.vehicle") || "").trim();
+
+    const nextPrefill = (routeState?.prefillValue || storedState?.prefillValue || storedPrefill).trim();
+    const nextVehicleId = (
       routeState?.vehicleId ||
+      storedState?.vehicleId ||
       localStorage.getItem("transports.vehicle.id") ||
       localStorage.getItem("vehicle.id") ||
-      sessionStorage.getItem("transport.line.load.vehicle") ||
+      storedVehicle ||
       ""
     ).trim();
-    const nextPrefill = (routeState?.prefillValue || storedPrefill).trim();
 
     setTransportValue(nextPrefill);
-    setVehicleId(storedVehicle);
+    setVehicleId(nextVehicleId);
+    setLocationFrom((routeState?.locationFrom || storedState?.locationFrom || "").trim());
+    setTransportId((routeState?.transportId || storedState?.transportId || "").trim());
+    setItem((routeState?.item || storedState?.item || "").trim());
+    setHandlingUnit((routeState?.handlingUnit || storedState?.handlingUnit || "").trim());
 
     sessionStorage.removeItem("transport.line.load.prefill");
     sessionStorage.removeItem("transport.line.load.vehicle");
@@ -69,6 +92,10 @@ const TransportLineLoad = () => {
           state: {
             prefillValue: value,
             vehicleId,
+            transportId,
+            item,
+            handlingUnit,
+            locationFrom,
           },
         },
       },
@@ -156,6 +183,35 @@ const TransportLineLoad = () => {
             value={vehicleId}
             onChange={(e) => setVehicleId(e.target.value)}
           />
+
+          <FloatingLabelInput
+            id="transportLineLoadLocationFromValue"
+            label="Location From"
+            value={locationFrom}
+            readOnly
+          />
+
+          <FloatingLabelInput
+            id="transportLineLoadLocationFromScan"
+            label="Location From"
+            value={locationFromScan}
+            onChange={(e) => setLocationFromScan(e.target.value)}
+            autoFocus
+            className="border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500"
+          />
+
+          <div className="space-y-2 rounded-md border border-gray-200 px-3 py-3 text-sm">
+            <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-x-3 gap-y-2">
+              <span className="font-semibold text-gray-700">Transport-ID:</span>
+              <span className="break-all text-gray-900">{displayValue(transportId)}</span>
+
+              <span className="font-semibold text-gray-700">Item:</span>
+              <span className="break-all text-gray-900">{displayValue(item)}</span>
+
+              <span className="font-semibold text-gray-700">Handling Unit:</span>
+              <span className="break-all text-gray-900">{displayValue(handlingUnit)}</span>
+            </div>
+          </div>
         </Card>
       </div>
 

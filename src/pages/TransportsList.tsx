@@ -239,22 +239,29 @@ const TransportsList = () => {
     });
   };
 
-  const onSelectTransport = (item: { HandlingUnit: string; Item: string }) => {
+  const onSelectTransport = (item: PlanningItem) => {
     if (!canLoadTransport) return;
     const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
     if (!prefillValue) return;
 
+    const transportLineLoadState = {
+      prefillValue,
+      vehicleId: selectedVehicleId,
+      transportId: (item.TransportID || "").trim(),
+      item: (item.Item || "").trim(),
+      handlingUnit: (item.HandlingUnit || "").trim(),
+      locationFrom: (item.LocationFrom || "").trim(),
+    };
+
     localStorage.setItem("vehicle.id", selectedVehicleId);
     sessionStorage.setItem("transport.line.load.prefill", prefillValue);
     sessionStorage.setItem("transport.line.load.vehicle", selectedVehicleId);
+    sessionStorage.setItem("transport.line.load.state", JSON.stringify(transportLineLoadState));
     sessionStorage.setItem("transport.selected", "1");
     sessionStorage.removeItem("transport.fromMain");
     setSelecting(true);
     navigate("/menu/transports/load", {
-      state: {
-        prefillValue,
-        vehicleId: selectedVehicleId,
-      },
+      state: transportLineLoadState,
     });
   };
 
