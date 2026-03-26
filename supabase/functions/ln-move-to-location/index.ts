@@ -39,6 +39,8 @@ serve(async (req) => {
       toWarehouse?: string;
       toLocation?: string;
       scan1?: string;
+      transportId?: string;
+      loaded?: string;
       loginCode?: string;
       employee?: string;
       language?: string;
@@ -62,6 +64,8 @@ serve(async (req) => {
     const toWarehouse = (body.toWarehouse || "").trim();
     const toLocation = (body.toLocation || "").trim();
     const scan1 = (body.scan1 || "").trim();
+    const transportId = (body.transportId || "").trim();
+    const loaded = (body.loaded || "").trim();
     const employee = (body.employee || "").trim();
     const loginCode = (body.loginCode || employee).trim();
     const language = body.language || "de-DE";
@@ -171,6 +175,12 @@ serve(async (req) => {
     };
     if (scan1) {
       movementBody.Scan1 = scan1;
+    }
+    if (transportId) {
+      movementBody.TransportID = transportId;
+    }
+    if (loaded) {
+      movementBody.Loaded = loaded;
     }
     if (handlingUnit) {
       movementBody.HandlingUnit = handlingUnit;

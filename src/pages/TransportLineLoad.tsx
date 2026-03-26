@@ -174,9 +174,10 @@ const TransportLineLoad = () => {
       fromLocation: sourceLocation,
       toWarehouse: sourceWarehouse,
       toLocation: selectedVehicleId,
-      scan1: currentTransportId,
+      transportId: currentTransportId,
       loginCode: employeeCode,
       employee: employeeCode,
+      loaded: "Yes",
       language: locale,
     };
 
