@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Eraser, LogOut, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
@@ -41,6 +41,7 @@ const TransportLineLoad = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const routeState = (location.state as TransportLineLoadState | null) || null;
+  const autoTriggeredScanRef = useRef("");
 
   const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
@@ -214,6 +215,21 @@ const TransportLineLoad = () => {
     showSuccess(trans.loadedSuccessfully);
     navigate("/menu/transports/list");
   };
+
+  useEffect(() => {
+    if (!scanMatches) {
+      autoTriggeredScanRef.current = "";
+      return;
+    }
+
+    const scannedValue = locationFromScan.trim();
+    if (!scannedValue || processing || autoTriggeredScanRef.current === scannedValue) {
+      return;
+    }
+
+    autoTriggeredScanRef.current = scannedValue;
+    void handleLoadClick();
+  }, [scanMatches, locationFromScan, processing]);
 
   const onConfirmSignOut = () => {
     try {
