@@ -62,6 +62,8 @@ const InfoStockCorrection = () => {
   const fromLocRef = useRef<HTMLInputElement | null>(null);
   const quantityRef = useRef<HTMLInputElement | null>(null);
   const submitQuantityRef = useRef<HTMLInputElement | null>(null);
+  const searchingSpinnerTimeoutRef = useRef<number | null>(null);
+  const transferringSpinnerTimeoutRef = useRef<number | null>(null);
 
   // First input + dynamic label/description
   const [query, setQuery] = useState<string>("");
@@ -340,6 +342,55 @@ const InfoStockCorrection = () => {
   const [searching, setSearching] = useState<boolean>(false);
   const [transferring, setTransferring] = useState<boolean>(false);
 
+  const startSearching = () => {
+    setSearching(true);
+    if (searchingSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(searchingSpinnerTimeoutRef.current);
+    }
+    searchingSpinnerTimeoutRef.current = window.setTimeout(() => {
+      setSearching(false);
+      searchingSpinnerTimeoutRef.current = null;
+    }, 10000);
+  };
+
+  const stopSearching = () => {
+    if (searchingSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(searchingSpinnerTimeoutRef.current);
+      searchingSpinnerTimeoutRef.current = null;
+    }
+    setSearching(false);
+  };
+
+  const startTransferring = () => {
+    setTransferring(true);
+    if (transferringSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(transferringSpinnerTimeoutRef.current);
+    }
+    transferringSpinnerTimeoutRef.current = window.setTimeout(() => {
+      setTransferring(false);
+      transferringSpinnerTimeoutRef.current = null;
+    }, 10000);
+  };
+
+  const stopTransferring = () => {
+    if (transferringSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(transferringSpinnerTimeoutRef.current);
+      transferringSpinnerTimeoutRef.current = null;
+    }
+    setTransferring(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (searchingSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(searchingSpinnerTimeoutRef.current);
+      }
+      if (transferringSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(transferringSpinnerTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Status helpers
   const normalizeStatus = (raw?: string | null): string | null => {
     if (!raw) return null;
@@ -425,7 +476,7 @@ const InfoStockCorrection = () => {
     if (!input) return;
     if (!overrideQuery && lastSearched === input) return;
 
-    setSearching(true);
+    startSearching();
 
     // Try Handling Unit
     const huRes = await supabase.functions.invoke("ln-handling-unit-info", {
@@ -452,7 +503,7 @@ const InfoStockCorrection = () => {
       setQueryLabel(trans.loadHandlingUnit);
       setLastMatchType("HU");
       await fetchItemDescription(d.item);
-      setSearching(false);
+      stopSearching();
       return;
     }
 
@@ -491,12 +542,12 @@ const InfoStockCorrection = () => {
         setTimeout(() => warehouseRef.current?.focus(), 50);
       }
 
-      setSearching(false);
+      stopSearching();
       return;
     }
 
     showError(trans.noEntries);
-    setSearching(false);
+    stopSearching();
   };
 
   useEffect(() => {
@@ -634,7 +685,7 @@ const InfoStockCorrection = () => {
 
   const doSubmit = async () => {
     if (!canSubmit) return;
-    setTransferring(true);
+    startTransferring();
 
     try {
       const deviation = Number(submitQuantity);
@@ -669,12 +720,12 @@ const InfoStockCorrection = () => {
         const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
         const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
         showError(message);
-        setTransferring(false);
+        stopTransferring();
         return;
       }
 
       showSuccess(trans.correctionSubmit);
-      setTransferring(false);
+      stopTransferring();
 
       const returnTo = (routerLocation.state as any)?.returnTo;
       const returnPath = typeof returnTo?.path === "string" ? returnTo.path : "";
@@ -698,7 +749,7 @@ const InfoStockCorrection = () => {
 
       resetAll();
     } catch (e) {
-      setTransferring(false);
+      stopTransferring();
       showError(String(e));
     }
   };
