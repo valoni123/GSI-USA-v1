@@ -208,8 +208,12 @@ const TransportLineLoad = () => {
               <span className="font-semibold text-gray-700">Item:</span>
               <span className="break-all text-gray-900">{displayValue(item)}</span>
 
-              <span className="font-semibold text-gray-700">Handling Unit:</span>
-              <span className="break-all text-gray-900">{displayValue(handlingUnit)}</span>
+              {handlingUnit.trim() ? (
+                <>
+                  <span className="font-semibold text-gray-700">Handling Unit:</span>
+                  <span className="break-all text-gray-900">{displayValue(handlingUnit)}</span>
+                </>
+              ) : null}
             </div>
           </div>
         </Card>
