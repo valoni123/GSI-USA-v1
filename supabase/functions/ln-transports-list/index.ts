@@ -115,7 +115,7 @@ serve(async (req) => {
       }
       const escapedVehicle = vehicleId.replace(/'/g, "''");
       const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq ''`;
-      const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo";
+      const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo,OrderedQuantity,OrderUnit";
       return `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
     })();
 
@@ -150,7 +150,8 @@ serve(async (req) => {
       LocationFrom: v?.LocationFrom ?? "",
       LocationTo: v?.LocationTo ?? "",
       ETag: v?.["@odata.etag"] ?? "",
-      OrderedQuantity: typeof v?.OrderedQuantity === "number" ? v.OrderedQuantity : null,
+      OrderedQuantity: v?.OrderedQuantity ?? null,
+      OrderUnit: v?.OrderUnit ?? "",
     }));
 
     return json({ ok: true, count, items, nextPageUrl: resolvedNextPageUrl }, 200);

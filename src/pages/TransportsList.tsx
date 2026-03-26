@@ -29,6 +29,7 @@ type PlanningItem = {
   LocationTo: string;
   ETag: string;
   OrderedQuantity?: number | string | null;
+  OrderUnit?: string | null;
 };
 
 type LoadedListItem = {
@@ -84,6 +85,21 @@ const TransportsList = () => {
   const [signOutOpen, setSignOutOpen] = useState(false);
 
   const selectedVehicleId = (localStorage.getItem("transports.vehicle.id") || localStorage.getItem("vehicle.id") || "").trim();
+
+  const formatQuantity = (quantity?: number | string | null, unit?: string | null) => {
+    const normalizedUnit = (unit || "").trim();
+
+    if (typeof quantity === "number") {
+      return normalizedUnit ? `${quantity} ${normalizedUnit}` : String(quantity);
+    }
+
+    const normalizedQuantity = (quantity || "").toString().trim();
+    if (!normalizedQuantity) {
+      return normalizedUnit || "-";
+    }
+
+    return normalizedUnit ? `${normalizedQuantity} ${normalizedUnit}` : normalizedQuantity;
+  };
 
   const loadPlanningItems = async ({ append = false, nextPageUrl = "" }: { append?: boolean; nextPageUrl?: string } = {}) => {
     if (!selectedVehicleId) {
@@ -243,7 +259,7 @@ const TransportsList = () => {
     });
   };
 
-  const onSelectTransport = (item: { TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity?: number | string | null }) => {
+  const onSelectTransport = (item: PlanningItem) => {
     if (!canLoadTransport) return;
     const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
     if (!prefillValue) return;
@@ -536,8 +552,8 @@ const TransportsList = () => {
                     <span className="font-medium text-gray-800">{cleanValue(it.LocationFrom)}</span>
                   </div>
                   <div className="min-w-0 truncate text-sm leading-5 text-gray-700">
-                    <span className="text-gray-500">{trans.toLabel}:</span>{" "}
-                    <span className="font-medium text-gray-800">{cleanValue(it.LocationTo)}</span>
+                    <span className="text-gray-500">{trans.quantityLabel}:</span>{" "}
+                    <span className="font-medium text-gray-800">{formatQuantity(it.OrderedQuantity, it.OrderUnit)}</span>
                   </div>
                 </div>
               </div>
