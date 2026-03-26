@@ -231,8 +231,7 @@ const InfoStockCorrection = () => {
   const handleSubmitQuantityBlur = () => {
     const s = sanitizeQuantity(submitQuantity || "");
     const num = s === "" ? NaN : Number(s);
-    const allowZero = lastMatchType === "HU";
-    if (!isFinite(num) || num < 0 || (!allowZero && num === 0)) {
+    if (!isFinite(num) || num < 0) {
       setSubmitQuantity("");
       return;
     }
@@ -463,8 +462,8 @@ const InfoStockCorrection = () => {
 
     const originalQty = Number(quantity);
     const nextQty = Number(submitQuantity);
-    const qtyOk = isFinite(nextQty) && (lastMatchType === "HU" ? nextQty >= 0 : nextQty > 0);
-    const qtyChanged = isFinite(originalQty) && isFinite(nextQty) && nextQty !== originalQty;
+    const qtyOk = isFinite(nextQty) && nextQty >= 0;
+    const qtyChanged = isFinite(originalQty) && isFinite(nextQty) && (nextQty !== originalQty || nextQty === 0);
 
     const reasonOk = (reason || "").trim().length > 0;
 
