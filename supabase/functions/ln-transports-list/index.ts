@@ -47,6 +47,7 @@ serve(async (req) => {
     const vehicleId = (body.vehicleId || "").trim();
     const language = body.language || "en-US";
     const nextPageUrl = (body.nextPageUrl || "").trim();
+    console.log("[ln-transports-list] request payload", { vehicleId, language, nextPageUrl });
     if (!vehicleId && !nextPageUrl) {
       return json({ ok: false, error: "missing_vehicle" }, 200);
     }
@@ -118,6 +119,7 @@ serve(async (req) => {
       const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo,OrderedQuantity,OrderUnit";
       return `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
     })();
+    console.log("[ln-transports-list] request url", { requestUrl });
 
     const headers = {
       accept: "application/json",

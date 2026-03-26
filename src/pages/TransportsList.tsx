@@ -110,6 +110,12 @@ const TransportsList = () => {
       return;
     }
 
+    console.log("[TransportsList] loading planning items", {
+      selectedVehicleId,
+      append,
+      nextPageUrl,
+    });
+
     const { data } = await supabase.functions.invoke("ln-transports-list", {
       body: { vehicleId: selectedVehicleId, language: locale, nextPageUrl },
     });
