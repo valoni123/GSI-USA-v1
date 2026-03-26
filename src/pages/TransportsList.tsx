@@ -370,8 +370,10 @@ const TransportsList = () => {
       fromLocation: selectedVehicleId,
       toWarehouse: currentItem.Warehouse,
       toLocation: targetLocation,
-      scan1: currentItem.TransportID,
+      transportId: currentItem.TransportID,
+      loginCode: employeeCode,
       employee: employeeCode,
+      movedBack: "Yes",
       language: locale,
     };
 

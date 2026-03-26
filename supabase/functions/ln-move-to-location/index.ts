@@ -41,6 +41,7 @@ serve(async (req) => {
       scan1?: string;
       transportId?: string;
       loaded?: string;
+      movedBack?: string;
       loginCode?: string;
       employee?: string;
       language?: string;
@@ -66,6 +67,7 @@ serve(async (req) => {
     const scan1 = (body.scan1 || "").trim();
     const transportId = (body.transportId || "").trim();
     const loaded = (body.loaded || "").trim();
+    const movedBack = (body.movedBack || "").trim();
     const employee = (body.employee || "").trim();
     const loginCode = (body.loginCode || employee).trim();
     const language = body.language || "de-DE";
@@ -181,6 +183,9 @@ serve(async (req) => {
     }
     if (loaded) {
       movementBody.Loaded = loaded;
+    }
+    if (movedBack) {
+      movementBody.MovedBack = movedBack;
     }
     if (handlingUnit) {
       movementBody.HandlingUnit = handlingUnit;
