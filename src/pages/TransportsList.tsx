@@ -26,6 +26,7 @@ type PlanningItem = {
   Warehouse: string;
   LocationFrom: string;
   LocationTo: string;
+  Remark: string;
   ETag: string;
   OrderedQuantity?: number | string | null;
 };
@@ -216,7 +217,7 @@ const TransportsList = () => {
     setAssigning(false);
   };
 
-  const onSelectTransport = (item: { TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity?: number | string | null }) => {
+  const onSelectTransport = (item: { TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; Remark: string; ETag: string; OrderedQuantity?: number | string | null }) => {
     if (!canLoadTransport) return;
     const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
     if (!prefillValue) return;
@@ -231,6 +232,7 @@ const TransportsList = () => {
       Warehouse: item.Warehouse,
       LocationFrom: item.LocationFrom,
       LocationTo: item.LocationTo,
+      Remark: item.Remark,
       ETag: item.ETag,
       OrderedQuantity: item.OrderedQuantity ?? null,
     }));

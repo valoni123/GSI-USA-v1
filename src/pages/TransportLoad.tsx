@@ -67,7 +67,7 @@ const TransportLoad = () => {
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
   const [confirmHandlingUnit, setConfirmHandlingUnit] = useState<string>("");
-  const [result, setResult] = useState<{ TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null>(null);
+  const [result, setResult] = useState<{ TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; Remark?: string; ETag?: string; OrderedQuantity?: number | null } | null>(null);
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
@@ -76,7 +76,7 @@ const TransportLoad = () => {
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [etag, setEtag] = useState<string>("");
   const [selectOpen, setSelectOpen] = useState<boolean>(false);
-  const [selectItems, setSelectItems] = useState<Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity: number | null }>>([]);
+  const [selectItems, setSelectItems] = useState<Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; Remark?: string; ETag: string; OrderedQuantity: number | null }>>([]);
   const [locationScan, setLocationScan] = useState<string>("");
   const [locationRequired, setLocationRequired] = useState<boolean>(false);
   const [loadedCount, setLoadedCount] = useState<number>(0);
@@ -107,6 +107,7 @@ const TransportLoad = () => {
     Warehouse: string;
     LocationFrom: string;
     LocationTo: string;
+    Remark?: string;
     ETag: string;
     OrderedQuantity?: number | null;
   };
@@ -228,6 +229,7 @@ const TransportLoad = () => {
           Warehouse: selected.Warehouse,
           LocationFrom: selected.LocationFrom,
           LocationTo: selected.LocationTo,
+          Remark: selected.Remark ?? "",
           ETag: selected.ETag,
           OrderedQuantity: selected.OrderedQuantity ?? null,
         };
@@ -1027,6 +1029,15 @@ const TransportLoad = () => {
                   }
                 }
               }}
+            />
+          )}
+
+          {openedFromTransportsList && result && (
+            <FloatingLabelInput
+              id="transportRemark"
+              label={trans.detailsLabel}
+              value={result.Remark || ""}
+              readOnly
             />
           )}
 
