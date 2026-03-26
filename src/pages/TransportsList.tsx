@@ -370,6 +370,7 @@ const TransportsList = () => {
       fromLocation: selectedVehicleId,
       toWarehouse: currentItem.Warehouse,
       toLocation: targetLocation,
+      scan1: currentItem.TransportID,
       employee: employeeCode,
       language: locale,
     };
@@ -406,37 +407,10 @@ const TransportsList = () => {
     const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
       body: movePayload,
     });
-
-    if (moveErr || !moveData || !moveData.ok) {
-      dismissToast(tid as unknown as string);
-      const err = (moveData && moveData.error) || moveErr;
-      const top = err?.message || "Unbekannter Fehler";
-      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
-      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
-      showError(message);
-      setMovingBackMap((m) => ({ ...m, [key]: false }));
-      if (moveBackSpinnerTimeoutRef.current != null) {
-        window.clearTimeout(moveBackSpinnerTimeoutRef.current);
-        moveBackSpinnerTimeoutRef.current = null;
-      }
-      setMoveBackProcessing(false);
-      return;
-    }
-
-    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
-      body: {
-        transportId: currentItem.TransportID,
-        runNumber: currentItem.RunNumber,
-        etag: currentItem.ETag,
-        vehicleId: "",
-        language: locale,
-        company: "1100",
-      },
-    });
     dismissToast(tid as unknown as string);
 
-    if (patchErr || !patchData || !patchData.ok) {
-      const err = (patchData && patchData.error) || patchErr;
+    if (moveErr || !moveData || !moveData.ok) {
+      const err = (moveData && moveData.error) || moveErr;
       const top = err?.message || "Unbekannter Fehler";
       const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
