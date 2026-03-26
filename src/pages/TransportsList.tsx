@@ -47,6 +47,7 @@ const TransportsList = () => {
   const navigate = useNavigate();
   const moveBackLocationRef = useRef<HTMLInputElement | null>(null);
   const loadedListSpinnerTimeoutRef = useRef<number | null>(null);
+  const moveBackSpinnerTimeoutRef = useRef<number | null>(null);
   const lang: LanguageKey = ((localStorage.getItem("app.lang") as LanguageKey) || "en");
   const trans = useMemo(() => t(lang), [lang]);
   const locale = useMemo(() => {
@@ -228,6 +229,9 @@ const TransportsList = () => {
       if (loadedListSpinnerTimeoutRef.current != null) {
         window.clearTimeout(loadedListSpinnerTimeoutRef.current);
       }
+      if (moveBackSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(moveBackSpinnerTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -389,6 +393,15 @@ const TransportsList = () => {
     setMovingBackMap((m) => ({ ...m, [key]: true }));
     setMoveBackProcessing(true);
 
+    if (moveBackSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(moveBackSpinnerTimeoutRef.current);
+    }
+
+    moveBackSpinnerTimeoutRef.current = window.setTimeout(() => {
+      setMoveBackProcessing(false);
+      moveBackSpinnerTimeoutRef.current = null;
+    }, 10000);
+
     const tid = showLoading(trans.executingMovement);
     const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
       body: movePayload,
@@ -402,6 +415,10 @@ const TransportsList = () => {
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
       showError(message);
       setMovingBackMap((m) => ({ ...m, [key]: false }));
+      if (moveBackSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(moveBackSpinnerTimeoutRef.current);
+        moveBackSpinnerTimeoutRef.current = null;
+      }
       setMoveBackProcessing(false);
       return;
     }
@@ -425,6 +442,10 @@ const TransportsList = () => {
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
       showError(message);
       setMovingBackMap((m) => ({ ...m, [key]: false }));
+      if (moveBackSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(moveBackSpinnerTimeoutRef.current);
+        moveBackSpinnerTimeoutRef.current = null;
+      }
       setMoveBackProcessing(false);
       return;
     }
@@ -433,6 +454,10 @@ const TransportsList = () => {
     void fetchLoadedCount();
     showSuccess("Moved back");
     setMovingBackMap((m) => ({ ...m, [key]: false }));
+    if (moveBackSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(moveBackSpinnerTimeoutRef.current);
+      moveBackSpinnerTimeoutRef.current = null;
+    }
     setMoveBackProcessing(false);
   };
 
