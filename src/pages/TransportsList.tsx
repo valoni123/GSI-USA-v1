@@ -277,6 +277,8 @@ const TransportsList = () => {
       item: (item.Item || "").trim(),
       handlingUnit: (item.HandlingUnit || "").trim(),
       locationFrom: (item.LocationFrom || "").trim(),
+      orderedQuantity: item.OrderedQuantity ?? null,
+      orderUnit: item.OrderUnit ?? "",
     };
 
     localStorage.setItem("vehicle.id", selectedVehicleId);

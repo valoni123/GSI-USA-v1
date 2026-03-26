@@ -17,11 +17,21 @@ type TransportLineLoadState = {
   item?: string;
   handlingUnit?: string;
   locationFrom?: string;
+  orderedQuantity?: number | string | null;
+  orderUnit?: string | null;
 };
 
 const displayValue = (value: string) => {
   const trimmed = (value || "").trim();
   return trimmed || "-";
+};
+
+const displayQuantity = (quantity?: number | string | null, unit?: string | null) => {
+  const quantityText = quantity == null ? "" : String(quantity).trim();
+  const unitText = (unit || "").trim();
+  if (!quantityText && !unitText) return "-";
+  if (!quantityText) return unitText;
+  return unitText ? `${quantityText} ${unitText}` : quantityText;
 };
 
 const TransportLineLoad = () => {
@@ -46,6 +56,8 @@ const TransportLineLoad = () => {
   const [transportId, setTransportId] = useState("");
   const [item, setItem] = useState("");
   const [handlingUnit, setHandlingUnit] = useState("");
+  const [orderedQuantity, setOrderedQuantity] = useState<number | string | null>(null);
+  const [orderUnit, setOrderUnit] = useState("");
 
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
@@ -74,6 +86,8 @@ const TransportLineLoad = () => {
     setTransportId((routeState?.transportId || storedState?.transportId || "").trim());
     setItem((routeState?.item || storedState?.item || "").trim());
     setHandlingUnit((routeState?.handlingUnit || storedState?.handlingUnit || "").trim());
+    setOrderedQuantity(routeState?.orderedQuantity ?? storedState?.orderedQuantity ?? null);
+    setOrderUnit((routeState?.orderUnit || storedState?.orderUnit || "").trim());
 
     sessionStorage.removeItem("transport.line.load.prefill");
     sessionStorage.removeItem("transport.line.load.vehicle");
@@ -99,6 +113,8 @@ const TransportLineLoad = () => {
             item,
             handlingUnit,
             locationFrom,
+            orderedQuantity,
+            orderUnit,
           },
         },
       },
@@ -224,6 +240,9 @@ const TransportLineLoad = () => {
 
               <span className="font-semibold text-gray-700">Item:</span>
               <span className="break-all text-gray-900">{displayValue(item)}</span>
+
+              <span className="font-semibold text-gray-700">{trans.quantityLabel}:</span>
+              <span className="break-all text-gray-900">{displayQuantity(orderedQuantity, orderUnit)}</span>
 
               {handlingUnit.trim() ? (
                 <>
