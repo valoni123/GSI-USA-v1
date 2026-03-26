@@ -17,6 +17,7 @@ type TransportLineLoadState = {
   item?: string;
   handlingUnit?: string;
   locationFrom?: string;
+  warehouse?: string;
   orderedQuantity?: number | string | null;
   orderUnit?: string | null;
 };
@@ -56,6 +57,7 @@ const TransportLineLoad = () => {
   const [transportId, setTransportId] = useState("");
   const [item, setItem] = useState("");
   const [handlingUnit, setHandlingUnit] = useState("");
+  const [warehouse, setWarehouse] = useState("");
   const [orderedQuantity, setOrderedQuantity] = useState<number | string | null>(null);
   const [orderUnit, setOrderUnit] = useState("");
 
@@ -86,6 +88,7 @@ const TransportLineLoad = () => {
     setTransportId((routeState?.transportId || storedState?.transportId || "").trim());
     setItem((routeState?.item || storedState?.item || "").trim());
     setHandlingUnit((routeState?.handlingUnit || storedState?.handlingUnit || "").trim());
+    setWarehouse((routeState?.warehouse || storedState?.warehouse || "").trim());
     setOrderedQuantity(routeState?.orderedQuantity ?? storedState?.orderedQuantity ?? null);
     setOrderUnit((routeState?.orderUnit || storedState?.orderUnit || "").trim());
 
@@ -113,6 +116,7 @@ const TransportLineLoad = () => {
             item,
             handlingUnit,
             locationFrom,
+            warehouse,
             orderedQuantity,
             orderUnit,
           },
@@ -240,6 +244,9 @@ const TransportLineLoad = () => {
 
               <span className="font-semibold text-gray-700">Item:</span>
               <span className="break-all text-gray-900">{displayValue(item)}</span>
+
+              <span className="font-semibold text-gray-700">{trans.warehouseLabel}:</span>
+              <span className="break-all text-gray-900">{displayValue(warehouse)}</span>
 
               <span className="font-semibold text-gray-700">{trans.quantityLabel}:</span>
               <span className="break-all text-gray-900">{displayQuantity(orderedQuantity, orderUnit)}</span>
