@@ -1028,6 +1028,8 @@ const InfoStockTransfer = () => {
                   }}
                   ref={quantityRef}
                   inputMode="decimal"
+                  disabled={lastMatchType === "HU"}
+                  className={lastMatchType === "HU" ? "bg-gray-100 text-gray-700" : undefined}
                 />
                 <FloatingLabelInput id="transferUnit" label={trans.unitLabel} value={unit} disabled />
               </div>
