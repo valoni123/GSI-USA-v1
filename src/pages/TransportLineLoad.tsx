@@ -117,6 +117,8 @@ const TransportLineLoad = () => {
     navigate("/menu/info-stock/correction", {
       state: {
         initialHandlingUnit: value,
+        initialWarehouse: warehouse.trim(),
+        initialLocation: locationFrom.trim(),
         returnTo: {
           path: "/menu/transports/load",
           state: {

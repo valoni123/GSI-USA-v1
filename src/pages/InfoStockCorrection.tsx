@@ -246,10 +246,10 @@ const InfoStockCorrection = () => {
   };
 
   // Menge/Einheit aus gewählter/eingegebener Location holen (ITEM-Flow)
-  const prefillFromLocation = async (nextLocation?: string) => {
-    if (lastMatchType !== "ITEM") return;
-    const itm = (item || "").trim();
-    const wh = (warehouse || "").trim();
+  const prefillFromLocation = async (nextLocation?: string, overrideWarehouse?: string, overrideItem?: string) => {
+    if (lastMatchType !== "ITEM" && (!overrideWarehouse || !overrideItem)) return;
+    const itm = (overrideItem ?? item ?? "").trim();
+    const wh = (overrideWarehouse ?? warehouse ?? "").trim();
     const loc = (nextLocation ?? location ?? "").trim();
     if (!itm || !wh || !loc) return;
     const { data, error } = await supabase.functions.invoke("ln-stockpoint-inventory", {
@@ -279,6 +279,7 @@ const InfoStockCorrection = () => {
       const nonHu = Math.abs((Number.isFinite(onHand) ? onHand : 0) - (Number.isFinite(huQuantity) ? huQuantity : 0));
       const q = String(nonHu);
 
+      setWarehouse(wh);
       setLocation(loc);
       setLot(lotVal);
       setQuantity(q);
@@ -461,13 +462,17 @@ const InfoStockCorrection = () => {
     });
     if (itemRes.data && itemRes.data.ok) {
       const d = itemRes.data;
-      setItem(d.item || input);
+      const initialWarehouse = ((routerLocation.state as any)?.initialWarehouse || "").toString().trim();
+      const initialLocation = ((routerLocation.state as any)?.initialLocation || "").toString().trim();
+      const nextItem = (d.item || input).toString();
+
+      setItem(nextItem);
       setHandlingUnit("");
       setUnit((d.unit || "").toString());
       setWarehouseEnabled(true);
       setLastSearched(input);
-      setWarehouse("");
-      setLocation("");
+      setWarehouse(initialWarehouse);
+      setLocation(initialLocation);
       setLot("");
       setQuantity("");
       setSubmitQuantity("");
@@ -477,7 +482,15 @@ const InfoStockCorrection = () => {
       setQueryLabel(trans.itemLabel);
       setLastMatchType("ITEM");
       setItemDescription((d.description || "").toString());
-      setTimeout(() => warehouseRef.current?.focus(), 50);
+
+      if (initialWarehouse && initialLocation) {
+        await prefillFromLocation(initialLocation, initialWarehouse, nextItem);
+      } else if (initialWarehouse) {
+        setTimeout(() => focusFromLocation(), 50);
+      } else {
+        setTimeout(() => warehouseRef.current?.focus(), 50);
+      }
+
       setSearching(false);
       return;
     }
