@@ -46,6 +46,7 @@ type LoadedListItem = {
 const TransportsList = () => {
   const navigate = useNavigate();
   const moveBackLocationRef = useRef<HTMLInputElement | null>(null);
+  const loadedListSpinnerTimeoutRef = useRef<number | null>(null);
   const lang: LanguageKey = ((localStorage.getItem("app.lang") as LanguageKey) || "en");
   const trans = useMemo(() => t(lang), [lang]);
   const locale = useMemo(() => {
@@ -222,11 +223,28 @@ const TransportsList = () => {
     void loadPageData();
   }, [locale, selectedVehicleId]);
 
+  useEffect(() => {
+    return () => {
+      if (loadedListSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(loadedListSpinnerTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const openLoadedList = async () => {
     setListOpen(true);
     setListLoading(true);
+
+    if (loadedListSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(loadedListSpinnerTimeoutRef.current);
+    }
+
+    loadedListSpinnerTimeoutRef.current = window.setTimeout(() => {
+      setListLoading(false);
+      loadedListSpinnerTimeoutRef.current = null;
+    }, 5000);
+
     await fetchLoadedList();
-    setListLoading(false);
   };
 
   const onGetClick = async () => {
