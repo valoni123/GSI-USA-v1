@@ -105,15 +105,17 @@ const TransportLineLoad = () => {
     });
   };
 
+  const mismatchMessage = handlingUnit.trim() ? "Handling Unit not matching" : "Location not matching";
+
   const handleScanMismatch = () => {
     const scannedValue = locationFromScan.trim();
     if (!scannedValue || scanMatches) return;
-    showError("it doesnt match");
+    showError(mismatchMessage);
   };
 
   const handleLoadClick = () => {
     if (scanMatches) return;
-    showError("it doesnt match");
+    showError(mismatchMessage);
   };
 
   const onConfirmSignOut = () => {
