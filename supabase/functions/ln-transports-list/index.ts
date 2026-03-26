@@ -145,14 +145,12 @@ serve(async (req) => {
 
     const items = pageItems.map((v: any) => ({
       TransportID: v?.TransportID ?? "",
-      RunNumber: "",
       TransportType: v?.TransportType ?? "",
       Item: v?.Item ?? "",
       HandlingUnit: v?.HandlingUnit ?? "",
       Warehouse: v?.Warehouse ?? "",
       LocationFrom: v?.LocationFrom ?? "",
       LocationTo: v?.LocationTo ?? "",
-      ETag: v?.["@odata.etag"] ?? "",
       OrderedQuantity: v?.OrderedQuantity ?? null,
       OrderUnit: v?.OrderUnit ?? "",
     }));

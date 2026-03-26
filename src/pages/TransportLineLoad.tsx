@@ -16,8 +16,6 @@ type TransportLineLoadState = {
   prefillValue?: string;
   vehicleId?: string;
   transportId?: string;
-  runNumber?: string;
-  etag?: string;
   item?: string;
   handlingUnit?: string;
   locationFrom?: string;
@@ -70,8 +68,6 @@ const TransportLineLoad = () => {
   const [warehouse, setWarehouse] = useState("");
   const [orderedQuantity, setOrderedQuantity] = useState<number | string | null>(null);
   const [orderUnit, setOrderUnit] = useState("");
-  const [runNumber, setRunNumber] = useState("");
-  const [etag, setEtag] = useState("");
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -104,8 +100,6 @@ const TransportLineLoad = () => {
     setWarehouse((routeState?.warehouse || storedState?.warehouse || "").trim());
     setOrderedQuantity(routeState?.orderedQuantity ?? storedState?.orderedQuantity ?? null);
     setOrderUnit((routeState?.orderUnit || storedState?.orderUnit || "").trim());
-    setRunNumber((routeState?.runNumber || storedState?.runNumber || "").trim());
-    setEtag((routeState?.etag || storedState?.etag || "").trim());
 
     sessionStorage.removeItem("transport.line.load.prefill");
     sessionStorage.removeItem("transport.line.load.vehicle");
@@ -128,8 +122,6 @@ const TransportLineLoad = () => {
             prefillValue: value,
             vehicleId,
             transportId,
-            runNumber,
-            etag,
             item,
             handlingUnit,
             locationFrom,
@@ -166,7 +158,7 @@ const TransportLineLoad = () => {
     const currentHandlingUnit = handlingUnit.trim();
     const currentItem = item.trim();
 
-    if (!employeeCode || !selectedVehicleId || !sourceWarehouse || !sourceLocation || !currentTransportId || !etag.trim()) {
+    if (!employeeCode || !selectedVehicleId || !sourceWarehouse || !sourceLocation || !currentTransportId) {
       showError("Missing transport data.");
       return;
     }
@@ -218,32 +210,8 @@ const TransportLineLoad = () => {
       return;
     }
 
-    showSuccess(trans.loadedSuccessfully);
-
-    const patchTid = showLoading(trans.updatingTransportOrder);
-    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
-      body: {
-        transportId: currentTransportId,
-        runNumber,
-        etag: etag.trim(),
-        vehicleId: selectedVehicleId,
-        language: locale,
-        company: "1100",
-      },
-    });
-    dismissToast(patchTid as unknown as string);
-
-    if (patchErr || !patchData || !patchData.ok) {
-      const err = (patchData && patchData.error) || patchErr;
-      const top = err?.message || "Unbekannter Fehler";
-      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
-      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
-      showError(message);
-      setProcessing(false);
-      return;
-    }
-
     setProcessing(false);
+    showSuccess(trans.loadedSuccessfully);
     navigate("/menu/transports/list");
   };
 
