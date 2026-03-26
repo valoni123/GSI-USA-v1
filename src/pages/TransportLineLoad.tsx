@@ -70,6 +70,7 @@ const TransportLineLoad = () => {
   const [orderedQuantity, setOrderedQuantity] = useState<number | string | null>(null);
   const [orderUnit, setOrderUnit] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [prefilledLoad, setPrefilledLoad] = useState(false);
 
   useEffect(() => {
     const name = localStorage.getItem("gsi.full_name");
@@ -92,6 +93,7 @@ const TransportLineLoad = () => {
       ""
     ).trim();
 
+    setPrefilledLoad(Boolean(nextPrefill || nextVehicleId || routeState?.locationFrom || storedState?.locationFrom || routeState?.transportId || storedState?.transportId));
     setTransportValue(nextPrefill);
     setVehicleId(nextVehicleId);
     setLocationFrom((routeState?.locationFrom || storedState?.locationFrom || "").trim());
@@ -291,6 +293,8 @@ const TransportLineLoad = () => {
                 label="Handling Unit / Item"
                 value={transportValue}
                 onChange={(e) => setTransportValue(e.target.value)}
+                readOnly={prefilledLoad}
+                className={prefilledLoad ? "bg-gray-100 text-gray-700" : undefined}
               />
             </div>
             <Button
@@ -313,6 +317,8 @@ const TransportLineLoad = () => {
             label={trans.loadVehicleId}
             value={vehicleId}
             onChange={(e) => setVehicleId(e.target.value)}
+            readOnly={prefilledLoad}
+            className={prefilledLoad ? "bg-gray-100 text-gray-700" : undefined}
           />
 
           <FloatingLabelInput
@@ -320,6 +326,7 @@ const TransportLineLoad = () => {
             label="Location From"
             value={locationFrom}
             readOnly
+            className={prefilledLoad ? "bg-gray-100 text-gray-700" : undefined}
           />
 
           <FloatingLabelInput
