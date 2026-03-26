@@ -114,7 +114,7 @@ serve(async (req) => {
         return nextPageUrl;
       }
       const escapedVehicle = vehicleId.replace(/'/g, "''");
-      const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq ''`;
+      const filter = `PlannedVehicle eq '${escapedVehicle}'`;
       const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo,OrderedQuantity,OrderUnit";
       return `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
     })();
