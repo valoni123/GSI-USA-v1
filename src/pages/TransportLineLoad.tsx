@@ -79,7 +79,7 @@ const TransportLineLoad = () => {
     sessionStorage.removeItem("transport.line.load.vehicle");
   }, [routeState]);
 
-  const expectedScanValue = locationFrom.trim();
+  const expectedScanValue = handlingUnit.trim() ? transportValue.trim() : locationFrom.trim();
   const scanMatches = locationFromScan.trim() === expectedScanValue && expectedScanValue.length > 0;
 
   const handleAdjust = () => {
