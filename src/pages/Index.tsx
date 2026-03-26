@@ -70,7 +70,7 @@ const Index = () => {
     try {
       if (gsiId) localStorage.setItem("gsi.id", gsiId);
       if (fullName) localStorage.setItem("gsi.full_name", fullName);
-      localStorage.setItem("gsi.username", loginUsername);
+      localStorage.setItem("gsi.username", (userUsername || loginUsername).trim());
       localStorage.setItem("gsi.employee", loginUsername);
       localStorage.setItem("gsi.login", loginUsername);
       localStorage.removeItem("vehicle.id");

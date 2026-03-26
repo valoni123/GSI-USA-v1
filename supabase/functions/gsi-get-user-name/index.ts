@@ -44,42 +44,43 @@ serve(async (req) => {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const requested = loginValue.toLowerCase();
   const fields = "username,full_name,admin";
 
-  const usernameResult = await supabase
+  const { data: usernameMatch, error: usernameError } = await supabase
     .from("gsi_users")
     .select(fields)
-    .ilike("username", loginValue)
+    .ilike("username", requested)
     .limit(1)
     .maybeSingle();
 
-  if (usernameResult.error) {
+  if (usernameError) {
     return new Response(JSON.stringify({ ok: false, error: "query_error" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  if (usernameResult.data?.full_name) {
+  if (usernameMatch?.full_name) {
     return new Response(JSON.stringify({
       ok: true,
-      full_name: usernameResult.data.full_name,
-      username: usernameResult.data.username ?? null,
-      admin: usernameResult.data.admin === true || String(usernameResult.data.admin ?? "").toLowerCase() === "true",
+      full_name: usernameMatch.full_name,
+      username: usernameMatch.username ?? null,
+      admin: usernameMatch.admin === true || String(usernameMatch.admin ?? "").toLowerCase() === "true",
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const mailResult = await supabase
+  const { data: mailMatch, error: mailError } = await supabase
     .from("gsi_users")
     .select(fields)
-    .ilike("mail", loginValue)
+    .ilike("mail", requested)
     .limit(1)
     .maybeSingle();
 
-  if (mailResult.error) {
+  if (mailError) {
     return new Response(JSON.stringify({ ok: false, error: "query_error" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -88,9 +89,9 @@ serve(async (req) => {
 
   return new Response(JSON.stringify({
     ok: true,
-    full_name: mailResult.data?.full_name || null,
-    username: mailResult.data?.username || null,
-    admin: mailResult.data?.admin === true || String(mailResult.data?.admin ?? "").toLowerCase() === "true",
+    full_name: mailMatch?.full_name || null,
+    username: mailMatch?.username || null,
+    admin: mailMatch?.admin === true || String(mailMatch?.admin ?? "").toLowerCase() === "true",
   }), {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

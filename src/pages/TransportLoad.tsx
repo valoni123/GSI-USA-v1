@@ -103,6 +103,17 @@ const TransportLoad = () => {
     unit: string;
     matchType: "HU" | "ITEM";
   };
+  type SelectedTransportItem = {
+    TransportID: string;
+    RunNumber: string;
+    Item: string;
+    HandlingUnit: string;
+    Warehouse: string;
+    LocationFrom: string;
+    LocationTo: string;
+    ETag: string;
+    OrderedQuantity?: number | null;
+  };
   const [listItems, setListItems] = useState<LoadedListItem[]>([]);
   const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
   const [moveBackProcessing, setMoveBackProcessing] = useState<boolean>(false);
@@ -120,6 +131,43 @@ const TransportLoad = () => {
   }, [lang]);
   const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
   const openedFromTransportsList = sessionStorage.getItem("transport.load.source") === "transports-list";
+
+  const matchesTransportLine = (
+    row: {
+      TransportID?: string;
+      RunNumber?: string;
+      Item?: string;
+      HandlingUnit?: string;
+      LocationFrom?: string;
+      LocationTo?: string;
+    } | null | undefined,
+    selected: {
+      TransportID?: string;
+      RunNumber?: string;
+      Item?: string;
+      HandlingUnit?: string;
+      LocationFrom?: string;
+      LocationTo?: string;
+    } | null | undefined,
+  ) => {
+    if (!row || !selected) return false;
+
+    const selectedRunNumber = String(selected.RunNumber ?? "").trim();
+    if (selectedRunNumber) {
+      return (
+        String(row.TransportID ?? "") === String(selected.TransportID ?? "") &&
+        String(row.RunNumber ?? "") === selectedRunNumber
+      );
+    }
+
+    return (
+      String(row.TransportID ?? "") === String(selected.TransportID ?? "") &&
+      String(row.HandlingUnit ?? "") === String(selected.HandlingUnit ?? "") &&
+      String(row.Item ?? "") === String(selected.Item ?? "") &&
+      String(row.LocationFrom ?? "") === String(selected.LocationFrom ?? "") &&
+      String(row.LocationTo ?? "") === String(selected.LocationTo ?? "")
+    );
+  };
 
   const goBackFromLoad = () => {
     if (openedFromTransportsList) {
@@ -168,12 +216,87 @@ const TransportLoad = () => {
   }, [openedFromTransportsList]);
 
   useEffect(() => {
+    const rawSelected = sessionStorage.getItem("transport.load.selected-item");
+    if (rawSelected) {
+      sessionStorage.removeItem("transport.load.selected-item");
+      try {
+        const selected = JSON.parse(rawSelected) as SelectedTransportItem;
+        const requestCode = ((selected.HandlingUnit || "").trim() || (selected.Item || "").trim());
+        if (!requestCode) return;
+
+        const nextResult = {
+          TransportID: selected.TransportID,
+          RunNumber: selected.RunNumber,
+          Item: selected.Item,
+          HandlingUnit: selected.HandlingUnit,
+          Warehouse: selected.Warehouse,
+          LocationFrom: selected.LocationFrom,
+          LocationTo: selected.LocationTo,
+          ETag: selected.ETag,
+          OrderedQuantity: selected.OrderedQuantity ?? null,
+        };
+
+        setHandlingUnit(requestCode);
+        setPendingPrefill(null);
+        setResult(nextResult);
+        setLastFetchedHu(requestCode);
+        setEtag(selected.ETag || "");
+        setSelectOpen(false);
+        setSelectItems([]);
+
+        const chosenHU = (selected.HandlingUnit || "").trim();
+        if (chosenHU) {
+          setHuItemLabel("Handling Unit");
+          setLocationRequired(false);
+          void (async () => {
+            const infoRes = await supabase.functions.invoke("ln-handling-unit-info", {
+              body: { handlingUnit: chosenHU, language: locale },
+            });
+            const qtyData = infoRes.data;
+            const qty = qtyData && qtyData.ok ? String(qtyData.quantity ?? "") : "";
+            const unit = qtyData && qtyData.ok ? String(qtyData.unit ?? "") : "";
+            setHuQuantity(qty);
+            setHuUnit(unit);
+            setVehicleEnabled(true);
+            const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+            if (storedVehicle) setVehicleId(storedVehicle);
+            resolvedLoadRef.current = {
+              requestCode,
+              result: nextResult,
+              etag: selected.ETag || "",
+              quantity: qty,
+              unit,
+              matchType: "HU",
+            };
+            setResolvedRequestCode(requestCode);
+          })();
+        } else {
+          setHuItemLabel("Item");
+          setLocationRequired(true);
+          const qty = typeof selected.OrderedQuantity === "number" ? String(selected.OrderedQuantity) : "";
+          setHuQuantity(qty);
+          setHuUnit("");
+          setVehicleEnabled(false);
+          resolvedLoadRef.current = {
+            requestCode,
+            result: nextResult,
+            etag: selected.ETag || "",
+            quantity: qty,
+            unit: "",
+            matchType: "ITEM",
+          };
+          setResolvedRequestCode(requestCode);
+        }
+        return;
+      } catch {}
+    }
+
     const prefill = (sessionStorage.getItem("transport.load.prefill") || "").trim();
     if (!prefill) return;
     sessionStorage.removeItem("transport.load.prefill");
     setHandlingUnit(prefill);
     setPendingPrefill(prefill);
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (!pendingPrefill) return;
@@ -440,10 +563,31 @@ const TransportLoad = () => {
       return;
     }
 
-    const items = (ordData.items || []) as Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity: number | null }>;
-    const first = ordData.first as { TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null;
+    const items = (ordData.items || []) as Array<{
+      TransportID: string;
+      RunNumber: string;
+      Item: string;
+      HandlingUnit: string;
+      Warehouse: string;
+      LocationFrom: string;
+      LocationTo: string;
+      ETag: string;
+      OrderedQuantity: number | null;
+    }>;
+    const first = ordData.first as {
+      TransportID?: string;
+      RunNumber?: string;
+      Item?: string;
+      HandlingUnit?: string;
+      Warehouse?: string;
+      LocationFrom?: string;
+      LocationTo?: string;
+      ETag?: string;
+      OrderedQuantity?: number | null;
+    } | null;
 
-    if ((ordData.count ?? items.length ?? 0) > 1) {
+    const directMatch = items.find((it) => matchesTransportLine(it, result));
+    if ((ordData.count ?? items.length ?? 0) > 1 && !directMatch) {
       setSelectItems(items);
       setLastFetchedHu(requestCode);
       setSelectOpen(true);
@@ -451,7 +595,7 @@ const TransportLoad = () => {
       return;
     }
 
-    const nextResult = first || null;
+    const nextResult = directMatch || first || null;
     setResult(nextResult);
     setLastFetchedHu(requestCode);
     const etagValue = nextResult && typeof nextResult.ETag === "string" ? nextResult.ETag : "";
@@ -654,10 +798,7 @@ const TransportLoad = () => {
     }
 
     const orderItems = Array.isArray(ordData.items) ? ordData.items : [];
-    const resolvedItem = orderItems.find((row: any) =>
-      String(row?.TransportID ?? "") === String(currentResolved.result.TransportID ?? "") &&
-      String(row?.RunNumber ?? "") === String(currentResolved.result.RunNumber ?? "")
-    );
+    const resolvedItem = orderItems.find((row: any) => matchesTransportLine(row, currentResolved.result));
     const refreshedResult = (resolvedItem || ordData.first || null) as NonNullable<typeof result> | null;
     if (!refreshedResult) {
       dismissToast(verifyTid as unknown as string);
@@ -899,7 +1040,7 @@ const TransportLoad = () => {
               variant="outline"
               className={canAdjustPermission
                 ? "h-12 w-12 shrink-0 border-orange-300 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:opacity-50"
-                : "h-12 w-12 shrink-0 border-gray-300 bg-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-500 disabled:opacity-100"}
+                : "h-12 w-12 shrink-0 border-gray-300 bg-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-500 disabled:opacity-100" }
               disabled={!canAdjust}
               onClick={() => setConfirmAdjustOpen(true)}
               aria-label={trans.adjustAction}
