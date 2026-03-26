@@ -79,6 +79,7 @@ type TranslationKeys =
   | "huOrItemLabel"
   | "loadedUpperLabel"
   | "loadVehicleId"
+  | "remarkLabel"
   | "detailsLabel"
   | "checkingHandlingUnit"
   | "huNotFound"
@@ -233,6 +234,7 @@ const translations: Translations = {
     huOrItemLabel: "HU / Item",
     loadedUpperLabel: "LOADED",
     loadVehicleId: "Vehicle ID",
+    remarkLabel: "Remark",
     detailsLabel: "Details",
     checkingHandlingUnit: "Checking handling unit…",
     huNotFound: "Handling Unit / Item not found in any transport order.",
@@ -382,6 +384,7 @@ const translations: Translations = {
     huOrItemLabel: "LE / Artikel",
     loadedUpperLabel: "GELADEN",
     loadVehicleId: "Fahrzeug ID",
+    remarkLabel: "Bemerkung",
     detailsLabel: "Details",
     checkingHandlingUnit: "Ladeeinheit wird geprüft…",
     huNotFound: "Ladeeinheit in keinem Transportauftrag gefunden.",
@@ -531,6 +534,7 @@ const translations: Translations = {
     huOrItemLabel: "UH / Artículo",
     loadedUpperLabel: "CARGADOS",
     loadVehicleId: "ID del vehículo",
+    remarkLabel: "Observación",
     detailsLabel: "Detalles",
     checkingHandlingUnit: "Verificando unidad de manejo…",
     huNotFound: "Unidad de manejo no encontrada en ninguna orden de transporte.",
@@ -680,6 +684,7 @@ const translations: Translations = {
     huOrItemLabel: "UM / Item",
     loadedUpperLabel: "CARREGADOS",
     loadVehicleId: "ID do veículo",
+    remarkLabel: "Observação",
     detailsLabel: "Detalhes",
     checkingHandlingUnit: "Verificando unidade de manuseio…",
     huNotFound: "Unidade de manuseio não encontrada em nenhuma ordem de transporte.",

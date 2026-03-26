@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut, User, RotateCcw, Eraser } from "lucide-react";
+import { ArrowLeft, LogOut, User, RotateCcw, Eraser, Info } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import HelpMenu from "@/components/HelpMenu";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -128,6 +129,7 @@ const TransportLoad = () => {
   }, [lang]);
   const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
   const openedFromTransportsList = sessionStorage.getItem("transport.load.source") === "transports-list";
+  const transportRemark = (result?.Remark || "").trim();
 
   const matchesTransportLine = (
     row: {
@@ -1032,13 +1034,22 @@ const TransportLoad = () => {
             />
           )}
 
-          {openedFromTransportsList && result && (
-            <FloatingLabelInput
-              id="transportRemark"
-              label={trans.detailsLabel}
-              value={result.Remark || ""}
-              readOnly
-            />
+          {openedFromTransportsList && result && transportRemark && (
+            <div className="relative">
+              <Input
+                id="transportRemark"
+                value={transportRemark}
+                readOnly
+                className="peer h-12 border-2 border-blue-400 bg-blue-50 pl-10 pr-3 text-base text-blue-900 focus-visible:ring-blue-400"
+              />
+              <label
+                htmlFor="transportRemark"
+                className="pointer-events-none absolute left-3 -top-3 rounded-sm bg-white px-1 text-xs text-blue-700"
+              >
+                {trans.remarkLabel}
+              </label>
+              <Info className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-600" />
+            </div>
           )}
 
           <FloatingLabelInput
