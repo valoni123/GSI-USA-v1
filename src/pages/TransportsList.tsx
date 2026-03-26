@@ -245,6 +245,13 @@ const TransportsList = () => {
     }, 5000);
 
     await fetchLoadedList();
+
+    if (loadedListSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(loadedListSpinnerTimeoutRef.current);
+      loadedListSpinnerTimeoutRef.current = null;
+    }
+
+    setListLoading(false);
   };
 
   const onGetClick = async () => {
