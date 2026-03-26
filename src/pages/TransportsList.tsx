@@ -18,6 +18,12 @@ const cleanValue = (value: string) => {
   return trimmed || "-";
 };
 
+const formatFromWithWarehouse = (locationFrom: string, warehouse: string) => {
+  const locationText = cleanValue(locationFrom);
+  const warehouseText = (warehouse || "").trim();
+  return warehouseText ? `${locationText} (${warehouseText})` : locationText;
+};
+
 type PlanningItem = {
   TransportID: string;
   RunNumber: string;
@@ -557,7 +563,7 @@ const TransportsList = () => {
 
                   <div className="min-w-0 truncate text-sm leading-5 text-gray-700">
                     <span className="text-gray-500">{trans.fromLabel}:</span>{" "}
-                    <span className="font-medium text-gray-800">{cleanValue(it.LocationFrom)}</span>
+                    <span className="font-medium text-gray-800">{formatFromWithWarehouse(it.LocationFrom, it.Warehouse)}</span>
                   </div>
                   <div className="min-w-0 truncate text-sm leading-5 text-gray-700">
                     <span className="text-gray-500">{trans.quantityLabel}:</span>{" "}
