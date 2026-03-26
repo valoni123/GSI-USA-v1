@@ -350,7 +350,7 @@ const InfoStockCorrection = () => {
     searchingSpinnerTimeoutRef.current = window.setTimeout(() => {
       setSearching(false);
       searchingSpinnerTimeoutRef.current = null;
-    }, 10000);
+    }, 7000);
   };
 
   const stopSearching = () => {
