@@ -42,6 +42,7 @@ serve(async (req) => {
       transportId?: string;
       loaded?: string;
       movedBack?: string;
+      unloaded?: string;
       loginCode?: string;
       employee?: string;
       language?: string;
@@ -68,6 +69,7 @@ serve(async (req) => {
     const transportId = (body.transportId || "").trim();
     const loaded = (body.loaded || "").trim();
     const movedBack = (body.movedBack || "").trim();
+    const unloaded = (body.unloaded || "").trim();
     const employee = (body.employee || "").trim();
     const loginCode = (body.loginCode || employee).trim();
     const language = body.language || "de-DE";
@@ -186,6 +188,9 @@ serve(async (req) => {
     }
     if (movedBack) {
       movementBody.MovedBack = movedBack;
+    }
+    if (unloaded) {
+      movementBody.Unloaded = unloaded;
     }
     if (handlingUnit) {
       movementBody.HandlingUnit = handlingUnit;

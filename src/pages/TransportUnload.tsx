@@ -233,14 +233,15 @@ const TransportUnload = () => {
       fromLocation: hu ? (it.LocationFrom || "").trim() : vehicleId,
       toWarehouse: (it.Warehouse || "").trim(),
       toLocation: targetLocation,
+      transportId: (it.TransportID || "").trim(),
+      loginCode: employeeCode,
       employee: employeeCode,
+      unloaded: "Yes",
       language: locale,
       company: "1100",
     };
 
-    // For item-only moves, include item and OrderedQuantity
     if (!hu) {
-      // IMPORTANT: Do NOT trim the item; LN expects 9 leading spaces
       const item = (it.Item ?? "");
       const rawQty = (it.OrderedQuantity as unknown) as string | number | undefined;
       const qty =
@@ -277,36 +278,9 @@ const TransportUnload = () => {
         topLower.includes("tibde0140.05");
 
       if (attempt < MAX_UNLOAD_RETRY && isQtyTimingIssue) {
-        // Removed delay; retry immediately
         return unloadSingle(it, attempt + 1, targetLocationOverride);
       }
 
-      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
-      showError(message);
-      return false;
-    }
-
-    // After successful move, PATCH the TransportOrder: Completed='Yes', clear VehicleID and set LocationDevice to ToLocation
-    const patchTid = showLoading(trans.updatingTransportOrder);
-    const toLoc = targetLocation;
-    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
-      body: {
-        transportId: (it.TransportID || "").trim(),
-        runNumber: (it.RunNumber || "").trim(),
-        etag: (it.ETag || "").trim(),
-        vehicleId: "",
-        locationDevice: toLoc,
-        completed: "Yes",
-        language: locale,
-        company: "1100",
-      },
-    });
-
-    dismissToast(patchTid as unknown as string);
-    if (patchErr || !patchData || !patchData.ok) {
-      const err = (patchData && patchData.error) || patchErr;
-      const top = err?.message || "Unbekannter Fehler";
-      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
       showError(message);
       return false;
@@ -322,19 +296,14 @@ const TransportUnload = () => {
     for (const it of items) {
       const ok = await unloadSingle(it, 1, targetLocation);
       if (!ok) {
-        break; // Stop on first error
+        break;
       }
       successCount += 1;
-      // Removed pacing delay; proceed immediately to next item
     }
-    if (successCount > 0) {
+    if (successCount === items.length) {
       showSuccess(`${trans.unloadedSuccessfully} (${successCount})`);
-      await fetchLoaded();
-      const nextCount = await fetchCount(); // refresh via REST after UNLOAD
-      if (nextCount === 0) {
-        navigate("/menu/transports/list");
-        return;
-      }
+      navigate("/menu/transports/list");
+      return;
     }
     setProcessing(false);
   };
@@ -369,12 +338,8 @@ const TransportUnload = () => {
       const ok = await unloadSingle(singleItem, 1, scanned);
       if (ok) {
         showSuccess(trans.unloadedSuccessfully);
-        await fetchLoaded();
-        const nextCount = await fetchCount();
-        if (nextCount === 0) {
-          navigate("/menu/transports/list");
-          return;
-        }
+        navigate("/menu/transports/list");
+        return;
       }
       setProcessing(false);
       return;
@@ -409,10 +374,6 @@ const TransportUnload = () => {
               >
                 {trans.transportUnload}
               </button>
-              <span className="bg-red-700 text-white rounded-md h-5 px-2 min-w-[20px] inline-flex items-center justify-center text-xs font-bold">
-
-                {loadedCount}
-              </span>
             </div>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
               <User className="h-4 w-4" />
