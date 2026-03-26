@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
-import { showSuccess } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 
 type TransportLineLoadState = {
   prefillValue?: string;
@@ -79,6 +79,9 @@ const TransportLineLoad = () => {
     sessionStorage.removeItem("transport.line.load.vehicle");
   }, [routeState]);
 
+  const expectedScanValue = locationFrom.trim();
+  const scanMatches = locationFromScan.trim() === expectedScanValue && expectedScanValue.length > 0;
+
   const handleAdjust = () => {
     if (!canAdjust) return;
     const value = transportValue.trim();
@@ -100,6 +103,17 @@ const TransportLineLoad = () => {
         },
       },
     });
+  };
+
+  const handleScanMismatch = () => {
+    const scannedValue = locationFromScan.trim();
+    if (!scannedValue || scanMatches) return;
+    showError("it doesnt match");
+  };
+
+  const handleLoadClick = () => {
+    if (scanMatches) return;
+    showError("it doesnt match");
   };
 
   const onConfirmSignOut = () => {
@@ -196,6 +210,7 @@ const TransportLineLoad = () => {
             label={handlingUnit.trim() ? "Handling Unit" : "Location From"}
             value={locationFromScan}
             onChange={(e) => setLocationFromScan(e.target.value)}
+            onBlur={handleScanMismatch}
             autoFocus
             className="border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500"
           />
@@ -216,6 +231,15 @@ const TransportLineLoad = () => {
               ) : null}
             </div>
           </div>
+
+          <Button
+            type="button"
+            className="w-full bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+            disabled={!scanMatches}
+            onClick={handleLoadClick}
+          >
+            LOAD
+          </Button>
         </Card>
       </div>
 
