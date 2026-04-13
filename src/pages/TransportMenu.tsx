@@ -94,6 +94,7 @@ const TransportMenu = () => {
     LocationTo: string;
     Warehouse: string;
     TransportID: string;
+    RunNumber: string;
     ETag: string;
     Item?: string;
     OrderedQuantity?: number | string | null;
@@ -148,6 +149,7 @@ const TransportMenu = () => {
             LocationTo: String(v?.LocationTo ?? ""),
             Warehouse: String(v?.Warehouse ?? ""),
             TransportID: String(v?.TransportID ?? ""),
+            RunNumber: String(v?.RunNumber ?? ""),
             ETag: String(v?.ETag ?? ""),
             Item: v?.Item ?? "",
             OrderedQuantity: v?.OrderedQuantity ?? null,
@@ -164,7 +166,7 @@ const TransportMenu = () => {
     }
   };
 
-  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.HandlingUnit || it.Item || it.LocationFrom}`;
+  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit || it.Item || it.LocationFrom}`;
 
   const onMoveBack = async (it: LoadedListItem) => {
     const key = moveBackKey(it);
@@ -177,6 +179,7 @@ const TransportMenu = () => {
       Warehouse: (it.Warehouse || "").trim(),
       LocationFrom: (it.LocationFrom || "").trim(),
       TransportID: (it.TransportID || "").trim(),
+      RunNumber: (it.RunNumber || "").trim(),
       ETag: (it.ETag || "").trim(),
       OrderedQuantity: it.OrderedQuantity,
     };
@@ -245,6 +248,7 @@ const TransportMenu = () => {
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: currentItem.TransportID,
+        runNumber: currentItem.RunNumber,
         etag: currentItem.ETag,
         vehicleId: "",
         language: "en-US",

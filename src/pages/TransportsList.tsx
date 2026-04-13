@@ -38,6 +38,7 @@ type LoadedListItem = {
   LocationTo: string;
   Warehouse: string;
   TransportID: string;
+  RunNumber: string;
   ETag: string;
   OrderedQuantity?: number | string | null;
 };
@@ -191,6 +192,7 @@ const TransportsList = () => {
             LocationTo: String(v?.LocationTo ?? ""),
             Warehouse: String(v?.Warehouse ?? ""),
             TransportID: String(v?.TransportID ?? ""),
+            RunNumber: String(v?.RunNumber ?? ""),
             ETag: String(v?.ETag ?? ""),
             OrderedQuantity: v?.OrderedQuantity ?? null,
           })) as LoadedListItem[]
@@ -331,7 +333,7 @@ const TransportsList = () => {
     });
   };
 
-  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.HandlingUnit || it.Item || it.LocationFrom}`;
+  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`;
 
   const onMoveBack = async (it: LoadedListItem, targetLocationOverride?: string) => {
     if (!canLoadTransport) return;
@@ -344,6 +346,7 @@ const TransportsList = () => {
       Warehouse: (it.Warehouse || "").trim(),
       LocationFrom: (it.LocationFrom || "").trim(),
       TransportID: (it.TransportID || "").trim(),
+      RunNumber: (it.RunNumber || "").trim(),
       ETag: (it.ETag || "").trim(),
       OrderedQuantity: it.OrderedQuantity ?? null,
     };
@@ -623,7 +626,7 @@ const TransportsList = () => {
                 loadedItems.map((it, idx) => {
                   const key = moveBackKey(it);
                   return (
-                    <div key={`${it.TransportID}-${it.HandlingUnit || it.Item || idx}`}>
+                    <div key={`${it.TransportID}-${it.RunNumber}-${idx}`}>
                       <div className="rounded-md bg-gray-100/80 px-3 py-2 shadow-sm">
                         <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)_40px] gap-2 items-center text-xs">
                           <div className="truncate">
