@@ -19,7 +19,7 @@ const cleanValue = (value: string) => {
 };
 
 type PlanningItem = {
-
+  PlanningGroupTransport?: string;
   TransportID: string;
   TransportType: string;
   Item: string;
@@ -27,8 +27,11 @@ type PlanningItem = {
   Warehouse: string;
   LocationFrom: string;
   LocationTo: string;
+  Remark?: string;
   OrderedQuantity?: number | string | null;
   OrderUnit?: string | null;
+  ETag?: string;
+  ODataId?: string;
 };
 
 type LoadedListItem = {
@@ -118,7 +121,7 @@ const TransportsList = () => {
     });
 
     const { data } = await supabase.functions.invoke("ln-transports-list", {
-      body: { vehicleId: selectedVehicleId, language: locale, nextPageUrl },
+      body: { vehicleId: selectedVehicleId, language: locale, nextPageUrl, company: "1100" },
     });
 
     if (data && data.ok) {

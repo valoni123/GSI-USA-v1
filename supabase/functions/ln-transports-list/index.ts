@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { getCompanyFromParams } from "../_shared/company.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,7 +36,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { vehicleId?: string; language?: string; nextPageUrl?: string } = {};
+    let body: { vehicleId?: string; language?: string; nextPageUrl?: string; company?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -47,7 +46,8 @@ serve(async (req) => {
     const vehicleId = (body.vehicleId || "").trim();
     const language = body.language || "en-US";
     const nextPageUrl = (body.nextPageUrl || "").trim();
-    console.log("[ln-transports-list] request payload", { vehicleId, language, nextPageUrl });
+    const company = (body.company || "1100").trim() || "1100";
+    console.log("[ln-transports-list] request payload", { vehicleId, language, nextPageUrl, company });
     if (!vehicleId && !nextPageUrl) {
       return json({ ok: false, error: "missing_vehicle" }, 200);
     }
@@ -58,8 +58,6 @@ serve(async (req) => {
       return json({ ok: false, error: "env_missing" }, 200);
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-    const company = await getCompanyFromParams(supabase);
 
     const { data: cfgData, error: cfgErr } = await supabase.rpc("get_active_ionapi");
     if (cfgErr) return json({ ok: false, error: "config_error" }, 200);
@@ -116,7 +114,7 @@ serve(async (req) => {
       }
       const escapedVehicle = vehicleId.replace(/'/g, "''");
       const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq ''`;
-      const selectFields = "TransportID,TransportType,Item,HandlingUnit,Warehouse,LocationFrom,LocationTo,OrderedQuantity,OrderUnit";
+      const selectFields = "TransportID,TransportType,Item,HandlingUnit,Warehouse,LocationFrom,LocationTo,Remark,OrderedQuantity,OrderUnit";
       return `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
     })();
 
@@ -144,6 +142,7 @@ serve(async (req) => {
     const pageItems = Array.isArray(odataJson.value) ? odataJson.value : [];
 
     const items = pageItems.map((v: any) => ({
+      PlanningGroupTransport: v?.PlanningGroupTransport ?? "",
       TransportID: v?.TransportID ?? "",
       TransportType: v?.TransportType ?? "",
       Item: v?.Item ?? "",
@@ -151,8 +150,11 @@ serve(async (req) => {
       Warehouse: v?.Warehouse ?? "",
       LocationFrom: v?.LocationFrom ?? "",
       LocationTo: v?.LocationTo ?? "",
+      Remark: v?.Remark ?? "",
       OrderedQuantity: v?.OrderedQuantity ?? null,
       OrderUnit: v?.OrderUnit ?? "",
+      ETag: v?.["@odata.etag"] ?? "",
+      ODataId: v?.["@odata.id"] ?? "",
     }));
 
     return json({ ok: true, count, items, nextPageUrl: resolvedNextPageUrl }, 200);

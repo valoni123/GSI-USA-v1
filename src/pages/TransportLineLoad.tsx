@@ -348,9 +348,6 @@ const TransportLineLoad = () => {
               <span className="font-semibold text-gray-700">Item:</span>
               <span className="break-all text-gray-900">{displayValue(item)}</span>
 
-              <span className="font-semibold text-gray-700">{trans.warehouseLabel}:</span>
-              <span className="break-all text-gray-900">{displayValue(warehouse)}</span>
-
               <span className="font-semibold text-gray-700">{trans.quantityLabel}:</span>
               <span className="break-all text-gray-900">{displayQuantity(orderedQuantity, orderUnit)}</span>
 
