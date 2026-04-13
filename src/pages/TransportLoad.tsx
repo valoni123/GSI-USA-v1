@@ -70,17 +70,19 @@ const TransportLoad = () => {
   const [vehicleId, setVehicleId] = useState<string>("");
   const [vehicleEnabled, setVehicleEnabled] = useState<boolean>(false);
   const [confirmHandlingUnit, setConfirmHandlingUnit] = useState<string>("");
-  const [result, setResult] = useState<{ TransportID?: string; RunNumber?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null>(null);
+  const [result, setResult] = useState<{ TransportID?: string; Item?: string; HandlingUnit?: string; Warehouse?: string; LocationFrom?: string; LocationTo?: string; ETag?: string; OrderedQuantity?: number | null } | null>(null);
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
+
   const [huItemLabel, setHuItemLabel] = useState<string>("Handling Unit / Item");
   const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
   const [etag, setEtag] = useState<string>("");
   const [selectOpen, setSelectOpen] = useState<boolean>(false);
-  const [selectItems, setSelectItems] = useState<Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity: number | null }>>([]);
+  const [selectItems, setSelectItems] = useState<Array<{ TransportID: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; ETag: string; OrderedQuantity: number | null }>>([]);
   const [locationScan, setLocationScan] = useState<string>("");
+
   const [locationRequired, setLocationRequired] = useState<boolean>(false);
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [listOpen, setListOpen] = useState<boolean>(false);
@@ -91,10 +93,10 @@ const TransportLoad = () => {
     LocationTo: string;
     Warehouse: string;
     TransportID: string;
-    RunNumber: string;
     ETag: string;
     OrderedQuantity?: number | string | null;
   };
+
   type ResolvedLoadData = {
     requestCode: string;
     result: NonNullable<typeof result>;
@@ -105,7 +107,6 @@ const TransportLoad = () => {
   };
   type SelectedTransportItem = {
     TransportID: string;
-    RunNumber: string;
     Item: string;
     HandlingUnit: string;
     Warehouse: string;
@@ -114,6 +115,7 @@ const TransportLoad = () => {
     ETag: string;
     OrderedQuantity?: number | null;
   };
+
   const [listItems, setListItems] = useState<LoadedListItem[]>([]);
   const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
   const [moveBackProcessing, setMoveBackProcessing] = useState<boolean>(false);
@@ -135,7 +137,6 @@ const TransportLoad = () => {
   const matchesTransportLine = (
     row: {
       TransportID?: string;
-      RunNumber?: string;
       Item?: string;
       HandlingUnit?: string;
       LocationFrom?: string;
@@ -143,7 +144,6 @@ const TransportLoad = () => {
     } | null | undefined,
     selected: {
       TransportID?: string;
-      RunNumber?: string;
       Item?: string;
       HandlingUnit?: string;
       LocationFrom?: string;
@@ -151,14 +151,6 @@ const TransportLoad = () => {
     } | null | undefined,
   ) => {
     if (!row || !selected) return false;
-
-    const selectedRunNumber = String(selected.RunNumber ?? "").trim();
-    if (selectedRunNumber) {
-      return (
-        String(row.TransportID ?? "") === String(selected.TransportID ?? "") &&
-        String(row.RunNumber ?? "") === selectedRunNumber
-      );
-    }
 
     return (
       String(row.TransportID ?? "") === String(selected.TransportID ?? "") &&
@@ -226,7 +218,6 @@ const TransportLoad = () => {
 
         const nextResult = {
           TransportID: selected.TransportID,
-          RunNumber: selected.RunNumber,
           Item: selected.Item,
           HandlingUnit: selected.HandlingUnit,
           Warehouse: selected.Warehouse,
@@ -354,11 +345,11 @@ const TransportLoad = () => {
             LocationTo: String(v?.LocationTo ?? ""),
             Warehouse: String(v?.Warehouse ?? ""),
             TransportID: String(v?.TransportID ?? ""),
-            RunNumber: String(v?.RunNumber ?? ""),
             ETag: String(v?.ETag ?? ""),
             OrderedQuantity: v?.OrderedQuantity ?? null,
           })) as LoadedListItem[]
         : [];
+
       setListItems(items);
       const next = Number(data.count ?? items.length ?? 0);
       setLoadedCount(next);
@@ -381,7 +372,7 @@ const TransportLoad = () => {
     } catch {}
   };
 
-  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit || it.Item}`;
+  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.HandlingUnit || it.Item || it.LocationFrom}`;
 
   const onMoveBack = async (it: LoadedListItem, targetLocationOverride?: string) => {
     const key = moveBackKey(it);
@@ -393,10 +384,10 @@ const TransportLoad = () => {
       Warehouse: (it.Warehouse || "").trim(),
       LocationFrom: (it.LocationFrom || "").trim(),
       TransportID: (it.TransportID || "").trim(),
-      RunNumber: (it.RunNumber || "").trim(),
       ETag: (it.ETag || "").trim(),
       OrderedQuantity: it.OrderedQuantity,
     };
+
     setMovingBackMap((m) => ({ ...m, [key]: true }));
     setMoveBackProcessing(true);
 
@@ -467,13 +458,13 @@ const TransportLoad = () => {
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: currentItem.TransportID,
-        runNumber: currentItem.RunNumber,
         etag: currentItem.ETag,
         vehicleId: "",
         language: locale,
         company: "1100",
       },
     });
+
     dismissToast(tid as unknown as string);
     if (moveBackRequestIdRef.current !== requestId) {
       setMovingBackMap((m) => ({ ...m, [key]: false }));
@@ -565,7 +556,6 @@ const TransportLoad = () => {
 
     const items = (ordData.items || []) as Array<{
       TransportID: string;
-      RunNumber: string;
       Item: string;
       HandlingUnit: string;
       Warehouse: string;
@@ -576,7 +566,6 @@ const TransportLoad = () => {
     }>;
     const first = ordData.first as {
       TransportID?: string;
-      RunNumber?: string;
       Item?: string;
       HandlingUnit?: string;
       Warehouse?: string;
@@ -888,13 +877,13 @@ const TransportLoad = () => {
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
         transportId: (refreshedResult.TransportID || "").trim(),
-        runNumber: (refreshedResult.RunNumber || "").trim(),
         etag: refreshedEtag,
         vehicleId: snapVehicleId,
         language: snapLocale,
         company: "1100",
       },
     });
+
     dismissToast(patchTid as unknown as string);
     if (loadRequestIdRef.current !== requestId) {
       setProcessing(false);
@@ -1328,7 +1317,8 @@ const TransportLoad = () => {
                 <div className="text-xs text-muted-foreground px-1">{trans.noEntries}</div>
               ) : (
                 listItems.map((it, idx) => (
-                  <div key={`${it.TransportID}-${it.RunNumber}-${idx}`}>
+                  <div key={`${it.TransportID}-${it.HandlingUnit || it.Item || idx}`}>
+
                     <div className="rounded-md bg-gray-100/80 px-3 py-2 shadow-sm">
                       <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center text-xs">
                         <div className="break-all">{it.HandlingUnit || "-"}</div>
@@ -1341,7 +1331,8 @@ const TransportLoad = () => {
                             onClick={() => {
                               openMoveBackDialog(it);
                             }}
-                            disabled={moveBackProcessing || Boolean(movingBackMap[`${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`])}
+                            disabled={moveBackProcessing || Boolean(movingBackMap[`${it.TransportID}::${it.HandlingUnit || it.Item || it.LocationFrom}`])}
+
                             aria-label="Move back"
                           >
                             <RotateCcw className="h-4 w-4" />
@@ -1383,7 +1374,6 @@ const TransportLoad = () => {
                       const chosenHU = (it.HandlingUnit || "").trim();
                       const nextResult = {
                         TransportID: it.TransportID,
-                        RunNumber: it.RunNumber,
                         Item: it.Item,
                         HandlingUnit: it.HandlingUnit,
                         Warehouse: it.Warehouse,
@@ -1392,6 +1382,7 @@ const TransportLoad = () => {
                         ETag: it.ETag,
                         OrderedQuantity: it.OrderedQuantity,
                       };
+
                       setResult(nextResult);
                       setLastFetchedHu(currentInput);
                       setEtag(it.ETag || "");

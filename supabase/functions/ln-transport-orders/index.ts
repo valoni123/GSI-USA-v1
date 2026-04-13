@@ -81,7 +81,6 @@ serve(async (req) => {
       ` or endswith(HandlingUnit,'${escTrim}') or endswith(Item,'${escTrim}'))`;
     const selectFields = [
       "TransportID",
-      "RunNumber",
       "Item",
       "HandlingUnit",
       "Warehouse",
@@ -125,7 +124,6 @@ serve(async (req) => {
     const count = odataJson["@odata.count"] ?? arr.length;
     const mapItem = (v: any) => ({
       TransportID: v?.TransportID ?? "",
-      RunNumber: v?.RunNumber ?? "",
       Item: v?.Item ?? "",
       HandlingUnit: v?.HandlingUnit ?? "",
       Warehouse: v?.Warehouse ?? "",

@@ -36,7 +36,6 @@ serve(async (req) => {
       locationDevice?: string;
       completed?: string;
       language?: string;
-      runNumber?: string;
     } = {};
     try {
       body = await req.json();
@@ -45,7 +44,6 @@ serve(async (req) => {
     }
 
     const transportId = (body.transportId || "").trim();
-    const runNumber = (body.runNumber || "").trim();
     const etag = (body.etag || "").trim();
     const vehicleId = body.vehicleId === undefined ? undefined : (body.vehicleId || "").trim();
     const locationDevice = body.locationDevice === undefined ? undefined : (body.locationDevice || "").trim();
@@ -122,11 +120,7 @@ serve(async (req) => {
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const encodedId = transportId.replace(/'/g, "''");
-    const encodedRun = runNumber.replace(/'/g, "''");
-    const keyPart = runNumber
-      ? `TransportID='${encodedId}',RunNumber='${encodedRun}'`
-      : `TransportID='${encodedId}'`;
-    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders(${keyPart})?$select=*`;
+    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders(TransportID='${encodedId}')?$select=*`;
     const url = `${base}${path}`;
 
     const patchBody: Record<string, unknown> = {};

@@ -22,7 +22,6 @@ import ScreenSpinner from "@/components/ScreenSpinner";
 
 type LoadedItem = {
   TransportID?: string;
-  RunNumber?: string;
   HandlingUnit: string;
   Item: string;
   LocationFrom: string;
