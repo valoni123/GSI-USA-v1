@@ -90,9 +90,9 @@ serve(async (req) => {
     const accessToken = tokenJson.access_token as string;
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders`;
+    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
     const filter = `VehicleID eq '${vehicleId.replace(/'/g, "''")}'`;
-    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=TransportID,RunNumber,HandlingUnit,Item,LocationFrom,LocationTo,Warehouse,OrderedQuantity`;
+    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=TransportID,HandlingUnit,Item,LocationFrom,LocationTo,Warehouse,OrderedQuantity,OrderUnit`;
 
     const odataRes = await fetch(url, {
       method: "GET",
@@ -115,13 +115,13 @@ serve(async (req) => {
     const items = Array.isArray(odataJson.value)
       ? odataJson.value.map((v: any) => ({
           TransportID: v?.TransportID ?? "",
-          RunNumber: v?.RunNumber ?? "",
+          RunNumber: "",
           HandlingUnit: v?.HandlingUnit ?? "",
           Item: v?.Item ?? "",
           LocationFrom: v?.LocationFrom ?? "",
           LocationTo: v?.LocationTo ?? "",
           Warehouse: v?.Warehouse ?? "",
-          ETag: v?.["@odata.etag"] ?? "",
+          ETag: "",
           OrderedQuantity: v?.OrderedQuantity ?? "",
         }))
       : [];
