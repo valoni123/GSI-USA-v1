@@ -119,7 +119,7 @@ serve(async (req) => {
 
     // OData URL
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
+    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders`;
     const filter = `VehicleID eq '${vehicleId.replace(/'/g, "''")}'`;
     const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=TransportID`;
 
