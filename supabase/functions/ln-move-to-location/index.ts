@@ -163,10 +163,11 @@ serve(async (req) => {
 
     // Build LN OData URL
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/GSITransfers`;
+    const path = `/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/GSITransfer`;
     const url = `${base}${path}?$select=TransferID`;
 
     // Request body for movement (send either HandlingUnit OR Item+Quantity)
+
     const movementBody: Record<string, unknown> = {
       TransferID: transferId,
       FromWarehouse: fromWarehouse,
