@@ -40,7 +40,7 @@ serve(async (req) => {
       transactionId?: string;
       sequenceNumber?: number;
       fromWebservice?: string;
-      extOrderNumber?: string | number;
+      extOrderNumber?: string;
     };
 
     const language = body.language || "en-US";
@@ -63,8 +63,7 @@ serve(async (req) => {
     const transactionId = (body.transactionId || "").toString();
     const sequenceNumber = Number.isFinite(Number(body.sequenceNumber)) ? Number(body.sequenceNumber) : 0;
     const fromWebservice = (body.fromWebservice || "Yes").toString() || "Yes";
-    const extOrderNumberRaw = typeof body.extOrderNumber === "number" ? body.extOrderNumber : Number((body.extOrderNumber || "").toString().trim());
-    const extOrderNumber = Number.isFinite(extOrderNumberRaw) ? extOrderNumberRaw : null;
+    const extOrderNumber = (body.extOrderNumber || "").toString().trim();
     const isHuAdjustment = Boolean(handlingUnit);
 
     if (!reason || !loginCode || !employee || !Number.isFinite(deviation)) {
