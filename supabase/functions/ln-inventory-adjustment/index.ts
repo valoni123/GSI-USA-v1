@@ -40,7 +40,7 @@ serve(async (req) => {
       transactionId?: string;
       sequenceNumber?: number;
       fromWebservice?: string;
-      extOrderNumber?: string;
+      extOrderNumber?: string | number;
     };
 
     const language = body.language || "en-US";
@@ -63,7 +63,8 @@ serve(async (req) => {
     const transactionId = (body.transactionId || "").toString();
     const sequenceNumber = Number.isFinite(Number(body.sequenceNumber)) ? Number(body.sequenceNumber) : 0;
     const fromWebservice = (body.fromWebservice || "Yes").toString() || "Yes";
-    const extOrderNumber = (body.extOrderNumber || "").toString().trim();
+    const extOrderNumberRaw = typeof body.extOrderNumber === "number" ? body.extOrderNumber : Number((body.extOrderNumber || "").toString().trim());
+    const extOrderNumber = Number.isFinite(extOrderNumberRaw) ? extOrderNumberRaw : null;
     const isHuAdjustment = Boolean(handlingUnit);
 
     if (!reason || !loginCode || !employee || !Number.isFinite(deviation)) {
@@ -117,7 +118,7 @@ serve(async (req) => {
           LoginCode: loginCode,
           Employee: employee,
           FromWebservice: fromWebservice,
-          ...(extOrderNumber ? { ExtOrderNumber: extOrderNumber } : {}),
+          ...(extOrderNumber !== null ? { ExtOrderNumber: extOrderNumber } : {}),
         }
       : {
           TransactionID: transactionId,
@@ -131,7 +132,7 @@ serve(async (req) => {
           LoginCode: loginCode,
           Employee: employee,
           FromWebservice: fromWebservice,
-          ...(extOrderNumber ? { ExtOrderNumber: extOrderNumber } : {}),
+          ...(extOrderNumber !== null ? { ExtOrderNumber: extOrderNumber } : {}),
         };
 
     console.log("[ln-inventory-adjustment] posting adjustment", {
