@@ -6,6 +6,15 @@ import ScreenSpinner from "@/components/ScreenSpinner";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Input } from "@/components/ui/input";
@@ -64,6 +73,7 @@ const InfoStockCorrection = () => {
   const submitQuantityRef = useRef<HTMLInputElement | null>(null);
   const searchingSpinnerTimeoutRef = useRef<number | null>(null);
   const transferringSpinnerTimeoutRef = useRef<number | null>(null);
+  const pendingReturnTargetRef = useRef<{ path: string; state?: unknown } | null>(null);
 
   // First input + dynamic label/description
   const [query, setQuery] = useState<string>("");
@@ -340,6 +350,8 @@ const InfoStockCorrection = () => {
   // Searching flags (used in canTransfer)
   const [searching, setSearching] = useState<boolean>(false);
   const [transferring, setTransferring] = useState<boolean>(false);
+  const [alternativeDialogOpen, setAlternativeDialogOpen] = useState(false);
+  const [alternativeDialogMessage, setAlternativeDialogMessage] = useState("");
 
   const startSearching = () => {
     setSearching(true);
@@ -682,6 +694,43 @@ const InfoStockCorrection = () => {
     huRef.current?.focus();
   };
 
+  const finishSubmitFlow = (returnTo?: { path?: string; state?: unknown } | null) => {
+    const returnPath = typeof returnTo?.path === "string" ? returnTo.path : "";
+    const returnState = returnTo?.state;
+
+    if (returnPath === "/menu/transport/load") {
+      const typedReturnState = returnState as { prefillHandlingUnit?: string; transportLoadSource?: string } | undefined;
+      const prefillHandlingUnit = (typedReturnState?.prefillHandlingUnit || query || handlingUnit || item || "").trim();
+      if (prefillHandlingUnit) {
+        sessionStorage.setItem("transport.load.prefill", prefillHandlingUnit);
+      }
+
+      if (typedReturnState?.transportLoadSource === "transports-list") {
+        sessionStorage.setItem("transport.load.source", "transports-list");
+      } else {
+        sessionStorage.removeItem("transport.load.source");
+      }
+
+      navigate(returnPath, { state: returnState });
+      return;
+    }
+
+    if (returnPath === "/menu/transports/load") {
+      navigate(returnPath, { state: returnState });
+      return;
+    }
+
+    resetAll();
+  };
+
+  const closeAlternativeDialog = () => {
+    setAlternativeDialogOpen(false);
+    const pendingTarget = pendingReturnTargetRef.current;
+    pendingReturnTargetRef.current = null;
+    setAlternativeDialogMessage("");
+    finishSubmitFlow(pendingTarget);
+  };
+
   const doSubmit = async () => {
     if (!canSubmit) return;
     startTransferring();
@@ -689,6 +738,7 @@ const InfoStockCorrection = () => {
     try {
       const deviation = Number(submitQuantity);
       const reasonCode = (reason || "").trim();
+      const adjustedQuantity = Number(submitQuantity);
 
       const loginCode = getStoredGsiUsername();
       const employee = getStoredGsiUsername();
@@ -724,29 +774,59 @@ const InfoStockCorrection = () => {
       }
 
       showSuccess(trans.correctionSubmit);
-      stopTransferring();
 
-      const returnTo = (routerLocation.state as any)?.returnTo;
+      const returnTo = (routerLocation.state as any)?.returnTo as { path?: string; state?: any } | undefined;
       const returnPath = typeof returnTo?.path === "string" ? returnTo.path : "";
-      const returnState = returnTo?.state as { prefillHandlingUnit?: string; transportLoadSource?: string } | undefined;
+      const returnState = returnTo?.state as { transportId?: string } | undefined;
+      const cameFromTransportLineLoad = returnPath === "/menu/transports/load";
+      const shouldAssignAlternative = cameFromTransportLineLoad && adjustedQuantity === 0;
 
-      if (returnPath === "/menu/transport/load") {
-        const prefillHandlingUnit = (returnState?.prefillHandlingUnit || query || handlingUnit || item || "").trim();
-        if (prefillHandlingUnit) {
-          sessionStorage.setItem("transport.load.prefill", prefillHandlingUnit);
+      if (shouldAssignAlternative) {
+        const transportId = (returnState?.transportId || "").trim();
+        if (!transportId) {
+          stopTransferring();
+          showError("Missing TransportID.");
+          return;
         }
 
-        if (returnState?.transportLoadSource === "transports-list") {
-          sessionStorage.setItem("transport.load.source", "transports-list");
-        } else {
-          sessionStorage.removeItem("transport.load.source");
+        const alternativeTid = showLoading(trans.pleaseWait);
+        const { data: alternativeData, error: alternativeError } = await supabase.functions.invoke("ln-assign-alternative-to-transport-orders", {
+          body: {
+            transportOrder: transportId,
+            language: locale,
+            company: "1100",
+          },
+        });
+        dismissToast(alternativeTid as unknown as string);
+
+        if (alternativeError || !alternativeData || !alternativeData.ok) {
+          const err = (alternativeData && alternativeData.error) || alternativeError;
+          const top = err?.message || "Alternative assignment failed";
+          const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+          const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+          stopTransferring();
+          showError(message);
+          return;
         }
 
-        navigate(returnPath, { state: returnState });
+        const result = alternativeData.value || {};
+        const remark = (result.Remark ?? "").toString().trim();
+        const alternativeLocation = (result.AlternativeLocation ?? "").toString().trim();
+        const unitText = (result.Unit ?? "").toString().trim();
+        const quantityText = result.NewQuantity == null ? "" : String(result.NewQuantity).trim();
+
+        pendingReturnTargetRef.current = returnPath ? { path: returnPath, state: returnTo?.state } : null;
+        setAlternativeDialogMessage(
+          remark || `Alternative found on ${alternativeLocation || "-"} with ${quantityText || "0"}${unitText ? ` ${unitText}` : ""}`,
+        );
+        setAlternativeDialogOpen(true);
+        stopTransferring();
         return;
+
       }
 
-      resetAll();
+      stopTransferring();
+      finishSubmitFlow(returnTo);
     } catch (e) {
       stopTransferring();
       showError(String(e));
@@ -1233,6 +1313,23 @@ const InfoStockCorrection = () => {
           </button>
         </div>
       )}
+
+      {/* Sign-out confirmation dialog */}
+      <AlertDialog open={alternativeDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          closeAlternativeDialog();
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alternative Inventory</AlertDialogTitle>
+            <AlertDialogDescription>{alternativeDialogMessage}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={closeAlternativeDialog}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Sign-out confirmation dialog */}
       <SignOutConfirm
