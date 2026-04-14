@@ -742,6 +742,10 @@ const InfoStockCorrection = () => {
 
       const loginCode = getStoredGsiUsername();
       const employee = getStoredGsiUsername();
+      const returnTo = (routerLocation.state as any)?.returnTo as { path?: string; state?: any } | undefined;
+      const returnPath = typeof returnTo?.path === "string" ? returnTo.path : "";
+      const returnState = returnTo?.state as { transportId?: string } | undefined;
+      const extOrderNumber = returnPath === "/menu/transports/load" ? (returnState?.transportId || "").trim() : "";
 
       const tid = showLoading(trans.pleaseWait);
       const { data, error } = await supabase.functions.invoke("ln-inventory-adjustment", {
@@ -759,6 +763,7 @@ const InfoStockCorrection = () => {
           transactionId: "",
           sequenceNumber: 0,
           fromWebservice: "Yes",
+          extOrderNumber,
         },
       });
       dismissToast(tid as unknown as string);
@@ -775,10 +780,8 @@ const InfoStockCorrection = () => {
 
       showSuccess(trans.correctionSubmit);
 
-      const returnTo = (routerLocation.state as any)?.returnTo as { path?: string; state?: any } | undefined;
-      const returnPath = typeof returnTo?.path === "string" ? returnTo.path : "";
-      const returnState = returnTo?.state as { transportId?: string } | undefined;
       const cameFromTransportLineLoad = returnPath === "/menu/transports/load";
+
       const shouldAssignAlternative = cameFromTransportLineLoad && adjustedQuantity === 0;
 
       if (shouldAssignAlternative) {
