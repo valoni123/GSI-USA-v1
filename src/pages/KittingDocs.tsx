@@ -163,10 +163,13 @@ const KittingDocs = () => {
   };
 
   const formatNumber = (value: number) => {
-    return new Intl.NumberFormat(locale, {
+    const safeValue = Number.isFinite(value) ? value : 0;
+    const formatted = new Intl.NumberFormat(locale, {
       minimumFractionDigits: 0,
       maximumFractionDigits: 4,
-    }).format(Number.isFinite(value) ? value : 0);
+    }).format(safeValue);
+
+    return Number.isInteger(safeValue) ? formatted.replace(/,/g, ".") : formatted;
   };
 
   const formatQuantityWithUnit = (value: number, unit: string) => {
