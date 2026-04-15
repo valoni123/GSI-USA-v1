@@ -277,41 +277,45 @@ const KittingDocs = () => {
 
               <div className="flex flex-col gap-3 md:flex-row md:items-start">
                 <div className="w-full md:w-[260px]">
-                  <div className="mb-1 text-xs font-medium text-gray-700">{trans.orderOriginLabel}</div>
-                  <Select
-                    value={selectedOrigin}
-                    onValueChange={(value) => {
-                      setSelectedOrigin(value);
-                      clearLoadedState();
-                      if (orderSet.trim()) {
-                        void lookupOrderSet(orderSet, value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-12">
-                      <span
-                        className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
-                        style={{
-                          backgroundColor: selectedOriginOption.style.bg,
-                          color: selectedOriginOption.style.text,
-                        }}
-                      >
-                        {selectedOriginOption.label}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {originOptions.map((option) => (
-                        <SelectItem key={option.constantName} value={option.constantName}>
-                          <span
-                            className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
-                            style={{ backgroundColor: option.style.bg, color: option.style.text }}
-                          >
-                            {option.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="relative pt-2">
+                    <Select
+                      value={selectedOrigin}
+                      onValueChange={(value) => {
+                        setSelectedOrigin(value);
+                        clearLoadedState();
+                        if (orderSet.trim()) {
+                          void lookupOrderSet(orderSet, value);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-12 border-gray-300 text-base">
+                        <span
+                          className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                          style={{
+                            backgroundColor: selectedOriginOption.style.bg,
+                            color: selectedOriginOption.style.text,
+                          }}
+                        >
+                          {selectedOriginOption.label}
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {originOptions.map((option) => (
+                          <SelectItem key={option.constantName} value={option.constantName}>
+                            <span
+                              className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                              style={{ backgroundColor: option.style.bg, color: option.style.text }}
+                            >
+                              {option.label}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <label className="pointer-events-none absolute left-3 top-0 rounded-sm bg-white px-1 text-xs text-gray-700">
+                      {trans.orderOriginLabel}
+                    </label>
+                  </div>
                 </div>
 
                 <div className="w-full max-w-xl space-y-2">
@@ -375,8 +379,8 @@ const KittingDocs = () => {
                 >
                   <div className="space-y-5">
                     <div className="grid gap-3 md:grid-cols-3">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-sm text-gray-600">{trans.orderLabel}:</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-base text-gray-600">{trans.orderLabel}:</span>
                         <span
                           className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
                           style={{
@@ -390,15 +394,15 @@ const KittingDocs = () => {
                         <span className="text-base font-semibold text-gray-900">{line.set}</span>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-sm text-gray-600">{trans.lineLabel}:</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-base text-gray-600">{trans.lineLabel}:</span>
                         <span className="text-base font-semibold text-gray-900">{line.line}</span>
-                        <span className="text-sm text-gray-600">{trans.sequenceLabel}:</span>
+                        <span className="text-base text-gray-600">{trans.sequenceLabel}:</span>
                         <span className="text-base font-semibold text-gray-900">{line.sequence}</span>
                       </div>
 
-                      <div className="flex flex-wrap items-start gap-3">
-                        <span className="text-sm text-gray-600">{trans.kittingMainItemLabel}:</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-base text-gray-600">{trans.kittingMainItemLabel}:</span>
                         <div className="space-y-1">
                           <div className="text-base font-semibold text-gray-900">{formatItemNumber(line.item)}</div>
                           {line.itemDescription && <div className="text-xs text-gray-500">{line.itemDescription}</div>}
