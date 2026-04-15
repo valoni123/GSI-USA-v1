@@ -276,7 +276,7 @@ const KittingDocs = () => {
               <div className="text-lg font-semibold text-gray-800">{trans.appKittingDocs}</div>
 
               <div className="flex flex-col gap-3 md:flex-row md:items-start">
-                <div className="w-full md:flex-1">
+                <div className="w-full md:w-[230px] md:flex-none">
                   <div className="relative pt-2">
                     <Select
                       value={selectedOrigin}
@@ -400,11 +400,13 @@ const KittingDocs = () => {
                         <span className="text-base font-semibold text-gray-900">{line.sequence}</span>
                       </div>
 
-                      <div className="flex min-w-0 items-start gap-2 xl:flex-1">
+                      <div className="flex min-w-0 items-center gap-2 xl:flex-1">
                         <span className="whitespace-nowrap text-base text-gray-600">{trans.kittingMainItemLabel}:</span>
-                        <div className="min-w-0 space-y-1">
-                          <div className="text-base font-semibold text-gray-900">{formatItemNumber(line.item)}</div>
-                          {line.itemDescription && <div className="text-xs text-gray-500">{line.itemDescription}</div>}
+                        <div className="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-base font-semibold text-gray-900">{formatItemNumber(line.item)}</span>
+                          {line.itemDescription && (
+                            <span className="text-base font-semibold text-gray-900">{line.itemDescription}</span>
+                          )}
                         </div>
                       </div>
                     </div>
