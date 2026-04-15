@@ -76,18 +76,23 @@ const KittingDocs = () => {
             <div className="text-lg font-semibold text-gray-800">{trans.appKittingDocs}</div>
 
             <div className="max-w-xl space-y-2">
-              <label htmlFor="kittingOrderSet" className="block text-sm font-medium text-gray-700">
-                {trans.orderSetLabel}
-              </label>
-              <Input
-                id="kittingOrderSet"
-                value={orderSet}
-                onChange={(e) => setOrderSet(e.target.value)}
-                placeholder={trans.scanOrderSetPlaceholder}
-                autoFocus
-                autoComplete="off"
-                className="h-12 border-gray-300 text-base sm:h-14 sm:text-lg"
-              />
+              <div className="relative pt-2">
+                <Input
+                  id="kittingOrderSet"
+                  value={orderSet}
+                  onChange={(e) => setOrderSet(e.target.value)}
+                  placeholder={trans.scanOrderSetPlaceholder}
+                  autoFocus
+                  autoComplete="off"
+                  className="h-12 border-gray-300 text-base sm:h-14 sm:text-lg"
+                />
+                <label
+                  htmlFor="kittingOrderSet"
+                  className="pointer-events-none absolute left-3 top-0 rounded-sm bg-white px-1 text-xs text-gray-700"
+                >
+                  {trans.orderSetLabel}
+                </label>
+              </div>
             </div>
           </div>
         </Card>
