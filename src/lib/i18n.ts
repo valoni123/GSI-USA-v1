@@ -141,6 +141,16 @@ type TranslationKeys =
   | "inspectionLabel"
   | "orderSetLabel"
   | "scanOrderSetPlaceholder"
+  | "invalidOrderSet"
+  | "kittingLoading"
+  | "kittingNoOrderLines"
+  | "kittingMainItemLabel"
+  | "kittingBomLineLabel"
+  | "kittingComponentLabel"
+  | "kittingQtyPerMainItemLabel"
+  | "orderedLabel"
+  | "originallyOrderedLabel"
+  | "noComponentsLabel"
   | "approvedQuantityLabel"
   | "rejectedQuantityLabel"
   | "rejectReasonLabel"
@@ -299,6 +309,16 @@ const translations: Translations = {
     inspectionLabel: "Inspection",
     orderSetLabel: "Order / Set",
     scanOrderSetPlaceholder: "Scan Order / Set",
+    invalidOrderSet: "Invalid Order / Set format. Use e.g. 100001640/1",
+    kittingLoading: "Loading kitting documents…",
+    kittingNoOrderLines: "No order lines found for this Order / Set.",
+    kittingMainItemLabel: "Main Item",
+    kittingBomLineLabel: "BOM Line",
+    kittingComponentLabel: "Component",
+    kittingQtyPerMainItemLabel: "Quantity per Main Item",
+    orderedLabel: "Ordered",
+    originallyOrderedLabel: "Originally Ordered",
+    noComponentsLabel: "No components",
     approvedQuantityLabel: "Approved Quantity",
     rejectedQuantityLabel: "Rejected Quantity",
     rejectReasonLabel: "Reject Reason",
@@ -452,6 +472,16 @@ const translations: Translations = {
     inspectionLabel: "Prüfung",
     orderSetLabel: "Auftrag / Satz",
     scanOrderSetPlaceholder: "Auftrag / Satz scannen",
+    invalidOrderSet: "Ungültiges Auftrag / Satz-Format. Z. B. 100001640/1",
+    kittingLoading: "Kitting-Dokumente werden geladen…",
+    kittingNoOrderLines: "Keine Auftragspositionen für diesen Auftrag / Satz gefunden.",
+    kittingMainItemLabel: "Hauptartikel",
+    kittingBomLineLabel: "Stücklistenpos.",
+    kittingComponentLabel: "Komponente",
+    kittingQtyPerMainItemLabel: "Menge pro Hauptartikel",
+    orderedLabel: "Bestellt",
+    originallyOrderedLabel: "Ursprünglich bestellt",
+    noComponentsLabel: "Keine Komponenten",
     approvedQuantityLabel: "Genehmigte Menge",
     rejectedQuantityLabel: "Abgelehnte Menge",
     rejectReasonLabel: "Ablehnungsgrund",
@@ -605,6 +635,16 @@ const translations: Translations = {
     inspectionLabel: "Inspección",
     orderSetLabel: "Orden / Conjunto",
     scanOrderSetPlaceholder: "Escanear orden / conjunto",
+    invalidOrderSet: "Formato de orden / conjunto inválido. Use p. ej. 100001640/1",
+    kittingLoading: "Cargando documentos de kitting…",
+    kittingNoOrderLines: "No se encontraron líneas para esta orden / conjunto.",
+    kittingMainItemLabel: "Artículo principal",
+    kittingBomLineLabel: "Línea BOM",
+    kittingComponentLabel: "Componente",
+    kittingQtyPerMainItemLabel: "Cantidad por artículo principal",
+    orderedLabel: "Pedido",
+    originallyOrderedLabel: "Pedido original",
+    noComponentsLabel: "Sin componentes",
     approvedQuantityLabel: "Cantidad aprobada",
     rejectedQuantityLabel: "Cantidad rechazada",
     rejectReasonLabel: "Motivo de rechazo",
@@ -758,6 +798,16 @@ const translations: Translations = {
     inspectionLabel: "Inspeção",
     orderSetLabel: "Ordem / Conjunto",
     scanOrderSetPlaceholder: "Escanear ordem / conjunto",
+    invalidOrderSet: "Formato de ordem / conjunto inválido. Use por ex. 100001640/1",
+    kittingLoading: "Carregando documentos de kitting…",
+    kittingNoOrderLines: "Nenhuma linha encontrada para esta ordem / conjunto.",
+    kittingMainItemLabel: "Item principal",
+    kittingBomLineLabel: "Linha BOM",
+    kittingComponentLabel: "Componente",
+    kittingQtyPerMainItemLabel: "Quantidade por item principal",
+    orderedLabel: "Pedido",
+    originallyOrderedLabel: "Originalmente pedido",
+    noComponentsLabel: "Sem componentes",
     approvedQuantityLabel: "Quantidade aprovada",
     rejectedQuantityLabel: "Quantidade rejeitada",
     rejectReasonLabel: "Motivo da rejeição",
