@@ -48,6 +48,9 @@ type KittingLine = {
   line: number;
   sequence: number;
   item: string;
+  itemDescription: string;
+  itemCreationDate: string;
+  itemLastModificationDate: string;
   shippingWarehouse: string;
   orderUnit: string;
   orderedQuantity: number;
@@ -161,6 +164,18 @@ const KittingDocs = () => {
   const formatQuantityWithUnit = (value: number, unit: string) => {
     const formatted = formatNumber(value);
     return unit ? `${formatted} ${unit}` : formatted;
+  };
+
+  const formatDate = (value: string) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
   };
 
   const clearLoadedState = () => {
@@ -382,9 +397,23 @@ const KittingDocs = () => {
                         <span className="text-base font-semibold text-gray-900">{line.sequence}</span>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-start gap-3">
                         <span className="text-sm text-gray-600">{trans.kittingMainItemLabel}:</span>
-                        <span className="text-base font-semibold text-gray-900">{formatItemNumber(line.item)}</span>
+                        <div className="space-y-1">
+                          <div className="text-base font-semibold text-gray-900">{formatItemNumber(line.item)}</div>
+                          {line.itemDescription && <div className="text-xs text-gray-500">{line.itemDescription}</div>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{trans.kittingInspectionLabel}</div>
+                        <div className="mt-1 text-sm font-semibold text-gray-900">{formatDate(line.itemCreationDate)}</div>
+                      </div>
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{trans.kittingLastRevisionLabel}</div>
+                        <div className="mt-1 text-sm font-semibold text-gray-900">{formatDate(line.itemLastModificationDate)}</div>
                       </div>
                     </div>
 
@@ -430,6 +459,13 @@ const KittingDocs = () => {
                           )}
                         </tbody>
                       </table>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <div className="inline-flex items-center gap-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-gray-900">
+                        <span>{trans.kittingTotalPartsLabel}</span>
+                        <span>{line.components.length}</span>
+                      </div>
                     </div>
                   </div>
                 </Card>

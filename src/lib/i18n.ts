@@ -151,6 +151,9 @@ type TranslationKeys =
   | "orderedLabel"
   | "originallyOrderedLabel"
   | "noComponentsLabel"
+  | "kittingInspectionLabel"
+  | "kittingLastRevisionLabel"
+  | "kittingTotalPartsLabel"
   | "approvedQuantityLabel"
   | "rejectedQuantityLabel"
   | "rejectReasonLabel"
@@ -319,6 +322,9 @@ const translations: Translations = {
     orderedLabel: "Ordered",
     originallyOrderedLabel: "Originally Ordered",
     noComponentsLabel: "No components",
+    kittingInspectionLabel: "Inspection",
+    kittingLastRevisionLabel: "Last Revision",
+    kittingTotalPartsLabel: "Total # of Parts",
     approvedQuantityLabel: "Approved Quantity",
     rejectedQuantityLabel: "Rejected Quantity",
     rejectReasonLabel: "Reject Reason",
@@ -482,6 +488,9 @@ const translations: Translations = {
     orderedLabel: "Bestellt",
     originallyOrderedLabel: "Ursprünglich bestellt",
     noComponentsLabel: "Keine Komponenten",
+    kittingInspectionLabel: "Prüfung",
+    kittingLastRevisionLabel: "Letzte Revision",
+    kittingTotalPartsLabel: "Gesamtanzahl Teile",
     approvedQuantityLabel: "Genehmigte Menge",
     rejectedQuantityLabel: "Abgelehnte Menge",
     rejectReasonLabel: "Ablehnungsgrund",
@@ -645,6 +654,9 @@ const translations: Translations = {
     orderedLabel: "Pedido",
     originallyOrderedLabel: "Pedido original",
     noComponentsLabel: "Sin componentes",
+    kittingInspectionLabel: "Inspección",
+    kittingLastRevisionLabel: "Última revisión",
+    kittingTotalPartsLabel: "Total de piezas",
     approvedQuantityLabel: "Cantidad aprobada",
     rejectedQuantityLabel: "Cantidad rechazada",
     rejectReasonLabel: "Motivo de rechazo",
@@ -808,6 +820,9 @@ const translations: Translations = {
     orderedLabel: "Pedido",
     originallyOrderedLabel: "Originalmente pedido",
     noComponentsLabel: "Sem componentes",
+    kittingInspectionLabel: "Inspeção",
+    kittingLastRevisionLabel: "Última revisão",
+    kittingTotalPartsLabel: "Total de peças",
     approvedQuantityLabel: "Quantidade aprovada",
     rejectedQuantityLabel: "Quantidade rejeitada",
     rejectReasonLabel: "Motivo da rejeição",

@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 const REQUEST_TIMEOUT_MS = 15000;
-const ITEM_SELECT = "Description,ListType,InventoryUnit,LotControlled,Material,Size,Weight,WeightUnit,ProductType,ProductClass,ProductLine,CriticalSafetyItem,FloorStock,ItemText";
+const ITEM_SELECT = "Description,CreationDate,LastModificationDate,ListType,InventoryUnit,LotControlled,Material,Size,Weight,WeightUnit,ProductType,ProductClass,ProductLine,CriticalSafetyItem,FloorStock,ItemText";
 
 type RequestBody = {
   order?: string;
@@ -22,6 +22,8 @@ type RequestBody = {
 type ItemDetails = {
   description: string;
   inventoryUnit: string;
+  creationDate: string;
+  lastModificationDate: string;
 };
 
 type GroupedComponent = {
@@ -47,6 +49,9 @@ type GroupedLine = {
   line: number;
   sequence: number;
   item: string;
+  itemDescription: string;
+  itemCreationDate: string;
+  itemLastModificationDate: string;
   shippingWarehouse: string;
   orderUnit: string;
   orderedQuantity: number;
@@ -147,13 +152,15 @@ async function fetchItemDetails(
       item: toText(item) || item,
       error: payload?.error?.message || "odata_error",
     });
-    return { description: "", inventoryUnit: "" };
+    return { description: "", inventoryUnit: "", creationDate: "", lastModificationDate: "" };
   }
 
   const row = Array.isArray(payload.value) ? payload.value[0] : null;
   return {
     description: toText(row?.Description),
     inventoryUnit: toText(row?.InventoryUnit),
+    creationDate: toText(row?.CreationDate),
+    lastModificationDate: toText(row?.LastModificationDate),
   };
 }
 
@@ -255,7 +262,7 @@ serve(async (req) => {
       }
 
       const lineMap = new Map<string, GroupedLine & { componentMap: Map<string, GroupedComponent> }>();
-      const componentItems = new Map<string, string>();
+      const itemLookups = new Map<string, string>();
       const rows = Array.isArray(payload.value) ? payload.value : [];
 
       for (const row of rows) {
@@ -265,13 +272,22 @@ serve(async (req) => {
         const key = lineKey(line);
         let grouped = lineMap.get(key);
         if (!grouped) {
+          const rawItem = toRawText(line?.Item);
+          const displayItem = toText(line?.Item);
+          if (rawItem) {
+            itemLookups.set(displayItem, rawItem);
+          }
+
           grouped = {
             orderOrigin: toText(line?.OrderOrigin),
             order: toText(line?.Order),
             set: toNumber(line?.Set),
             line: toNumber(line?.Line),
             sequence: toNumber(line?.Sequence),
-            item: toText(line?.Item),
+            item: displayItem,
+            itemDescription: "",
+            itemCreationDate: "",
+            itemLastModificationDate: "",
             shippingWarehouse: toText(line?.ShippingWarehouse),
             orderUnit: toText(line?.OrderUnit),
             orderedQuantity: toNumber(line?.OrderedQuantity),
@@ -293,7 +309,7 @@ serve(async (req) => {
         const rawComponent = toRawText(bom?.Component);
         const displayComponent = toText(bom?.Component);
         if (rawComponent) {
-          componentItems.set(displayComponent, rawComponent);
+          itemLookups.set(displayComponent, rawComponent);
         }
 
         grouped.componentMap.set(bomKey, {
@@ -314,9 +330,9 @@ serve(async (req) => {
       }
 
       const itemDetailsEntries = await Promise.all(
-        Array.from(componentItems.entries()).map(async ([displayComponent, rawComponent]) => {
-          const details = await fetchItemDetails(base, cfg.ti, accessToken, company, rawComponent);
-          return [displayComponent, details] as const;
+        Array.from(itemLookups.entries()).map(async ([displayItem, rawItem]) => {
+          const details = await fetchItemDetails(base, cfg.ti, accessToken, company, rawItem);
+          return [displayItem, details] as const;
         }),
       );
       const itemDetailsMap = new Map<string, ItemDetails>(itemDetailsEntries);
@@ -324,6 +340,9 @@ serve(async (req) => {
       const lines = Array.from(lineMap.values())
         .map(({ componentMap, ...line }) => ({
           ...line,
+          itemDescription: itemDetailsMap.get(line.item)?.description || "",
+          itemCreationDate: itemDetailsMap.get(line.item)?.creationDate || "",
+          itemLastModificationDate: itemDetailsMap.get(line.item)?.lastModificationDate || "",
           components: Array.from(componentMap.values())
             .map((component) => ({
               ...component,
@@ -340,7 +359,7 @@ serve(async (req) => {
         orderOrigin,
         rawRows: rows.length,
         lineCount: lines.length,
-        itemLookups: componentItems.size,
+        itemLookups: itemLookups.size,
       });
 
       return json({ ok: true, count: lines.length, lines }, 200);
