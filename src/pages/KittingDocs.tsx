@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileImage, Flag, Loader2, LogOut, User } from "lucide-react";
+import { Check, FileImage, Loader2, LogOut, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ItemDrawingDialog from "@/components/ItemDrawingDialog";
 import { Card } from "@/components/ui/card";
@@ -551,12 +551,6 @@ const KittingDocs = () => {
                         {line.itemDescription && (
                           <span className="font-semibold text-gray-900">{line.itemDescription}</span>
                         )}
-                        {printedItems[line.itemRaw] && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700">
-                            <Flag className="h-4 w-4 fill-green-600 text-green-600" />
-                            {trans.kittingPrintedYesLabel}
-                          </span>
-                        )}
                         <Button
                           type="button"
                           variant="ghost"
@@ -571,6 +565,12 @@ const KittingDocs = () => {
                             <FileImage className="h-5 w-5" />
                           )}
                         </Button>
+                        {printedItems[line.itemRaw] && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700">
+                            <Check className="h-4 w-4 stroke-[3]" />
+                            {trans.kittingPrintedYesLabel}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -638,9 +638,11 @@ const KittingDocs = () => {
                                 </td>
                                 <td className="px-4 py-3 text-gray-900">
                                   {printedItems[component.componentRaw] ? (
-                                    <div className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700">
-                                      <Flag className="h-4 w-4 fill-green-600 text-green-600" />
-                                      {trans.kittingPrintedYesLabel}
+                                    <div className="flex justify-end">
+                                      <div className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700">
+                                        <Check className="h-4 w-4 stroke-[3]" />
+                                        {trans.kittingPrintedYesLabel}
+                                      </div>
                                     </div>
                                   ) : null}
                                 </td>
