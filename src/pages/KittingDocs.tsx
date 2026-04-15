@@ -276,7 +276,7 @@ const KittingDocs = () => {
               <div className="text-lg font-semibold text-gray-800">{trans.appKittingDocs}</div>
 
               <div className="flex flex-col gap-3 md:flex-row md:items-start">
-                <div className="w-full md:w-[260px]">
+                <div className="w-full md:flex-1">
                   <div className="relative pt-2">
                     <Select
                       value={selectedOrigin}
@@ -318,7 +318,7 @@ const KittingDocs = () => {
                   </div>
                 </div>
 
-                <div className="w-full max-w-xl space-y-2">
+                <div className="w-full md:flex-1">
                   <div className="relative pt-2">
                     <Input
                       id="kittingOrderSet"
@@ -341,7 +341,7 @@ const KittingDocs = () => {
                       placeholder={trans.scanOrderSetPlaceholder}
                       autoFocus
                       autoComplete="off"
-                      className="h-12 border-gray-300 text-base sm:h-14 sm:text-lg"
+                      className="h-12 border-gray-300 text-base"
                     />
                     <label
                       htmlFor="kittingOrderSet"
@@ -378,9 +378,8 @@ const KittingDocs = () => {
                   className="rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70"
                 >
                   <div className="space-y-5">
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-base text-gray-600">{trans.orderLabel}:</span>
+                    <div className="flex flex-wrap items-start gap-x-6 gap-y-2 xl:flex-nowrap">
+                      <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
                         <span
                           className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
                           style={{
@@ -394,16 +393,16 @@ const KittingDocs = () => {
                         <span className="text-base font-semibold text-gray-900">{line.set}</span>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
                         <span className="text-base text-gray-600">{trans.lineLabel}:</span>
                         <span className="text-base font-semibold text-gray-900">{line.line}</span>
                         <span className="text-base text-gray-600">{trans.sequenceLabel}:</span>
                         <span className="text-base font-semibold text-gray-900">{line.sequence}</span>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-base text-gray-600">{trans.kittingMainItemLabel}:</span>
-                        <div className="space-y-1">
+                      <div className="flex min-w-0 items-start gap-2 xl:flex-1">
+                        <span className="whitespace-nowrap text-base text-gray-600">{trans.kittingMainItemLabel}:</span>
+                        <div className="min-w-0 space-y-1">
                           <div className="text-base font-semibold text-gray-900">{formatItemNumber(line.item)}</div>
                           {line.itemDescription && <div className="text-xs text-gray-500">{line.itemDescription}</div>}
                         </div>
@@ -422,6 +421,7 @@ const KittingDocs = () => {
                     </div>
 
                     <div className="overflow-x-auto rounded-lg border border-gray-200">
+
                       <table className="min-w-full text-sm">
                         <thead className="bg-gray-100 text-gray-800">
                           <tr>
