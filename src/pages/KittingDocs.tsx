@@ -592,7 +592,7 @@ const KittingDocs = () => {
                           <tr>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingBomLineLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingComponentLabel}</th>
-                            <th className="px-4 py-3 text-right font-semibold">{trans.kittingQtyPerMainItemLabel}</th>
+                            <th className="px-4 py-3 text-right font-semibold">{trans.quantityLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingDrawingOnFileLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingCommentsInstructionsLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingDrawingFileNameLabel}</th>
