@@ -12,6 +12,7 @@ const REQUEST_TIMEOUT_MS = 15000;
 
 type RequestBody = {
   item?: string;
+  includePdf?: boolean;
 };
 
 type IdmResource = {
@@ -94,6 +95,7 @@ serve(async (req) => {
       console.warn("[ln-idm-item-drawing] missing item");
       return json({ ok: false, error: "missing_item" }, 200);
     }
+    const includePdf = body.includePdf !== false;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -167,6 +169,20 @@ serve(async (req) => {
     if (!mainResource?.url) {
       console.info("[ln-idm-item-drawing] no pdf resource found", { item: item.trim() || item });
       return json({ ok: true, found: false }, 200);
+    }
+
+    if (!includePdf) {
+      return json(
+        {
+          ok: true,
+          found: true,
+          filename: toText(mainResource.filename) || toText(firstItem?.displayName),
+          itemNumber: item,
+          displayName: toText(firstItem?.displayName),
+          drillbackUrl: toText(firstItem?.drillbackurl),
+        },
+        200,
+      );
     }
 
     const pdfResponse = await fetchWithTimeout(

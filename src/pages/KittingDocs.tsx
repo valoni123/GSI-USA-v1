@@ -62,7 +62,13 @@ type KittingLine = {
   components: KittingComponent[];
 };
 
+type DrawingMeta = {
+  found: boolean;
+  filename: string;
+};
+
 const FALLBACK_ORIGIN_ROW: RawKittingOriginRow = {
+
   constantName: "sales",
   descriptionLabel: "inh.oorg036",
 };
@@ -132,6 +138,7 @@ const KittingDocs = () => {
   const [drawingTitle, setDrawingTitle] = useState("");
   const [drawingFilename, setDrawingFilename] = useState("");
   const [drawingLoadingKey, setDrawingLoadingKey] = useState("");
+  const [drawingMetaByItem, setDrawingMetaByItem] = useState<Record<string, DrawingMeta>>({});
 
   const onConfirmSignOut = () => {
     try {
@@ -247,6 +254,51 @@ const KittingDocs = () => {
       return;
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const uniqueBomItems = Array.from(
+      new Set(
+        lines.flatMap((line) => line.components.map((component) => component.componentRaw).filter(Boolean)),
+      ),
+    );
+    const itemsToFetch = uniqueBomItems.filter((item) => !drawingMetaByItem[item]);
+    if (itemsToFetch.length === 0) return;
+
+    const loadDrawingMeta = async () => {
+      const results = await Promise.all(
+        itemsToFetch.map(async (item) => {
+          const { data, error } = await supabase.functions.invoke("ln-idm-item-drawing", {
+            body: { item, includePdf: false },
+          });
+
+          return [
+            item,
+            {
+              found: !error && !!data?.ok && !!data?.found,
+              filename: !error && data?.found && typeof data?.filename === "string" ? data.filename : "",
+            },
+          ] as const;
+        }),
+      );
+
+      if (cancelled) return;
+
+      setDrawingMetaByItem((current) => ({
+        ...current,
+        ...Object.fromEntries(results),
+      }));
+    };
+
+    void loadDrawingMeta();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lines, drawingMetaByItem]);
+
+  const getDrawingFilename = (rawItem: string) => drawingMetaByItem[rawItem]?.filename || "";
 
   useEffect(() => {
     return () => {
@@ -514,14 +566,15 @@ const KittingDocs = () => {
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingBomLineLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingComponentLabel}</th>
                             <th className="px-4 py-3 text-right font-semibold">{trans.kittingQtyPerMainItemLabel}</th>
-                            <th className="px-4 py-3 text-right font-semibold">{trans.orderedLabel}</th>
-                            <th className="px-4 py-3 text-right font-semibold">{trans.originallyOrderedLabel}</th>
+                            <th className="px-4 py-3 text-left font-semibold">{trans.kittingDrawingOnFileLabel}</th>
+                            <th className="px-4 py-3 text-left font-semibold">{trans.kittingCommentsInstructionsLabel}</th>
+                            <th className="px-4 py-3 text-left font-semibold">{trans.kittingDrawingFileNameLabel}</th>
                           </tr>
                         </thead>
                         <tbody>
                           {line.components.length === 0 ? (
                             <tr>
-                              <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                              <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
                                 {trans.noComponentsLabel}
                               </td>
                             </tr>
@@ -556,11 +609,10 @@ const KittingDocs = () => {
                                 <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
                                   {formatQuantityWithUnit(component.quantity, component.inventoryUnit)}
                                 </td>
-                                <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
-                                  {formatQuantityWithUnit(component.orderedQuantity, component.inventoryUnit)}
-                                </td>
-                                <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
-                                  {formatQuantityWithUnit(component.originallyOrderedQuantity, component.inventoryUnit)}
+                                <td className="px-4 py-3 text-gray-900"></td>
+                                <td className="px-4 py-3 text-gray-900"></td>
+                                <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
+                                  {getDrawingFilename(component.componentRaw)}
                                 </td>
                               </tr>
                             ))

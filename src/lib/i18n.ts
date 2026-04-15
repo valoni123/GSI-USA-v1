@@ -158,6 +158,9 @@ type TranslationKeys =
   | "kittingOpenDrawingLabel"
   | "kittingNoDrawingFound"
   | "kittingDrawingLoadFailed"
+  | "kittingDrawingOnFileLabel"
+  | "kittingCommentsInstructionsLabel"
+  | "kittingDrawingFileNameLabel"
   | "approvedQuantityLabel"
   | "rejectedQuantityLabel"
   | "rejectReasonLabel"
@@ -333,6 +336,9 @@ const translations: Translations = {
     kittingOpenDrawingLabel: "Open in new tab",
     kittingNoDrawingFound: "No drawing found for this item.",
     kittingDrawingLoadFailed: "Failed to load drawing.",
+    kittingDrawingOnFileLabel: "Drawing on File",
+    kittingCommentsInstructionsLabel: "Comments/Instructions",
+    kittingDrawingFileNameLabel: "Drawing File Name",
     approvedQuantityLabel: "Approved Quantity",
     rejectedQuantityLabel: "Rejected Quantity",
     rejectReasonLabel: "Reject Reason",
@@ -503,6 +509,9 @@ const translations: Translations = {
     kittingOpenDrawingLabel: "In neuem Tab öffnen",
     kittingNoDrawingFound: "Keine Zeichnung für diesen Artikel gefunden.",
     kittingDrawingLoadFailed: "Zeichnung konnte nicht geladen werden.",
+    kittingDrawingOnFileLabel: "Zeichnung vorhanden",
+    kittingCommentsInstructionsLabel: "Kommentare/Anweisungen",
+    kittingDrawingFileNameLabel: "Zeichnungsdateiname",
     approvedQuantityLabel: "Genehmigte Menge",
     rejectedQuantityLabel: "Abgelehnte Menge",
     rejectReasonLabel: "Ablehnungsgrund",
@@ -673,6 +682,9 @@ const translations: Translations = {
     kittingOpenDrawingLabel: "Abrir en nueva pestaña",
     kittingNoDrawingFound: "No se encontró plano para este artículo.",
     kittingDrawingLoadFailed: "No se pudo cargar el plano.",
+    kittingDrawingOnFileLabel: "Plano en archivo",
+    kittingCommentsInstructionsLabel: "Comentarios/Instrucciones",
+    kittingDrawingFileNameLabel: "Nombre del archivo del plano",
     approvedQuantityLabel: "Cantidad aprobada",
     rejectedQuantityLabel: "Cantidad rechazada",
     rejectReasonLabel: "Motivo de rechazo",
@@ -843,6 +855,9 @@ const translations: Translations = {
     kittingOpenDrawingLabel: "Abrir em nova aba",
     kittingNoDrawingFound: "Nenhum desenho encontrado para este item.",
     kittingDrawingLoadFailed: "Falha ao carregar o desenho.",
+    kittingDrawingOnFileLabel: "Desenho em arquivo",
+    kittingCommentsInstructionsLabel: "Comentários/Instruções",
+    kittingDrawingFileNameLabel: "Nome do arquivo do desenho",
     approvedQuantityLabel: "Quantidade aprovada",
     rejectedQuantityLabel: "Quantidade rejeitada",
     rejectReasonLabel: "Motivo da rejeição",
