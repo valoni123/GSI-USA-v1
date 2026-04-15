@@ -34,6 +34,7 @@ type GroupedComponent = {
   set: number;
   bomLine: number;
   component: string;
+  componentRaw: string;
   warehouse: string;
   quantity: number;
   orderedQuantity: number;
@@ -49,6 +50,7 @@ type GroupedLine = {
   line: number;
   sequence: number;
   item: string;
+  itemRaw: string;
   itemDescription: string;
   itemCreationDate: string;
   itemLastModificationDate: string;
@@ -285,6 +287,7 @@ serve(async (req) => {
             line: toNumber(line?.Line),
             sequence: toNumber(line?.Sequence),
             item: displayItem,
+            itemRaw: rawItem,
             itemDescription: "",
             itemCreationDate: "",
             itemLastModificationDate: "",
@@ -320,6 +323,7 @@ serve(async (req) => {
           set: toNumber(bom?.Set),
           bomLine: toNumber(bom?.BOMLine),
           component: displayComponent,
+          componentRaw: rawComponent,
           warehouse: toText(bom?.Warehouse),
           quantity: toNumber(bom?.Quantity),
           orderedQuantity: toNumber(bom?.OrderedQuantity),

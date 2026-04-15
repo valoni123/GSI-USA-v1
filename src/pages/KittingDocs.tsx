@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User } from "lucide-react";
+import { FileImage, Loader2, LogOut, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import ItemDrawingDialog from "@/components/ItemDrawingDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ type KittingComponent = {
   set: number;
   bomLine: number;
   component: string;
+  componentRaw: string;
   warehouse: string;
   quantity: number;
   orderedQuantity: number;
@@ -48,6 +50,7 @@ type KittingLine = {
   line: number;
   sequence: number;
   item: string;
+  itemRaw: string;
   itemDescription: string;
   itemCreationDate: string;
   itemLastModificationDate: string;
@@ -124,6 +127,11 @@ const KittingDocs = () => {
   const [loadedKey, setLoadedKey] = useState("");
   const [lines, setLines] = useState<KittingLine[]>([]);
   const [infoMessage, setInfoMessage] = useState("");
+  const [drawingOpen, setDrawingOpen] = useState(false);
+  const [drawingUrl, setDrawingUrl] = useState("");
+  const [drawingTitle, setDrawingTitle] = useState("");
+  const [drawingFilename, setDrawingFilename] = useState("");
+  const [drawingLoadingKey, setDrawingLoadingKey] = useState("");
 
   const onConfirmSignOut = () => {
     try {
@@ -234,6 +242,39 @@ const KittingDocs = () => {
       clearLoadedState();
       showError(error instanceof Error ? error.message : String(error));
       return;
+    }
+  };
+
+  const openDrawing = async (rawItem: string, displayItem: string) => {
+    const requestKey = `${displayItem}|${rawItem}`;
+    if (!rawItem || drawingLoadingKey === requestKey) return;
+
+    setDrawingLoadingKey(requestKey);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("ln-idm-item-drawing", {
+        body: { item: rawItem },
+      });
+
+      setDrawingLoadingKey("");
+
+      if (error || !data || !data.ok) {
+        showError(trans.kittingDrawingLoadFailed);
+        return;
+      }
+
+      if (!data.found || !data.pdfUrl) {
+        showError(trans.kittingNoDrawingFound);
+        return;
+      }
+
+      setDrawingTitle(`${trans.kittingDrawingTitle}: ${formatItemNumber(displayItem)}`);
+      setDrawingFilename(typeof data.filename === "string" ? data.filename : "");
+      setDrawingUrl(data.pdfUrl);
+      setDrawingOpen(true);
+    } catch {
+      setDrawingLoadingKey("");
+      showError(trans.kittingDrawingLoadFailed);
     }
   };
 
@@ -407,6 +448,20 @@ const KittingDocs = () => {
                           {line.itemDescription && (
                             <span className="text-base font-semibold text-gray-900">{line.itemDescription}</span>
                           )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0 text-gray-600 hover:text-gray-900"
+                            onClick={() => void openDrawing(line.itemRaw, line.item)}
+                            aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(line.item)}`}
+                          >
+                            {drawingLoadingKey === `${line.item}|${line.itemRaw}` ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <FileImage className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -446,10 +501,28 @@ const KittingDocs = () => {
                               <tr key={`${component.bomLine}-${component.component}`} className="border-t border-gray-200 align-top">
                                 <td className="px-4 py-3 font-medium text-gray-900">{component.bomLine}</td>
                                 <td className="px-4 py-3 text-gray-900">
-                                  <div className="font-medium">{formatItemNumber(component.component)}</div>
-                                  {component.description && (
-                                    <div className="text-xs text-gray-500">{component.description}</div>
-                                  )}
+                                  <div className="flex items-start gap-2">
+                                    <div>
+                                      <div className="font-medium">{formatItemNumber(component.component)}</div>
+                                      {component.description && (
+                                        <div className="text-xs text-gray-500">{component.description}</div>
+                                      )}
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="mt-[-2px] h-8 w-8 shrink-0 text-gray-600 hover:text-gray-900"
+                                      onClick={() => void openDrawing(component.componentRaw, component.component)}
+                                      aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(component.component)}`}
+                                    >
+                                      {drawingLoadingKey === `${component.component}|${component.componentRaw}` ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <FileImage className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
                                 </td>
                                 <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
                                   {formatQuantityWithUnit(component.quantity, component.inventoryUnit)}
@@ -479,6 +552,15 @@ const KittingDocs = () => {
             })}
         </div>
       </div>
+
+      <ItemDrawingDialog
+        open={drawingOpen}
+        onOpenChange={setDrawingOpen}
+        title={drawingTitle}
+        pdfUrl={drawingUrl}
+        filename={drawingFilename}
+        openInNewTabLabel={trans.kittingOpenDrawingLabel}
+      />
 
       <SignOutConfirm
         open={signOutOpen}

@@ -154,6 +154,10 @@ type TranslationKeys =
   | "kittingInspectionLabel"
   | "kittingLastRevisionLabel"
   | "kittingTotalPartsLabel"
+  | "kittingDrawingTitle"
+  | "kittingOpenDrawingLabel"
+  | "kittingNoDrawingFound"
+  | "kittingDrawingLoadFailed"
   | "approvedQuantityLabel"
   | "rejectedQuantityLabel"
   | "rejectReasonLabel"
@@ -325,6 +329,10 @@ const translations: Translations = {
     kittingInspectionLabel: "Inspection",
     kittingLastRevisionLabel: "Last Revision",
     kittingTotalPartsLabel: "Total # of Parts",
+    kittingDrawingTitle: "Drawing",
+    kittingOpenDrawingLabel: "Open in new tab",
+    kittingNoDrawingFound: "No drawing found for this item.",
+    kittingDrawingLoadFailed: "Failed to load drawing.",
     approvedQuantityLabel: "Approved Quantity",
     rejectedQuantityLabel: "Rejected Quantity",
     rejectReasonLabel: "Reject Reason",
@@ -491,6 +499,10 @@ const translations: Translations = {
     kittingInspectionLabel: "Prüfung",
     kittingLastRevisionLabel: "Letzte Revision",
     kittingTotalPartsLabel: "Gesamtanzahl Teile",
+    kittingDrawingTitle: "Zeichnung",
+    kittingOpenDrawingLabel: "In neuem Tab öffnen",
+    kittingNoDrawingFound: "Keine Zeichnung für diesen Artikel gefunden.",
+    kittingDrawingLoadFailed: "Zeichnung konnte nicht geladen werden.",
     approvedQuantityLabel: "Genehmigte Menge",
     rejectedQuantityLabel: "Abgelehnte Menge",
     rejectReasonLabel: "Ablehnungsgrund",
@@ -657,6 +669,10 @@ const translations: Translations = {
     kittingInspectionLabel: "Inspección",
     kittingLastRevisionLabel: "Última revisión",
     kittingTotalPartsLabel: "Total de piezas",
+    kittingDrawingTitle: "Plano",
+    kittingOpenDrawingLabel: "Abrir en nueva pestaña",
+    kittingNoDrawingFound: "No se encontró plano para este artículo.",
+    kittingDrawingLoadFailed: "No se pudo cargar el plano.",
     approvedQuantityLabel: "Cantidad aprobada",
     rejectedQuantityLabel: "Cantidad rechazada",
     rejectReasonLabel: "Motivo de rechazo",
@@ -823,6 +839,10 @@ const translations: Translations = {
     kittingInspectionLabel: "Inspeção",
     kittingLastRevisionLabel: "Última revisão",
     kittingTotalPartsLabel: "Total de peças",
+    kittingDrawingTitle: "Desenho",
+    kittingOpenDrawingLabel: "Abrir em nova aba",
+    kittingNoDrawingFound: "Nenhum desenho encontrado para este item.",
+    kittingDrawingLoadFailed: "Falha ao carregar o desenho.",
     approvedQuantityLabel: "Quantidade aprovada",
     rejectedQuantityLabel: "Quantidade rejeitada",
     rejectReasonLabel: "Motivo da rejeição",
