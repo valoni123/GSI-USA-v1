@@ -593,7 +593,6 @@ const KittingDocs = () => {
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingBomLineLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingComponentLabel}</th>
                             <th className="px-4 py-3 text-right font-semibold">{trans.kittingQtyPerMainItemLabel}</th>
-                            <th className="px-4 py-3 text-left font-semibold">{trans.kittingDrawingOnFileLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingCommentsInstructionsLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingDrawingFileNameLabel}</th>
                           </tr>
@@ -601,7 +600,7 @@ const KittingDocs = () => {
                         <tbody>
                           {line.components.length === 0 ? (
                             <tr>
-                              <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
+                              <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
                                 {trans.noComponentsLabel}
                               </td>
                             </tr>
@@ -617,34 +616,32 @@ const KittingDocs = () => {
                                         <div className="text-xs text-gray-500">{component.description}</div>
                                       )}
                                     </div>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="mt-[-2px] h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700"
-                                      onClick={() => void openDrawing(component.componentRaw, component.component)}
-                                      aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(component.component)}`}
-                                    >
-                                      {drawingLoadingKey === `${component.component}|${component.componentRaw}` ? (
-                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                      ) : (
-                                        <FileImage className="h-5 w-5" />
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="mt-[-2px] h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700"
+                                        onClick={() => void openDrawing(component.componentRaw, component.component)}
+                                        aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(component.component)}`}
+                                      >
+                                        {drawingLoadingKey === `${component.component}|${component.componentRaw}` ? (
+                                          <Loader2 className="h-5 w-5 animate-spin" />
+                                        ) : (
+                                          <FileImage className="h-5 w-5" />
+                                        )}
+                                      </Button>
+                                      {printedItems[component.componentRaw] && (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700 whitespace-nowrap">
+                                          <Check className="h-4 w-4 stroke-[3]" />
+                                          {trans.kittingPrintedYesLabel}
+                                        </span>
                                       )}
-                                    </Button>
+                                    </div>
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
                                   {formatQuantityWithUnit(component.quantity, component.inventoryUnit)}
-                                </td>
-                                <td className="px-4 py-3 text-gray-900">
-                                  {printedItems[component.componentRaw] ? (
-                                    <div className="flex justify-end">
-                                      <div className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700">
-                                        <Check className="h-4 w-4 stroke-[3]" />
-                                        {trans.kittingPrintedYesLabel}
-                                      </div>
-                                    </div>
-                                  ) : null}
                                 </td>
                                 <td className="px-4 py-3 text-gray-900"></td>
                                 <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
