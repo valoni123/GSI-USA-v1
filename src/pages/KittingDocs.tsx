@@ -263,12 +263,15 @@ const KittingDocs = () => {
   useEffect(() => {
     let cancelled = false;
 
-    const uniqueBomItems = Array.from(
+    const uniqueItems = Array.from(
       new Set(
-        lines.flatMap((line) => line.components.map((component) => component.componentRaw).filter(Boolean)),
+        lines.flatMap((line) => [
+          line.itemRaw,
+          ...line.components.map((component) => component.componentRaw),
+        ]).filter(Boolean),
       ),
     );
-    const itemsToFetch = uniqueBomItems.filter((item) => !drawingMetaByItem[item] && !drawingMetaLoadingByItem[item]);
+    const itemsToFetch = uniqueItems.filter((item) => !drawingMetaByItem[item] && !drawingMetaLoadingByItem[item]);
     if (itemsToFetch.length === 0) return;
 
     setDrawingMetaLoadingByItem((current) => ({
@@ -314,6 +317,8 @@ const KittingDocs = () => {
 
   const getDrawingFilename = (rawItem: string) => drawingMetaByItem[rawItem]?.filename || "";
   const isDrawingFilenameLoading = (rawItem: string) => !!drawingMetaLoadingByItem[rawItem];
+  const isDrawingAvailable = (rawItem: string) => !!drawingMetaByItem[rawItem]?.found;
+  const isDrawingButtonDisabled = (rawItem: string) => !rawItem || !!drawingMetaLoadingByItem[rawItem] || !isDrawingAvailable(rawItem);
 
   useEffect(() => {
     return () => {
@@ -325,7 +330,7 @@ const KittingDocs = () => {
 
   const openDrawing = async (rawItem: string, displayItem: string) => {
     const requestKey = `${displayItem}|${rawItem}`;
-    if (!rawItem || drawingLoadingKey === requestKey) return;
+    if (!rawItem || drawingLoadingKey === requestKey || isDrawingButtonDisabled(rawItem)) return;
 
     setDrawingLoadingKey(requestKey);
 
@@ -555,9 +560,10 @@ const KittingDocs = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700"
+                          className="h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
                           onClick={() => void openDrawing(line.itemRaw, line.item)}
                           aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(line.item)}`}
+                          disabled={isDrawingButtonDisabled(line.itemRaw)}
                         >
                           {drawingLoadingKey === `${line.item}|${line.itemRaw}` ? (
                             <Loader2 className="h-5 w-5 animate-spin" />
@@ -622,9 +628,10 @@ const KittingDocs = () => {
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="mt-[-2px] h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700"
+                                        className="mt-[-2px] h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
                                         onClick={() => void openDrawing(component.componentRaw, component.component)}
                                         aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(component.component)}`}
+                                        disabled={isDrawingButtonDisabled(component.componentRaw)}
                                       >
                                         {drawingLoadingKey === `${component.component}|${component.componentRaw}` ? (
                                           <Loader2 className="h-5 w-5 animate-spin" />
