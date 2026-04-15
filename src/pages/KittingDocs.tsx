@@ -479,14 +479,14 @@ const KittingDocs = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 shrink-0 text-gray-600 hover:text-gray-900"
+                          className="h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700"
                           onClick={() => void openDrawing(line.itemRaw, line.item)}
                           aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(line.item)}`}
                         >
                           {drawingLoadingKey === `${line.item}|${line.itemRaw}` ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-5 w-5 animate-spin" />
                           ) : (
-                            <FileImage className="h-4 w-4" />
+                            <FileImage className="h-5 w-5" />
                           )}
                         </Button>
                       </div>
@@ -538,14 +538,14 @@ const KittingDocs = () => {
                                       type="button"
                                       variant="ghost"
                                       size="icon"
-                                      className="mt-[-2px] h-8 w-8 shrink-0 text-gray-600 hover:text-gray-900"
+                                      className="mt-[-2px] h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700"
                                       onClick={() => void openDrawing(component.componentRaw, component.component)}
                                       aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(component.component)}`}
                                     >
                                       {drawingLoadingKey === `${component.component}|${component.componentRaw}` ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <Loader2 className="h-5 w-5 animate-spin" />
                                       ) : (
-                                        <FileImage className="h-4 w-4" />
+                                        <FileImage className="h-5 w-5" />
                                       )}
                                     </Button>
                                   </div>
