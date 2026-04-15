@@ -164,7 +164,7 @@ const KittingDocs = () => {
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat(locale, {
-      minimumFractionDigits: 4,
+      minimumFractionDigits: 0,
       maximumFractionDigits: 4,
     }).format(Number.isFinite(value) ? value : 0);
   };
