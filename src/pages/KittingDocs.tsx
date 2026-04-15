@@ -139,6 +139,7 @@ const KittingDocs = () => {
   const [drawingFilename, setDrawingFilename] = useState("");
   const [drawingLoadingKey, setDrawingLoadingKey] = useState("");
   const [drawingMetaByItem, setDrawingMetaByItem] = useState<Record<string, DrawingMeta>>({});
+  const [drawingMetaLoadingByItem, setDrawingMetaLoadingByItem] = useState<Record<string, boolean>>({});
   const [drawingItemRaw, setDrawingItemRaw] = useState("");
   const [printedItems, setPrintedItems] = useState<Record<string, boolean>>({});
 
@@ -202,6 +203,8 @@ const KittingDocs = () => {
     setLines([]);
     setInfoMessage("");
     setLoadedKey("");
+    setDrawingMetaByItem({});
+    setDrawingMetaLoadingByItem({});
   };
 
   const lookupOrderSet = async (rawValue?: string, originConstantName?: string) => {
@@ -265,8 +268,13 @@ const KittingDocs = () => {
         lines.flatMap((line) => line.components.map((component) => component.componentRaw).filter(Boolean)),
       ),
     );
-    const itemsToFetch = uniqueBomItems.filter((item) => !drawingMetaByItem[item]);
+    const itemsToFetch = uniqueBomItems.filter((item) => !drawingMetaByItem[item] && !drawingMetaLoadingByItem[item]);
     if (itemsToFetch.length === 0) return;
+
+    setDrawingMetaLoadingByItem((current) => ({
+      ...current,
+      ...Object.fromEntries(itemsToFetch.map((item) => [item, true])),
+    }));
 
     const loadDrawingMeta = async () => {
       const results = await Promise.all(
@@ -291,6 +299,10 @@ const KittingDocs = () => {
         ...current,
         ...Object.fromEntries(results),
       }));
+      setDrawingMetaLoadingByItem((current) => ({
+        ...current,
+        ...Object.fromEntries(itemsToFetch.map((item) => [item, false])),
+      }));
     };
 
     void loadDrawingMeta();
@@ -298,9 +310,10 @@ const KittingDocs = () => {
     return () => {
       cancelled = true;
     };
-  }, [lines, drawingMetaByItem]);
+  }, [lines, drawingMetaByItem, drawingMetaLoadingByItem]);
 
   const getDrawingFilename = (rawItem: string) => drawingMetaByItem[rawItem]?.filename || "";
+  const isDrawingFilenameLoading = (rawItem: string) => !!drawingMetaLoadingByItem[rawItem];
 
   useEffect(() => {
     return () => {
@@ -633,7 +646,11 @@ const KittingDocs = () => {
                                 </td>
                                 <td className="px-4 py-3 text-gray-900"></td>
                                 <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
-                                  {getDrawingFilename(component.componentRaw)}
+                                  {isDrawingFilenameLoading(component.componentRaw) ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                  ) : (
+                                    getDrawingFilename(component.componentRaw)
+                                  )}
                                 </td>
                               </tr>
                             ))
