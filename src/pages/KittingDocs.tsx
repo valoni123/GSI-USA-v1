@@ -593,6 +593,7 @@ const KittingDocs = () => {
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingBomLineLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingComponentLabel}</th>
                             <th className="px-4 py-3 text-right font-semibold">{trans.kittingQtyPerMainItemLabel}</th>
+                            <th className="px-4 py-3 text-left font-semibold">{trans.kittingDrawingOnFileLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingCommentsInstructionsLabel}</th>
                             <th className="px-4 py-3 text-left font-semibold">{trans.kittingDrawingFileNameLabel}</th>
                           </tr>
@@ -600,7 +601,7 @@ const KittingDocs = () => {
                         <tbody>
                           {line.components.length === 0 ? (
                             <tr>
-                              <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                              <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
                                 {trans.noComponentsLabel}
                               </td>
                             </tr>
@@ -643,6 +644,7 @@ const KittingDocs = () => {
                                 <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
                                   {formatQuantityWithUnit(component.quantity, component.inventoryUnit)}
                                 </td>
+                                <td className="px-4 py-3 text-gray-900"></td>
                                 <td className="px-4 py-3 text-gray-900"></td>
                                 <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
                                   {isDrawingFilenameLoading(component.componentRaw) ? (
