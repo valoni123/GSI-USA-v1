@@ -165,6 +165,8 @@ type TranslationKeys =
   | "kittingPrintedYesLabel"
   | "kittingPrintAllDocumentsLabel"
   | "kittingNoDocumentsAvailableLabel"
+  | "kittingPrintAllDrawingsLabel"
+  | "kittingPrintListComponentsLabel"
   | "approvedQuantityLabel"
   | "rejectedQuantityLabel"
   | "rejectReasonLabel"
@@ -347,6 +349,8 @@ const translations: Translations = {
     kittingPrintedYesLabel: "Printed",
     kittingPrintAllDocumentsLabel: "Print All Docs.",
     kittingNoDocumentsAvailableLabel: "No documents available for this line.",
+    kittingPrintAllDrawingsLabel: "Print All Drawings",
+    kittingPrintListComponentsLabel: "Print List Components",
     approvedQuantityLabel: "Approved Quantity",
     rejectedQuantityLabel: "Rejected Quantity",
     rejectReasonLabel: "Reject Reason",
@@ -524,6 +528,8 @@ const translations: Translations = {
     kittingPrintedYesLabel: "Gedruckt",
     kittingPrintAllDocumentsLabel: "Alle Dok. drucken",
     kittingNoDocumentsAvailableLabel: "Für diese Zeile sind keine Dokumente verfügbar.",
+    kittingPrintAllDrawingsLabel: "Alle Zeichnungen drucken",
+    kittingPrintListComponentsLabel: "Komponentenliste drucken",
     approvedQuantityLabel: "Genehmigte Menge",
     rejectedQuantityLabel: "Abgelehnte Menge",
     rejectReasonLabel: "Ablehnungsgrund",
@@ -701,6 +707,8 @@ const translations: Translations = {
     kittingPrintedYesLabel: "Impreso",
     kittingPrintAllDocumentsLabel: "Impr. todos docs.",
     kittingNoDocumentsAvailableLabel: "No hay documentos disponibles para esta línea.",
+    kittingPrintAllDrawingsLabel: "Imprimir todos los planos",
+    kittingPrintListComponentsLabel: "Imprimir lista de componentes",
     approvedQuantityLabel: "Cantidad aprobada",
     rejectedQuantityLabel: "Cantidad rechazada",
     rejectReasonLabel: "Motivo de rechazo",
@@ -878,6 +886,8 @@ const translations: Translations = {
     kittingPrintedYesLabel: "Impresso",
     kittingPrintAllDocumentsLabel: "Impr. todos docs.",
     kittingNoDocumentsAvailableLabel: "Não há documentos disponíveis para esta linha.",
+    kittingPrintAllDrawingsLabel: "Imprimir todos os desenhos",
+    kittingPrintListComponentsLabel: "Imprimir lista de componentes",
     approvedQuantityLabel: "Quantidade aprovada",
     rejectedQuantityLabel: "Quantidade rejeitada",
     rejectReasonLabel: "Motivo da rejeição",

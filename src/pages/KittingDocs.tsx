@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, FileImage, Loader2, LogOut, Printer, User } from "lucide-react";
+import jsPDF from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import BackButton from "@/components/BackButton";
 import ItemDrawingDialog from "@/components/ItemDrawingDialog";
@@ -145,6 +146,8 @@ const KittingDocs = () => {
   const [drawingFilename, setDrawingFilename] = useState("");
   const [drawingLoadingKey, setDrawingLoadingKey] = useState("");
   const [combinedDrawingLoadingKey, setCombinedDrawingLoadingKey] = useState("");
+  const [lineDrawingLoadingKey, setLineDrawingLoadingKey] = useState("");
+  const [lineComponentListLoadingKey, setLineComponentListLoadingKey] = useState("");
   const [drawingMetaByItem, setDrawingMetaByItem] = useState<Record<string, DrawingMeta>>({});
   const [drawingMetaLoadingByItem, setDrawingMetaLoadingByItem] = useState<Record<string, boolean>>({});
   const [drawingItemRaws, setDrawingItemRaws] = useState<string[]>([]);
@@ -404,6 +407,90 @@ const KittingDocs = () => {
     };
   };
 
+  const openMergedDrawingsPreview = async (
+    documentEntries: Array<{ rawItem: string; displayItem: string }>,
+    title: string,
+    filename: string,
+  ) => {
+    const drawings = await Promise.all(documentEntries.map((entry) => fetchDrawingPdf(entry.rawItem)));
+    const mergedPdf = await PDFDocument.create();
+
+    for (const drawing of drawings) {
+      const sourcePdf = await PDFDocument.load(drawing.bytes);
+      const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+      copiedPages.forEach((page) => mergedPdf.addPage(page));
+    }
+
+    const mergedBytes = await mergedPdf.save();
+    openPdfPreview(
+      mergedBytes,
+      title,
+      filename,
+      documentEntries.map((entry) => entry.rawItem),
+    );
+  };
+
+  const buildLineComponentsPdf = (line: KittingLine) => {
+    const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const left = 40;
+    const right = pageWidth - 40;
+    let y = 42;
+
+    const addText = (text: string, x: number, nextY = 16) => {
+      pdf.text(text, x, y);
+      y += nextY;
+    };
+
+    const ensureSpace = (needed = 20) => {
+      if (y + needed <= pageHeight - 40) return;
+      pdf.addPage();
+      y = 42;
+    };
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    addText(trans.kittingPrintListComponentsLabel, left, 22);
+
+    pdf.setFontSize(11);
+    pdf.setFont("helvetica", "normal");
+    addText(`${trans.orderLabel}: ${line.order}`, left);
+    addText(`${trans.setLabel}: ${line.set}`, left);
+    addText(`${trans.lineLabel}: ${line.line}    ${trans.sequenceLabel}: ${line.sequence}`, left);
+    addText(`${trans.kittingMainItemLabel}: ${formatItemNumber(line.item)} ${line.itemDescription || ""}`.trim(), left, 22);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text(trans.kittingBomLineLabel, left, y);
+    pdf.text(trans.kittingComponentLabel, left + 70, y);
+    pdf.text(trans.quantityLabel, right - 210, y, { align: "right" });
+    pdf.text(trans.kittingDrawingFileNameLabel, right, y, { align: "right" });
+    y += 10;
+    pdf.setLineWidth(0.8);
+    pdf.line(left, y, right, y);
+    y += 16;
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+
+    line.components.forEach((component) => {
+      ensureSpace(34);
+      pdf.text(String(component.bomLine), left, y);
+      pdf.text(formatItemNumber(component.component), left + 70, y);
+      if (component.description) {
+        pdf.setFontSize(8);
+        pdf.text(component.description, left + 70, y + 11);
+        pdf.setFontSize(9);
+      }
+      pdf.text(formatQuantityWithUnit(component.quantity, component.inventoryUnit), right - 210, y, { align: "right" });
+      pdf.text(getDrawingFilename(component.componentRaw), right, y, { align: "right" });
+      y += 26;
+    });
+
+    return new Uint8Array(pdf.output("arraybuffer"));
+  };
+
   useEffect(() => {
     return () => {
       if (drawingUrl.startsWith("blob:")) {
@@ -442,30 +529,65 @@ const KittingDocs = () => {
       return;
     }
 
+    const firstLine = lines[0];
     setCombinedDrawingLoadingKey("all");
 
     try {
-      const drawings = await Promise.all(documentEntries.map((entry) => fetchDrawingPdf(entry.rawItem)));
-      const mergedPdf = await PDFDocument.create();
-
-      for (const drawing of drawings) {
-        const sourcePdf = await PDFDocument.load(drawing.bytes);
-        const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
-        copiedPages.forEach((page) => mergedPdf.addPage(page));
-      }
-
-      const mergedBytes = await mergedPdf.save();
-      const firstLine = lines[0];
-      setCombinedDrawingLoadingKey("");
-      openPdfPreview(
-        mergedBytes,
+      await openMergedDrawingsPreview(
+        documentEntries,
         `${trans.kittingPrintAllDocumentsLabel}: ${firstLine?.order || ""}/${firstLine?.set || ""}`,
         `kitting-${firstLine?.order || "order"}-${firstLine?.set || "set"}.pdf`,
-        documentEntries.map((entry) => entry.rawItem),
       );
+      setCombinedDrawingLoadingKey("");
     } catch {
       setCombinedDrawingLoadingKey("");
       showError(trans.kittingDrawingLoadFailed);
+    }
+  };
+
+  const openLineDrawings = async (line: KittingLine) => {
+    const lineKey = getLineKey(line);
+    if (lineDrawingLoadingKey === lineKey) return;
+
+    const documentEntries = getLineDocumentEntries(line);
+    if (documentEntries.length === 0) {
+      showError(trans.kittingNoDocumentsAvailableLabel);
+      return;
+    }
+
+    setLineDrawingLoadingKey(lineKey);
+
+    try {
+      await openMergedDrawingsPreview(
+        documentEntries,
+        `${trans.kittingPrintAllDrawingsLabel}: ${line.order}/${line.set}`,
+        `kitting-${line.order}-${line.set}-line-${line.line}-${line.sequence}-drawings.pdf`,
+      );
+      setLineDrawingLoadingKey("");
+    } catch {
+      setLineDrawingLoadingKey("");
+      showError(trans.kittingDrawingLoadFailed);
+    }
+  };
+
+  const openLineComponentsList = async (line: KittingLine) => {
+    const lineKey = getLineKey(line);
+    if (lineComponentListLoadingKey === lineKey) return;
+
+    setLineComponentListLoadingKey(lineKey);
+
+    try {
+      const pdfBytes = buildLineComponentsPdf(line);
+      openPdfPreview(
+        pdfBytes,
+        `${trans.kittingPrintListComponentsLabel}: ${line.order}/${line.set}`,
+        `kitting-${line.order}-${line.set}-line-${line.line}-${line.sequence}-components.pdf`,
+        [],
+      );
+      setLineComponentListLoadingKey("");
+    } catch {
+      setLineComponentListLoadingKey("");
+      showError(trans.loadingDetails);
     }
   };
 
@@ -591,7 +713,7 @@ const KittingDocs = () => {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="h-12 shrink-0 whitespace-nowrap rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                      className="h-12 shrink-0 whitespace-nowrap rounded-md bg-green-100 px-3 text-green-700 hover:bg-green-200 hover:text-green-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
                       onClick={() => void openAllLoadedDrawings()}
                       disabled={combinedDrawingLoadingKey === "all" || isLoadedDocumentsMetaLoading() || getLoadedDocumentEntries().length === 0}
                     >
@@ -777,7 +899,38 @@ const KittingDocs = () => {
                       </table>
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-10 shrink-0 whitespace-nowrap rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                          onClick={() => void openLineDrawings(line)}
+                          disabled={lineDrawingLoadingKey === lineKey || getLineDocumentEntries(line).length === 0}
+                        >
+                          {lineDrawingLoadingKey === lineKey ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Printer className="mr-2 h-4 w-4" />
+                          )}
+                          {trans.kittingPrintAllDrawingsLabel}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-10 shrink-0 whitespace-nowrap rounded-md bg-sky-100 px-3 text-sky-700 hover:bg-sky-200 hover:text-sky-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                          onClick={() => void openLineComponentsList(line)}
+                          disabled={lineComponentListLoadingKey === lineKey}
+                        >
+                          {lineComponentListLoadingKey === lineKey ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Printer className="mr-2 h-4 w-4" />
+                          )}
+                          {trans.kittingPrintListComponentsLabel}
+                        </Button>
+                      </div>
+
                       <div className="inline-flex items-center gap-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-gray-900">
                         <span>{trans.kittingTotalPartsLabel}</span>
                         <span>{line.components.length}</span>
