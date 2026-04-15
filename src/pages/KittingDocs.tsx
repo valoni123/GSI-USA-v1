@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, LogOut, User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,10 +41,10 @@ const KittingDocs = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="sticky top-0 z-10 bg-black text-white">
-        <div className="mx-auto max-w-md px-4 py-3 flex items-center justify-between">
+        <div className="mx-auto w-full max-w-6xl px-4 py-3 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
           <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu")} />
 
-          <div className="flex flex-col items-center flex-1">
+          <div className="flex flex-col items-center flex-1 min-w-0">
             <button
               type="button"
               onClick={() => navigate("/menu")}
@@ -53,7 +53,7 @@ const KittingDocs = () => {
               {trans.appKittingDocs}
             </button>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
-              <User className="h-4 w-4" />
+              <User className="h-4 w-4 shrink-0" />
               <span className="line-clamp-1">{fullName || ""}</span>
             </div>
           </div>
@@ -70,17 +70,12 @@ const KittingDocs = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 py-6">
-        <Card className="rounded-xl border-2 border-gray-200 bg-white p-8 shadow-md shadow-gray-300/70">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <Card className="rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70 sm:p-8 lg:p-10">
           <div className="flex flex-col gap-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-md border-2 border-red-700 text-red-700">
-                <FileText className="h-9 w-9" />
-              </div>
-              <div className="text-lg font-semibold text-gray-800">{trans.appKittingDocs}</div>
-            </div>
+            <div className="text-lg font-semibold text-gray-800">{trans.appKittingDocs}</div>
 
-            <div className="space-y-2">
+            <div className="max-w-xl space-y-2">
               <label htmlFor="kittingOrderSet" className="block text-sm font-medium text-gray-700">
                 {trans.orderSetLabel}
               </label>
@@ -91,7 +86,7 @@ const KittingDocs = () => {
                 placeholder={trans.scanOrderSetPlaceholder}
                 autoFocus
                 autoComplete="off"
-                className="h-12 border-gray-300 text-base"
+                className="h-12 border-gray-300 text-base sm:h-14 sm:text-lg"
               />
             </div>
           </div>
