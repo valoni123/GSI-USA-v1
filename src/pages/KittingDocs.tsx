@@ -245,6 +245,14 @@ const KittingDocs = () => {
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (drawingUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(drawingUrl);
+      }
+    };
+  }, [drawingUrl]);
+
   const openDrawing = async (rawItem: string, displayItem: string) => {
     const requestKey = `${displayItem}|${rawItem}`;
     if (!rawItem || drawingLoadingKey === requestKey) return;
@@ -263,14 +271,30 @@ const KittingDocs = () => {
         return;
       }
 
-      if (!data.found || !data.pdfUrl) {
+      if (!data.found || !data.pdfBase64) {
         showError(trans.kittingNoDrawingFound);
         return;
       }
 
+      const binary = atob(String(data.pdfBase64));
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+
+      if (drawingUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(drawingUrl);
+      }
+
+      const blobUrl = URL.createObjectURL(
+        new Blob([bytes], {
+          type: typeof data.mimeType === "string" && data.mimeType ? data.mimeType : "application/pdf",
+        }),
+      );
+
       setDrawingTitle(`${trans.kittingDrawingTitle}: ${formatItemNumber(displayItem)}`);
       setDrawingFilename(typeof data.filename === "string" ? data.filename : "");
-      setDrawingUrl(data.pdfUrl);
+      setDrawingUrl(blobUrl);
       setDrawingOpen(true);
     } catch {
       setDrawingLoadingKey("");

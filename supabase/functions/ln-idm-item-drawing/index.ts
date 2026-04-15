@@ -59,6 +59,19 @@ function pickMainPdfResource(resources: IdmResource[]) {
   );
 }
 
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
+}
+
 serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -156,11 +169,33 @@ serve(async (req) => {
       return json({ ok: true, found: false }, 200);
     }
 
+    const pdfResponse = await fetchWithTimeout(
+      toText(mainResource.url),
+      {
+        method: "GET",
+        headers: {
+          accept: "application/pdf",
+        },
+      },
+      REQUEST_TIMEOUT_MS,
+    );
+
+    if (!pdfResponse.ok) {
+      console.error("[ln-idm-item-drawing] pdf download failed", {
+        status: pdfResponse.status,
+        item: item.trim() || item,
+      });
+      return json({ ok: false, error: "idm_pdf_download_failed" }, 200);
+    }
+
+    const pdfBuffer = await pdfResponse.arrayBuffer();
+
     return json(
       {
         ok: true,
         found: true,
-        pdfUrl: toText(mainResource.url),
+        pdfBase64: arrayBufferToBase64(pdfBuffer),
+        mimeType: toText(mainResource.mimetype) || "application/pdf",
         filename: toText(mainResource.filename) || toText(firstItem?.displayName),
         itemNumber: item,
         displayName: toText(firstItem?.displayName),
