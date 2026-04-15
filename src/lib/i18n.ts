@@ -163,6 +163,8 @@ type TranslationKeys =
   | "kittingDrawingFileNameLabel"
   | "kittingPrintLabel"
   | "kittingPrintedYesLabel"
+  | "kittingPrintAllDocumentsLabel"
+  | "kittingNoDocumentsAvailableLabel"
   | "approvedQuantityLabel"
   | "rejectedQuantityLabel"
   | "rejectReasonLabel"
@@ -343,6 +345,8 @@ const translations: Translations = {
     kittingDrawingFileNameLabel: "Drawing File Name",
     kittingPrintLabel: "Print",
     kittingPrintedYesLabel: "Printed",
+    kittingPrintAllDocumentsLabel: "Print All Documents",
+    kittingNoDocumentsAvailableLabel: "No documents available for this line.",
     approvedQuantityLabel: "Approved Quantity",
     rejectedQuantityLabel: "Rejected Quantity",
     rejectReasonLabel: "Reject Reason",
@@ -518,6 +522,8 @@ const translations: Translations = {
     kittingDrawingFileNameLabel: "Zeichnungsdateiname",
     kittingPrintLabel: "Drucken",
     kittingPrintedYesLabel: "Gedruckt",
+    kittingPrintAllDocumentsLabel: "Alle Dokumente drucken",
+    kittingNoDocumentsAvailableLabel: "Für diese Zeile sind keine Dokumente verfügbar.",
     approvedQuantityLabel: "Genehmigte Menge",
     rejectedQuantityLabel: "Abgelehnte Menge",
     rejectReasonLabel: "Ablehnungsgrund",
@@ -693,6 +699,8 @@ const translations: Translations = {
     kittingDrawingFileNameLabel: "Nombre del archivo del plano",
     kittingPrintLabel: "Imprimir",
     kittingPrintedYesLabel: "Impreso",
+    kittingPrintAllDocumentsLabel: "Imprimir todos los documentos",
+    kittingNoDocumentsAvailableLabel: "No hay documentos disponibles para esta línea.",
     approvedQuantityLabel: "Cantidad aprobada",
     rejectedQuantityLabel: "Cantidad rechazada",
     rejectReasonLabel: "Motivo de rechazo",
@@ -868,6 +876,8 @@ const translations: Translations = {
     kittingDrawingFileNameLabel: "Nome do arquivo do desenho",
     kittingPrintLabel: "Imprimir",
     kittingPrintedYesLabel: "Impresso",
+    kittingPrintAllDocumentsLabel: "Imprimir todos os documentos",
+    kittingNoDocumentsAvailableLabel: "Não há documentos disponíveis para esta linha.",
     approvedQuantityLabel: "Quantidade aprovada",
     rejectedQuantityLabel: "Quantidade rejeitada",
     rejectReasonLabel: "Motivo da rejeição",

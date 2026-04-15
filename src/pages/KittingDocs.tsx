@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, FileImage, Loader2, LogOut, User } from "lucide-react";
+import { Check, FileImage, Loader2, LogOut, Printer, User } from "lucide-react";
+import { PDFDocument } from "pdf-lib";
 import BackButton from "@/components/BackButton";
 import ItemDrawingDialog from "@/components/ItemDrawingDialog";
 import { Card } from "@/components/ui/card";
@@ -64,6 +65,11 @@ type KittingLine = {
 
 type DrawingMeta = {
   found: boolean;
+  filename: string;
+};
+
+type DrawingPdfPayload = {
+  bytes: Uint8Array;
   filename: string;
 };
 
@@ -138,9 +144,10 @@ const KittingDocs = () => {
   const [drawingTitle, setDrawingTitle] = useState("");
   const [drawingFilename, setDrawingFilename] = useState("");
   const [drawingLoadingKey, setDrawingLoadingKey] = useState("");
+  const [combinedDrawingLoadingKey, setCombinedDrawingLoadingKey] = useState("");
   const [drawingMetaByItem, setDrawingMetaByItem] = useState<Record<string, DrawingMeta>>({});
   const [drawingMetaLoadingByItem, setDrawingMetaLoadingByItem] = useState<Record<string, boolean>>({});
-  const [drawingItemRaw, setDrawingItemRaw] = useState("");
+  const [drawingItemRaws, setDrawingItemRaws] = useState<string[]>([]);
   const [printedItems, setPrintedItems] = useState<Record<string, boolean>>({});
 
   const onConfirmSignOut = () => {
@@ -197,6 +204,35 @@ const KittingDocs = () => {
       month: "2-digit",
       day: "2-digit",
     }).format(date);
+  };
+
+  const getLineKey = (line: KittingLine) => `${line.orderOrigin}|${line.order}|${line.line}|${line.sequence}|${line.set}`;
+
+  const base64ToUint8Array = (value: string) => {
+    const binary = atob(value);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+  };
+
+  const openPdfPreview = (pdfBytes: Uint8Array, title: string, filename: string, rawItems: string[]) => {
+    if (drawingUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(drawingUrl);
+    }
+
+    const blobUrl = URL.createObjectURL(
+      new Blob([pdfBytes], {
+        type: "application/pdf",
+      }),
+    );
+
+    setDrawingTitle(title);
+    setDrawingFilename(filename);
+    setDrawingUrl(blobUrl);
+    setDrawingOpen(true);
+    setDrawingItemRaws(Array.from(new Set(rawItems.filter(Boolean))));
   };
 
   const clearLoadedState = () => {
@@ -320,6 +356,38 @@ const KittingDocs = () => {
   const isDrawingAvailable = (rawItem: string) => !!drawingMetaByItem[rawItem]?.found;
   const isDrawingButtonDisabled = (rawItem: string) => !rawItem || !!drawingMetaLoadingByItem[rawItem] || !isDrawingAvailable(rawItem);
 
+  const getLineDocumentEntries = (line: KittingLine) => {
+    const entries = [
+      { rawItem: line.itemRaw, displayItem: line.item },
+      ...line.components.map((component) => ({
+        rawItem: component.componentRaw,
+        displayItem: component.component,
+      })),
+    ];
+
+    return entries.filter((entry) => entry.rawItem && isDrawingAvailable(entry.rawItem));
+  };
+
+  const isLineDocumentMetaLoading = (line: KittingLine) => {
+    const itemRaws = [line.itemRaw, ...line.components.map((component) => component.componentRaw)].filter(Boolean);
+    return itemRaws.some((rawItem) => isDrawingFilenameLoading(rawItem));
+  };
+
+  const fetchDrawingPdf = async (rawItem: string): Promise<DrawingPdfPayload> => {
+    const { data, error } = await supabase.functions.invoke("ln-idm-item-drawing", {
+      body: { item: rawItem },
+    });
+
+    if (error || !data || !data.ok || !data.found || !data.pdfBase64) {
+      throw new Error("drawing_load_failed");
+    }
+
+    return {
+      bytes: base64ToUint8Array(String(data.pdfBase64)),
+      filename: typeof data.filename === "string" ? data.filename : "",
+    };
+  };
+
   useEffect(() => {
     return () => {
       if (drawingUrl.startsWith("blob:")) {
@@ -335,52 +403,62 @@ const KittingDocs = () => {
     setDrawingLoadingKey(requestKey);
 
     try {
-      const { data, error } = await supabase.functions.invoke("ln-idm-item-drawing", {
-        body: { item: rawItem },
-      });
-
+      const drawing = await fetchDrawingPdf(rawItem);
       setDrawingLoadingKey("");
-
-      if (error || !data || !data.ok) {
-        showError(trans.kittingDrawingLoadFailed);
-        return;
-      }
-
-      if (!data.found || !data.pdfBase64) {
-        showError(trans.kittingNoDrawingFound);
-        return;
-      }
-
-      const binary = atob(String(data.pdfBase64));
-      const bytes = new Uint8Array(binary.length);
-      for (let index = 0; index < binary.length; index += 1) {
-        bytes[index] = binary.charCodeAt(index);
-      }
-
-      if (drawingUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(drawingUrl);
-      }
-
-      const blobUrl = URL.createObjectURL(
-        new Blob([bytes], {
-          type: typeof data.mimeType === "string" && data.mimeType ? data.mimeType : "application/pdf",
-        }),
+      openPdfPreview(
+        drawing.bytes,
+        `${trans.kittingDrawingTitle}: ${formatItemNumber(displayItem)}`,
+        drawing.filename,
+        [rawItem],
       );
-
-      setDrawingTitle(`${trans.kittingDrawingTitle}: ${formatItemNumber(displayItem)}`);
-      setDrawingFilename(typeof data.filename === "string" ? data.filename : "");
-      setDrawingUrl(blobUrl);
-      setDrawingOpen(true);
-      setDrawingItemRaw(rawItem);
     } catch {
       setDrawingLoadingKey("");
       showError(trans.kittingDrawingLoadFailed);
     }
   };
 
+  const openAllDrawings = async (line: KittingLine) => {
+    const requestKey = getLineKey(line);
+    if (combinedDrawingLoadingKey === requestKey || isLineDocumentMetaLoading(line)) return;
+
+    const documentEntries = getLineDocumentEntries(line);
+    if (documentEntries.length === 0) {
+      showError(trans.kittingNoDocumentsAvailableLabel);
+      return;
+    }
+
+    setCombinedDrawingLoadingKey(requestKey);
+
+    try {
+      const drawings = await Promise.all(documentEntries.map((entry) => fetchDrawingPdf(entry.rawItem)));
+      const mergedPdf = await PDFDocument.create();
+
+      for (const drawing of drawings) {
+        const sourcePdf = await PDFDocument.load(drawing.bytes);
+        const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+        copiedPages.forEach((page) => mergedPdf.addPage(page));
+      }
+
+      const mergedBytes = await mergedPdf.save();
+      setCombinedDrawingLoadingKey("");
+      openPdfPreview(
+        mergedBytes,
+        `${trans.kittingPrintAllDocumentsLabel}: ${line.order}/${line.set}`,
+        `kitting-${line.order}-${line.set}-line-${line.line}-${line.sequence}.pdf`,
+        documentEntries.map((entry) => entry.rawItem),
+      );
+    } catch {
+      setCombinedDrawingLoadingKey("");
+      showError(trans.kittingDrawingLoadFailed);
+    }
+  };
+
   const markCurrentDrawingAsPrinted = () => {
-    if (!drawingItemRaw) return;
-    setPrintedItems((current) => ({ ...current, [drawingItemRaw]: true }));
+    if (drawingItemRaws.length === 0) return;
+    setPrintedItems((current) => ({
+      ...current,
+      ...Object.fromEntries(drawingItemRaws.map((rawItem) => [rawItem, true])),
+    }));
   };
 
   return (
@@ -464,63 +542,68 @@ const KittingDocs = () => {
                   </div>
                 </div>
 
-                <div className="w-full md:flex-1">
+                <div className="flex-1">
                   <div className="relative pt-2">
                     <Input
-                      id="kittingOrderSet"
                       value={orderSet}
-                      onChange={(e) => {
-                        setOrderSet(e.target.value);
-                        clearLoadedState();
+                      onChange={(event) => {
+                        setOrderSet(event.target.value);
+                        if (!event.target.value.trim()) clearLoadedState();
                       }}
-                      onBlur={() => {
-                        if (orderSet.trim()) {
-                          void lookupOrderSet(orderSet);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          void lookupOrderSet(orderSet);
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          void lookupOrderSet();
                         }
                       }}
                       placeholder={trans.scanOrderSetPlaceholder}
-                      autoFocus
-                      autoComplete="off"
                       className="h-12 border-gray-300 text-base"
                     />
-                    <label
-                      htmlFor="kittingOrderSet"
-                      className="pointer-events-none absolute left-3 top-0 rounded-sm bg-white px-1 text-xs text-gray-700"
-                    >
+                    <label className="pointer-events-none absolute left-3 top-0 rounded-sm bg-white px-1 text-xs text-gray-700">
                       {trans.orderSetLabel}
                     </label>
                   </div>
                 </div>
               </div>
+
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  className="h-12 rounded-lg bg-black px-6 text-base font-semibold text-white hover:bg-gray-800"
+                  onClick={() => void lookupOrderSet()}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      {trans.kittingLoading}
+                    </>
+                  ) : (
+                    trans.runLabel
+                  )}
+                </Button>
+              </div>
             </div>
           </Card>
 
-          {loading && (
-            <Card className="rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70">
-              <div className="text-sm font-medium text-gray-600">{trans.kittingLoading}</div>
+          {infoMessage ? (
+            <Card className="rounded-xl border-2 border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-md shadow-gray-300/70">
+              {infoMessage}
             </Card>
-          )}
+          ) : null}
 
-          {!loading && infoMessage && (
-            <Card className="rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70">
-              <div className="text-sm font-medium text-gray-600">{infoMessage}</div>
-            </Card>
-          )}
-
-          {!loading &&
-            lines.map((line) => {
+          {lines
+            .filter((line) => line.components.length > 0)
+            .map((line) => {
               const lineOriginOption =
-                findKittingOriginOptionByEnglishLabel(originOptions, line.orderOrigin) || selectedOriginOption;
+                findKittingOriginOptionByEnglishLabel(originOptions, line.orderOrigin) ||
+                getKittingOriginOption(line.orderOrigin, line.orderOrigin, lang);
+              const lineKey = getLineKey(line);
+              const printAllDisabled = isLineDocumentMetaLoading(line) || getLineDocumentEntries(line).length === 0;
 
               return (
                 <Card
-                  key={`${line.orderOrigin}|${line.order}|${line.line}|${line.sequence}|${line.set}`}
+                  key={lineKey}
                   className="rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70"
                 >
                   <div className="space-y-5">
@@ -577,6 +660,20 @@ const KittingDocs = () => {
                             {trans.kittingPrintedYesLabel}
                           </span>
                         )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-10 shrink-0 rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                          onClick={() => void openAllDrawings(line)}
+                          disabled={printAllDisabled || combinedDrawingLoadingKey === lineKey}
+                        >
+                          {combinedDrawingLoadingKey === lineKey ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Printer className="mr-2 h-4 w-4" />
+                          )}
+                          {trans.kittingPrintAllDocumentsLabel}
+                        </Button>
                       </div>
                     </div>
 
