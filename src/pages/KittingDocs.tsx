@@ -37,6 +37,8 @@ type KittingComponent = {
   quantity: number;
   orderedQuantity: number;
   originallyOrderedQuantity: number;
+  description: string;
+  inventoryUnit: string;
 };
 
 type KittingLine = {
@@ -154,6 +156,11 @@ const KittingDocs = () => {
       minimumFractionDigits: 4,
       maximumFractionDigits: 4,
     }).format(Number.isFinite(value) ? value : 0);
+  };
+
+  const formatQuantityWithUnit = (value: number, unit: string) => {
+    const formatted = formatNumber(value);
+    return unit ? `${formatted} ${unit}` : formatted;
   };
 
   const clearLoadedState = () => {
@@ -401,12 +408,23 @@ const KittingDocs = () => {
                             </tr>
                           ) : (
                             line.components.map((component) => (
-                              <tr key={`${component.bomLine}-${component.component}`} className="border-t border-gray-200">
+                              <tr key={`${component.bomLine}-${component.component}`} className="border-t border-gray-200 align-top">
                                 <td className="px-4 py-3 font-medium text-gray-900">{component.bomLine}</td>
-                                <td className="px-4 py-3 text-gray-900">{formatItemNumber(component.component)}</td>
-                                <td className="px-4 py-3 text-right text-gray-900">{formatNumber(component.quantity)}</td>
-                                <td className="px-4 py-3 text-right text-gray-900">{formatNumber(component.orderedQuantity)}</td>
-                                <td className="px-4 py-3 text-right text-gray-900">{formatNumber(component.originallyOrderedQuantity)}</td>
+                                <td className="px-4 py-3 text-gray-900">
+                                  <div className="font-medium">{formatItemNumber(component.component)}</div>
+                                  {component.description && (
+                                    <div className="text-xs text-gray-500">{component.description}</div>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
+                                  {formatQuantityWithUnit(component.quantity, component.inventoryUnit)}
+                                </td>
+                                <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
+                                  {formatQuantityWithUnit(component.orderedQuantity, component.inventoryUnit)}
+                                </td>
+                                <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
+                                  {formatQuantityWithUnit(component.originallyOrderedQuantity, component.inventoryUnit)}
+                                </td>
                               </tr>
                             ))
                           )}

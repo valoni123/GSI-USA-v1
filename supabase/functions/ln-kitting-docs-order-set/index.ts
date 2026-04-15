@@ -10,12 +10,18 @@ const corsHeaders = {
 };
 
 const REQUEST_TIMEOUT_MS = 15000;
+const ITEM_SELECT = "Description,ListType,InventoryUnit,LotControlled,Material,Size,Weight,WeightUnit,ProductType,ProductClass,ProductLine,CriticalSafetyItem,FloorStock,ItemText";
 
 type RequestBody = {
   order?: string;
   set?: string | number;
   orderOrigin?: string;
   company?: string;
+};
+
+type ItemDetails = {
+  description: string;
+  inventoryUnit: string;
 };
 
 type GroupedComponent = {
@@ -30,6 +36,8 @@ type GroupedComponent = {
   quantity: number;
   orderedQuantity: number;
   originallyOrderedQuantity: number;
+  description: string;
+  inventoryUnit: string;
 };
 
 type GroupedLine = {
@@ -77,6 +85,10 @@ function toText(value: unknown) {
   return value == null ? "" : String(value).trim();
 }
 
+function toRawText(value: unknown) {
+  return value == null ? "" : String(value);
+}
+
 function lineKey(row: any) {
   return [
     toText(row?.OrderOrigin),
@@ -99,6 +111,52 @@ function componentKey(row: any) {
   ].join("|");
 }
 
+async function fetchItemDetails(
+  base: string,
+  tenant: string,
+  accessToken: string,
+  company: string,
+  item: string,
+): Promise<ItemDetails> {
+  const escapedItem = item.replace(/'/g, "''");
+  const params = new URLSearchParams();
+  params.set("$filter", `Item eq '${escapedItem}'`);
+  params.set("$select", ITEM_SELECT);
+
+  const url = `${base}/${tenant}/LN/lnapi/odata/tcapi.ibdItem/Items?${params.toString()}`;
+  console.info("[ln-kitting-docs-order-set] requesting item details", { item: toText(item) || item });
+
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        "Content-Language": "en-US",
+        "X-Infor-LnCompany": company,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    REQUEST_TIMEOUT_MS,
+  );
+
+  const payload = (await response.json().catch(() => null)) as any;
+  if (!response.ok || !payload) {
+    console.error("[ln-kitting-docs-order-set] item details upstream error", {
+      status: response.status,
+      item: toText(item) || item,
+      error: payload?.error?.message || "odata_error",
+    });
+    return { description: "", inventoryUnit: "" };
+  }
+
+  const row = Array.isArray(payload.value) ? payload.value[0] : null;
+  return {
+    description: toText(row?.Description),
+    inventoryUnit: toText(row?.InventoryUnit),
+  };
+}
+
 serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -119,7 +177,6 @@ serve(async (req) => {
     const order = toText(body.order);
     const setValue = toNumber(body.set);
     const orderOrigin = toText(body.orderOrigin);
-    const requestLanguage = "en-US";
 
     if (!order) {
       console.warn("[ln-kitting-docs-order-set] missing order");
@@ -173,7 +230,7 @@ serve(async (req) => {
           method: "GET",
           headers: {
             accept: "application/json",
-            "Content-Language": requestLanguage,
+            "Content-Language": "en-US",
             "X-Infor-LnCompany": company,
             Authorization: `Bearer ${accessToken}`,
           },
@@ -198,6 +255,7 @@ serve(async (req) => {
       }
 
       const lineMap = new Map<string, GroupedLine & { componentMap: Map<string, GroupedComponent> }>();
+      const componentItems = new Map<string, string>();
       const rows = Array.isArray(payload.value) ? payload.value : [];
 
       for (const row of rows) {
@@ -232,6 +290,12 @@ serve(async (req) => {
         const bomKey = componentKey(bom);
         if (grouped.componentMap.has(bomKey)) continue;
 
+        const rawComponent = toRawText(bom?.Component);
+        const displayComponent = toText(bom?.Component);
+        if (rawComponent) {
+          componentItems.set(displayComponent, rawComponent);
+        }
+
         grouped.componentMap.set(bomKey, {
           orderOrigin: toText(bom?.OrderOrigin),
           order: toText(bom?.Order),
@@ -239,18 +303,34 @@ serve(async (req) => {
           sequence: toNumber(bom?.Sequence),
           set: toNumber(bom?.Set),
           bomLine: toNumber(bom?.BOMLine),
-          component: toText(bom?.Component),
+          component: displayComponent,
           warehouse: toText(bom?.Warehouse),
           quantity: toNumber(bom?.Quantity),
           orderedQuantity: toNumber(bom?.OrderedQuantity),
           originallyOrderedQuantity: toNumber(bom?.OriginallyOrderedQuantity),
+          description: "",
+          inventoryUnit: "",
         });
       }
+
+      const itemDetailsEntries = await Promise.all(
+        Array.from(componentItems.entries()).map(async ([displayComponent, rawComponent]) => {
+          const details = await fetchItemDetails(base, cfg.ti, accessToken, company, rawComponent);
+          return [displayComponent, details] as const;
+        }),
+      );
+      const itemDetailsMap = new Map<string, ItemDetails>(itemDetailsEntries);
 
       const lines = Array.from(lineMap.values())
         .map(({ componentMap, ...line }) => ({
           ...line,
-          components: Array.from(componentMap.values()).sort((a, b) => a.bomLine - b.bomLine),
+          components: Array.from(componentMap.values())
+            .map((component) => ({
+              ...component,
+              description: itemDetailsMap.get(component.component)?.description || "",
+              inventoryUnit: itemDetailsMap.get(component.component)?.inventoryUnit || "",
+            }))
+            .sort((a, b) => a.bomLine - b.bomLine),
         }))
         .sort((a, b) => a.line - b.line || a.sequence - b.sequence || a.set - b.set);
 
@@ -260,6 +340,7 @@ serve(async (req) => {
         orderOrigin,
         rawRows: rows.length,
         lineCount: lines.length,
+        itemLookups: componentItems.size,
       });
 
       return json({ ok: true, count: lines.length, lines }, 200);
