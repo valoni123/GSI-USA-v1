@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Settings, Forklift } from "lucide-react";
+import { LogOut, User, ArrowDownCircle, ArrowUpCircle, Warehouse, Settings, Forklift, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
@@ -45,6 +45,7 @@ function Menu() {
       ? [{ key: "transports", label: trans.appTransports, icon: <Forklift className="h-10 w-10 text-red-700" /> }]
       : []),
     { key: "settings", label: trans.appSettings, icon: <Settings className="h-10 w-10 text-red-700" /> },
+    { key: "kittingDocs", label: trans.appKittingDocs, icon: <FileText className="h-10 w-10 text-red-700" /> },
   ];
 
   const onConfirmSignOut = () => {
@@ -106,6 +107,9 @@ function Menu() {
               }
               if (app.key === "transports") {
                 navigate("/menu/transports");
+              }
+              if (app.key === "kittingDocs") {
+                navigate("/menu/kitting-docs");
               }
             }}
           >

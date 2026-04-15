@@ -35,6 +35,7 @@ type TranslationKeys =
   | "appContainers"
   | "appTransport"
   | "appTransports"
+  | "appKittingDocs"
   | "appSettings"
 
   | "back"
@@ -187,6 +188,7 @@ const translations: Translations = {
     appContainers: "Containers",
     appTransport: "Transport",
     appTransports: "Transports",
+    appKittingDocs: "Kitting-Docs.",
     appSettings: "Settings",
 
 
@@ -339,6 +341,7 @@ const translations: Translations = {
     appContainers: "Behälter",
     appTransport: "Transport",
     appTransports: "Transporte",
+    appKittingDocs: "Kitting-Dok.",
     appSettings: "Einstellungen",
 
 
@@ -489,6 +492,7 @@ const translations: Translations = {
     appContainers: "Contenedores",
     appTransport: "Transporte",
     appTransports: "Transportes",
+    appKittingDocs: "Docs. de kitting",
     appSettings: "Configuración",
 
 
@@ -639,6 +643,7 @@ const translations: Translations = {
     appContainers: "Contêineres",
     appTransport: "Transporte",
     appTransports: "Transportes",
+    appKittingDocs: "Docs. de kitting",
     appSettings: "Configurações",
 
 

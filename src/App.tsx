@@ -32,6 +32,7 @@ import TransportSelect from "./pages/TransportSelect";
 import TransportGroup from "./pages/TransportGroup";
 import TransportsSelect from "./pages/TransportsSelect";
 import TransportsList from "./pages/TransportsList";
+import KittingDocs from "./pages/KittingDocs";
 import Docs from "./pages/Docs";
 
 const queryClient = new QueryClient();
@@ -77,6 +78,7 @@ const App = () => (
 
           <Route element={<ProtectedRoute />}>
             <Route path="/menu" element={<Menu />} />
+            <Route path="/menu/kitting-docs" element={<KittingDocs />} />
 
             <Route element={<PermissionRoute allow={canAccessIncomingMenu} />}>
               <Route path="/menu/incoming" element={<IncomingMenu />} />
