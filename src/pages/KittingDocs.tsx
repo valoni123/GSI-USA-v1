@@ -310,7 +310,7 @@ const KittingDocs = () => {
     return () => {
       cancelled = true;
     };
-  }, [lines, drawingMetaByItem, drawingMetaLoadingByItem]);
+  }, [lines, drawingMetaByItem]);
 
   const getDrawingFilename = (rawItem: string) => drawingMetaByItem[rawItem]?.filename || "";
   const isDrawingFilenameLoading = (rawItem: string) => !!drawingMetaLoadingByItem[rawItem];
