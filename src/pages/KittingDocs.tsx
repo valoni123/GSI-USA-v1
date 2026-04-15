@@ -4,6 +4,7 @@ import { FileText, LogOut, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showSuccess } from "@/utils/toast";
@@ -24,6 +25,7 @@ const KittingDocs = () => {
   }, []);
 
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const [orderSet, setOrderSet] = useState("");
   const onConfirmSignOut = () => {
     try {
       localStorage.removeItem("ln.token");
@@ -70,11 +72,28 @@ const KittingDocs = () => {
 
       <div className="mx-auto max-w-md px-4 py-6">
         <Card className="rounded-xl border-2 border-gray-200 bg-white p-8 shadow-md shadow-gray-300/70">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-md border-2 border-red-700 text-red-700">
-              <FileText className="h-9 w-9" />
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-md border-2 border-red-700 text-red-700">
+                <FileText className="h-9 w-9" />
+              </div>
+              <div className="text-lg font-semibold text-gray-800">{trans.appKittingDocs}</div>
             </div>
-            <div className="text-lg font-semibold text-gray-800">{trans.appKittingDocs}</div>
+
+            <div className="space-y-2">
+              <label htmlFor="kittingOrderSet" className="block text-sm font-medium text-gray-700">
+                {trans.orderSetLabel}
+              </label>
+              <Input
+                id="kittingOrderSet"
+                value={orderSet}
+                onChange={(e) => setOrderSet(e.target.value)}
+                placeholder={trans.scanOrderSetPlaceholder}
+                autoFocus
+                autoComplete="off"
+                className="h-12 border-gray-300 text-base"
+              />
+            </div>
           </div>
         </Card>
       </div>

@@ -139,6 +139,8 @@ type TranslationKeys =
   | "propertiesLabel"
   | "orderLabel"
   | "inspectionLabel"
+  | "orderSetLabel"
+  | "scanOrderSetPlaceholder"
   | "approvedQuantityLabel"
   | "rejectedQuantityLabel"
   | "rejectReasonLabel"
@@ -295,6 +297,8 @@ const translations: Translations = {
     propertiesLabel: "Properties",
     orderLabel: "Order",
     inspectionLabel: "Inspection",
+    orderSetLabel: "Order / Set",
+    scanOrderSetPlaceholder: "Scan Order / Set",
     approvedQuantityLabel: "Approved Quantity",
     rejectedQuantityLabel: "Rejected Quantity",
     rejectReasonLabel: "Reject Reason",
@@ -446,6 +450,8 @@ const translations: Translations = {
     propertiesLabel: "Eigenschaften",
     orderLabel: "Auftrag",
     inspectionLabel: "Prüfung",
+    orderSetLabel: "Auftrag / Satz",
+    scanOrderSetPlaceholder: "Auftrag / Satz scannen",
     approvedQuantityLabel: "Genehmigte Menge",
     rejectedQuantityLabel: "Abgelehnte Menge",
     rejectReasonLabel: "Ablehnungsgrund",
@@ -597,6 +603,8 @@ const translations: Translations = {
     propertiesLabel: "Propiedades",
     orderLabel: "Orden",
     inspectionLabel: "Inspección",
+    orderSetLabel: "Orden / Conjunto",
+    scanOrderSetPlaceholder: "Escanear orden / conjunto",
     approvedQuantityLabel: "Cantidad aprobada",
     rejectedQuantityLabel: "Cantidad rechazada",
     rejectReasonLabel: "Motivo de rechazo",
@@ -748,6 +756,8 @@ const translations: Translations = {
     propertiesLabel: "Propriedades",
     orderLabel: "Pedido",
     inspectionLabel: "Inspeção",
+    orderSetLabel: "Ordem / Conjunto",
+    scanOrderSetPlaceholder: "Escanear ordem / conjunto",
     approvedQuantityLabel: "Quantidade aprovada",
     rejectedQuantityLabel: "Quantidade rejeitada",
     rejectReasonLabel: "Motivo da rejeição",
