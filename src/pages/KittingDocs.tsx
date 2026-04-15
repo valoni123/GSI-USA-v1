@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileImage, Loader2, LogOut, User } from "lucide-react";
+import { FileImage, Flag, Loader2, LogOut, User } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ItemDrawingDialog from "@/components/ItemDrawingDialog";
 import { Card } from "@/components/ui/card";
@@ -139,6 +139,8 @@ const KittingDocs = () => {
   const [drawingFilename, setDrawingFilename] = useState("");
   const [drawingLoadingKey, setDrawingLoadingKey] = useState("");
   const [drawingMetaByItem, setDrawingMetaByItem] = useState<Record<string, DrawingMeta>>({});
+  const [drawingItemRaw, setDrawingItemRaw] = useState("");
+  const [printedItems, setPrintedItems] = useState<Record<string, boolean>>({});
 
   const onConfirmSignOut = () => {
     try {
@@ -351,10 +353,16 @@ const KittingDocs = () => {
       setDrawingFilename(typeof data.filename === "string" ? data.filename : "");
       setDrawingUrl(blobUrl);
       setDrawingOpen(true);
+      setDrawingItemRaw(rawItem);
     } catch {
       setDrawingLoadingKey("");
       showError(trans.kittingDrawingLoadFailed);
     }
+  };
+
+  const markCurrentDrawingAsPrinted = () => {
+    if (!drawingItemRaw) return;
+    setPrintedItems((current) => ({ ...current, [drawingItemRaw]: true }));
   };
 
   return (
@@ -530,6 +538,12 @@ const KittingDocs = () => {
                         {line.itemDescription && (
                           <span className="font-semibold text-gray-900">{line.itemDescription}</span>
                         )}
+                        {printedItems[line.itemRaw] && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700">
+                            <Flag className="h-4 w-4 fill-green-600 text-green-600" />
+                            {trans.kittingPrintedYesLabel}
+                          </span>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
@@ -609,7 +623,14 @@ const KittingDocs = () => {
                                 <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
                                   {formatQuantityWithUnit(component.quantity, component.inventoryUnit)}
                                 </td>
-                                <td className="px-4 py-3 text-gray-900"></td>
+                                <td className="px-4 py-3 text-gray-900">
+                                  {printedItems[component.componentRaw] ? (
+                                    <div className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700">
+                                      <Flag className="h-4 w-4 fill-green-600 text-green-600" />
+                                      {trans.kittingPrintedYesLabel}
+                                    </div>
+                                  ) : null}
+                                </td>
                                 <td className="px-4 py-3 text-gray-900"></td>
                                 <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
                                   {getDrawingFilename(component.componentRaw)}
@@ -641,6 +662,8 @@ const KittingDocs = () => {
         pdfUrl={drawingUrl}
         filename={drawingFilename}
         openInNewTabLabel={trans.kittingOpenDrawingLabel}
+        printLabel={trans.kittingPrintLabel}
+        onPrint={markCurrentDrawingAsPrinted}
       />
 
       <SignOutConfirm

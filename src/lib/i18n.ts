@@ -161,6 +161,8 @@ type TranslationKeys =
   | "kittingDrawingOnFileLabel"
   | "kittingCommentsInstructionsLabel"
   | "kittingDrawingFileNameLabel"
+  | "kittingPrintLabel"
+  | "kittingPrintedYesLabel"
   | "approvedQuantityLabel"
   | "rejectedQuantityLabel"
   | "rejectReasonLabel"
@@ -339,6 +341,8 @@ const translations: Translations = {
     kittingDrawingOnFileLabel: "Drawing on File",
     kittingCommentsInstructionsLabel: "Comments/Instructions",
     kittingDrawingFileNameLabel: "Drawing File Name",
+    kittingPrintLabel: "Print",
+    kittingPrintedYesLabel: "Yes",
     approvedQuantityLabel: "Approved Quantity",
     rejectedQuantityLabel: "Rejected Quantity",
     rejectReasonLabel: "Reject Reason",
@@ -512,6 +516,8 @@ const translations: Translations = {
     kittingDrawingOnFileLabel: "Zeichnung vorhanden",
     kittingCommentsInstructionsLabel: "Kommentare/Anweisungen",
     kittingDrawingFileNameLabel: "Zeichnungsdateiname",
+    kittingPrintLabel: "Drucken",
+    kittingPrintedYesLabel: "Ja",
     approvedQuantityLabel: "Genehmigte Menge",
     rejectedQuantityLabel: "Abgelehnte Menge",
     rejectReasonLabel: "Ablehnungsgrund",
@@ -685,6 +691,8 @@ const translations: Translations = {
     kittingDrawingOnFileLabel: "Plano en archivo",
     kittingCommentsInstructionsLabel: "Comentarios/Instrucciones",
     kittingDrawingFileNameLabel: "Nombre del archivo del plano",
+    kittingPrintLabel: "Imprimir",
+    kittingPrintedYesLabel: "Sí",
     approvedQuantityLabel: "Cantidad aprobada",
     rejectedQuantityLabel: "Cantidad rechazada",
     rejectReasonLabel: "Motivo de rechazo",
@@ -858,6 +866,8 @@ const translations: Translations = {
     kittingDrawingOnFileLabel: "Desenho em arquivo",
     kittingCommentsInstructionsLabel: "Comentários/Instruções",
     kittingDrawingFileNameLabel: "Nome do arquivo do desenho",
+    kittingPrintLabel: "Imprimir",
+    kittingPrintedYesLabel: "Sim",
     approvedQuantityLabel: "Quantidade aprovada",
     rejectedQuantityLabel: "Quantidade rejeitada",
     rejectReasonLabel: "Motivo da rejeição",
