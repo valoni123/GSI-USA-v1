@@ -5,11 +5,25 @@ import BackButton from "@/components/BackButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showSuccess } from "@/utils/toast";
 import { clearStoredGsiPermissions } from "@/lib/gsi-permissions";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  buildKittingOriginOptions,
+  findKittingOriginOptionByConstantName,
+  findKittingOriginOptionByEnglishLabel,
+  getKittingOriginOption,
+  type KittingOriginOption,
+  type RawKittingOriginRow,
+} from "@/lib/kitting-origins";
 
 type KittingComponent = {
   orderOrigin: string;
@@ -40,6 +54,11 @@ type KittingLine = {
   components: KittingComponent[];
 };
 
+const FALLBACK_ORIGIN_ROW: RawKittingOriginRow = {
+  constantName: "sales",
+  descriptionLabel: "inh.oorg036",
+};
+
 const KittingDocs = () => {
   const navigate = useNavigate();
   const [lang] = useState<LanguageKey>(() => {
@@ -60,6 +79,39 @@ const KittingDocs = () => {
     const name = localStorage.getItem("gsi.full_name");
     if (name) setFullName(name);
   }, []);
+
+  const [originRows, setOriginRows] = useState<RawKittingOriginRow[]>([FALLBACK_ORIGIN_ROW]);
+  const [selectedOrigin, setSelectedOrigin] = useState("sales");
+  const originOptions = useMemo(() => buildKittingOriginOptions(originRows, lang), [originRows, lang]);
+  const selectedOriginOption = useMemo<KittingOriginOption>(() => {
+    return (
+      findKittingOriginOptionByConstantName(originOptions, selectedOrigin) ||
+      getKittingOriginOption(FALLBACK_ORIGIN_ROW.constantName, FALLBACK_ORIGIN_ROW.descriptionLabel, lang)
+    );
+  }, [originOptions, selectedOrigin, lang]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadOriginOptions = async () => {
+      const { data, error } = await supabase.functions.invoke("ln-kitting-order-origins", { body: {} });
+      if (cancelled) return;
+
+      if (error || !data || !data.ok) {
+        showError(typeof data?.error === "string" ? data.error : trans.loadingDetails);
+        return;
+      }
+
+      const rows = Array.isArray(data.rows) ? (data.rows as RawKittingOriginRow[]) : [];
+      if (rows.length === 0) return;
+      setOriginRows(rows);
+    };
+
+    void loadOriginOptions();
+    return () => {
+      cancelled = true;
+    };
+  }, [trans.loadingDetails]);
 
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [orderSet, setOrderSet] = useState("");
@@ -91,42 +143,6 @@ const KittingDocs = () => {
     return { order, set, key: `${order}/${set}` };
   };
 
-  const translateOrderOrigin = (value: string) => {
-    const normalized = String(value || "").trim().toLowerCase();
-
-    if (normalized.includes("sales") || normalized.includes("verkauf")) {
-      if (lang === "de") return "Verkauf";
-      if (lang === "es-MX") return "Venta";
-      if (lang === "pt-BR") return "Vendas";
-      return "Sales";
-    }
-
-    if (normalized.includes("transfer") || normalized.includes("umbuchung")) {
-      if (lang === "de") return "Umbuchung";
-      if (lang === "es-MX") return "Transferencia";
-      if (lang === "pt-BR") return "Transferência";
-      return "Transfer";
-    }
-
-    if (normalized.includes("production") || normalized.includes("produktion")) {
-      if (lang === "de") return "Produktion";
-      if (lang === "es-MX") return "Producción";
-      if (lang === "pt-BR") return "Produção";
-      return "Production";
-    }
-
-    return value || "-";
-  };
-
-  const orderOriginBadgeClass = (value: string) => {
-    if (!value) return "bg-gray-200 text-gray-800";
-    const normalized = value.trim().toLowerCase();
-    if (normalized.includes("sales") || normalized.includes("verkauf")) return "bg-[#55a3f3] text-black";
-    if (normalized.includes("transfer") || normalized.includes("umbuchung")) return "bg-[#fcc888] text-black";
-    if (normalized.includes("production") || normalized.includes("produktion")) return "bg-[#78d8a3] text-black";
-    return "bg-[#a876eb] text-white";
-  };
-
   const formatItemNumber = (value: string) => {
     const raw = String(value || "").trim();
     if (!raw) return "-";
@@ -140,26 +156,31 @@ const KittingDocs = () => {
     }).format(Number.isFinite(value) ? value : 0);
   };
 
-  const lookupOrderSet = async (rawValue?: string) => {
+  const clearLoadedState = () => {
+    setLines([]);
+    setInfoMessage("");
+    setLoadedKey("");
+  };
+
+  const lookupOrderSet = async (rawValue?: string, originConstantName?: string) => {
     const nextValue = rawValue ?? orderSet;
     const parsed = parseOrderSet(nextValue);
+    const originOption =
+      findKittingOriginOptionByConstantName(originOptions, originConstantName || selectedOrigin) || selectedOriginOption;
 
     if (!nextValue.trim()) {
-      setLines([]);
-      setInfoMessage("");
-      setLoadedKey("");
+      clearLoadedState();
       return;
     }
 
     if (!parsed) {
-      setLines([]);
-      setInfoMessage("");
-      setLoadedKey("");
+      clearLoadedState();
       showError(trans.invalidOrderSet);
       return;
     }
 
-    if (loading || parsed.key === loadedKey) return;
+    const requestKey = `${originOption.constantName}|${parsed.key}`;
+    if (loading || requestKey === loadedKey) return;
 
     setLoading(true);
     setInfoMessage("");
@@ -169,15 +190,14 @@ const KittingDocs = () => {
         body: {
           order: parsed.order,
           set: parsed.set,
-          language: locale,
+          orderOrigin: originOption.englishLabel,
         },
       });
 
       setLoading(false);
 
       if (error || !data || !data.ok) {
-        setLines([]);
-        setLoadedKey("");
+        clearLoadedState();
         const message = (data && (data.error?.message || data.error)) || trans.loadingDetails;
         showError(typeof message === "string" ? message : trans.loadingDetails);
         return;
@@ -185,13 +205,13 @@ const KittingDocs = () => {
 
       const nextLines = Array.isArray(data.lines) ? (data.lines as KittingLine[]) : [];
       setLines(nextLines);
-      setLoadedKey(parsed.key);
+      setLoadedKey(requestKey);
       setInfoMessage(nextLines.length === 0 ? trans.kittingNoOrderLines : "");
     } catch (error) {
       setLoading(false);
-      setLines([]);
-      setLoadedKey("");
+      clearLoadedState();
       showError(error instanceof Error ? error.message : String(error));
+      return;
     }
   };
 
@@ -233,42 +253,77 @@ const KittingDocs = () => {
             <div className="flex flex-col gap-6">
               <div className="text-lg font-semibold text-gray-800">{trans.appKittingDocs}</div>
 
-              <div className="max-w-xl space-y-2">
-                <div className="relative pt-2">
-                  <Input
-                    id="kittingOrderSet"
-                    value={orderSet}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setOrderSet(value);
-                      if (value.trim() !== loadedKey) {
-                        setLines([]);
-                        setInfoMessage("");
-                        setLoadedKey("");
-                      }
-                    }}
-                    onBlur={() => {
+              <div className="flex flex-col gap-3 md:flex-row md:items-start">
+                <div className="w-full md:w-[260px]">
+                  <div className="mb-1 text-xs font-medium text-gray-700">{trans.orderOriginLabel}</div>
+                  <Select
+                    value={selectedOrigin}
+                    onValueChange={(value) => {
+                      setSelectedOrigin(value);
+                      clearLoadedState();
                       if (orderSet.trim()) {
-                        void lookupOrderSet(orderSet);
+                        void lookupOrderSet(orderSet, value);
                       }
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        void lookupOrderSet(orderSet);
-                      }
-                    }}
-                    placeholder={trans.scanOrderSetPlaceholder}
-                    autoFocus
-                    autoComplete="off"
-                    className="h-12 border-gray-300 text-base sm:h-14 sm:text-lg"
-                  />
-                  <label
-                    htmlFor="kittingOrderSet"
-                    className="pointer-events-none absolute left-3 top-0 rounded-sm bg-white px-1 text-xs text-gray-700"
                   >
-                    {trans.orderSetLabel}
-                  </label>
+                    <SelectTrigger className="h-12">
+                      <span
+                        className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                        style={{
+                          backgroundColor: selectedOriginOption.style.bg,
+                          color: selectedOriginOption.style.text,
+                        }}
+                      >
+                        {selectedOriginOption.label}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {originOptions.map((option) => (
+                        <SelectItem key={option.constantName} value={option.constantName}>
+                          <span
+                            className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                            style={{ backgroundColor: option.style.bg, color: option.style.text }}
+                          >
+                            {option.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="w-full max-w-xl space-y-2">
+                  <div className="relative pt-2">
+                    <Input
+                      id="kittingOrderSet"
+                      value={orderSet}
+                      onChange={(e) => {
+                        setOrderSet(e.target.value);
+                        clearLoadedState();
+                      }}
+                      onBlur={() => {
+                        if (orderSet.trim()) {
+                          void lookupOrderSet(orderSet);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void lookupOrderSet(orderSet);
+                        }
+                      }}
+                      placeholder={trans.scanOrderSetPlaceholder}
+                      autoFocus
+                      autoComplete="off"
+                      className="h-12 border-gray-300 text-base sm:h-14 sm:text-lg"
+                    />
+                    <label
+                      htmlFor="kittingOrderSet"
+                      className="pointer-events-none absolute left-3 top-0 rounded-sm bg-white px-1 text-xs text-gray-700"
+                    >
+                      {trans.orderSetLabel}
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -287,70 +342,81 @@ const KittingDocs = () => {
           )}
 
           {!loading &&
-            lines.map((line) => (
-              <Card
-                key={`${line.orderOrigin}|${line.order}|${line.line}|${line.sequence}|${line.set}`}
-                className="rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70"
-              >
-                <div className="space-y-5">
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-sm text-gray-600">{trans.orderLabel}:</span>
-                      <span className={`inline-flex items-center rounded px-3 py-1 text-xs font-semibold ${orderOriginBadgeClass(line.orderOrigin)}`}>
-                        {translateOrderOrigin(line.orderOrigin)}
-                      </span>
-                      <span className="text-base font-semibold text-gray-900">{line.order}</span>
-                      <span className="text-base font-semibold text-gray-900">{line.set}</span>
+            lines.map((line) => {
+              const lineOriginOption =
+                findKittingOriginOptionByEnglishLabel(originOptions, line.orderOrigin) || selectedOriginOption;
+
+              return (
+                <Card
+                  key={`${line.orderOrigin}|${line.order}|${line.line}|${line.sequence}|${line.set}`}
+                  className="rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70"
+                >
+                  <div className="space-y-5">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-sm text-gray-600">{trans.orderLabel}:</span>
+                        <span
+                          className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                          style={{
+                            backgroundColor: lineOriginOption.style.bg,
+                            color: lineOriginOption.style.text,
+                          }}
+                        >
+                          {lineOriginOption.label}
+                        </span>
+                        <span className="text-base font-semibold text-gray-900">{line.order}</span>
+                        <span className="text-base font-semibold text-gray-900">{line.set}</span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-sm text-gray-600">{trans.lineLabel}:</span>
+                        <span className="text-base font-semibold text-gray-900">{line.line}</span>
+                        <span className="text-sm text-gray-600">{trans.sequenceLabel}:</span>
+                        <span className="text-base font-semibold text-gray-900">{line.sequence}</span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-sm text-gray-600">{trans.kittingMainItemLabel}:</span>
+                        <span className="text-base font-semibold text-gray-900">{formatItemNumber(line.item)}</span>
+                      </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-sm text-gray-600">{trans.lineLabel}:</span>
-                      <span className="text-base font-semibold text-gray-900">{line.line}</span>
-                      <span className="text-sm text-gray-600">{trans.sequenceLabel}:</span>
-                      <span className="text-base font-semibold text-gray-900">{line.sequence}</span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-sm text-gray-600">{trans.kittingMainItemLabel}:</span>
-                      <span className="text-base font-semibold text-gray-900">{formatItemNumber(line.item)}</span>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto rounded-lg border border-gray-200">
-                    <table className="min-w-full text-sm">
-                      <thead className="bg-gray-100 text-gray-800">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-semibold">{trans.kittingBomLineLabel}</th>
-                          <th className="px-4 py-3 text-left font-semibold">{trans.kittingComponentLabel}</th>
-                          <th className="px-4 py-3 text-right font-semibold">{trans.kittingQtyPerMainItemLabel}</th>
-                          <th className="px-4 py-3 text-right font-semibold">{trans.orderedLabel}</th>
-                          <th className="px-4 py-3 text-right font-semibold">{trans.originallyOrderedLabel}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {line.components.length === 0 ? (
+                    <div className="overflow-x-auto rounded-lg border border-gray-200">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-gray-100 text-gray-800">
                           <tr>
-                            <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
-                              {trans.noComponentsLabel}
-                            </td>
+                            <th className="px-4 py-3 text-left font-semibold">{trans.kittingBomLineLabel}</th>
+                            <th className="px-4 py-3 text-left font-semibold">{trans.kittingComponentLabel}</th>
+                            <th className="px-4 py-3 text-right font-semibold">{trans.kittingQtyPerMainItemLabel}</th>
+                            <th className="px-4 py-3 text-right font-semibold">{trans.orderedLabel}</th>
+                            <th className="px-4 py-3 text-right font-semibold">{trans.originallyOrderedLabel}</th>
                           </tr>
-                        ) : (
-                          line.components.map((component) => (
-                            <tr key={`${component.bomLine}-${component.component}`} className="border-t border-gray-200">
-                              <td className="px-4 py-3 font-medium text-gray-900">{component.bomLine}</td>
-                              <td className="px-4 py-3 text-gray-900">{formatItemNumber(component.component)}</td>
-                              <td className="px-4 py-3 text-right text-gray-900">{formatNumber(component.quantity)}</td>
-                              <td className="px-4 py-3 text-right text-gray-900">{formatNumber(component.orderedQuantity)}</td>
-                              <td className="px-4 py-3 text-right text-gray-900">{formatNumber(component.originallyOrderedQuantity)}</td>
+                        </thead>
+                        <tbody>
+                          {line.components.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                                {trans.noComponentsLabel}
+                              </td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                          ) : (
+                            line.components.map((component) => (
+                              <tr key={`${component.bomLine}-${component.component}`} className="border-t border-gray-200">
+                                <td className="px-4 py-3 font-medium text-gray-900">{component.bomLine}</td>
+                                <td className="px-4 py-3 text-gray-900">{formatItemNumber(component.component)}</td>
+                                <td className="px-4 py-3 text-right text-gray-900">{formatNumber(component.quantity)}</td>
+                                <td className="px-4 py-3 text-right text-gray-900">{formatNumber(component.orderedQuantity)}</td>
+                                <td className="px-4 py-3 text-right text-gray-900">{formatNumber(component.originallyOrderedQuantity)}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
         </div>
       </div>
 

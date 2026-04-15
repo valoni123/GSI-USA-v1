@@ -14,7 +14,7 @@ const REQUEST_TIMEOUT_MS = 15000;
 type RequestBody = {
   order?: string;
   set?: string | number;
-  language?: string;
+  orderOrigin?: string;
   company?: string;
 };
 
@@ -118,7 +118,8 @@ serve(async (req) => {
 
     const order = toText(body.order);
     const setValue = toNumber(body.set);
-    const language = toText(body.language) || "en-US";
+    const orderOrigin = toText(body.orderOrigin);
+    const requestLanguage = "en-US";
 
     if (!order) {
       console.warn("[ln-kitting-docs-order-set] missing order");
@@ -128,6 +129,10 @@ serve(async (req) => {
       console.warn("[ln-kitting-docs-order-set] invalid set", { set: body.set });
       return json({ ok: false, error: "invalid_set" }, 200);
     }
+    if (!orderOrigin) {
+      console.warn("[ln-kitting-docs-order-set] missing order origin");
+      return json({ ok: false, error: "missing_order_origin" }, 200);
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -136,7 +141,7 @@ serve(async (req) => {
       return json({ ok: false, error: "env_missing" }, 200);
     }
 
-    console.info("[ln-kitting-docs-order-set] start", { order, set: setValue, language });
+    console.info("[ln-kitting-docs-order-set] start", { order, set: setValue, orderOrigin });
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
     const company = toText(body.company) || (await getCompanyFromParams(supabase));
@@ -144,16 +149,22 @@ serve(async (req) => {
     const accessToken = await getIonApiAccessToken(supabase);
     const base = cfg.iu.endsWith("/") ? cfg.iu.slice(0, -1) : cfg.iu;
     const escapedOrder = order.replace(/'/g, "''");
+    const escapedOrderOrigin = orderOrigin.replace(/'/g, "''");
 
     const params = new URLSearchParams();
     params.set("$filter", "OutboundOrderLines/Order eq OutboundOrderLineBOMs/Order");
     params.set(
       "$expand",
-      `OutboundOrderLines($select=*;$filter=Order eq '${escapedOrder}' and Set eq ${setValue}),OutboundOrderLineBOMs($select=*)`,
+      `OutboundOrderLines($select=*;$filter=Order eq '${escapedOrder}' and Set eq ${setValue} and OrderOrigin eq '${escapedOrderOrigin}'),OutboundOrderLineBOMs($select=*)`,
     );
 
     const url = `${base}/${cfg.ti}/LN/lnapi/odata/txgwi.OutboundOrderLines/$crossjoin(OutboundOrderLines,OutboundOrderLineBOMs)?${params.toString()}`;
-    console.info("[ln-kitting-docs-order-set] requesting upstream", { order, set: setValue, timeoutMs: REQUEST_TIMEOUT_MS });
+    console.info("[ln-kitting-docs-order-set] requesting upstream", {
+      order,
+      set: setValue,
+      orderOrigin,
+      timeoutMs: REQUEST_TIMEOUT_MS,
+    });
 
     try {
       const response = await fetchWithTimeout(
@@ -162,7 +173,7 @@ serve(async (req) => {
           method: "GET",
           headers: {
             accept: "application/json",
-            "Content-Language": language,
+            "Content-Language": requestLanguage,
             "X-Infor-LnCompany": company,
             Authorization: `Bearer ${accessToken}`,
           },
@@ -246,6 +257,7 @@ serve(async (req) => {
       console.info("[ln-kitting-docs-order-set] completed", {
         order,
         set: setValue,
+        orderOrigin,
         rawRows: rows.length,
         lineCount: lines.length,
       });
