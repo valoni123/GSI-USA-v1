@@ -566,6 +566,11 @@ const KittingDocs = () => {
                         setOrderSet(event.target.value);
                         if (!event.target.value.trim()) clearLoadedState();
                       }}
+                      onBlur={() => {
+                        if (orderSet.trim()) {
+                          void lookupOrderSet();
+                        }
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
                           event.preventDefault();
