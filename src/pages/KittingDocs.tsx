@@ -566,23 +566,6 @@ const KittingDocs = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  className="h-12 rounded-lg bg-black px-6 text-base font-semibold text-white hover:bg-gray-800"
-                  onClick={() => void lookupOrderSet()}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      {trans.kittingLoading}
-                    </>
-                  ) : (
-                    trans.runLabel
-                  )}
-                </Button>
-              </div>
             </div>
           </Card>
 
@@ -608,62 +591,61 @@ const KittingDocs = () => {
                 >
                   <div className="space-y-5">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-base">
-                      <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
-                        <span
-                          className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
-                          style={{
-                            backgroundColor: lineOriginOption.style.bg,
-                            color: lineOriginOption.style.text,
-                          }}
-                        >
-                          {lineOriginOption.label}
-                        </span>
-                        <span className="font-semibold text-gray-900">{line.order}</span>
-                        <span className="font-semibold text-gray-900">{line.set}</span>
-                      </div>
-
-                      <span className="text-gray-400">|</span>
-
-                      <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
-                        <span className="text-gray-600">{trans.lineLabel}:</span>
-                        <span className="font-semibold text-gray-900">{line.line}</span>
-                        <span className="text-gray-600">{trans.sequenceLabel}:</span>
-                        <span className="font-semibold text-gray-900">{line.sequence}</span>
-                      </div>
-
-                      <span className="text-gray-400">|</span>
-
-                      <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className="whitespace-nowrap text-gray-600">{trans.kittingMainItemLabel}:</span>
-                        <span className="font-semibold text-gray-900">{formatItemNumber(line.item)}</span>
-                        {line.itemDescription && (
-                          <span className="font-semibold text-gray-900">{line.itemDescription}</span>
-                        )}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
-                          onClick={() => void openDrawing(line.itemRaw, line.item)}
-                          aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(line.item)}`}
-                          disabled={isDrawingButtonDisabled(line.itemRaw)}
-                        >
-                          {drawingLoadingKey === `${line.item}|${line.itemRaw}` ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                          ) : (
-                            <FileImage className="h-5 w-5" />
-                          )}
-                        </Button>
-                        {printedItems[line.itemRaw] && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700">
-                            <Check className="h-4 w-4 stroke-[3]" />
-                            {trans.kittingPrintedYesLabel}
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+                        <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
+                          <span
+                            className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                            style={{
+                              backgroundColor: lineOriginOption.style.bg,
+                              color: lineOriginOption.style.text,
+                            }}
+                          >
+                            {lineOriginOption.label}
                           </span>
-                        )}
+                          <span className="font-semibold text-gray-900">{line.order}</span>
+                          <span className="font-semibold text-gray-900">{line.set}</span>
+                        </div>
+
+                        <span className="text-gray-400">|</span>
+
+                        <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
+                          <span className="text-gray-600">{trans.lineLabel}:</span>
+                          <span className="font-semibold text-gray-900">{line.line}</span>
+                          <span className="text-gray-600">{trans.sequenceLabel}:</span>
+                          <span className="font-semibold text-gray-900">{line.sequence}</span>
+                        </div>
+
+                        <span className="text-gray-400">|</span>
+
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="whitespace-nowrap text-gray-600">{trans.kittingMainItemLabel}:</span>
+                          <span className="font-semibold text-gray-900">{formatItemNumber(line.item)}</span>
+                          {line.itemDescription && (
+                            <span className="font-semibold text-gray-900">{line.itemDescription}</span>
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                            onClick={() => void openDrawing(line.itemRaw, line.item)}
+                            aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(line.item)}`}
+                            disabled={isDrawingButtonDisabled(line.itemRaw)}
+                          >
+                            {drawingLoadingKey === `${line.item}|${line.itemRaw}` ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <FileImage className="h-5 w-5" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="ml-auto flex shrink-0 items-center gap-2">
                         <Button
                           type="button"
                           variant="ghost"
-                          className="h-10 shrink-0 rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                          className="h-10 shrink-0 whitespace-nowrap rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
                           onClick={() => void openAllDrawings(line)}
                           disabled={printAllDisabled || combinedDrawingLoadingKey === lineKey}
                         >
@@ -674,6 +656,12 @@ const KittingDocs = () => {
                           )}
                           {trans.kittingPrintAllDocumentsLabel}
                         </Button>
+                        {printedItems[line.itemRaw] && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700 whitespace-nowrap">
+                            <Check className="h-4 w-4 stroke-[3]" />
+                            {trans.kittingPrintedYesLabel}
+                          </span>
+                        )}
                       </div>
                     </div>
 
