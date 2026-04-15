@@ -368,8 +368,24 @@ const KittingDocs = () => {
     return entries.filter((entry) => entry.rawItem && isDrawingAvailable(entry.rawItem));
   };
 
-  const isLineDocumentMetaLoading = (line: KittingLine) => {
-    const itemRaws = [line.itemRaw, ...line.components.map((component) => component.componentRaw)].filter(Boolean);
+  const getLoadedDocumentEntries = () => {
+    const entries = lines.flatMap((line) => getLineDocumentEntries(line));
+    const seen = new Set<string>();
+
+    return entries.filter((entry) => {
+      if (seen.has(entry.rawItem)) return false;
+      seen.add(entry.rawItem);
+      return true;
+    });
+  };
+
+  const isLoadedDocumentsMetaLoading = () => {
+    const itemRaws = Array.from(
+      new Set(
+        lines.flatMap((line) => [line.itemRaw, ...line.components.map((component) => component.componentRaw)]).filter(Boolean),
+      ),
+    );
+
     return itemRaws.some((rawItem) => isDrawingFilenameLoading(rawItem));
   };
 
@@ -417,17 +433,16 @@ const KittingDocs = () => {
     }
   };
 
-  const openAllDrawings = async (line: KittingLine) => {
-    const requestKey = getLineKey(line);
-    if (combinedDrawingLoadingKey === requestKey || isLineDocumentMetaLoading(line)) return;
+  const openAllLoadedDrawings = async () => {
+    if (combinedDrawingLoadingKey === "all" || isLoadedDocumentsMetaLoading()) return;
 
-    const documentEntries = getLineDocumentEntries(line);
+    const documentEntries = getLoadedDocumentEntries();
     if (documentEntries.length === 0) {
       showError(trans.kittingNoDocumentsAvailableLabel);
       return;
     }
 
-    setCombinedDrawingLoadingKey(requestKey);
+    setCombinedDrawingLoadingKey("all");
 
     try {
       const drawings = await Promise.all(documentEntries.map((entry) => fetchDrawingPdf(entry.rawItem)));
@@ -440,11 +455,12 @@ const KittingDocs = () => {
       }
 
       const mergedBytes = await mergedPdf.save();
+      const firstLine = lines[0];
       setCombinedDrawingLoadingKey("");
       openPdfPreview(
         mergedBytes,
-        `${trans.kittingPrintAllDocumentsLabel}: ${line.order}/${line.set}`,
-        `kitting-${line.order}-${line.set}-line-${line.line}-${line.sequence}.pdf`,
+        `${trans.kittingPrintAllDocumentsLabel}: ${firstLine?.order || ""}/${firstLine?.set || ""}`,
+        `kitting-${firstLine?.order || "order"}-${firstLine?.set || "set"}.pdf`,
         documentEntries.map((entry) => entry.rawItem),
       );
     } catch {
@@ -564,6 +580,25 @@ const KittingDocs = () => {
                     </label>
                   </div>
                 </div>
+
+                {loadedKey && lines.length > 0 ? (
+                  <div className="pt-2 md:flex-none">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-12 shrink-0 whitespace-nowrap rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                      onClick={() => void openAllLoadedDrawings()}
+                      disabled={combinedDrawingLoadingKey === "all" || isLoadedDocumentsMetaLoading() || getLoadedDocumentEntries().length === 0}
+                    >
+                      {combinedDrawingLoadingKey === "all" ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Printer className="mr-2 h-4 w-4" />
+                      )}
+                      {trans.kittingPrintAllDocumentsLabel}
+                    </Button>
+                  </div>
+                ) : null}
               </div>
 
             </div>
@@ -582,7 +617,6 @@ const KittingDocs = () => {
                 findKittingOriginOptionByEnglishLabel(originOptions, line.orderOrigin) ||
                 getKittingOriginOption(line.orderOrigin, line.orderOrigin, lang);
               const lineKey = getLineKey(line);
-              const printAllDisabled = isLineDocumentMetaLoading(line) || getLineDocumentEntries(line).length === 0;
 
               return (
                 <Card
@@ -637,20 +671,6 @@ const KittingDocs = () => {
                             ) : (
                               <FileImage className="h-5 w-5" />
                             )}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="h-10 shrink-0 whitespace-nowrap rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
-                            onClick={() => void openAllDrawings(line)}
-                            disabled={printAllDisabled || combinedDrawingLoadingKey === lineKey}
-                          >
-                            {combinedDrawingLoadingKey === lineKey ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Printer className="mr-2 h-4 w-4" />
-                            )}
-                            {trans.kittingPrintAllDocumentsLabel}
                           </Button>
                         </div>
                       </div>
