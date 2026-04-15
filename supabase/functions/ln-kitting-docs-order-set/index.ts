@@ -155,7 +155,7 @@ serve(async (req) => {
     params.set("$filter", "OutboundOrderLines/Order eq OutboundOrderLineBOMs/Order");
     params.set(
       "$expand",
-      `OutboundOrderLines($select=*;$filter=Order eq '${escapedOrder}' and Set eq ${setValue} and OrderOrigin eq '${escapedOrderOrigin}'),OutboundOrderLineBOMs($select=*)`,
+      `OutboundOrderLines($select=*;$filter=Order eq '${escapedOrder}' and Set eq ${setValue} and OrderOrigin eq txgwi.OutboundOrderLines.OrderOrigin'${escapedOrderOrigin}'),OutboundOrderLineBOMs($select=*)`,
     );
 
     const url = `${base}/${cfg.ti}/LN/lnapi/odata/txgwi.OutboundOrderLines/$crossjoin(OutboundOrderLines,OutboundOrderLineBOMs)?${params.toString()}`;
