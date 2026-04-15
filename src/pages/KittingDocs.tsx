@@ -443,7 +443,7 @@ const KittingDocs = () => {
                   className="rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70"
                 >
                   <div className="space-y-5">
-                    <div className="flex flex-wrap items-start gap-x-6 gap-y-2 xl:flex-nowrap">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-base">
                       <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
                         <span
                           className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
@@ -454,39 +454,41 @@ const KittingDocs = () => {
                         >
                           {lineOriginOption.label}
                         </span>
-                        <span className="text-base font-semibold text-gray-900">{line.order}</span>
-                        <span className="text-base font-semibold text-gray-900">{line.set}</span>
+                        <span className="font-semibold text-gray-900">{line.order}</span>
+                        <span className="font-semibold text-gray-900">{line.set}</span>
                       </div>
+
+                      <span className="text-gray-400">|</span>
 
                       <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
-                        <span className="text-base text-gray-600">{trans.lineLabel}:</span>
-                        <span className="text-base font-semibold text-gray-900">{line.line}</span>
-                        <span className="text-base text-gray-600">{trans.sequenceLabel}:</span>
-                        <span className="text-base font-semibold text-gray-900">{line.sequence}</span>
+                        <span className="text-gray-600">{trans.lineLabel}:</span>
+                        <span className="font-semibold text-gray-900">{line.line}</span>
+                        <span className="text-gray-600">{trans.sequenceLabel}:</span>
+                        <span className="font-semibold text-gray-900">{line.sequence}</span>
                       </div>
 
-                      <div className="flex min-w-0 items-center gap-2 xl:flex-1">
-                        <span className="whitespace-nowrap text-base text-gray-600">{trans.kittingMainItemLabel}:</span>
-                        <div className="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="text-base font-semibold text-gray-900">{formatItemNumber(line.item)}</span>
-                          {line.itemDescription && (
-                            <span className="text-base font-semibold text-gray-900">{line.itemDescription}</span>
+                      <span className="text-gray-400">|</span>
+
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span className="whitespace-nowrap text-gray-600">{trans.kittingMainItemLabel}:</span>
+                        <span className="font-semibold text-gray-900">{formatItemNumber(line.item)}</span>
+                        {line.itemDescription && (
+                          <span className="font-semibold text-gray-900">{line.itemDescription}</span>
+                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-gray-600 hover:text-gray-900"
+                          onClick={() => void openDrawing(line.itemRaw, line.item)}
+                          aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(line.item)}`}
+                        >
+                          {drawingLoadingKey === `${line.item}|${line.itemRaw}` ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileImage className="h-4 w-4" />
                           )}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0 text-gray-600 hover:text-gray-900"
-                            onClick={() => void openDrawing(line.itemRaw, line.item)}
-                            aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(line.item)}`}
-                          >
-                            {drawingLoadingKey === `${line.item}|${line.itemRaw}` ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <FileImage className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
+                        </Button>
                       </div>
                     </div>
 
