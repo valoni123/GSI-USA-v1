@@ -638,24 +638,24 @@ const KittingDocs = () => {
                               <FileImage className="h-5 w-5" />
                             )}
                           </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-10 shrink-0 whitespace-nowrap rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                            onClick={() => void openAllDrawings(line)}
+                            disabled={printAllDisabled || combinedDrawingLoadingKey === lineKey}
+                          >
+                            {combinedDrawingLoadingKey === lineKey ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Printer className="mr-2 h-4 w-4" />
+                            )}
+                            {trans.kittingPrintAllDocumentsLabel}
+                          </Button>
                         </div>
                       </div>
 
                       <div className="ml-auto flex shrink-0 items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="h-10 shrink-0 whitespace-nowrap rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
-                          onClick={() => void openAllDrawings(line)}
-                          disabled={printAllDisabled || combinedDrawingLoadingKey === lineKey}
-                        >
-                          {combinedDrawingLoadingKey === lineKey ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Printer className="mr-2 h-4 w-4" />
-                          )}
-                          {trans.kittingPrintAllDocumentsLabel}
-                        </Button>
                         {printedItems[line.itemRaw] && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700 whitespace-nowrap">
                             <Check className="h-4 w-4 stroke-[3]" />
