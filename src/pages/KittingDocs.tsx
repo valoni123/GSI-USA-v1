@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, ChevronDown, ChevronUp, FileImage, Loader2, LogOut, Printer, ScrollText, User } from "lucide-react";
 import jsPDF from "jspdf";
+import JsBarcode from "jsbarcode";
 import { PDFDocument } from "pdf-lib";
 import BackButton from "@/components/BackButton";
 import ItemDrawingDialog from "@/components/ItemDrawingDialog";
@@ -330,6 +331,32 @@ const KittingDocs = () => {
         height,
         right: x + width,
         bottom: y + height,
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const buildCode128Barcode = (value: string): ReportLogo | null => {
+    const barcodeValue = value.trim();
+    if (!barcodeValue) return null;
+
+    try {
+      const canvas = document.createElement("canvas");
+      JsBarcode(canvas, barcodeValue, {
+        format: "CODE128",
+        displayValue: false,
+        margin: 0,
+        background: "#ffffff",
+        lineColor: "#111827",
+        width: 1.4,
+        height: 34,
+      });
+
+      return {
+        dataUrl: canvas.toDataURL("image/png"),
+        width: canvas.width,
+        height: canvas.height,
       };
     } catch {
       return null;
@@ -864,6 +891,8 @@ const KittingDocs = () => {
     const packagingInstructionsText = line.salesOrderLineDetails?.packagingInstructionsText?.trim() || "";
     const username = fullName || "";
     const now = new Date();
+    const salesOrderValue = `${line.order}/${line.set}`;
+    const barcode = buildCode128Barcode(salesOrderValue);
     const headerBoxWidth = 180;
     const headerBoxLeft = right - headerBoxWidth;
     const headerLabelX = headerBoxLeft + 12;
@@ -871,7 +900,18 @@ const KittingDocs = () => {
     const headerTop = 14;
     const headerRowGap = 16;
     const usernameLines = username ? pdf.splitTextToSize(username, headerBoxWidth - 24) : [];
-    const headerBottom = headerTop + 6 + headerRowGap * 2 + usernameLines.length * 12;
+    const barcodeY = headerTop + 6 + headerRowGap * 2 + usernameLines.length * 12 + 8;
+    const barcodeMaxWidth = headerBoxWidth - 24;
+    const barcodeMaxHeight = 28;
+    const barcodeScale = barcode ? Math.min(barcodeMaxWidth / barcode.width, barcodeMaxHeight / barcode.height) : 1;
+    const barcodeWidth = barcode ? barcode.width * barcodeScale : 0;
+    const barcodeHeight = barcode ? barcode.height * barcodeScale : 0;
+    const barcodeX = headerBoxLeft + 12 + (barcodeMaxWidth - barcodeWidth) / 2;
+    const barcodeBottom = barcode ? barcodeY + barcodeHeight : 0;
+    const headerBottom = Math.max(
+      headerTop + 6 + headerRowGap * 2 + usernameLines.length * 12,
+      barcodeBottom,
+    );
     const logoPlacement = addReportLogo(pdf, left, logo);
     const titleLeftBound = logoPlacement ? logoPlacement.right + 24 : left + 180;
     const titleRightBound = headerBoxLeft - 24;
@@ -906,13 +946,16 @@ const KittingDocs = () => {
       });
     }
 
+    if (barcode) {
+      pdf.addImage(barcode.dataUrl, "PNG", barcodeX, barcodeY, barcodeWidth, barcodeHeight);
+    }
+
     y = Math.max(logoPlacement ? logoPlacement.bottom + 10 : 58, headerBottom + 10, 58);
     pdf.setLineWidth(0.8);
     pdf.setDrawColor(210, 214, 220);
     pdf.line(left, y, right, y);
     y += 28;
 
-    const salesOrderValue = `${line.order}/${line.set}`;
     const businessPartnerNumber = line.salesOrderLineDetails?.shiptoBusinessPartner || "";
     const businessPartnerName = line.salesOrderLineDetails?.shiptoBusinessPartnerName?.trim() || "";
     const businessPartnerValue = [businessPartnerNumber, businessPartnerName].filter(Boolean).join(" - ");
