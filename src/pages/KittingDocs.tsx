@@ -419,7 +419,7 @@ const KittingDocs = () => {
         height: sourceHeight,
       });
 
-      page.drawText(`Item: ${options.itemValue || "-"}`, {
+      page.drawText(`${trans.kittingPdfItemLabel}: ${options.itemValue || "-"}`, {
         x: 14,
         y: pageHeight - 18,
         size: 10,
@@ -830,28 +830,30 @@ const KittingDocs = () => {
     const barcode = buildCode128Barcode(salesOrderValue);
 
     const formatHeaderDate = (value: Date) => {
-      const year = String(value.getFullYear()).slice(-2);
-      const month = String(value.getMonth() + 1).padStart(2, "0");
-      const day = String(value.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
+      return new Intl.DateTimeFormat(locale, {
+        year: "2-digit",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(value);
     };
 
     const formatHeaderTime = (value: Date) => {
-      return new Intl.DateTimeFormat("en-GB", {
+      return new Intl.DateTimeFormat(locale, {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
       }).format(value);
     };
 
-    const formatUsDate = (value: string) => {
+    const formatReportDate = (value: string) => {
       if (!value) return "-";
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return value;
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const year = String(date.getFullYear());
-      return `${month}/${day}/${year}`;
+      return new Intl.DateTimeFormat(locale, {
+        year: "2-digit",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(date);
     };
 
     const formatQuantityForReport = (value: number, unit: string) => {
@@ -861,19 +863,18 @@ const KittingDocs = () => {
     };
 
     const columns = [
-      { key: "sequence", label: "Sequence", width: 52 },
-      { key: "component", label: "Sub-Part", width: 118 },
-      { key: "quantity", label: "Quantity", width: 92 },
-      { key: "description", label: "Description", width: 138 },
-      { key: "drawing", label: "Drawing\non File", width: 64 },
-      { key: "comments", label: "Comments/\nInstructions", width: 96 },
-      { key: "filename", label: "Drawing File Name", width: tableWidth - (52 + 118 + 92 + 138 + 64 + 96) },
+      { key: "sequence", label: trans.kittingPdfSequenceLabel, width: 52 },
+      { key: "component", label: trans.kittingPdfSubPartLabel, width: 118 },
+      { key: "quantity", label: trans.quantityLabel, width: 92 },
+      { key: "description", label: trans.kittingPdfDescriptionLabel, width: 138 },
+      { key: "drawing", label: trans.kittingDrawingOnFileLabel.replace(/ /g, "\n"), width: 64 },
+      { key: "comments", label: trans.kittingCommentsInstructionsLabel.replace("/", "/\n"), width: 96 },
+      { key: "filename", label: trans.kittingDrawingFileNameLabel, width: tableWidth - (52 + 118 + 92 + 138 + 64 + 96) },
     ];
 
     const drawHeaderStatic = () => {
       const logoPlacement = addReportLogo(pdf, left, logo);
       const rightBlockWidth = 132;
-      const rightBlockLeft = right - rightBlockWidth;
       const textStartX = logoPlacement ? logoPlacement.right + 14 : left;
       const titleY = 38;
       const detailsY = 56;
@@ -885,7 +886,7 @@ const KittingDocs = () => {
       const barcodeWidth = barcode ? barcode.width * barcodeScale : 0;
       const barcodeHeight = barcode ? barcode.height * barcodeScale : 0;
       const barcodeBottom = barcode ? barcodeY + barcodeHeight : 0;
-      const titleParts = ["List Components for Assembly:", formatItemNumber(line.item), line.itemDescription]
+      const titleParts = [`${trans.kittingPdfListComponentsForAssemblyLabel}:`, formatItemNumber(line.item), line.itemDescription]
         .filter(Boolean)
         .join("   ");
 
@@ -894,14 +895,14 @@ const KittingDocs = () => {
       pdf.setFontSize(10.5);
       pdf.text(titleParts, textStartX, titleY);
 
-      pdf.text("Inception:", textStartX, detailsY);
+      pdf.text(`${trans.kittingPdfInceptionLabel}:`, textStartX, detailsY);
       pdf.setFont("helvetica", "normal");
-      pdf.text(` ${formatUsDate(line.itemCreationDate)}`, textStartX + 56, detailsY);
+      pdf.text(` ${formatReportDate(line.itemCreationDate)}`, textStartX + 56, detailsY);
 
       pdf.setFont("helvetica", "bold");
-      pdf.text("Last Revision:", textStartX + 148, detailsY);
+      pdf.text(`${trans.kittingLastRevisionLabel}:`, textStartX + 148, detailsY);
       pdf.setFont("helvetica", "normal");
-      pdf.text(` ${formatUsDate(line.itemLastModificationDate)}`, textStartX + 222, detailsY);
+      pdf.text(` ${formatReportDate(line.itemLastModificationDate)}`, textStartX + 222, detailsY);
 
       if (barcode) {
         pdf.addImage(barcode.dataUrl, "PNG", barcodeX, barcodeY, barcodeWidth, barcodeHeight);
@@ -912,7 +913,7 @@ const KittingDocs = () => {
       pdf.setLineWidth(0.7);
       pdf.line(left, dividerY, right, dividerY);
 
-      return { dividerY, rightBlockLeft };
+      return { dividerY };
     };
 
     const drawPageMeta = (pageNumber: number, totalPages: number) => {
@@ -923,8 +924,8 @@ const KittingDocs = () => {
       pdf.setTextColor(24, 24, 27);
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(10);
-      pdf.text("Page", rightBlockLeft, metaTop);
-      pdf.text(`${pageNumber} of ${totalPages}`, right, metaTop, { align: "right" });
+      pdf.text(trans.kittingPdfPageLabel, rightBlockLeft, metaTop);
+      pdf.text(`${pageNumber} / ${totalPages}`, right, metaTop, { align: "right" });
       pdf.text(`${formatHeaderDate(now)}   ${formatHeaderTime(now)}`, rightBlockLeft, metaTop + 18);
       pdf.text(reportUser, rightBlockLeft, metaTop + 36);
     };
@@ -1020,7 +1021,7 @@ const KittingDocs = () => {
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
     pdf.setTextColor(24, 24, 27);
-    pdf.text(`Total # of Parts    ${line.components.length}`, left, pageHeight - 28);
+    pdf.text(`${trans.kittingPdfTotalPartsLabel}    ${line.components.length}`, left, pageHeight - 28);
 
     return new Uint8Array(pdf.output("arraybuffer"));
   };
@@ -1070,16 +1071,16 @@ const KittingDocs = () => {
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(22);
-    pdf.text("Packaging Instructions Report", titleCenterX, 34, { align: "center" });
+    pdf.text(trans.kittingPdfPackagingInstructionsReportTitle, titleCenterX, 34, { align: "center" });
 
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "bold");
-    pdf.text("Page:", headerLabelX, headerTop + 6);
+    pdf.text(`${trans.kittingPdfPageLabel}:`, headerLabelX, headerTop + 6);
     pdf.setFont("helvetica", "normal");
     pdf.text("1", headerValueX, headerTop + 6, { align: "right" });
 
     pdf.setFont("helvetica", "bold");
-    pdf.text("Date:", headerLabelX, headerTop + 6 + headerRowGap);
+    pdf.text(`${trans.kittingPdfDateLabel}:`, headerLabelX, headerTop + 6 + headerRowGap);
     pdf.setFont("helvetica", "normal");
     pdf.text(now.toLocaleString(locale), headerValueX, headerTop + 6 + headerRowGap, { align: "right" });
 
@@ -1106,17 +1107,17 @@ const KittingDocs = () => {
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
-    pdf.text("Sales Order:", left, y);
+    pdf.text(`${trans.kittingPdfSalesOrderLabel}:`, left, y);
     pdf.setFont("helvetica", "normal");
     pdf.text(salesOrderValue, left + 68, y);
 
     pdf.setFont("helvetica", "bold");
-    pdf.text("Business Partner:", left + 190, y);
+    pdf.text(`${trans.kittingPdfBusinessPartnerLabel}:`, left + 190, y);
     pdf.setFont("helvetica", "normal");
     pdf.text(businessPartnerValue, left + 285, y);
 
     pdf.setFont("helvetica", "bold");
-    pdf.text("Item:", left + 500, y);
+    pdf.text(`${trans.kittingPdfItemLabel}:`, left + 500, y);
     pdf.setFont("helvetica", "normal");
     pdf.text(itemValue, left + 532, y);
 
@@ -1297,7 +1298,7 @@ const KittingDocs = () => {
       const pdfBytes = buildPackagingInstructionsPdf(line, logo);
       openPdfPreview(
         pdfBytes,
-        `Packaging Instructions Report: ${line.order}/${line.set}`,
+        `${trans.kittingPdfPackagingInstructionsReportTitle}: ${line.order}/${line.set}`,
         `kitting-${line.order}-${line.set}-line-${line.line}-${line.sequence}-packaging-instructions.pdf`,
         [],
       );

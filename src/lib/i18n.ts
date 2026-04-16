@@ -168,6 +168,18 @@ type TranslationKeys =
   | "kittingPrintAllDrawingsLabel"
   | "kittingPrintListComponentsLabel"
   | "kittingPrintPackagingInstructionsLabel"
+  | "kittingPdfPackagingInstructionsReportTitle"
+  | "kittingPdfListComponentsForAssemblyLabel"
+  | "kittingPdfInceptionLabel"
+  | "kittingPdfPageLabel"
+  | "kittingPdfDateLabel"
+  | "kittingPdfSalesOrderLabel"
+  | "kittingPdfBusinessPartnerLabel"
+  | "kittingPdfItemLabel"
+  | "kittingPdfSequenceLabel"
+  | "kittingPdfSubPartLabel"
+  | "kittingPdfDescriptionLabel"
+  | "kittingPdfTotalPartsLabel"
   | "kittingBuilderNumberTitle"
   | "kittingBuilderNumberDescription"
   | "kittingBuilderNumberLabel"
@@ -360,6 +372,18 @@ const translations: Translations = {
     kittingPrintAllDrawingsLabel: "Print All Drawings",
     kittingPrintListComponentsLabel: "Print Comp. List",
     kittingPrintPackagingInstructionsLabel: "Print Pack. Instr.",
+    kittingPdfPackagingInstructionsReportTitle: "Packaging Instructions Report",
+    kittingPdfListComponentsForAssemblyLabel: "List Components for Assembly",
+    kittingPdfInceptionLabel: "Inception",
+    kittingPdfPageLabel: "Page",
+    kittingPdfDateLabel: "Date",
+    kittingPdfSalesOrderLabel: "Sales Order",
+    kittingPdfBusinessPartnerLabel: "Business Partner",
+    kittingPdfItemLabel: "Item",
+    kittingPdfSequenceLabel: "Sequence",
+    kittingPdfSubPartLabel: "Sub-Part",
+    kittingPdfDescriptionLabel: "Description",
+    kittingPdfTotalPartsLabel: "Total # of Parts",
     kittingBuilderNumberTitle: "Builder Number required",
     kittingBuilderNumberDescription: "Enter the Builder Number before printing this document.",
     kittingBuilderNumberLabel: "Builder Number",
@@ -547,6 +571,18 @@ const translations: Translations = {
     kittingPrintAllDrawingsLabel: "Alle Zeichnungen drucken",
     kittingPrintListComponentsLabel: "Komp.-Liste drucken",
     kittingPrintPackagingInstructionsLabel: "Packhinw. drucken",
+    kittingPdfPackagingInstructionsReportTitle: "Verpackungshinweis-Bericht",
+    kittingPdfListComponentsForAssemblyLabel: "Komp. für Montage",
+    kittingPdfInceptionLabel: "Anlage",
+    kittingPdfPageLabel: "Seite",
+    kittingPdfDateLabel: "Datum",
+    kittingPdfSalesOrderLabel: "Auftrag",
+    kittingPdfBusinessPartnerLabel: "Geschäftspartner",
+    kittingPdfItemLabel: "Artikel",
+    kittingPdfSequenceLabel: "Folge",
+    kittingPdfSubPartLabel: "Unterteil",
+    kittingPdfDescriptionLabel: "Beschreibung",
+    kittingPdfTotalPartsLabel: "Gesamtanzahl Teile",
     kittingBuilderNumberTitle: "Builder-Nummer erforderlich",
     kittingBuilderNumberDescription: "Geben Sie vor dem Drucken dieses Dokuments die Builder-Nummer ein.",
     kittingBuilderNumberLabel: "Builder-Nummer",
@@ -734,6 +770,18 @@ const translations: Translations = {
     kittingPrintAllDrawingsLabel: "Imprimir todos los planos",
     kittingPrintListComponentsLabel: "Impr. lista comp.",
     kittingPrintPackagingInstructionsLabel: "Impr. instr. emb.",
+    kittingPdfPackagingInstructionsReportTitle: "Reporte de instrucciones de empaque",
+    kittingPdfListComponentsForAssemblyLabel: "Comp. para ensambl.",
+    kittingPdfInceptionLabel: "Alta",
+    kittingPdfPageLabel: "Pág.",
+    kittingPdfDateLabel: "Fecha",
+    kittingPdfSalesOrderLabel: "Orden",
+    kittingPdfBusinessPartnerLabel: "Socio comercial",
+    kittingPdfItemLabel: "Artículo",
+    kittingPdfSequenceLabel: "Secuencia",
+    kittingPdfSubPartLabel: "Subparte",
+    kittingPdfDescriptionLabel: "Descripción",
+    kittingPdfTotalPartsLabel: "Total de piezas",
     kittingBuilderNumberTitle: "Se requiere número de builder",
     kittingBuilderNumberDescription: "Ingrese el número de builder antes de imprimir este documento.",
     kittingBuilderNumberLabel: "Número de builder",
@@ -921,6 +969,18 @@ const translations: Translations = {
     kittingPrintAllDrawingsLabel: "Imprimir todos os desenhos",
     kittingPrintListComponentsLabel: "Impr. lista comp.",
     kittingPrintPackagingInstructionsLabel: "Impr. instr. emb.",
+    kittingPdfPackagingInstructionsReportTitle: "Relatório de instruções de embalagem",
+    kittingPdfListComponentsForAssemblyLabel: "Comp. para montagem",
+    kittingPdfInceptionLabel: "Criação",
+    kittingPdfPageLabel: "Pág.",
+    kittingPdfDateLabel: "Data",
+    kittingPdfSalesOrderLabel: "Pedido",
+    kittingPdfBusinessPartnerLabel: "Parceiro de negócios",
+    kittingPdfItemLabel: "Item",
+    kittingPdfSequenceLabel: "Sequência",
+    kittingPdfSubPartLabel: "Subitem",
+    kittingPdfDescriptionLabel: "Descrição",
+    kittingPdfTotalPartsLabel: "Total de peças",
     kittingBuilderNumberTitle: "Número do builder obrigatório",
     kittingBuilderNumberDescription: "Digite o número do builder antes de imprimir este documento.",
     kittingBuilderNumberLabel: "Número do builder",
