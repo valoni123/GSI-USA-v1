@@ -592,36 +592,31 @@ const KittingDocs = () => {
     pdf.setLineWidth(0.8);
     pdf.setDrawColor(210, 214, 220);
     pdf.line(left, y, right, y);
-    y += 22;
+    y += 28;
 
     const salesOrderValue = `${line.order}/${line.set}`;
-    const businessPartnerValue = line.salesOrderLineDetails?.shiptoBusinessPartner || "";
-    const itemValue = formatItemNumber(line.item);
+    const businessPartnerNumber = line.salesOrderLineDetails?.shiptoBusinessPartner || "";
+    const businessPartnerName = line.salesOrderLineDetails?.shiptoBusinessPartnerName?.trim() || "";
+    const businessPartnerValue = [businessPartnerNumber, businessPartnerName].filter(Boolean).join(" - ");
+    const itemValue = [formatItemNumber(line.item), line.itemDescription].filter(Boolean).join("  ");
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
     pdf.text("Sales Order:", left, y);
     pdf.setFont("helvetica", "normal");
-    pdf.text(salesOrderValue, left + 58, y);
+    pdf.text(salesOrderValue, left + 68, y);
 
     pdf.setFont("helvetica", "bold");
-    pdf.text("Business Partner:", left + 170, y);
+    pdf.text("Business Partner:", left + 190, y);
     pdf.setFont("helvetica", "normal");
-    pdf.text(businessPartnerValue, left + 255, y);
+    pdf.text(businessPartnerValue, left + 285, y);
 
     pdf.setFont("helvetica", "bold");
-    pdf.text("Item:", left + 360, y);
+    pdf.text("Item:", left + 500, y);
     pdf.setFont("helvetica", "normal");
-    pdf.text(itemValue, left + 392, y);
+    pdf.text(itemValue, left + 532, y);
 
-    y += 18;
-
-    const shipToName = line.salesOrderLineDetails?.shiptoBusinessPartnerName?.trim() || "";
-    if (shipToName) {
-      pdf.setFont("helvetica", "normal");
-      pdf.text(shipToName, left + 255, y);
-      y += 18;
-    }
+    y += 34;
 
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(11);
