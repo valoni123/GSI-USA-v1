@@ -362,7 +362,7 @@ const translations: Translations = {
     orderOriginLabel: "Order Origin",
     setLabel: "Set",
     lineLabel: "Line",
-    sequenceLabel: "Sequence",
+    sequenceLabel: "Seq.",
     advisedQuantityLabel: "Advised Quantity",
     pickedLabel: "Picked",
     pickingSelectAdviceTitle: "Select Picking Advice",
