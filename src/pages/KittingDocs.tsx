@@ -314,8 +314,8 @@ const KittingDocs = () => {
     if (!logo) return null;
 
     try {
-      const maxWidth = 400;
-      const maxHeight = 128;
+      const maxWidth = 300;
+      const maxHeight = 80;
       const scale = Math.min(maxWidth / logo.width, maxHeight / logo.height);
       const width = logo.width * scale;
       const height = logo.height * scale;
