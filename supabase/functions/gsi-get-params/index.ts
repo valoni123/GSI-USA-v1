@@ -33,7 +33,6 @@ serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Prefer a row for the requested company (if provided), then fallback to latest
     let row: any = null;
 
     if (company) {
@@ -62,16 +61,17 @@ serve(async (req) => {
       return json({ ok: true, params: null }, 200);
     }
 
-    // Return only what's needed now; keep extensible
     const params = {
       compnr: row.txgsi000_compnr ?? null,
-      aure: typeof row.txgsi000_aure === "boolean"
-        ? row.txgsi000_aure
-        : String(row.txgsi000_aure ?? "").toLowerCase() === "true",
+      aure:
+        typeof row.txgsi000_aure === "boolean"
+          ? row.txgsi000_aure
+          : String(row.txgsi000_aure ?? "").toLowerCase() === "true",
+      imag: row.txgsi000_imag ?? null,
     };
 
     return json({ ok: true, params }, 200);
-  } catch (e) {
+  } catch {
     return json({ ok: false, error: { message: "unhandled" } }, 200);
   }
 });

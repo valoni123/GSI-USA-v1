@@ -228,16 +228,12 @@ const KittingDocs = () => {
   };
 
   const fetchReportLogo = async (): Promise<ReportLogo | null> => {
-    const { data, error } = await supabase
-      .from("gsi000_params")
-      .select("txgsi000_imag")
-      .not("txgsi000_imag", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data, error } = await supabase.functions.invoke("gsi-get-params", {
+      body: {},
+    });
 
-    if (error) return null;
-    return await normalizeReportLogo(data?.txgsi000_imag);
+    if (error || !data?.ok) return null;
+    return await normalizeReportLogo(data.params?.imag);
   };
 
   const addReportLogo = (pdf: jsPDF, left: number, logo: ReportLogo | null) => {
