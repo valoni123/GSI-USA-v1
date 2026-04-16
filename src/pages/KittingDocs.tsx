@@ -225,10 +225,75 @@ const KittingDocs = () => {
         }
 
         context.drawImage(image, 0, 0);
+
+        const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+        let minX = canvas.width;
+        let minY = canvas.height;
+        let maxX = -1;
+        let maxY = -1;
+
+        for (let y = 0; y < canvas.height; y += 1) {
+          for (let x = 0; x < canvas.width; x += 1) {
+            const index = (y * canvas.width + x) * 4;
+            const alpha = data[index + 3];
+            const red = data[index];
+            const green = data[index + 1];
+            const blue = data[index + 2];
+            const isVisiblePixel = alpha > 10 && !(red > 245 && green > 245 && blue > 245);
+
+            if (!isVisiblePixel) continue;
+
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+
+        if (maxX < minX || maxY < minY) {
+          resolve({
+            dataUrl: canvas.toDataURL("image/png"),
+            width: canvas.width,
+            height: canvas.height,
+          });
+          return;
+        }
+
+        const padding = 6;
+        const cropX = Math.max(0, minX - padding);
+        const cropY = Math.max(0, minY - padding);
+        const cropWidth = Math.min(canvas.width - cropX, maxX - minX + 1 + padding * 2);
+        const cropHeight = Math.min(canvas.height - cropY, maxY - minY + 1 + padding * 2);
+        const croppedCanvas = document.createElement("canvas");
+        croppedCanvas.width = cropWidth;
+        croppedCanvas.height = cropHeight;
+        const croppedContext = croppedCanvas.getContext("2d");
+
+        if (!croppedContext) {
+          resolve({
+            dataUrl: canvas.toDataURL("image/png"),
+            width: canvas.width,
+            height: canvas.height,
+          });
+          return;
+        }
+
+        croppedContext.drawImage(
+          canvas,
+          cropX,
+          cropY,
+          cropWidth,
+          cropHeight,
+          0,
+          0,
+          cropWidth,
+          cropHeight,
+        );
+
         resolve({
-          dataUrl: canvas.toDataURL("image/png"),
-          width: canvas.width,
-          height: canvas.height,
+          dataUrl: croppedCanvas.toDataURL("image/png"),
+          width: cropWidth,
+          height: cropHeight,
         });
       };
       image.onerror = () => resolve(null);
@@ -255,7 +320,7 @@ const KittingDocs = () => {
       const width = logo.width * scale;
       const height = logo.height * scale;
       const x = left;
-      const y = 12;
+      const y = 6;
 
       pdf.addImage(logo.dataUrl, "PNG", x, y, width, height);
       return {
@@ -600,7 +665,7 @@ const KittingDocs = () => {
     const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const left = 24;
+    const left = 12;
     const right = pageWidth - 24;
     const logoPlacement = addReportLogo(pdf, left, logo);
     let y = 42;
@@ -665,7 +730,7 @@ const KittingDocs = () => {
     const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const left = 24;
+    const left = 12;
     const right = pageWidth - 24;
     const packagingInstructionsText = line.salesOrderLineDetails?.packagingInstructionsText?.trim() || "";
     const username = fullName || "";
@@ -674,7 +739,7 @@ const KittingDocs = () => {
     const headerBoxLeft = right - headerBoxWidth;
     const headerLabelX = headerBoxLeft + 12;
     const headerValueX = right - 12;
-    const headerTop = 18;
+    const headerTop = 14;
     const headerRowGap = 16;
     const usernameLines = username ? pdf.splitTextToSize(username, headerBoxWidth - 24) : [];
     const headerBottom = headerTop + 6 + headerRowGap * 2 + usernameLines.length * 12;
