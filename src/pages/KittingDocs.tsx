@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, ChevronDown, ChevronUp, FileImage, Loader2, LogOut, Printer, ScrollText, User } from "lucide-react";
 import jsPDF from "jspdf";
 import JsBarcode from "jsbarcode";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import BackButton from "@/components/BackButton";
 import ItemDrawingDialog from "@/components/ItemDrawingDialog";
 import PackagingInstructionsDialog from "@/components/PackagingInstructionsDialog";
@@ -363,6 +363,106 @@ const KittingDocs = () => {
     }
   };
 
+  const stampDrawingPdfHeader = async (
+    pdfBytes: Uint8Array,
+    options: {
+      orderSetValue: string;
+      itemValue: string;
+    },
+  ) => {
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const barcode = buildCode128Barcode(options.orderSetValue);
+    const barcodeImage = barcode ? await pdfDoc.embedPng(barcode.dataUrl) : null;
+    const now = new Date();
+    const dateTime = new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(now);
+    const userText = fullName.trim() || "-";
+
+    pdfDoc.getPages().forEach((page) => {
+      const { width, height } = page.getSize();
+      const headerHeight = 44;
+      const topY = height - headerHeight;
+
+      page.drawRectangle({
+        x: 0,
+        y: topY,
+        width,
+        height: headerHeight,
+        color: rgb(1, 1, 1),
+      });
+      page.drawLine({
+        start: { x: 0, y: topY },
+        end: { x: width, y: topY },
+        thickness: 0.8,
+        color: rgb(0.82, 0.84, 0.86),
+      });
+
+      page.drawText(`Item: ${options.itemValue || "-"}`, {
+        x: 14,
+        y: height - 18,
+        size: 10,
+        font: fontBold,
+        color: rgb(0.1, 0.1, 0.12),
+      });
+
+      if (barcodeImage && barcode) {
+        const barcodeMaxWidth = 124;
+        const barcodeMaxHeight = 16;
+        const barcodeScale = Math.min(barcodeMaxWidth / barcode.width, barcodeMaxHeight / barcode.height);
+        const barcodeWidth = barcode.width * barcodeScale;
+        const barcodeHeight = barcode.height * barcodeScale;
+        const barcodeX = width / 2 - barcodeWidth / 2;
+        const barcodeY = height - 24;
+
+        page.drawImage(barcodeImage, {
+          x: barcodeX,
+          y: barcodeY,
+          width: barcodeWidth,
+          height: barcodeHeight,
+        });
+        page.drawText(options.orderSetValue, {
+          x: width / 2 - font.widthOfTextAtSize(options.orderSetValue, 8) / 2,
+          y: topY + 5,
+          size: 8,
+          font,
+          color: rgb(0.1, 0.1, 0.12),
+        });
+      } else {
+        page.drawText(options.orderSetValue, {
+          x: width / 2 - fontBold.widthOfTextAtSize(options.orderSetValue, 10) / 2,
+          y: height - 18,
+          size: 10,
+          font: fontBold,
+          color: rgb(0.1, 0.1, 0.12),
+        });
+      }
+
+      page.drawText(dateTime, {
+        x: width - font.widthOfTextAtSize(dateTime, 8) - 14,
+        y: height - 17,
+        size: 8,
+        font,
+        color: rgb(0.1, 0.1, 0.12),
+      });
+      page.drawText(userText, {
+        x: width - font.widthOfTextAtSize(userText, 8) - 14,
+        y: topY + 6,
+        size: 8,
+        font,
+        color: rgb(0.1, 0.1, 0.12),
+      });
+    });
+
+    return await pdfDoc.save();
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -673,8 +773,12 @@ const KittingDocs = () => {
     const drawings = await Promise.all(documentEntries.map((entry) => fetchDrawingPdf(entry.rawItem)));
     const mergedPdf = await PDFDocument.create();
 
-    for (const drawing of drawings) {
-      const sourcePdf = await PDFDocument.load(drawing.bytes);
+    for (const [index, drawing] of drawings.entries()) {
+      const stampedBytes = await stampDrawingPdfHeader(drawing.bytes, {
+        orderSetValue: lines[0] ? `${lines[0].order}/${lines[0].set}` : "",
+        itemValue: formatItemNumber(documentEntries[index]?.displayItem || ""),
+      });
+      const sourcePdf = await PDFDocument.load(stampedBytes);
       const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
       copiedPages.forEach((page) => mergedPdf.addPage(page));
     }
@@ -1022,10 +1126,14 @@ const KittingDocs = () => {
 
     try {
       const drawing = await fetchDrawingPdf(rawItem);
+      const stampedBytes = await stampDrawingPdfHeader(drawing.bytes, {
+        orderSetValue: lines[0] ? `${lines[0].order}/${lines[0].set}` : "",
+        itemValue: formatItemNumber(displayItem),
+      });
       setDrawingLoadingKey("");
       stopScanLoading();
       openPdfPreview(
-        drawing.bytes,
+        stampedBytes,
         `${trans.kittingDrawingTitle}: ${formatItemNumber(displayItem)}`,
         drawing.filename,
         [rawItem],
