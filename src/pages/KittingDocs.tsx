@@ -104,6 +104,15 @@ type ReportLogo = {
   height: number;
 };
 
+type ReportLogoPlacement = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  right: number;
+  bottom: number;
+};
+
 const FALLBACK_ORIGIN_ROW: RawKittingOriginRow = {
 
   constantName: "sales",
@@ -236,8 +245,8 @@ const KittingDocs = () => {
     return await normalizeReportLogo(data.params?.imag);
   };
 
-  const addReportLogo = (pdf: jsPDF, left: number, logo: ReportLogo | null) => {
-    if (!logo) return 0;
+  const addReportLogo = (pdf: jsPDF, left: number, logo: ReportLogo | null): ReportLogoPlacement | null => {
+    if (!logo) return null;
 
     try {
       const maxWidth = 400;
@@ -246,12 +255,19 @@ const KittingDocs = () => {
       const width = logo.width * scale;
       const height = logo.height * scale;
       const x = left;
-      const y = 16;
+      const y = 12;
 
       pdf.addImage(logo.dataUrl, "PNG", x, y, width, height);
-      return y + height;
+      return {
+        x,
+        y,
+        width,
+        height,
+        right: x + width,
+        bottom: y + height,
+      };
     } catch {
-      return 0;
+      return null;
     }
   };
 
@@ -584,9 +600,9 @@ const KittingDocs = () => {
     const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const left = 40;
-    const right = pageWidth - 40;
-    const logoBottom = addReportLogo(pdf, left, logo);
+    const left = 24;
+    const right = pageWidth - 24;
+    const logoPlacement = addReportLogo(pdf, left, logo);
     let y = 42;
 
     const addText = (text: string, x: number, nextY = 16) => {
@@ -602,9 +618,10 @@ const KittingDocs = () => {
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(16);
-    addText(trans.kittingPrintListComponentsLabel, left, 22);
+    const titleCenterX = logoPlacement ? (Math.max(logoPlacement.right + 20, left + 180) + right) / 2 : pageWidth / 2;
+    pdf.text(trans.kittingPrintListComponentsLabel, titleCenterX, 36, { align: "center" });
 
-    y = Math.max(y, logoBottom + 14);
+    y = Math.max(logoPlacement ? logoPlacement.bottom + 12 : 58, 58);
 
     pdf.setFontSize(11);
     pdf.setFont("helvetica", "normal");
@@ -648,8 +665,8 @@ const KittingDocs = () => {
     const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const left = 36;
-    const right = pageWidth - 36;
+    const left = 24;
+    const right = pageWidth - 24;
     const packagingInstructionsText = line.salesOrderLineDetails?.packagingInstructionsText?.trim() || "";
     const username = fullName || "";
     const now = new Date();
@@ -657,11 +674,14 @@ const KittingDocs = () => {
     const headerBoxLeft = right - headerBoxWidth;
     const headerLabelX = headerBoxLeft + 12;
     const headerValueX = right - 12;
-    const headerTop = 22;
+    const headerTop = 18;
     const headerRowGap = 16;
     const usernameLines = username ? pdf.splitTextToSize(username, headerBoxWidth - 24) : [];
     const headerBottom = headerTop + 6 + headerRowGap * 2 + usernameLines.length * 12;
-    const logoBottom = addReportLogo(pdf, left, logo);
+    const logoPlacement = addReportLogo(pdf, left, logo);
+    const titleLeftBound = logoPlacement ? logoPlacement.right + 24 : left + 180;
+    const titleRightBound = headerBoxLeft - 24;
+    const titleCenterX = titleRightBound > titleLeftBound ? (titleLeftBound + titleRightBound) / 2 : pageWidth / 2;
 
     let y = 42;
 
@@ -673,7 +693,7 @@ const KittingDocs = () => {
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(22);
-    pdf.text("Packaging Instructions Report", pageWidth / 2, y, { align: "center" });
+    pdf.text("Packaging Instructions Report", titleCenterX, 34, { align: "center" });
 
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "bold");
@@ -692,7 +712,7 @@ const KittingDocs = () => {
       });
     }
 
-    y = Math.max(y + 4, headerBottom, logoBottom + 12);
+    y = Math.max(logoPlacement ? logoPlacement.bottom + 10 : 58, headerBottom + 10, 58);
     pdf.setLineWidth(0.8);
     pdf.setDrawColor(210, 214, 220);
     pdf.line(left, y, right, y);
