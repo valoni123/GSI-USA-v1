@@ -98,6 +98,11 @@ type DrawingPdfPayload = {
   filename: string;
 };
 
+type ReportLogo = {
+  dataUrl: string;
+  format: "PNG" | "JPEG";
+};
+
 const FALLBACK_ORIGIN_ROW: RawKittingOriginRow = {
 
   constantName: "sales",
@@ -183,7 +188,74 @@ const KittingDocs = () => {
   const [drawingItemRaws, setDrawingItemRaws] = useState<string[]>([]);
   const [printedItems, setPrintedItems] = useState<Record<string, boolean>>({});
   const [collapsedBomLines, setCollapsedBomLines] = useState<Record<string, boolean>>({});
+  const [reportLogo, setReportLogo] = useState<ReportLogo | null>(null);
   const scanLoadingTimeoutRef = useRef<number | null>(null);
+
+  const normalizeReportLogo = (value: string | null | undefined): ReportLogo | null => {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+
+    const sanitized = raw.replace(/\s+/g, "");
+    const dataUrlMatch = sanitized.match(/^data:image\/(png|jpeg|jpg);base64,(.+)$/i);
+    if (dataUrlMatch) {
+      return {
+        dataUrl: sanitized,
+        format: dataUrlMatch[1].toLowerCase() === "png" ? "PNG" : "JPEG",
+      };
+    }
+
+    const format = sanitized.startsWith("iVBORw0KGgo") ? "PNG" : "JPEG";
+    const mimeType = format === "PNG" ? "image/png" : "image/jpeg";
+
+    return {
+      dataUrl: `data:${mimeType};base64,${sanitized}`,
+      format,
+    };
+  };
+
+  const addReportLogo = (pdf: jsPDF, left: number) => {
+    if (!reportLogo) return 0;
+
+    try {
+      const image = pdf.getImageProperties(reportLogo.dataUrl);
+      const maxWidth = 120;
+      const maxHeight = 36;
+      const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
+      const width = image.width * scale;
+      const height = image.height * scale;
+      const x = left;
+      const y = 16;
+
+      pdf.addImage(reportLogo.dataUrl, reportLogo.format, x, y, width, height);
+      return y + height;
+    } catch {
+      return 0;
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadReportLogo = async () => {
+      const { data, error } = await supabase
+        .from("gsi000_params")
+        .select("txgsi000_imag")
+        .not("txgsi000_imag", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (cancelled || error) return;
+
+      setReportLogo(normalizeReportLogo(data?.txgsi000_imag));
+    };
+
+    void loadReportLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const startScanLoading = () => {
     setScanLoadingVisible(true);
@@ -499,6 +571,7 @@ const KittingDocs = () => {
     const pageHeight = pdf.internal.pageSize.getHeight();
     const left = 40;
     const right = pageWidth - 40;
+    const logoBottom = addReportLogo(pdf, left);
     let y = 42;
 
     const addText = (text: string, x: number, nextY = 16) => {
@@ -515,6 +588,8 @@ const KittingDocs = () => {
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(16);
     addText(trans.kittingPrintListComponentsLabel, left, 22);
+
+    y = Math.max(y, logoBottom + 14);
 
     pdf.setFontSize(11);
     pdf.setFont("helvetica", "normal");
@@ -571,6 +646,7 @@ const KittingDocs = () => {
     const headerRowGap = 16;
     const usernameLines = username ? pdf.splitTextToSize(username, headerBoxWidth - 24) : [];
     const headerBottom = headerTop + 6 + headerRowGap * 2 + usernameLines.length * 12;
+    const logoBottom = addReportLogo(pdf, left);
 
     let y = 42;
 
@@ -601,7 +677,7 @@ const KittingDocs = () => {
       });
     }
 
-    y = Math.max(y + 4, headerBottom);
+    y = Math.max(y + 4, headerBottom, logoBottom + 12);
     pdf.setLineWidth(0.8);
     pdf.setDrawColor(210, 214, 220);
     pdf.line(left, y, right, y);
