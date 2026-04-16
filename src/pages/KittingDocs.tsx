@@ -55,6 +55,8 @@ type SalesOrderLineDetails = {
   orderLineText: string | null;
   escalationComment: string | null;
   escalationLevel: string;
+  shiptoBusinessPartnerName: string;
+  packagingInstructionsText: string;
 };
 
 type KittingLine = {
@@ -163,6 +165,7 @@ const KittingDocs = () => {
   const [combinedDrawingLoadingKey, setCombinedDrawingLoadingKey] = useState("");
   const [lineDrawingLoadingKey, setLineDrawingLoadingKey] = useState("");
   const [lineComponentListLoadingKey, setLineComponentListLoadingKey] = useState("");
+  const [linePackagingInstructionsLoadingKey, setLinePackagingInstructionsLoadingKey] = useState("");
   const [drawingMetaByItem, setDrawingMetaByItem] = useState<Record<string, DrawingMeta>>({});
   const [drawingMetaLoadingByItem, setDrawingMetaLoadingByItem] = useState<Record<string, boolean>>({});
   const [drawingItemRaws, setDrawingItemRaws] = useState<string[]>([]);
@@ -539,6 +542,87 @@ const KittingDocs = () => {
     return new Uint8Array(pdf.output("arraybuffer"));
   };
 
+  const buildPackagingInstructionsPdf = (line: KittingLine) => {
+    const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const left = 36;
+    const right = pageWidth - 36;
+    const packagingInstructionsText = line.salesOrderLineDetails?.packagingInstructionsText?.trim() || "";
+    const username = fullName || "";
+    const now = new Date();
+
+    let y = 46;
+
+    const ensureSpace = (needed = 20) => {
+      if (y + needed <= pageHeight - 36) return;
+      pdf.addPage();
+      y = 46;
+    };
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(22);
+    pdf.text("Packaging Instructions Report", pageWidth / 2, y, { align: "center" });
+
+    pdf.setFontSize(10);
+    pdf.text("Page:", right - 90, y - 6, { align: "left" });
+    pdf.setFont("helvetica", "normal");
+    pdf.text("1", right, y - 6, { align: "right" });
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Date:", right - 90, y + 10, { align: "left" });
+    pdf.setFont("helvetica", "normal");
+    pdf.text(now.toLocaleString(locale), right, y + 10, { align: "right" });
+    if (username) {
+      pdf.text(username, right, y + 26, { align: "right" });
+    }
+
+    y += 30;
+    pdf.setLineWidth(0.8);
+    pdf.setDrawColor(210, 214, 220);
+    pdf.line(left, y, right, y);
+    y += 22;
+
+    const salesOrderValue = `${line.order}/${line.set}`;
+    const businessPartnerValue = line.salesOrderLineDetails?.shiptoBusinessPartner || "";
+    const itemValue = formatItemNumber(line.item);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("Sales Order:", left, y);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(salesOrderValue, left + 58, y);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Business Partner:", left + 170, y);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(businessPartnerValue, left + 255, y);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Item:", left + 360, y);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(itemValue, left + 392, y);
+
+    y += 18;
+
+    const shipToName = line.salesOrderLineDetails?.shiptoBusinessPartnerName?.trim() || "";
+    if (shipToName) {
+      pdf.setFont("helvetica", "normal");
+      pdf.text(shipToName, left + 255, y);
+      y += 18;
+    }
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    const wrappedLines = pdf.splitTextToSize(packagingInstructionsText.replace(/\r\n/g, "\n"), pageWidth - left * 2 - 24);
+    wrappedLines.forEach((textLine: string) => {
+      ensureSpace(18);
+      pdf.text(textLine, left + 24, y);
+      y += 16;
+    });
+
+    return new Uint8Array(pdf.output("arraybuffer"));
+  };
+
   useEffect(() => {
     return () => {
       if (drawingUrl.startsWith("blob:")) {
@@ -646,6 +730,31 @@ const KittingDocs = () => {
       stopScanLoading();
     } catch {
       setLineComponentListLoadingKey("");
+      stopScanLoading();
+      showError(trans.loadingDetails);
+    }
+  };
+
+  const openPackagingInstructions = async (line: KittingLine) => {
+    const lineKey = getLineKey(line);
+    const packagingInstructionsText = line.salesOrderLineDetails?.packagingInstructionsText?.trim() || "";
+    if (!packagingInstructionsText || linePackagingInstructionsLoadingKey === lineKey) return;
+
+    setLinePackagingInstructionsLoadingKey(lineKey);
+    startScanLoading();
+
+    try {
+      const pdfBytes = buildPackagingInstructionsPdf(line);
+      openPdfPreview(
+        pdfBytes,
+        `Packaging Instructions Report: ${line.order}/${line.set}`,
+        `kitting-${line.order}-${line.set}-line-${line.line}-${line.sequence}-packaging-instructions.pdf`,
+        [],
+      );
+      setLinePackagingInstructionsLoadingKey("");
+      stopScanLoading();
+    } catch {
+      setLinePackagingInstructionsLoadingKey("");
       stopScanLoading();
       showError(trans.loadingDetails);
     }
@@ -836,6 +945,7 @@ const KittingDocs = () => {
                       : "";
               const showEscalationBadge = !!escalationBadgeClass;
               const isBomCollapsed = !!collapsedBomLines[lineKey];
+              const hasPackagingInstructions = !!line.salesOrderLineDetails?.packagingInstructionsText?.trim();
 
               return (
                 <Card
@@ -990,6 +1100,20 @@ const KittingDocs = () => {
                                 <Printer className="mr-2 h-4 w-4" />
                               )}
                               {trans.kittingPrintListComponentsLabel}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-10 shrink-0 whitespace-nowrap rounded-md bg-violet-100 px-3 text-violet-700 hover:bg-violet-200 hover:text-violet-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                              onClick={() => void openPackagingInstructions(line)}
+                              disabled={!hasPackagingInstructions || linePackagingInstructionsLoadingKey === lineKey}
+                            >
+                              {linePackagingInstructionsLoadingKey === lineKey ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Printer className="mr-2 h-4 w-4" />
+                              )}
+                              Print Pack. Instructions
                             </Button>
                           </div>
                         </div>

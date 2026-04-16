@@ -34,6 +34,13 @@ type SalesOrderLineDetails = {
   orderLineText: string | null;
   escalationComment: string | null;
   escalationLevel: string;
+  shiptoBusinessPartnerName: string;
+  packagingInstructionsText: string;
+};
+
+type ShiptoBusinessPartnerDetails = {
+  shiptoBusinessPartnerName: string;
+  packagingInstructionsText: string;
 };
 
 type ListComponentDetails = {
@@ -234,18 +241,65 @@ async function fetchSalesOrderLineDetails(
       orderLineText: null,
       escalationComment: null,
       escalationLevel: "",
+      shiptoBusinessPartnerName: "",
+      packagingInstructionsText: "",
     };
   }
 
   const row = Array.isArray(payload.value) ? payload.value[0] : null;
+  const shiptoBusinessPartner = toText(row?.ShiptoBusinessPartner);
+  const shiptoBusinessPartnerDetails = shiptoBusinessPartner
+    ? await fetchShiptoBusinessPartnerDetails(base, tenant, accessToken, company, shiptoBusinessPartner)
+    : { shiptoBusinessPartnerName: "", packagingInstructionsText: "" };
+
   return {
-    shiptoBusinessPartner: toText(row?.ShiptoBusinessPartner),
+    shiptoBusinessPartner,
     shiptoAddress: toText(row?.ShiptoAddress),
     listGroup: toText(row?.ListGroup),
     rushOrderLine: toText(row?.RushOrderLine),
     orderLineText: toNullableText(row?.OrderLineText),
     escalationComment: toNullableText(row?.EscalationComment),
     escalationLevel: toText(row?.EscalationLevel),
+    shiptoBusinessPartnerName: shiptoBusinessPartnerDetails.shiptoBusinessPartnerName,
+    packagingInstructionsText: shiptoBusinessPartnerDetails.packagingInstructionsText,
+  };
+}
+
+async function fetchShiptoBusinessPartnerDetails(
+  base: string,
+  tenant: string,
+  accessToken: string,
+  company: string,
+  businessPartner: string,
+): Promise<ShiptoBusinessPartnerDetails> {
+  const escapedBusinessPartner = businessPartner.replace(/'/g, "''");
+  const entityPath = `BusinessPartners(BusinessPartner='${escapedBusinessPartner}')/ShiptoBusinessPartnerRef`;
+  const params = new URLSearchParams();
+  params.set("$select", "Text");
+  params.set("$expand", "AddressRef,ShipToBPRef");
+
+  const url = `${base}/${tenant}/LN/lnapi/odata/tcapi.comBusinessPartner/${encodeURI(entityPath)}?${params.toString()}`;
+  console.info("[ln-kitting-docs-order-set] requesting shipto business partner details", {
+    businessPartner,
+  });
+
+  const response = await fetchJson(url, accessToken, company);
+  const payload = (await response.json().catch(() => null)) as any;
+  if (!response.ok || !payload) {
+    console.error("[ln-kitting-docs-order-set] shipto business partner details upstream error", {
+      status: response.status,
+      businessPartner,
+      error: payload?.error?.message || "odata_error",
+    });
+    return {
+      shiptoBusinessPartnerName: "",
+      packagingInstructionsText: "",
+    };
+  }
+
+  return {
+    shiptoBusinessPartnerName: toText(payload?.ShipToBPRef?.Name) || toText(payload?.AddressRef?.Name),
+    packagingInstructionsText: toText(payload?.Text),
   };
 }
 
@@ -459,6 +513,8 @@ serve(async (req) => {
             orderLineText: null,
             escalationComment: null,
             escalationLevel: "",
+            shiptoBusinessPartnerName: "",
+            packagingInstructionsText: "",
           },
           components: [],
           componentMap: new Map<string, GroupedComponent>(),
