@@ -1087,14 +1087,13 @@ const KittingDocs = () => {
                           </table>
                         </div>
 
-                        {!isBomCollapsed ? (
-                          <div className="flex justify-end">
-                            <div className="inline-flex items-center gap-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-gray-900">
-                              <span>{trans.kittingTotalPartsLabel}</span>
-                              <span>{line.components.length}</span>
-                            </div>
+                        <div className="flex justify-end">
+                          <div className="inline-flex items-center gap-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-gray-900">
+                            <span>{trans.kittingTotalPartsLabel}</span>
+                            <span>{line.components.length}</span>
                           </div>
-                        ) : null}
+                        </div>
+
                       </>
                     ) : null}
                   </div>
