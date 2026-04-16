@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, FileImage, Loader2, LogOut, Printer, User } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, FileImage, Loader2, LogOut, Printer, User } from "lucide-react";
 import jsPDF from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import BackButton from "@/components/BackButton";
@@ -167,6 +167,7 @@ const KittingDocs = () => {
   const [drawingMetaLoadingByItem, setDrawingMetaLoadingByItem] = useState<Record<string, boolean>>({});
   const [drawingItemRaws, setDrawingItemRaws] = useState<string[]>([]);
   const [printedItems, setPrintedItems] = useState<Record<string, boolean>>({});
+  const [collapsedBomLines, setCollapsedBomLines] = useState<Record<string, boolean>>({});
   const scanLoadingTimeoutRef = useRef<number | null>(null);
 
   const startScanLoading = () => {
@@ -287,6 +288,7 @@ const KittingDocs = () => {
     setLoadedKey("");
     setDrawingMetaByItem({});
     setDrawingMetaLoadingByItem({});
+    setCollapsedBomLines({});
   };
 
   const lookupOrderSet = async (rawValue?: string, originConstantName?: string) => {
@@ -657,6 +659,13 @@ const KittingDocs = () => {
     }));
   };
 
+  const toggleBomLineVisibility = (lineKey: string) => {
+    setCollapsedBomLines((current) => ({
+      ...current,
+      [lineKey]: !current[lineKey],
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {scanLoadingVisible ? (
@@ -826,6 +835,7 @@ const KittingDocs = () => {
                       ? "bg-yellow-300 text-yellow-950"
                       : "";
               const showEscalationBadge = !!escalationBadgeClass;
+              const isBomCollapsed = !!collapsedBomLines[lineKey];
 
               return (
                 <Card
@@ -993,81 +1003,98 @@ const KittingDocs = () => {
                                 <th className="px-4 py-3 text-left font-semibold">{trans.kittingDrawingOnFileLabel}</th>
                                 <th className="px-4 py-3 text-left font-semibold">{trans.kittingCommentsInstructionsLabel}</th>
                                 <th className="px-4 py-3 text-left font-semibold">{trans.kittingDrawingFileNameLabel}</th>
+                                <th className="w-12 px-2 py-2 text-right">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-md text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+                                    onClick={() => toggleBomLineVisibility(lineKey)}
+                                    aria-label={isBomCollapsed ? "Expand BOM lines" : "Collapse BOM lines"}
+                                  >
+                                    {isBomCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                                  </Button>
+                                </th>
                               </tr>
                             </thead>
-                            <tbody>
-                              {line.components.map((component) => (
-                                <tr key={`${component.bomLine}-${component.component}`} className="border-t border-gray-200 align-top">
-                                  <td className="px-4 py-3 font-medium text-gray-900">{component.bomLine}</td>
-                                  <td className="px-4 py-3 text-gray-900">
-                                    <div className="flex items-start gap-2">
-                                      <div>
-                                        <div className="font-medium">{formatItemNumber(component.component)}</div>
-                                        {component.description && (
-                                          <div className="text-xs text-gray-500">{component.description}</div>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="mt-[-2px] h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
-                                          onClick={() => void openDrawing(component.componentRaw, component.component)}
-                                          aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(component.component)}`}
-                                          disabled={isDrawingButtonDisabled(component.componentRaw)}
-                                        >
-                                          {drawingLoadingKey === `${component.component}|${component.componentRaw}` ? (
-                                            <Loader2 className="h-5 w-5 animate-spin" />
-                                          ) : (
-                                            <FileImage className="h-5 w-5" />
+                            {!isBomCollapsed ? (
+                              <tbody>
+                                {line.components.map((component) => (
+                                  <tr key={`${component.bomLine}-${component.component}`} className="border-t border-gray-200 align-top">
+                                    <td className="px-4 py-3 font-medium text-gray-900">{component.bomLine}</td>
+                                    <td className="px-4 py-3 text-gray-900">
+                                      <div className="flex items-start gap-2">
+                                        <div>
+                                          <div className="font-medium">{formatItemNumber(component.component)}</div>
+                                          {component.description && (
+                                            <div className="text-xs text-gray-500">{component.description}</div>
                                           )}
-                                        </Button>
-                                        {printedItems[component.componentRaw] && (
-                                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700 whitespace-nowrap">
-                                            <Check className="h-4 w-4 stroke-[3]" />
-                                            {trans.kittingPrintedYesLabel}
-                                          </span>
-                                        )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="mt-[-2px] h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                                            onClick={() => void openDrawing(component.componentRaw, component.component)}
+                                            aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(component.component)}`}
+                                            disabled={isDrawingButtonDisabled(component.componentRaw)}
+                                          >
+                                            {drawingLoadingKey === `${component.component}|${component.componentRaw}` ? (
+                                              <Loader2 className="h-5 w-5 animate-spin" />
+                                            ) : (
+                                              <FileImage className="h-5 w-5" />
+                                            )}
+                                          </Button>
+                                          {printedItems[component.componentRaw] && (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700 whitespace-nowrap">
+                                              <Check className="h-4 w-4 stroke-[3]" />
+                                              {trans.kittingPrintedYesLabel}
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
-                                    {formatQuantityWithUnit(component.quantity, component.inventoryUnit)}
-                                  </td>
-                                  <td className="px-4 py-3 text-gray-900">
-                                    <span
-                                      className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
-                                        component.drawingOnFile.toLowerCase() === "yes"
-                                          ? "bg-green-100 text-green-800"
-                                          : component.drawingOnFile.toLowerCase() === "no"
-                                            ? "bg-gray-100 text-gray-700"
-                                            : "bg-gray-50 text-gray-700"
-                                      }`}
-                                    >
-                                      {component.drawingOnFile || "-"}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3 text-gray-900">{component.commentsInstructions}</td>
-                                  <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
-                                    {isDrawingFilenameLoading(component.componentRaw) ? (
-                                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                                    ) : (
-                                      getDrawingFilename(component.componentRaw)
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
+                                    </td>
+                                    <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
+                                      {formatQuantityWithUnit(component.quantity, component.inventoryUnit)}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-900">
+                                      <span
+                                        className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                                          component.drawingOnFile.toLowerCase() === "yes"
+                                            ? "bg-green-100 text-green-800"
+                                            : component.drawingOnFile.toLowerCase() === "no"
+                                              ? "bg-gray-100 text-gray-700"
+                                              : "bg-gray-50 text-gray-700"
+                                        }`}
+                                      >
+                                        {component.drawingOnFile || "-"}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-900">{component.commentsInstructions}</td>
+                                    <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
+                                      {isDrawingFilenameLoading(component.componentRaw) ? (
+                                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                      ) : (
+                                        getDrawingFilename(component.componentRaw)
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-3" />
+                                  </tr>
+                                ))}
+                              </tbody>
+                            ) : null}
                           </table>
                         </div>
 
-                        <div className="flex justify-end">
-                          <div className="inline-flex items-center gap-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-gray-900">
-                            <span>{trans.kittingTotalPartsLabel}</span>
-                            <span>{line.components.length}</span>
+                        {!isBomCollapsed ? (
+                          <div className="flex justify-end">
+                            <div className="inline-flex items-center gap-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-gray-900">
+                              <span>{trans.kittingTotalPartsLabel}</span>
+                              <span>{line.components.length}</span>
+                            </div>
                           </div>
-                        </div>
+                        ) : null}
                       </>
                     ) : null}
                   </div>
