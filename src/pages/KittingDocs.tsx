@@ -58,6 +58,13 @@ type SalesOrderLineDetails = {
   escalationLevel: string;
   shiptoBusinessPartnerName: string;
   packagingInstructionsText: string;
+  shiptoStreet: string;
+  shiptoHouseNumber: string;
+  shiptoZipCodePostalCode: string;
+  shiptoCity: string;
+  shiptoCountry: string;
+  shiptoStateProvince: string;
+  shiptoCityDescription: string;
 };
 
 type KittingLine = {
@@ -165,6 +172,7 @@ const KittingDocs = () => {
   const [packagingInstructionsDialogOpen, setPackagingInstructionsDialogOpen] = useState(false);
   const [packagingInstructionsDialogTitle, setPackagingInstructionsDialogTitle] = useState("");
   const [packagingInstructionsDialogText, setPackagingInstructionsDialogText] = useState("");
+  const [packagingInstructionsDialogFooterText, setPackagingInstructionsDialogFooterText] = useState("");
   const [drawingLoadingKey, setDrawingLoadingKey] = useState("");
   const [combinedDrawingLoadingKey, setCombinedDrawingLoadingKey] = useState("");
   const [lineDrawingLoadingKey, setLineDrawingLoadingKey] = useState("");
@@ -773,9 +781,29 @@ const KittingDocs = () => {
     const packagingTitleSuffix = shipToBusinessPartner && shipToName
       ? `${shipToBusinessPartner} - ${shipToName}`
       : shipToBusinessPartner || shipToName || `${line.order}/${line.set}`;
+    const street = [
+      line.salesOrderLineDetails?.shiptoStreet?.trim() || "",
+      line.salesOrderLineDetails?.shiptoHouseNumber?.trim() || "",
+    ].filter(Boolean).join(" ");
+    const cityLine = [
+      line.salesOrderLineDetails?.shiptoCityDescription?.trim() || line.salesOrderLineDetails?.shiptoCity?.trim() || "",
+      [
+        line.salesOrderLineDetails?.shiptoStateProvince?.trim() || "",
+        line.salesOrderLineDetails?.shiptoZipCodePostalCode?.trim() || "",
+      ].filter(Boolean).join(" "),
+    ].filter(Boolean).join(", ");
+    const footerParts = [
+      shipToName,
+      street,
+      cityLine,
+      line.salesOrderLineDetails?.shiptoCountry?.trim() || "",
+    ].filter(Boolean);
 
     setPackagingInstructionsDialogTitle(`Packaging Instructions: ${packagingTitleSuffix}`);
     setPackagingInstructionsDialogText(packagingInstructionsText);
+    setPackagingInstructionsDialogFooterText(
+      footerParts.length > 0 ? `Ship to: ${footerParts.join(" | ")}` : "",
+    );
     setPackagingInstructionsDialogOpen(true);
   };
 
@@ -1274,6 +1302,7 @@ const KittingDocs = () => {
         onOpenChange={setPackagingInstructionsDialogOpen}
         title={packagingInstructionsDialogTitle}
         text={packagingInstructionsDialogText}
+        footerText={packagingInstructionsDialogFooterText}
       />
 
       <SignOutConfirm

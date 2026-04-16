@@ -36,11 +36,25 @@ type SalesOrderLineDetails = {
   escalationLevel: string;
   shiptoBusinessPartnerName: string;
   packagingInstructionsText: string;
+  shiptoStreet: string;
+  shiptoHouseNumber: string;
+  shiptoZipCodePostalCode: string;
+  shiptoCity: string;
+  shiptoCountry: string;
+  shiptoStateProvince: string;
+  shiptoCityDescription: string;
 };
 
 type ShiptoBusinessPartnerDetails = {
   shiptoBusinessPartnerName: string;
   packagingInstructionsText: string;
+  shiptoStreet: string;
+  shiptoHouseNumber: string;
+  shiptoZipCodePostalCode: string;
+  shiptoCity: string;
+  shiptoCountry: string;
+  shiptoStateProvince: string;
+  shiptoCityDescription: string;
 };
 
 type ListComponentDetails = {
@@ -243,6 +257,13 @@ async function fetchSalesOrderLineDetails(
       escalationLevel: "",
       shiptoBusinessPartnerName: "",
       packagingInstructionsText: "",
+      shiptoStreet: "",
+      shiptoHouseNumber: "",
+      shiptoZipCodePostalCode: "",
+      shiptoCity: "",
+      shiptoCountry: "",
+      shiptoStateProvince: "",
+      shiptoCityDescription: "",
     };
   }
 
@@ -250,7 +271,17 @@ async function fetchSalesOrderLineDetails(
   const shiptoBusinessPartner = toText(row?.ShiptoBusinessPartner);
   const shiptoBusinessPartnerDetails = shiptoBusinessPartner
     ? await fetchShiptoBusinessPartnerDetails(base, tenant, accessToken, company, shiptoBusinessPartner)
-    : { shiptoBusinessPartnerName: "", packagingInstructionsText: "" };
+    : {
+        shiptoBusinessPartnerName: "",
+        packagingInstructionsText: "",
+        shiptoStreet: "",
+        shiptoHouseNumber: "",
+        shiptoZipCodePostalCode: "",
+        shiptoCity: "",
+        shiptoCountry: "",
+        shiptoStateProvince: "",
+        shiptoCityDescription: "",
+      };
 
   return {
     shiptoBusinessPartner,
@@ -262,6 +293,13 @@ async function fetchSalesOrderLineDetails(
     escalationLevel: toText(row?.EscalationLevel),
     shiptoBusinessPartnerName: shiptoBusinessPartnerDetails.shiptoBusinessPartnerName,
     packagingInstructionsText: shiptoBusinessPartnerDetails.packagingInstructionsText,
+    shiptoStreet: shiptoBusinessPartnerDetails.shiptoStreet,
+    shiptoHouseNumber: shiptoBusinessPartnerDetails.shiptoHouseNumber,
+    shiptoZipCodePostalCode: shiptoBusinessPartnerDetails.shiptoZipCodePostalCode,
+    shiptoCity: shiptoBusinessPartnerDetails.shiptoCity,
+    shiptoCountry: shiptoBusinessPartnerDetails.shiptoCountry,
+    shiptoStateProvince: shiptoBusinessPartnerDetails.shiptoStateProvince,
+    shiptoCityDescription: shiptoBusinessPartnerDetails.shiptoCityDescription,
   };
 }
 
@@ -294,12 +332,26 @@ async function fetchShiptoBusinessPartnerDetails(
     return {
       shiptoBusinessPartnerName: "",
       packagingInstructionsText: "",
+      shiptoStreet: "",
+      shiptoHouseNumber: "",
+      shiptoZipCodePostalCode: "",
+      shiptoCity: "",
+      shiptoCountry: "",
+      shiptoStateProvince: "",
+      shiptoCityDescription: "",
     };
   }
 
   return {
     shiptoBusinessPartnerName: toText(payload?.ShipToBPRef?.Name) || toText(payload?.AddressRef?.Name),
     packagingInstructionsText: toText(payload?.Text),
+    shiptoStreet: toText(payload?.AddressRef?.Street),
+    shiptoHouseNumber: toText(payload?.AddressRef?.HouseNumber),
+    shiptoZipCodePostalCode: toText(payload?.AddressRef?.ZIPCodePostalCode),
+    shiptoCity: toText(payload?.AddressRef?.City),
+    shiptoCountry: toText(payload?.AddressRef?.Country),
+    shiptoStateProvince: toText(payload?.AddressRef?.StateProvince),
+    shiptoCityDescription: toText(payload?.AddressRef?.CityDescription),
   };
 }
 
@@ -515,6 +567,13 @@ serve(async (req) => {
             escalationLevel: "",
             shiptoBusinessPartnerName: "",
             packagingInstructionsText: "",
+            shiptoStreet: "",
+            shiptoHouseNumber: "",
+            shiptoZipCodePostalCode: "",
+            shiptoCity: "",
+            shiptoCountry: "",
+            shiptoStateProvince: "",
+            shiptoCityDescription: "",
           },
           components: [],
           componentMap: new Map<string, GroupedComponent>(),

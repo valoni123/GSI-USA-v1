@@ -6,6 +6,7 @@ type PackagingInstructionsDialogProps = {
   onOpenChange: (open: boolean) => void;
   title: string;
   text: string;
+  footerText: string;
 };
 
 const PackagingInstructionsDialog = ({
@@ -13,6 +14,7 @@ const PackagingInstructionsDialog = ({
   onOpenChange,
   title,
   text,
+  footerText,
 }: PackagingInstructionsDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -26,6 +28,12 @@ const PackagingInstructionsDialog = ({
             <div className="whitespace-pre-wrap text-sm leading-7 text-gray-800">{text}</div>
           </ScrollArea>
         </div>
+
+        {footerText ? (
+          <div className="border-t border-violet-200 bg-violet-100 px-6 py-4 text-sm font-medium text-violet-950">
+            {footerText}
+          </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );
