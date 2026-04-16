@@ -815,13 +815,23 @@ const KittingDocs = () => {
                 getKittingOriginOption(line.orderOrigin, line.orderOrigin, lang);
               const lineKey = getLineKey(line);
               const showRushBadge = line.rushOrder.toLowerCase() === "yes";
+              const escalationLevel = line.salesOrderLineDetails?.escalationLevel?.trim() || "";
+              const normalizedEscalationLevel = escalationLevel.toLowerCase();
+              const escalationBadgeClass =
+                normalizedEscalationLevel === "knocknoc"
+                  ? "bg-red-500 text-white"
+                  : normalizedEscalationLevel === "knoc"
+                    ? "bg-orange-500 text-white"
+                    : normalizedEscalationLevel === "urgent"
+                      ? "bg-yellow-300 text-yellow-950"
+                      : "";
+              const showEscalationBadge = !!escalationBadgeClass;
 
               return (
                 <Card
                   key={lineKey}
                   className={`relative rounded-xl border-2 bg-white p-6 shadow-md shadow-gray-300/70 ${
                     showRushBadge ? "border-red-300" : "border-gray-200"
-
                   }`}
                 >
                   {showRushBadge ? (
@@ -858,6 +868,13 @@ const KittingDocs = () => {
                             <span className="text-gray-600">{trans.sequenceLabel}:</span>
                             <span className="font-semibold text-gray-900">{line.sequence}</span>
                           </div>
+                          {showEscalationBadge ? (
+                            <span
+                              className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${escalationBadgeClass}`}
+                            >
+                              {escalationLevel}
+                            </span>
+                          ) : null}
                         </div>
 
                         <span className="text-gray-400">|</span>
