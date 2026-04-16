@@ -144,6 +144,22 @@ function listComponentLookupKey(lineLookupKey: string, bomLine: number) {
   return [lineLookupKey, bomLine].join("|");
 }
 
+async function fetchJson(url: string, accessToken: string, company: string) {
+  return fetchWithTimeout(
+    url,
+    {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        "Content-Language": "en-US",
+        "X-Infor-LnCompany": company,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    REQUEST_TIMEOUT_MS,
+  );
+}
+
 async function fetchItemDetails(
   base: string,
   tenant: string,
@@ -159,20 +175,7 @@ async function fetchItemDetails(
   const url = `${base}/${tenant}/LN/lnapi/odata/tcapi.ibdItem/Items?${params.toString()}`;
   console.info("[ln-kitting-docs-order-set] requesting item details", { item: toText(item) || item });
 
-  const response = await fetchWithTimeout(
-    url,
-    {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        "Content-Language": "en-US",
-        "X-Infor-LnCompany": company,
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
-    REQUEST_TIMEOUT_MS,
-  );
-
+  const response = await fetchJson(url, accessToken, company);
   const payload = (await response.json().catch(() => null)) as any;
   if (!response.ok || !payload) {
     console.error("[ln-kitting-docs-order-set] item details upstream error", {
@@ -212,20 +215,7 @@ async function fetchSalesOrderLineDetails(
   const url = `${base}/${tenant}/LN/lnapi/odata/txgwi.OutboundOrderLines/SalesOrderLines?${params.toString()}`;
   console.info("[ln-kitting-docs-order-set] requesting sales order line details", { order, line, sequence });
 
-  const response = await fetchWithTimeout(
-    url,
-    {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        "Content-Language": "en-US",
-        "X-Infor-LnCompany": company,
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
-    REQUEST_TIMEOUT_MS,
-  );
-
+  const response = await fetchJson(url, accessToken, company);
   const payload = (await response.json().catch(() => null)) as any;
   if (!response.ok || !payload) {
     console.error("[ln-kitting-docs-order-set] sales order line details upstream error", {
@@ -278,20 +268,7 @@ async function fetchListComponentDetails(
     sequenceNumber,
   });
 
-  const response = await fetchWithTimeout(
-    url,
-    {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        "Content-Language": "en-US",
-        "X-Infor-LnCompany": company,
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
-    REQUEST_TIMEOUT_MS,
-  );
-
+  const response = await fetchJson(url, accessToken, company);
   const payload = (await response.json().catch(() => null)) as any;
   if (!response.ok || !payload) {
     console.error("[ln-kitting-docs-order-set] list component details upstream error", {
@@ -311,6 +288,85 @@ async function fetchListComponentDetails(
     commentsInstructions: toText(payload?.CommentsInstructions),
     drawingOnFile: toText(payload?.DrawingOnFile),
   };
+}
+
+async function fetchOutboundOrderLines(
+  base: string,
+  tenant: string,
+  accessToken: string,
+  company: string,
+  order: string,
+  setValue: number,
+  orderOrigin: string,
+) {
+  const escapedOrder = order.replace(/'/g, "''");
+  const escapedOrderOrigin = orderOrigin.replace(/'/g, "''");
+  const params = new URLSearchParams();
+  params.set(
+    "$filter",
+    `Order eq '${escapedOrder}' and Set eq ${setValue} and OrderOrigin eq txgwi.OutboundOrderLines.OrderOrigin'${escapedOrderOrigin}'`,
+  );
+  params.set("$select", "*");
+
+  const url = `${base}/${tenant}/LN/lnapi/odata/txgwi.OutboundOrderLines/OutboundOrderLines?${params.toString()}`;
+  console.info("[ln-kitting-docs-order-set] requesting outbound order lines", { order, set: setValue, orderOrigin });
+
+  const response = await fetchJson(url, accessToken, company);
+  const payload = (await response.json().catch(() => null)) as any;
+  if (!response.ok || !payload) {
+    console.error("[ln-kitting-docs-order-set] outbound order lines upstream error", {
+      status: response.status,
+      order,
+      set: setValue,
+      orderOrigin,
+      error: payload?.error?.message || "odata_error",
+    });
+    throw new Error(payload?.error?.message || "odata_error");
+  }
+
+  return Array.isArray(payload.value) ? payload.value : [];
+}
+
+async function fetchOutboundOrderLineBoms(
+  base: string,
+  tenant: string,
+  accessToken: string,
+  company: string,
+  order: string,
+  setValue: number,
+  orderOrigin: string,
+) {
+  const escapedOrder = order.replace(/'/g, "''");
+  const escapedOrderOrigin = orderOrigin.replace(/'/g, "''");
+  const params = new URLSearchParams();
+  params.set("$filter", "OutboundOrderLines/Order eq OutboundOrderLineBOMs/Order");
+  params.set(
+    "$expand",
+    `OutboundOrderLines($select=*;$filter=Order eq '${escapedOrder}' and Set eq ${setValue} and OrderOrigin eq txgwi.OutboundOrderLines.OrderOrigin'${escapedOrderOrigin}'),OutboundOrderLineBOMs($select=*)`,
+  );
+
+  const url = `${base}/${tenant}/LN/lnapi/odata/txgwi.OutboundOrderLines/$crossjoin(OutboundOrderLines,OutboundOrderLineBOMs)?${params.toString()}`;
+  console.info("[ln-kitting-docs-order-set] requesting outbound order line BOM crossjoin", {
+    order,
+    set: setValue,
+    orderOrigin,
+    timeoutMs: REQUEST_TIMEOUT_MS,
+  });
+
+  const response = await fetchJson(url, accessToken, company);
+  const payload = (await response.json().catch(() => null)) as any;
+  if (!response.ok || !payload) {
+    console.error("[ln-kitting-docs-order-set] outbound order line BOM crossjoin error", {
+      status: response.status,
+      order,
+      set: setValue,
+      orderOrigin,
+      error: payload?.error?.message || "odata_error",
+    });
+    throw new Error(payload?.error?.message || "odata_error");
+  }
+
+  return Array.isArray(payload.value) ? payload.value : [];
 }
 
 serve(async (req) => {
@@ -361,105 +417,60 @@ serve(async (req) => {
     const cfg = await getIonApiConfig(supabase);
     const accessToken = await getIonApiAccessToken(supabase);
     const base = cfg.iu.endsWith("/") ? cfg.iu.slice(0, -1) : cfg.iu;
-    const escapedOrder = order.replace(/'/g, "''");
-    const escapedOrderOrigin = orderOrigin.replace(/'/g, "''");
-
-    const params = new URLSearchParams();
-    params.set("$filter", "OutboundOrderLines/Order eq OutboundOrderLineBOMs/Order");
-    params.set(
-      "$expand",
-      `OutboundOrderLines($select=*;$filter=Order eq '${escapedOrder}' and Set eq ${setValue} and OrderOrigin eq txgwi.OutboundOrderLines.OrderOrigin'${escapedOrderOrigin}'),OutboundOrderLineBOMs($select=*)`,
-    );
-
-    const url = `${base}/${cfg.ti}/LN/lnapi/odata/txgwi.OutboundOrderLines/$crossjoin(OutboundOrderLines,OutboundOrderLineBOMs)?${params.toString()}`;
-    console.info("[ln-kitting-docs-order-set] requesting upstream", {
-      order,
-      set: setValue,
-      orderOrigin,
-      timeoutMs: REQUEST_TIMEOUT_MS,
-    });
 
     try {
-      const response = await fetchWithTimeout(
-        url,
-        {
-          method: "GET",
-          headers: {
-            accept: "application/json",
-            "Content-Language": "en-US",
-            "X-Infor-LnCompany": company,
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-        REQUEST_TIMEOUT_MS,
-      );
-
-      const payload = (await response.json().catch(() => null)) as any;
-      if (!response.ok || !payload) {
-        console.error("[ln-kitting-docs-order-set] upstream error", {
-          status: response.status,
-          error: payload?.error?.message || "odata_error",
-        });
-        return json(
-          {
-            ok: false,
-            error: payload?.error?.message || "odata_error",
-            details: Array.isArray(payload?.error?.details) ? payload.error.details : [],
-          },
-          200,
-        );
-      }
+      const lineRows = await fetchOutboundOrderLines(base, cfg.ti, accessToken, company, order, setValue, orderOrigin);
+      const bomRows = await fetchOutboundOrderLineBoms(base, cfg.ti, accessToken, company, order, setValue, orderOrigin);
 
       const lineMap = new Map<string, GroupedLine & { componentMap: Map<string, GroupedComponent> }>();
       const itemLookups = new Map<string, string>();
-      const rows = Array.isArray(payload.value) ? payload.value : [];
 
-      for (const row of rows) {
-        const line = row?.OutboundOrderLines;
-        if (!line) continue;
-
+      for (const line of lineRows) {
         const key = lineKey(line);
-        let grouped = lineMap.get(key);
-        if (!grouped) {
-          const rawItem = toRawText(line?.Item);
-          const displayItem = toText(line?.Item);
-          if (rawItem) {
-            itemLookups.set(displayItem, rawItem);
-          }
-
-          grouped = {
-            orderOrigin: toText(line?.OrderOrigin),
-            order: toText(line?.Order),
-            set: toNumber(line?.Set),
-            line: toNumber(line?.Line),
-            sequence: toNumber(line?.Sequence),
-            item: displayItem,
-            itemRaw: rawItem,
-            itemDescription: "",
-            itemCreationDate: "",
-            itemLastModificationDate: "",
-            shippingWarehouse: toText(line?.ShippingWarehouse),
-            orderUnit: toText(line?.OrderUnit),
-            orderedQuantity: toNumber(line?.OrderedQuantity),
-            originallyOrderedQuantity: toNumber(line?.OriginallyOrderedQuantity),
-            lineStatus: toText(line?.LineStatus),
-            salesOrderLineDetails: {
-              shiptoBusinessPartner: "",
-              shiptoAddress: "",
-              listGroup: "",
-              rushOrderLine: "",
-              orderLineText: null,
-              escalationComment: null,
-              escalationLevel: "",
-            },
-            components: [],
-            componentMap: new Map<string, GroupedComponent>(),
-          };
-          lineMap.set(key, grouped);
+        const rawItem = toRawText(line?.Item);
+        const displayItem = toText(line?.Item);
+        if (rawItem) {
+          itemLookups.set(displayItem, rawItem);
         }
 
+        lineMap.set(key, {
+          orderOrigin: toText(line?.OrderOrigin),
+          order: toText(line?.Order),
+          set: toNumber(line?.Set),
+          line: toNumber(line?.Line),
+          sequence: toNumber(line?.Sequence),
+          item: displayItem,
+          itemRaw: rawItem,
+          itemDescription: "",
+          itemCreationDate: "",
+          itemLastModificationDate: "",
+          shippingWarehouse: toText(line?.ShippingWarehouse),
+          orderUnit: toText(line?.OrderUnit),
+          orderedQuantity: toNumber(line?.OrderedQuantity),
+          originallyOrderedQuantity: toNumber(line?.OriginallyOrderedQuantity),
+          lineStatus: toText(line?.LineStatus),
+          salesOrderLineDetails: {
+            shiptoBusinessPartner: "",
+            shiptoAddress: "",
+            listGroup: "",
+            rushOrderLine: "",
+            orderLineText: null,
+            escalationComment: null,
+            escalationLevel: "",
+          },
+          components: [],
+          componentMap: new Map<string, GroupedComponent>(),
+        });
+      }
+
+      for (const row of bomRows) {
+        const line = row?.OutboundOrderLines;
         const bom = row?.OutboundOrderLineBOMs;
-        if (!bom) continue;
+        if (!line || !bom) continue;
+
+        const key = lineKey(line);
+        const grouped = lineMap.get(key);
+        if (!grouped) continue;
         if (lineKey(bom) !== key) continue;
 
         const bomKey = componentKey(bom);
@@ -581,7 +592,8 @@ serve(async (req) => {
         order,
         set: setValue,
         orderOrigin,
-        rawRows: rows.length,
+        mainLineCount: lineRows.length,
+        bomRowCount: bomRows.length,
         lineCount: lines.length,
         itemLookups: itemLookups.size,
         listComponentLookups: listComponentDetailsEntries.length,

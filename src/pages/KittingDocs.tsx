@@ -750,9 +750,8 @@ const KittingDocs = () => {
             </Card>
           ) : null}
 
-          {lines
-            .filter((line) => line.components.length > 0)
-            .map((line) => {
+          {lines.map((line) => {
+
               const lineOriginOption =
                 findKittingOriginOptionByEnglishLabel(originOptions, line.orderOrigin) ||
                 getKittingOriginOption(line.orderOrigin, line.orderOrigin, lang);
