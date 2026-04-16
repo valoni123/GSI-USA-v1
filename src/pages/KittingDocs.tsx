@@ -840,9 +840,10 @@ const KittingDocs = () => {
               return (
                 <Card
                   key={lineKey}
-                  className={`relative rounded-xl border-2 bg-white p-6 shadow-md shadow-gray-300/70 ${
-                    showRushBadge ? "border-red-300" : "border-gray-200"
+                  className={`relative rounded-xl border-2 p-6 shadow-md shadow-gray-300/70 ${
+                    showRushBadge ? "border-red-300 bg-red-50/40" : "border-gray-200 bg-white"
                   }`}
+
                 >
                   {showRushBadge ? (
                     <div className="pointer-events-none absolute right-6 -top-4">
