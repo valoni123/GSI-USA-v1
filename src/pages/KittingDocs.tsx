@@ -1448,7 +1448,7 @@ const KittingDocs = () => {
 
       <div className={scanLoadingVisible ? "pointer-events-none select-none" : undefined}>
       <div className="sticky top-0 z-10 bg-black text-white">
-        <div className="mx-auto w-full max-w-6xl px-4 py-3 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
+        <div className="mx-auto w-full max-w-[1400px] px-4 py-3 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
           <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu")} />
 
           <div className="flex flex-col items-center flex-1 min-w-0">
@@ -1478,7 +1478,7 @@ const KittingDocs = () => {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <Card className="rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70 sm:p-8 lg:p-10">
             <div className="flex flex-col gap-6">
@@ -1624,8 +1624,8 @@ const KittingDocs = () => {
                   ) : null}
 
                   <div className="space-y-5">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-base">
-                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+                    <div className="flex flex-wrap xl:flex-nowrap items-center gap-x-3 gap-y-2 text-sm xl:text-[15px]">
+                      <div className="flex min-w-0 flex-1 flex-wrap xl:flex-nowrap items-center gap-x-3 gap-y-2">
                         <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
                           <span
                             className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
@@ -1664,7 +1664,7 @@ const KittingDocs = () => {
                         ) : null}
 
                         <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
-                          <span className="text-gray-600">Qty:</span>
+                          <span className="text-gray-600">{trans.quantityLabel}:</span>
                           <span className="font-semibold text-gray-900">
                             {line.orderedQuantity} {line.orderUnit}
                           </span>
@@ -1672,7 +1672,7 @@ const KittingDocs = () => {
 
                         <span className="text-gray-400">|</span>
 
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <div className="flex min-w-0 flex-wrap xl:flex-nowrap items-center gap-2">
                           <span className="whitespace-nowrap text-gray-600">{trans.kittingMainItemLabel}:</span>
 
                           <span className="font-semibold text-gray-900">{formatItemNumber(line.item)}</span>
@@ -1784,7 +1784,7 @@ const KittingDocs = () => {
                               ) : (
                                 <Printer className="mr-2 h-4 w-4" />
                               )}
-                              Print Pack. Instructions
+                              {trans.kittingPrintPackagingInstructionsLabel}
                             </Button>
                           </div>
                         </div>
