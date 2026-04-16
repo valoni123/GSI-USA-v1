@@ -896,7 +896,19 @@ const KittingDocs = () => {
                                 <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
                                   {formatQuantityWithUnit(component.quantity, component.inventoryUnit)}
                                 </td>
-                                <td className="px-4 py-3 text-gray-900">{component.drawingOnFile}</td>
+                                <td className="px-4 py-3 text-gray-900">
+                                  <span
+                                    className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                                      component.drawingOnFile.toLowerCase() === "yes"
+                                        ? "bg-green-100 text-green-800"
+                                        : component.drawingOnFile.toLowerCase() === "no"
+                                          ? "bg-gray-100 text-gray-700"
+                                          : "bg-gray-50 text-gray-700"
+                                    }`}
+                                  >
+                                    {component.drawingOnFile || "-"}
+                                  </span>
+                                </td>
                                 <td className="px-4 py-3 text-gray-900">{component.commentsInstructions}</td>
                                 <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
                                   {isDrawingFilenameLoading(component.componentRaw) ? (
