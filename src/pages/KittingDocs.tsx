@@ -549,10 +549,12 @@ const KittingDocs = () => {
     if (!rawItem || drawingLoadingKey === requestKey || isDrawingButtonDisabled(rawItem)) return;
 
     setDrawingLoadingKey(requestKey);
+    startScanLoading();
 
     try {
       const drawing = await fetchDrawingPdf(rawItem);
       setDrawingLoadingKey("");
+      stopScanLoading();
       openPdfPreview(
         drawing.bytes,
         `${trans.kittingDrawingTitle}: ${formatItemNumber(displayItem)}`,
@@ -561,6 +563,7 @@ const KittingDocs = () => {
       );
     } catch {
       setDrawingLoadingKey("");
+      stopScanLoading();
       showError(trans.kittingDrawingLoadFailed);
     }
   };
@@ -576,6 +579,7 @@ const KittingDocs = () => {
 
     const firstLine = lines[0];
     setCombinedDrawingLoadingKey("all");
+    startScanLoading();
 
     try {
       await openMergedDrawingsPreview(
@@ -584,8 +588,10 @@ const KittingDocs = () => {
         `kitting-${firstLine?.order || "order"}-${firstLine?.set || "set"}.pdf`,
       );
       setCombinedDrawingLoadingKey("");
+      stopScanLoading();
     } catch {
       setCombinedDrawingLoadingKey("");
+      stopScanLoading();
       showError(trans.kittingDrawingLoadFailed);
     }
   };
@@ -601,6 +607,7 @@ const KittingDocs = () => {
     }
 
     setLineDrawingLoadingKey(lineKey);
+    startScanLoading();
 
     try {
       await openMergedDrawingsPreview(
@@ -609,8 +616,10 @@ const KittingDocs = () => {
         `kitting-${line.order}-${line.set}-line-${line.line}-${line.sequence}-drawings.pdf`,
       );
       setLineDrawingLoadingKey("");
+      stopScanLoading();
     } catch {
       setLineDrawingLoadingKey("");
+      stopScanLoading();
       showError(trans.kittingDrawingLoadFailed);
     }
   };
@@ -620,6 +629,7 @@ const KittingDocs = () => {
     if (lineComponentListLoadingKey === lineKey) return;
 
     setLineComponentListLoadingKey(lineKey);
+    startScanLoading();
 
     try {
       const pdfBytes = buildLineComponentsPdf(line);
@@ -630,8 +640,10 @@ const KittingDocs = () => {
         [],
       );
       setLineComponentListLoadingKey("");
+      stopScanLoading();
     } catch {
       setLineComponentListLoadingKey("");
+      stopScanLoading();
       showError(trans.loadingDetails);
     }
   };
