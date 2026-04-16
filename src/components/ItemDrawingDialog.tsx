@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { Printer, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -41,11 +42,13 @@ const ItemDrawingDialog = ({
               {filename && <div className="mt-1 text-sm text-gray-500 truncate">{filename}</div>}
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="shrink-0" onClick={handlePrint}>
+              <Button variant="outline" className="shrink-0 gap-2" onClick={handlePrint}>
+                <Printer className="h-4 w-4" />
                 {printLabel}
               </Button>
-              <Button asChild variant="outline" className="shrink-0">
+              <Button asChild variant="outline" className="shrink-0 gap-2">
                 <a href={pdfUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-4 w-4" />
                   {openInNewTabLabel}
                 </a>
               </Button>
