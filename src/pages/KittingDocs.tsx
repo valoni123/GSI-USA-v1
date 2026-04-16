@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, ChevronDown, ChevronUp, FileImage, Loader2, LogOut, Printer, ScrollText, User } from "lucide-react";
 import jsPDF from "jspdf";
 import JsBarcode from "jsbarcode";
-import { PDFDocument, StandardFonts, degrees, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import BackButton from "@/components/BackButton";
 import ItemDrawingDialog from "@/components/ItemDrawingDialog";
 import PackagingInstructionsDialog from "@/components/PackagingInstructionsDialog";
@@ -372,7 +372,6 @@ const KittingDocs = () => {
   ) => {
     const sourceDoc = await PDFDocument.load(pdfBytes);
     const outputDoc = await PDFDocument.create();
-    const embeddedPages = await outputDoc.embedPdf(pdfBytes);
     const font = await outputDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await outputDoc.embedFont(StandardFonts.HelveticaBold);
     const barcode = buildCode128Barcode(options.orderSetValue);
@@ -388,92 +387,33 @@ const KittingDocs = () => {
     const userText = fullName.trim() || "-";
     const headerSize = 44;
 
-    sourceDoc.getPages().forEach((sourcePage, index) => {
-      const embeddedPage = embeddedPages[index];
-      const rotation = ((sourcePage.getRotation().angle % 360) + 360) % 360;
-      const { width: sourceWidth, height: sourceHeight } = sourcePage.getSize();
+    for (const sourcePage of sourceDoc.getPages()) {
+      const embeddedPage = await outputDoc.embedPage(sourcePage);
+      const { width: sourceWidth, height: sourceHeight } = embeddedPage;
+      const page = outputDoc.addPage([sourceWidth, sourceHeight + headerSize]);
+      const pageWidth = page.getWidth();
+      const pageHeight = page.getHeight();
+      const contentTopY = sourceHeight;
 
-      let pageWidth = sourceWidth;
-      let pageHeight = sourceHeight;
-      let contentX = 0;
-      let contentY = 0;
-
-      if (rotation === 0) {
-        pageHeight += headerSize;
-      } else if (rotation === 90) {
-        pageWidth += headerSize;
-        contentX = headerSize;
-      } else if (rotation === 180) {
-        pageHeight += headerSize;
-        contentY = headerSize;
-      } else if (rotation === 270) {
-        pageWidth += headerSize;
-      }
-
-      const page = outputDoc.addPage([pageWidth, pageHeight]);
-      page.setRotation(degrees(rotation));
+      page.drawRectangle({
+        x: 0,
+        y: contentTopY,
+        width: pageWidth,
+        height: headerSize,
+        color: rgb(1, 1, 1),
+      });
+      page.drawLine({
+        start: { x: 0, y: contentTopY },
+        end: { x: pageWidth, y: contentTopY },
+        thickness: 0.8,
+        color: rgb(0.82, 0.84, 0.86),
+      });
       page.drawPage(embeddedPage, {
-        x: contentX,
-        y: contentY,
+        x: 0,
+        y: 0,
         width: sourceWidth,
         height: sourceHeight,
       });
-
-      let headerX = 0;
-      let headerY = 0;
-      let headerWidth = pageWidth;
-      let headerHeight = headerSize;
-
-      if (rotation === 0) {
-        headerY = sourceHeight;
-      } else if (rotation === 90) {
-        headerWidth = headerSize;
-        headerHeight = pageHeight;
-      } else if (rotation === 180) {
-        headerY = 0;
-      } else if (rotation === 270) {
-        headerX = sourceWidth;
-        headerWidth = headerSize;
-        headerHeight = pageHeight;
-      }
-
-      page.drawRectangle({
-        x: headerX,
-        y: headerY,
-        width: headerWidth,
-        height: headerHeight,
-        color: rgb(1, 1, 1),
-      });
-
-      if (rotation === 0) {
-        page.drawLine({
-          start: { x: 0, y: sourceHeight },
-          end: { x: pageWidth, y: sourceHeight },
-          thickness: 0.8,
-          color: rgb(0.82, 0.84, 0.86),
-        });
-      } else if (rotation === 90) {
-        page.drawLine({
-          start: { x: headerSize, y: 0 },
-          end: { x: headerSize, y: pageHeight },
-          thickness: 0.8,
-          color: rgb(0.82, 0.84, 0.86),
-        });
-      } else if (rotation === 180) {
-        page.drawLine({
-          start: { x: 0, y: headerSize },
-          end: { x: pageWidth, y: headerSize },
-          thickness: 0.8,
-          color: rgb(0.82, 0.84, 0.86),
-        });
-      } else if (rotation === 270) {
-        page.drawLine({
-          start: { x: sourceWidth, y: 0 },
-          end: { x: sourceWidth, y: pageHeight },
-          thickness: 0.8,
-          color: rgb(0.82, 0.84, 0.86),
-        });
-      }
 
       page.drawText(`Item: ${options.itemValue || "-"}`, {
         x: 14,
@@ -500,7 +440,7 @@ const KittingDocs = () => {
         });
         page.drawText(options.orderSetValue, {
           x: pageWidth / 2 - font.widthOfTextAtSize(options.orderSetValue, 8) / 2,
-          y: pageHeight - headerSize + 5,
+          y: contentTopY + 5,
           size: 8,
           font,
           color: rgb(0.1, 0.1, 0.12),
@@ -524,12 +464,12 @@ const KittingDocs = () => {
       });
       page.drawText(userText, {
         x: pageWidth - font.widthOfTextAtSize(userText, 8) - 14,
-        y: pageHeight - headerSize + 6,
+        y: contentTopY + 6,
         size: 8,
         font,
         color: rgb(0.1, 0.1, 0.12),
       });
-    });
+    }
 
     return await outputDoc.save();
   };
