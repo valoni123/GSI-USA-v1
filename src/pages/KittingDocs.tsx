@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, FileImage, Loader2, LogOut, Printer, User } from "lucide-react";
 import jsPDF from "jspdf";
@@ -150,6 +150,7 @@ const KittingDocs = () => {
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [orderSet, setOrderSet] = useState("");
   const [loading, setLoading] = useState(false);
+  const [scanLoadingVisible, setScanLoadingVisible] = useState(false);
   const [loadedKey, setLoadedKey] = useState("");
   const [lines, setLines] = useState<KittingLine[]>([]);
   const [infoMessage, setInfoMessage] = useState("");
@@ -165,6 +166,34 @@ const KittingDocs = () => {
   const [drawingMetaLoadingByItem, setDrawingMetaLoadingByItem] = useState<Record<string, boolean>>({});
   const [drawingItemRaws, setDrawingItemRaws] = useState<string[]>([]);
   const [printedItems, setPrintedItems] = useState<Record<string, boolean>>({});
+  const scanLoadingTimeoutRef = useRef<number | null>(null);
+
+  const startScanLoading = () => {
+    setScanLoadingVisible(true);
+    if (scanLoadingTimeoutRef.current !== null) {
+      window.clearTimeout(scanLoadingTimeoutRef.current);
+    }
+    scanLoadingTimeoutRef.current = window.setTimeout(() => {
+      setScanLoadingVisible(false);
+      scanLoadingTimeoutRef.current = null;
+    }, 5000);
+  };
+
+  const stopScanLoading = () => {
+    if (scanLoadingTimeoutRef.current !== null) {
+      window.clearTimeout(scanLoadingTimeoutRef.current);
+      scanLoadingTimeoutRef.current = null;
+    }
+    setScanLoadingVisible(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (scanLoadingTimeoutRef.current !== null) {
+        window.clearTimeout(scanLoadingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const onConfirmSignOut = () => {
     try {
@@ -280,6 +309,7 @@ const KittingDocs = () => {
     if (loading || requestKey === loadedKey) return;
 
     setLoading(true);
+    startScanLoading();
     setInfoMessage("");
 
     try {
@@ -292,6 +322,7 @@ const KittingDocs = () => {
       });
 
       setLoading(false);
+      stopScanLoading();
 
       if (error || !data || !data.ok) {
         clearLoadedState();
@@ -306,6 +337,7 @@ const KittingDocs = () => {
       setInfoMessage(nextLines.length === 0 ? trans.kittingNoOrderLines : "");
     } catch (error) {
       setLoading(false);
+      stopScanLoading();
       clearLoadedState();
       showError(error instanceof Error ? error.message : String(error));
       return;
@@ -614,6 +646,16 @@ const KittingDocs = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {scanLoadingVisible ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
+          <div className="flex min-w-[220px] flex-col items-center gap-3 rounded-xl border border-gray-200 bg-white px-8 py-6 shadow-xl">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-700" />
+            <div className="text-sm font-medium text-gray-700">{trans.kittingLoading}</div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className={scanLoadingVisible ? "pointer-events-none select-none" : undefined}>
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto w-full max-w-6xl px-4 py-3 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
           <BackButton ariaLabel={trans.back} onClick={() => navigate("/menu")} />
@@ -638,6 +680,7 @@ const KittingDocs = () => {
             className="text-red-500 hover:text-red-600 hover:bg-white/10"
             aria-label={trans.signOut}
             onClick={() => setSignOutOpen(true)}
+            disabled={scanLoadingVisible}
           >
             <LogOut className="h-6 w-6" />
           </Button>
@@ -662,6 +705,7 @@ const KittingDocs = () => {
                           void lookupOrderSet(orderSet, value);
                         }
                       }}
+                      disabled={scanLoadingVisible}
                     >
                       <SelectTrigger className="h-12 border-gray-300 text-base">
                         <span
@@ -714,6 +758,7 @@ const KittingDocs = () => {
                       }}
                       placeholder={trans.scanOrderSetPlaceholder}
                       className="h-12 border-gray-300 text-base"
+                      disabled={scanLoadingVisible}
                     />
                     <label className="pointer-events-none absolute left-3 top-0 rounded-sm bg-white px-1 text-xs text-gray-700">
                       {trans.orderSetLabel}
@@ -728,7 +773,7 @@ const KittingDocs = () => {
                       variant="ghost"
                       className="h-12 shrink-0 whitespace-nowrap rounded-md bg-green-100 px-3 text-green-700 hover:bg-green-200 hover:text-green-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
                       onClick={() => void openAllLoadedDrawings()}
-                      disabled={combinedDrawingLoadingKey === "all" || isLoadedDocumentsMetaLoading() || getLoadedDocumentEntries().length === 0}
+                      disabled={scanLoadingVisible || combinedDrawingLoadingKey === "all" || isLoadedDocumentsMetaLoading() || getLoadedDocumentEntries().length === 0}
                     >
                       {combinedDrawingLoadingKey === "all" ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -993,6 +1038,7 @@ const KittingDocs = () => {
         noLabel={trans.no}
         onConfirm={onConfirmSignOut}
       />
+      </div>
     </div>
   );
 };
