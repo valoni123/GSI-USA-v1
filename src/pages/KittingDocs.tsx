@@ -45,6 +45,16 @@ type KittingComponent = {
   inventoryUnit: string;
 };
 
+type SalesOrderLineDetails = {
+  shiptoBusinessPartner: string;
+  shiptoAddress: string;
+  listGroup: string;
+  rushOrderLine: string;
+  orderLineText: string | null;
+  escalationComment: string | null;
+  escalationLevel: string;
+};
+
 type KittingLine = {
   orderOrigin: string;
   order: string;
@@ -61,6 +71,7 @@ type KittingLine = {
   orderedQuantity: number;
   originallyOrderedQuantity: number;
   lineStatus: string;
+  salesOrderLineDetails?: SalesOrderLineDetails;
   components: KittingComponent[];
 };
 

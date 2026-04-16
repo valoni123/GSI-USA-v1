@@ -26,6 +26,16 @@ type ItemDetails = {
   lastModificationDate: string;
 };
 
+type SalesOrderLineDetails = {
+  shiptoBusinessPartner: string;
+  shiptoAddress: string;
+  listGroup: string;
+  rushOrderLine: string;
+  orderLineText: string | null;
+  escalationComment: string | null;
+  escalationLevel: string;
+};
+
 type GroupedComponent = {
   orderOrigin: string;
   order: string;
@@ -59,6 +69,7 @@ type GroupedLine = {
   orderedQuantity: number;
   originallyOrderedQuantity: number;
   lineStatus: string;
+  salesOrderLineDetails: SalesOrderLineDetails;
   components: GroupedComponent[];
 };
 
@@ -94,6 +105,10 @@ function toText(value: unknown) {
 
 function toRawText(value: unknown) {
   return value == null ? "" : String(value);
+}
+
+function toNullableText(value: unknown) {
+  return value == null ? null : String(value).trim();
 }
 
 function lineKey(row: any) {
@@ -163,6 +178,72 @@ async function fetchItemDetails(
     inventoryUnit: toText(row?.InventoryUnit),
     creationDate: toText(row?.CreationDate),
     lastModificationDate: toText(row?.LastModificationDate),
+  };
+}
+
+async function fetchSalesOrderLineDetails(
+  base: string,
+  tenant: string,
+  accessToken: string,
+  company: string,
+  order: string,
+  line: number,
+  sequence: number,
+): Promise<SalesOrderLineDetails> {
+  const escapedOrder = order.replace(/'/g, "''");
+  const params = new URLSearchParams();
+  params.set("$filter", `SalesOrder eq '${escapedOrder}' and Line eq ${line} and SequenceNumber eq ${sequence}`);
+  params.set(
+    "$select",
+    "ShiptoBusinessPartner,ShiptoAddress,ListGroup,RushOrderLine,OrderLineText,EscalationComment,EscalationLevel",
+  );
+
+  const url = `${base}/${tenant}/LN/lnapi/odata/txgwi.OutboundOrderLines/SalesOrderLines?${params.toString()}`;
+  console.info("[ln-kitting-docs-order-set] requesting sales order line details", { order, line, sequence });
+
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        "Content-Language": "en-US",
+        "X-Infor-LnCompany": company,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    REQUEST_TIMEOUT_MS,
+  );
+
+  const payload = (await response.json().catch(() => null)) as any;
+  if (!response.ok || !payload) {
+    console.error("[ln-kitting-docs-order-set] sales order line details upstream error", {
+      status: response.status,
+      order,
+      line,
+      sequence,
+      error: payload?.error?.message || "odata_error",
+    });
+    return {
+      shiptoBusinessPartner: "",
+      shiptoAddress: "",
+      listGroup: "",
+      rushOrderLine: "",
+      orderLineText: null,
+      escalationComment: null,
+      escalationLevel: "",
+    };
+  }
+
+  const row = Array.isArray(payload.value) ? payload.value[0] : null;
+  return {
+    shiptoBusinessPartner: toText(row?.ShiptoBusinessPartner),
+    shiptoAddress: toText(row?.ShiptoAddress),
+    listGroup: toText(row?.ListGroup),
+    rushOrderLine: toText(row?.RushOrderLine),
+    orderLineText: toNullableText(row?.OrderLineText),
+    escalationComment: toNullableText(row?.EscalationComment),
+    escalationLevel: toText(row?.EscalationLevel),
   };
 }
 
@@ -296,6 +377,15 @@ serve(async (req) => {
             orderedQuantity: toNumber(line?.OrderedQuantity),
             originallyOrderedQuantity: toNumber(line?.OriginallyOrderedQuantity),
             lineStatus: toText(line?.LineStatus),
+            salesOrderLineDetails: {
+              shiptoBusinessPartner: "",
+              shiptoAddress: "",
+              listGroup: "",
+              rushOrderLine: "",
+              orderLineText: null,
+              escalationComment: null,
+              escalationLevel: "",
+            },
             components: [],
             componentMap: new Map<string, GroupedComponent>(),
           };
@@ -341,12 +431,32 @@ serve(async (req) => {
       );
       const itemDetailsMap = new Map<string, ItemDetails>(itemDetailsEntries);
 
+      const salesOrderLineDetailsEntries = await Promise.all(
+        Array.from(lineMap.entries()).map(async ([key, line]) => {
+          const details = await fetchSalesOrderLineDetails(
+            base,
+            cfg.ti,
+            accessToken,
+            company,
+            line.order,
+            line.line,
+            line.sequence,
+          );
+          return [key, details] as const;
+        }),
+      );
+      const salesOrderLineDetailsMap = new Map<string, SalesOrderLineDetails>(salesOrderLineDetailsEntries);
+
       const lines = Array.from(lineMap.values())
         .map(({ componentMap, ...line }) => ({
           ...line,
           itemDescription: itemDetailsMap.get(line.item)?.description || "",
           itemCreationDate: itemDetailsMap.get(line.item)?.creationDate || "",
           itemLastModificationDate: itemDetailsMap.get(line.item)?.lastModificationDate || "",
+          salesOrderLineDetails:
+            salesOrderLineDetailsMap.get(
+              [line.orderOrigin, line.order, line.line, line.sequence, line.set].join("|"),
+            ) || line.salesOrderLineDetails,
           components: Array.from(componentMap.values())
             .map((component) => ({
               ...component,
