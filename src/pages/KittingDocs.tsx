@@ -5,6 +5,7 @@ import jsPDF from "jspdf";
 import JsBarcode from "jsbarcode";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import BackButton from "@/components/BackButton";
+import BuilderNumberDialog from "@/components/BuilderNumberDialog";
 import ItemDrawingDialog from "@/components/ItemDrawingDialog";
 import PackagingInstructionsDialog from "@/components/PackagingInstructionsDialog";
 import { Card } from "@/components/ui/card";
@@ -185,6 +186,8 @@ const KittingDocs = () => {
   const [drawingUrl, setDrawingUrl] = useState("");
   const [drawingTitle, setDrawingTitle] = useState("");
   const [drawingFilename, setDrawingFilename] = useState("");
+  const [builderNumberDialogOpen, setBuilderNumberDialogOpen] = useState(false);
+  const [builderNumber, setBuilderNumber] = useState("");
   const [packagingInstructionsDialogOpen, setPackagingInstructionsDialogOpen] = useState(false);
   const [packagingInstructionsDialogTitle, setPackagingInstructionsDialogTitle] = useState("");
   const [packagingInstructionsDialogText, setPackagingInstructionsDialogText] = useState("");
@@ -201,6 +204,7 @@ const KittingDocs = () => {
   const [collapsedBomLines, setCollapsedBomLines] = useState<Record<string, boolean>>({});
   const [reportLogo, setReportLogo] = useState<ReportLogo | null>(null);
   const scanLoadingTimeoutRef = useRef<number | null>(null);
+  const builderNumberResolverRef = useRef<((value: string | null) => void) | null>(null);
 
   const normalizeReportLogo = async (value: string | null | undefined): Promise<ReportLogo | null> => {
     const raw = String(value || "").trim();
@@ -1335,12 +1339,87 @@ const KittingDocs = () => {
     setPackagingInstructionsDialogOpen(true);
   };
 
-  const markCurrentDrawingAsPrinted = () => {
-    if (drawingItemRaws.length === 0) return;
-    setPrintedItems((current) => ({
-      ...current,
-      ...Object.fromEntries(drawingItemRaws.map((rawItem) => [rawItem, true])),
-    }));
+  const resolveBuilderNumberDialog = (value: string | null) => {
+    setBuilderNumberDialogOpen(false);
+    setBuilderNumber("");
+    const resolve = builderNumberResolverRef.current;
+    builderNumberResolverRef.current = null;
+    resolve?.(value);
+  };
+
+  const requestBuilderNumber = () => {
+    return new Promise<string | null>((resolve) => {
+      if (builderNumberResolverRef.current) {
+        builderNumberResolverRef.current(null);
+      }
+      builderNumberResolverRef.current = resolve;
+      setBuilderNumber("");
+      setBuilderNumberDialogOpen(true);
+    });
+  };
+
+  const buildPrintRemark = (value: string) => value.replace(/\s*:\s*/g, " - ").trim();
+
+  const markCurrentDrawingAsPrinted = async () => {
+    const currentLine = lines[0];
+    if (!currentLine) return false;
+
+    const builder = (await requestBuilderNumber())?.trim() || "";
+    if (!builder) return false;
+
+    const employee = (
+      localStorage.getItem("gsi.employee") ||
+      localStorage.getItem("gsi.username") ||
+      localStorage.getItem("gsi.login") ||
+      ""
+    ).trim();
+    const login = (
+      localStorage.getItem("gsi.login") ||
+      localStorage.getItem("gsi.employee") ||
+      localStorage.getItem("gsi.username") ||
+      ""
+    ).trim();
+
+    startScanLoading();
+
+    try {
+      const { data, error } = await supabase.functions.invoke("ln-assign-kitting-documents", {
+        body: {
+          orderOrigin: (currentLine.orderOrigin || selectedOriginOption.englishLabel || "").trim(),
+          order: currentLine.order,
+          set: currentLine.set,
+          remark: buildPrintRemark(drawingTitle),
+          kittingLocation: "",
+          employee,
+          builder,
+          login,
+          language: locale,
+        },
+      });
+
+      if (error || !data || !data.ok) {
+        const message = typeof data?.error?.message === "string"
+          ? data.error.message
+          : trans.kittingPrintTransactionFailed;
+        showError(message || trans.kittingPrintTransactionFailed);
+        stopScanLoading();
+        return false;
+      }
+
+      if (drawingItemRaws.length > 0) {
+        setPrintedItems((current) => ({
+          ...current,
+          ...Object.fromEntries(drawingItemRaws.map((rawItem) => [rawItem, true])),
+        }));
+      }
+
+      stopScanLoading();
+      return true;
+    } catch (error) {
+      stopScanLoading();
+      showError(error instanceof Error ? error.message : trans.kittingPrintTransactionFailed);
+      return false;
+    }
   };
 
   const toggleBomLineVisibility = (lineKey: string) => {
@@ -1823,6 +1902,33 @@ const KittingDocs = () => {
         openInNewTabLabel={trans.kittingOpenDrawingLabel}
         printLabel={trans.kittingPrintLabel}
         onPrint={markCurrentDrawingAsPrinted}
+      />
+
+      <BuilderNumberDialog
+        open={builderNumberDialogOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            setBuilderNumberDialogOpen(true);
+            return;
+          }
+          resolveBuilderNumberDialog(null);
+        }}
+        title={trans.kittingBuilderNumberTitle}
+        description={trans.kittingBuilderNumberDescription}
+        label={trans.kittingBuilderNumberLabel}
+        placeholder={trans.kittingBuilderNumberPlaceholder}
+        cancelLabel={trans.cancel}
+        confirmLabel={trans.ok}
+        value={builderNumber}
+        onValueChange={setBuilderNumber}
+        onConfirm={() => {
+          const trimmedBuilderNumber = builderNumber.trim();
+          if (!trimmedBuilderNumber) {
+            showError(trans.kittingBuilderNumberRequired);
+            return;
+          }
+          resolveBuilderNumberDialog(trimmedBuilderNumber);
+        }}
       />
 
       <PackagingInstructionsDialog

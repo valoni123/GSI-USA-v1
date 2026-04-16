@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Printer, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ type ItemDrawingDialogProps = {
   filename: string;
   openInNewTabLabel: string;
   printLabel: string;
-  onPrint: () => void;
+  onPrint: () => Promise<boolean>;
 };
 
 const ItemDrawingDialog = ({
@@ -25,11 +25,20 @@ const ItemDrawingDialog = ({
   onPrint,
 }: ItemDrawingDialogProps) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [printLoading, setPrintLoading] = useState(false);
 
-  const handlePrint = () => {
-    onPrint();
-    iframeRef.current?.contentWindow?.focus();
-    iframeRef.current?.contentWindow?.print();
+  const handlePrint = async () => {
+    if (printLoading) return;
+
+    setPrintLoading(true);
+    try {
+      const shouldPrint = await onPrint();
+      if (!shouldPrint) return;
+      iframeRef.current?.contentWindow?.focus();
+      iframeRef.current?.contentWindow?.print();
+    } finally {
+      setPrintLoading(false);
+    }
   };
 
   return (
@@ -42,7 +51,7 @@ const ItemDrawingDialog = ({
               {filename && <div className="mt-1 text-sm text-gray-500 truncate">{filename}</div>}
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="shrink-0 gap-2" onClick={handlePrint}>
+              <Button variant="outline" className="shrink-0 gap-2" onClick={() => void handlePrint()} disabled={printLoading}>
                 <Printer className="h-4 w-4" />
                 {printLabel}
               </Button>

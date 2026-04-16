@@ -167,6 +167,13 @@ type TranslationKeys =
   | "kittingNoDocumentsAvailableLabel"
   | "kittingPrintAllDrawingsLabel"
   | "kittingPrintListComponentsLabel"
+  | "kittingBuilderNumberTitle"
+  | "kittingBuilderNumberDescription"
+  | "kittingBuilderNumberLabel"
+  | "kittingBuilderNumberPlaceholder"
+  | "kittingBuilderNumberRequired"
+  | "kittingPrintTransactionFailed"
+  | "ok"
   | "approvedQuantityLabel"
   | "rejectedQuantityLabel"
   | "rejectReasonLabel"
@@ -351,6 +358,13 @@ const translations: Translations = {
     kittingNoDocumentsAvailableLabel: "No documents available for this line.",
     kittingPrintAllDrawingsLabel: "Print All Drawings",
     kittingPrintListComponentsLabel: "Print List Components",
+    kittingBuilderNumberTitle: "Builder Number required",
+    kittingBuilderNumberDescription: "Enter the Builder Number before printing this document.",
+    kittingBuilderNumberLabel: "Builder Number",
+    kittingBuilderNumberPlaceholder: "Type Builder Number",
+    kittingBuilderNumberRequired: "Please enter a Builder Number.",
+    kittingPrintTransactionFailed: "Failed to assign the kitting document print transaction.",
+    ok: "OK",
     approvedQuantityLabel: "Approved Quantity",
     rejectedQuantityLabel: "Rejected Quantity",
     rejectReasonLabel: "Reject Reason",
@@ -530,6 +544,13 @@ const translations: Translations = {
     kittingNoDocumentsAvailableLabel: "Für diese Zeile sind keine Dokumente verfügbar.",
     kittingPrintAllDrawingsLabel: "Alle Zeichnungen drucken",
     kittingPrintListComponentsLabel: "Komponentenliste drucken",
+    kittingBuilderNumberTitle: "Builder-Nummer erforderlich",
+    kittingBuilderNumberDescription: "Geben Sie vor dem Drucken dieses Dokuments die Builder-Nummer ein.",
+    kittingBuilderNumberLabel: "Builder-Nummer",
+    kittingBuilderNumberPlaceholder: "Builder-Nummer eingeben",
+    kittingBuilderNumberRequired: "Bitte eine Builder-Nummer eingeben.",
+    kittingPrintTransactionFailed: "Die Druckbuchung für das Kitting-Dokument konnte nicht gesendet werden.",
+    ok: "OK",
     approvedQuantityLabel: "Genehmigte Menge",
     rejectedQuantityLabel: "Abgelehnte Menge",
     rejectReasonLabel: "Ablehnungsgrund",
@@ -709,6 +730,13 @@ const translations: Translations = {
     kittingNoDocumentsAvailableLabel: "No hay documentos disponibles para esta línea.",
     kittingPrintAllDrawingsLabel: "Imprimir todos los planos",
     kittingPrintListComponentsLabel: "Imprimir lista de componentes",
+    kittingBuilderNumberTitle: "Se requiere número de builder",
+    kittingBuilderNumberDescription: "Ingrese el número de builder antes de imprimir este documento.",
+    kittingBuilderNumberLabel: "Número de builder",
+    kittingBuilderNumberPlaceholder: "Escriba el número de builder",
+    kittingBuilderNumberRequired: "Ingrese un número de builder.",
+    kittingPrintTransactionFailed: "No se pudo registrar la impresión del documento de kitting.",
+    ok: "OK",
     approvedQuantityLabel: "Cantidad aprobada",
     rejectedQuantityLabel: "Cantidad rechazada",
     rejectReasonLabel: "Motivo de rechazo",
@@ -888,6 +916,13 @@ const translations: Translations = {
     kittingNoDocumentsAvailableLabel: "Não há documentos disponíveis para esta linha.",
     kittingPrintAllDrawingsLabel: "Imprimir todos os desenhos",
     kittingPrintListComponentsLabel: "Imprimir lista de componentes",
+    kittingBuilderNumberTitle: "Número do builder obrigatório",
+    kittingBuilderNumberDescription: "Digite o número do builder antes de imprimir este documento.",
+    kittingBuilderNumberLabel: "Número do builder",
+    kittingBuilderNumberPlaceholder: "Digite o número do builder",
+    kittingBuilderNumberRequired: "Informe um número do builder.",
+    kittingPrintTransactionFailed: "Falha ao registrar a impressão do documento de kitting.",
+    ok: "OK",
     approvedQuantityLabel: "Quantidade aprovada",
     rejectedQuantityLabel: "Quantidade rejeitada",
     rejectReasonLabel: "Motivo da rejeição",
