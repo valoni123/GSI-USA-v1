@@ -790,8 +790,18 @@ const KittingDocs = () => {
 
                         <span className="text-gray-400">|</span>
 
+                        <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
+                          <span className="text-gray-600">Qty:</span>
+                          <span className="font-semibold text-gray-900">
+                            {line.orderedQuantity} {line.orderUnit}
+                          </span>
+                        </div>
+
+                        <span className="text-gray-400">|</span>
+
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
                           <span className="whitespace-nowrap text-gray-600">{trans.kittingMainItemLabel}:</span>
+
                           <span className="font-semibold text-gray-900">{formatItemNumber(line.item)}</span>
                           {line.itemDescription && (
                             <span className="font-semibold text-gray-900">{line.itemDescription}</span>
