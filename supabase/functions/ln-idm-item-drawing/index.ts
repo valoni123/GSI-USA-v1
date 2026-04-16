@@ -111,6 +111,7 @@ serve(async (req) => {
       .from("gsi000_params")
       .select("txgsi000_dmsu, created_at")
       .not("txgsi000_dmsu", "is", null)
+      .neq("txgsi000_dmsu", "")
       .order("created_at", { ascending: false })
       .limit(1);
 
