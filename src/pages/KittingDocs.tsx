@@ -73,6 +73,7 @@ type KittingLine = {
   orderedQuantity: number;
   originallyOrderedQuantity: number;
   lineStatus: string;
+  rushOrder: string;
   salesOrderLineDetails?: SalesOrderLineDetails;
   components: KittingComponent[];
 };
@@ -813,6 +814,7 @@ const KittingDocs = () => {
                 findKittingOriginOptionByEnglishLabel(originOptions, line.orderOrigin) ||
                 getKittingOriginOption(line.orderOrigin, line.orderOrigin, lang);
               const lineKey = getLineKey(line);
+              const showRushBadge = line.rushOrder.toLowerCase() === "yes";
 
               return (
                 <Card
@@ -838,11 +840,18 @@ const KittingDocs = () => {
 
                         <span className="text-gray-400">|</span>
 
-                        <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
-                          <span className="text-gray-600">{trans.lineLabel}:</span>
-                          <span className="font-semibold text-gray-900">{line.line}</span>
-                          <span className="text-gray-600">{trans.sequenceLabel}:</span>
-                          <span className="font-semibold text-gray-900">{line.sequence}</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
+                            <span className="text-gray-600">{trans.lineLabel}:</span>
+                            <span className="font-semibold text-gray-900">{line.line}</span>
+                            <span className="text-gray-600">{trans.sequenceLabel}:</span>
+                            <span className="font-semibold text-gray-900">{line.sequence}</span>
+                          </div>
+                          {showRushBadge ? (
+                            <span className="inline-flex w-fit items-center rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
+                              Rush
+                            </span>
+                          ) : null}
                         </div>
 
                         <span className="text-gray-400">|</span>

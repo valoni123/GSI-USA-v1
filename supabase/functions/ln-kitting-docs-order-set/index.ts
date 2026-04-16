@@ -76,6 +76,7 @@ type GroupedLine = {
   orderedQuantity: number;
   originallyOrderedQuantity: number;
   lineStatus: string;
+  rushOrder: string;
   salesOrderLineDetails: SalesOrderLineDetails;
   components: GroupedComponent[];
 };
@@ -449,6 +450,7 @@ serve(async (req) => {
           orderedQuantity: toNumber(line?.OrderedQuantity),
           originallyOrderedQuantity: toNumber(line?.OriginallyOrderedQuantity),
           lineStatus: toText(line?.LineStatus),
+          rushOrder: toText(line?.RushOrder),
           salesOrderLineDetails: {
             shiptoBusinessPartner: "",
             shiptoAddress: "",
