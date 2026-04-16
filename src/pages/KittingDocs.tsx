@@ -100,7 +100,8 @@ type DrawingPdfPayload = {
 
 type ReportLogo = {
   dataUrl: string;
-  format: "PNG" | "JPEG";
+  width: number;
+  height: number;
 };
 
 const FALLBACK_ORIGIN_ROW: RawKittingOriginRow = {
@@ -191,42 +192,67 @@ const KittingDocs = () => {
   const [reportLogo, setReportLogo] = useState<ReportLogo | null>(null);
   const scanLoadingTimeoutRef = useRef<number | null>(null);
 
-  const normalizeReportLogo = (value: string | null | undefined): ReportLogo | null => {
+  const normalizeReportLogo = async (value: string | null | undefined): Promise<ReportLogo | null> => {
     const raw = String(value || "").trim();
     if (!raw) return null;
 
     const sanitized = raw.replace(/\s+/g, "");
     const dataUrlMatch = sanitized.match(/^data:image\/(png|jpeg|jpg);base64,(.+)$/i);
-    if (dataUrlMatch) {
-      return {
-        dataUrl: sanitized,
-        format: dataUrlMatch[1].toLowerCase() === "png" ? "PNG" : "JPEG",
+    const sourceDataUrl = dataUrlMatch
+      ? sanitized
+      : `data:${sanitized.startsWith("iVBORw0KGgo") ? "image/png" : "image/jpeg"};base64,${sanitized}`;
+
+    return await new Promise((resolve) => {
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
+        const context = canvas.getContext("2d");
+
+        if (!context || !canvas.width || !canvas.height) {
+          resolve(null);
+          return;
+        }
+
+        context.drawImage(image, 0, 0);
+        resolve({
+          dataUrl: canvas.toDataURL("image/png"),
+          width: canvas.width,
+          height: canvas.height,
+        });
       };
-    }
-
-    const format = sanitized.startsWith("iVBORw0KGgo") ? "PNG" : "JPEG";
-    const mimeType = format === "PNG" ? "image/png" : "image/jpeg";
-
-    return {
-      dataUrl: `data:${mimeType};base64,${sanitized}`,
-      format,
-    };
+      image.onerror = () => resolve(null);
+      image.src = sourceDataUrl;
+    });
   };
 
-  const addReportLogo = (pdf: jsPDF, left: number) => {
-    if (!reportLogo) return 0;
+  const fetchReportLogo = async (): Promise<ReportLogo | null> => {
+    const { data, error } = await supabase
+      .from("gsi000_params")
+      .select("txgsi000_imag")
+      .not("txgsi000_imag", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) return null;
+    return await normalizeReportLogo(data?.txgsi000_imag);
+  };
+
+  const addReportLogo = (pdf: jsPDF, left: number, logo: ReportLogo | null) => {
+    if (!logo) return 0;
 
     try {
-      const image = pdf.getImageProperties(reportLogo.dataUrl);
       const maxWidth = 120;
       const maxHeight = 36;
-      const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
-      const width = image.width * scale;
-      const height = image.height * scale;
+      const scale = Math.min(maxWidth / logo.width, maxHeight / logo.height);
+      const width = logo.width * scale;
+      const height = logo.height * scale;
       const x = left;
       const y = 16;
 
-      pdf.addImage(reportLogo.dataUrl, reportLogo.format, x, y, width, height);
+      pdf.addImage(logo.dataUrl, "PNG", x, y, width, height);
       return y + height;
     } catch {
       return 0;
@@ -237,17 +263,10 @@ const KittingDocs = () => {
     let cancelled = false;
 
     const loadReportLogo = async () => {
-      const { data, error } = await supabase
-        .from("gsi000_params")
-        .select("txgsi000_imag")
-        .not("txgsi000_imag", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (cancelled || error) return;
-
-      setReportLogo(normalizeReportLogo(data?.txgsi000_imag));
+      const nextLogo = await fetchReportLogo();
+      if (!cancelled) {
+        setReportLogo(nextLogo);
+      }
     };
 
     void loadReportLogo();
@@ -565,13 +584,13 @@ const KittingDocs = () => {
     );
   };
 
-  const buildLineComponentsPdf = (line: KittingLine) => {
+  const buildLineComponentsPdf = (line: KittingLine, logo: ReportLogo | null = reportLogo) => {
     const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const left = 40;
     const right = pageWidth - 40;
-    const logoBottom = addReportLogo(pdf, left);
+    const logoBottom = addReportLogo(pdf, left, logo);
     let y = 42;
 
     const addText = (text: string, x: number, nextY = 16) => {
@@ -629,7 +648,7 @@ const KittingDocs = () => {
     return new Uint8Array(pdf.output("arraybuffer"));
   };
 
-  const buildPackagingInstructionsPdf = (line: KittingLine) => {
+  const buildPackagingInstructionsPdf = (line: KittingLine, logo: ReportLogo | null = reportLogo) => {
     const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -646,7 +665,7 @@ const KittingDocs = () => {
     const headerRowGap = 16;
     const usernameLines = username ? pdf.splitTextToSize(username, headerBoxWidth - 24) : [];
     const headerBottom = headerTop + 6 + headerRowGap * 2 + usernameLines.length * 12;
-    const logoBottom = addReportLogo(pdf, left);
+    const logoBottom = addReportLogo(pdf, left, logo);
 
     let y = 42;
 
@@ -815,7 +834,11 @@ const KittingDocs = () => {
     startScanLoading();
 
     try {
-      const pdfBytes = buildLineComponentsPdf(line);
+      const logo = reportLogo || (await fetchReportLogo());
+      if (logo && !reportLogo) {
+        setReportLogo(logo);
+      }
+      const pdfBytes = buildLineComponentsPdf(line, logo);
       openPdfPreview(
         pdfBytes,
         `${trans.kittingPrintListComponentsLabel}: ${line.order}/${line.set}`,
@@ -840,7 +863,11 @@ const KittingDocs = () => {
     startScanLoading();
 
     try {
-      const pdfBytes = buildPackagingInstructionsPdf(line);
+      const logo = reportLogo || (await fetchReportLogo());
+      if (logo && !reportLogo) {
+        setReportLogo(logo);
+      }
+      const pdfBytes = buildPackagingInstructionsPdf(line, logo);
       openPdfPreview(
         pdfBytes,
         `Packaging Instructions Report: ${line.order}/${line.set}`,
