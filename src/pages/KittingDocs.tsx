@@ -563,8 +563,16 @@ const KittingDocs = () => {
     const packagingInstructionsText = line.salesOrderLineDetails?.packagingInstructionsText?.trim() || "";
     const username = fullName || "";
     const now = new Date();
+    const headerBoxWidth = 180;
+    const headerBoxLeft = right - headerBoxWidth;
+    const headerLabelX = headerBoxLeft + 12;
+    const headerValueX = right - 12;
+    const headerTop = 22;
+    const headerRowGap = 16;
+    const usernameLines = username ? pdf.splitTextToSize(username, headerBoxWidth - 24) : [];
+    const headerBottom = headerTop + 6 + headerRowGap * 2 + usernameLines.length * 12;
 
-    let y = 46;
+    let y = 42;
 
     const ensureSpace = (needed = 20) => {
       if (y + needed <= pageHeight - 36) return;
@@ -576,19 +584,24 @@ const KittingDocs = () => {
     pdf.setFontSize(22);
     pdf.text("Packaging Instructions Report", pageWidth / 2, y, { align: "center" });
 
-    pdf.setFontSize(10);
-    pdf.text("Page:", right - 90, y - 6, { align: "left" });
-    pdf.setFont("helvetica", "normal");
-    pdf.text("1", right, y - 6, { align: "right" });
+    pdf.setFontSize(9);
     pdf.setFont("helvetica", "bold");
-    pdf.text("Date:", right - 90, y + 10, { align: "left" });
+    pdf.text("Page:", headerLabelX, headerTop + 6);
     pdf.setFont("helvetica", "normal");
-    pdf.text(now.toLocaleString(locale), right, y + 10, { align: "right" });
-    if (username) {
-      pdf.text(username, right, y + 26, { align: "right" });
+    pdf.text("1", headerValueX, headerTop + 6, { align: "right" });
+
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Date:", headerLabelX, headerTop + 6 + headerRowGap);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(now.toLocaleString(locale), headerValueX, headerTop + 6 + headerRowGap, { align: "right" });
+
+    if (usernameLines.length > 0) {
+      usernameLines.forEach((usernameLine: string, index: number) => {
+        pdf.text(usernameLine, headerValueX, headerTop + 6 + headerRowGap * 2 + index * 12, { align: "right" });
+      });
     }
 
-    y += 30;
+    y = Math.max(y + 4, headerBottom);
     pdf.setLineWidth(0.8);
     pdf.setDrawColor(210, 214, 220);
     pdf.line(left, y, right, y);
