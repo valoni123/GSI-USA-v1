@@ -908,17 +908,60 @@ const KittingDocs = () => {
 
                     {hasComponents ? (
                       <>
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                            <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{trans.kittingInspectionLabel}</div>
-                            <div className="mt-1 text-sm font-semibold text-gray-900">{formatDate(line.itemCreationDate)}</div>
+                        <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+                          <div className="flex flex-wrap items-center gap-4 text-sm">
+                            <div>
+                              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                {trans.kittingInspectionLabel}
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-gray-900">
+                                {formatDate(line.itemCreationDate)}
+                              </div>
+                            </div>
+
+                            <span className="hidden h-10 w-px bg-gray-300 lg:block" />
+
+                            <div>
+                              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                {trans.kittingLastRevisionLabel}
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-gray-900">
+                                {formatDate(line.itemLastModificationDate)}
+                              </div>
+                            </div>
                           </div>
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                            <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{trans.kittingLastRevisionLabel}</div>
-                            <div className="mt-1 text-sm font-semibold text-gray-900">{formatDate(line.itemLastModificationDate)}</div>
+
+                          <div className="flex flex-wrap items-center gap-3">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-10 shrink-0 whitespace-nowrap rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                              onClick={() => void openLineDrawings(line)}
+                              disabled={lineDrawingLoadingKey === lineKey || getLineDocumentEntries(line).length === 0}
+                            >
+                              {lineDrawingLoadingKey === lineKey ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Printer className="mr-2 h-4 w-4" />
+                              )}
+                              {trans.kittingPrintAllDrawingsLabel}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-10 shrink-0 whitespace-nowrap rounded-md bg-sky-100 px-3 text-sky-700 hover:bg-sky-200 hover:text-sky-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                              onClick={() => void openLineComponentsList(line)}
+                              disabled={lineComponentListLoadingKey === lineKey}
+                            >
+                              {lineComponentListLoadingKey === lineKey ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Printer className="mr-2 h-4 w-4" />
+                              )}
+                              {trans.kittingPrintListComponentsLabel}
+                            </Button>
                           </div>
                         </div>
-
 
                         <div className="overflow-x-auto rounded-lg border border-gray-200">
                           <table className="min-w-full text-sm">
@@ -999,38 +1042,7 @@ const KittingDocs = () => {
                           </table>
                         </div>
 
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="h-10 shrink-0 whitespace-nowrap rounded-md bg-orange-100 px-3 text-orange-700 hover:bg-orange-200 hover:text-orange-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
-                              onClick={() => void openLineDrawings(line)}
-                              disabled={lineDrawingLoadingKey === lineKey || getLineDocumentEntries(line).length === 0}
-                            >
-                              {lineDrawingLoadingKey === lineKey ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              ) : (
-                                <Printer className="mr-2 h-4 w-4" />
-                              )}
-                              {trans.kittingPrintAllDrawingsLabel}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="h-10 shrink-0 whitespace-nowrap rounded-md bg-sky-100 px-3 text-sky-700 hover:bg-sky-200 hover:text-sky-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
-                              onClick={() => void openLineComponentsList(line)}
-                              disabled={lineComponentListLoadingKey === lineKey}
-                            >
-                              {lineComponentListLoadingKey === lineKey ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              ) : (
-                                <Printer className="mr-2 h-4 w-4" />
-                              )}
-                              {trans.kittingPrintListComponentsLabel}
-                            </Button>
-                          </div>
-
+                        <div className="flex justify-end">
                           <div className="inline-flex items-center gap-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-gray-900">
                             <span>{trans.kittingTotalPartsLabel}</span>
                             <span>{line.components.length}</span>
