@@ -328,7 +328,7 @@ const translations: Translations = {
     invalidOrderSet: "Invalid Order / Set format. Use e.g. 100001640/1",
     kittingLoading: "Loading kitting documents…",
     kittingNoOrderLines: "No order lines found for this Order / Set.",
-    kittingMainItemLabel: "List Components for Assembly",
+    kittingMainItemLabel: "List Comp. for Assembly",
     kittingBomLineLabel: "BOM Line",
     kittingComponentLabel: "Component",
     kittingQtyPerMainItemLabel: "Quantity per Main Item",

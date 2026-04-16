@@ -868,16 +868,18 @@ const KittingDocs = () => {
                             <span className="text-gray-600">{trans.sequenceLabel}:</span>
                             <span className="font-semibold text-gray-900">{line.sequence}</span>
                           </div>
-                          {showEscalationBadge ? (
+                        </div>
+
+                        {showEscalationBadge ? (
+                          <>
                             <span
-                              className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${escalationBadgeClass}`}
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${escalationBadgeClass}`}
                             >
                               {escalationLevel}
                             </span>
-                          ) : null}
-                        </div>
-
-                        <span className="text-gray-400">|</span>
+                            <span className="text-gray-400">|</span>
+                          </>
+                        ) : null}
 
                         <div className="flex flex-wrap items-center gap-2 whitespace-nowrap">
                           <span className="text-gray-600">Qty:</span>
