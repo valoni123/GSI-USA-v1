@@ -872,6 +872,7 @@ const KittingDocs = () => {
 
                         {showEscalationBadge ? (
                           <>
+                            <span className="text-gray-400">|</span>
                             <span
                               className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${escalationBadgeClass}`}
                             >
