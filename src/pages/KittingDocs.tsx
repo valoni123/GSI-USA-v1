@@ -824,19 +824,20 @@ const KittingDocs = () => {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                        <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{trans.kittingInspectionLabel}</div>
-                        <div className="mt-1 text-sm font-semibold text-gray-900">{formatDate(line.itemCreationDate)}</div>
-                      </div>
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                        <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{trans.kittingLastRevisionLabel}</div>
-                        <div className="mt-1 text-sm font-semibold text-gray-900">{formatDate(line.itemLastModificationDate)}</div>
-                      </div>
-                    </div>
-
                     {hasComponents ? (
                       <>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                            <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{trans.kittingInspectionLabel}</div>
+                            <div className="mt-1 text-sm font-semibold text-gray-900">{formatDate(line.itemCreationDate)}</div>
+                          </div>
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                            <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{trans.kittingLastRevisionLabel}</div>
+                            <div className="mt-1 text-sm font-semibold text-gray-900">{formatDate(line.itemLastModificationDate)}</div>
+                          </div>
+                        </div>
+
+
                         <div className="overflow-x-auto rounded-lg border border-gray-200">
                           <table className="min-w-full text-sm">
                             <thead className="bg-gray-100 text-gray-800">
