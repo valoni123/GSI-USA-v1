@@ -697,6 +697,8 @@ const KittingDocs = () => {
     const tableWidth = right - left;
     const now = new Date();
     const reportUser = fullName.trim() || "-";
+    const salesOrderValue = `${line.order}/${line.set}`;
+    const barcode = buildCode128Barcode(salesOrderValue);
 
     const formatHeaderDate = (value: Date) => {
       const year = String(value.getFullYear()).slice(-2);
@@ -746,6 +748,14 @@ const KittingDocs = () => {
       const textStartX = logoPlacement ? logoPlacement.right + 14 : left;
       const titleY = 38;
       const detailsY = 56;
+      const barcodeX = textStartX;
+      const barcodeY = 66;
+      const barcodeMaxWidth = 116;
+      const barcodeMaxHeight = 24;
+      const barcodeScale = barcode ? Math.min(barcodeMaxWidth / barcode.width, barcodeMaxHeight / barcode.height) : 1;
+      const barcodeWidth = barcode ? barcode.width * barcodeScale : 0;
+      const barcodeHeight = barcode ? barcode.height * barcodeScale : 0;
+      const barcodeBottom = barcode ? barcodeY + barcodeHeight : 0;
       const titleParts = ["List Components for Assembly:", formatItemNumber(line.item), line.itemDescription]
         .filter(Boolean)
         .join("   ");
@@ -764,7 +774,11 @@ const KittingDocs = () => {
       pdf.setFont("helvetica", "normal");
       pdf.text(` ${formatUsDate(line.itemLastModificationDate)}`, textStartX + 222, detailsY);
 
-      const dividerY = Math.max(logoPlacement ? logoPlacement.bottom + 14 : 84, 86);
+      if (barcode) {
+        pdf.addImage(barcode.dataUrl, "PNG", barcodeX, barcodeY, barcodeWidth, barcodeHeight);
+      }
+
+      const dividerY = Math.max(logoPlacement ? logoPlacement.bottom + 14 : 84, barcodeBottom + 10, 86);
       pdf.setDrawColor(140, 140, 140);
       pdf.setLineWidth(0.7);
       pdf.line(left, dividerY, right, dividerY);
