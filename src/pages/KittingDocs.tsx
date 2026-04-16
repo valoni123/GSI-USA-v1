@@ -780,13 +780,23 @@ const KittingDocs = () => {
     documentEntries: Array<{ rawItem: string; displayItem: string }>,
     title: string,
     filename: string,
+    options?: {
+      prependPdfBytes?: Uint8Array[];
+      orderSetValue?: string;
+    },
   ) => {
     const drawings = await Promise.all(documentEntries.map((entry) => fetchDrawingPdf(entry.rawItem)));
     const mergedPdf = await PDFDocument.create();
 
+    for (const pdfBytes of options?.prependPdfBytes || []) {
+      const sourcePdf = await PDFDocument.load(pdfBytes);
+      const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+      copiedPages.forEach((page) => mergedPdf.addPage(page));
+    }
+
     for (const [index, drawing] of drawings.entries()) {
       const stampedBytes = await stampDrawingPdfHeader(drawing.bytes, {
-        orderSetValue: lines[0] ? `${lines[0].order}/${lines[0].set}` : "",
+        orderSetValue: options?.orderSetValue || (lines[0] ? `${lines[0].order}/${lines[0].set}` : ""),
         itemValue: formatItemNumber(documentEntries[index]?.displayItem || ""),
       });
       const sourcePdf = await PDFDocument.load(stampedBytes);
@@ -1170,10 +1180,31 @@ const KittingDocs = () => {
     startScanLoading();
 
     try {
+      const logo = reportLogo || (await fetchReportLogo());
+      if (logo && !reportLogo) {
+        setReportLogo(logo);
+      }
+
+      const prependPdfBytes = lines.flatMap((line) => {
+        const generatedReports: Uint8Array[] = [];
+
+        const packagingInstructionsText = line.salesOrderLineDetails?.packagingInstructionsText?.trim() || "";
+        if (packagingInstructionsText) {
+          generatedReports.push(buildPackagingInstructionsPdf(line, logo));
+        }
+
+        generatedReports.push(buildLineComponentsPdf(line, logo));
+        return generatedReports;
+      });
+
       await openMergedDrawingsPreview(
         documentEntries,
         `${trans.kittingPrintAllDocumentsLabel}: ${firstLine?.order || ""}/${firstLine?.set || ""}`,
         `kitting-${firstLine?.order || "order"}-${firstLine?.set || "set"}.pdf`,
+        {
+          prependPdfBytes,
+          orderSetValue: firstLine ? `${firstLine.order}/${firstLine.set}` : "",
+        },
       );
       setCombinedDrawingLoadingKey("");
       stopScanLoading();
