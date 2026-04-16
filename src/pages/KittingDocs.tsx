@@ -768,12 +768,13 @@ const KittingDocs = () => {
     const packagingInstructionsText = line.salesOrderLineDetails?.packagingInstructionsText?.trim() || "";
     if (!packagingInstructionsText) return;
 
-    const shipToName = line.salesOrderLineDetails?.shiptoBusinessPartnerName?.trim();
-    setPackagingInstructionsDialogTitle(
-      shipToName
-        ? `Packaging Instructions: ${shipToName}`
-        : `Packaging Instructions: ${line.order}/${line.set}`,
-    );
+    const shipToBusinessPartner = line.salesOrderLineDetails?.shiptoBusinessPartner?.trim() || "";
+    const shipToName = line.salesOrderLineDetails?.shiptoBusinessPartnerName?.trim() || "";
+    const packagingTitleSuffix = shipToBusinessPartner && shipToName
+      ? `${shipToBusinessPartner} - ${shipToName}`
+      : shipToBusinessPartner || shipToName || `${line.order}/${line.set}`;
+
+    setPackagingInstructionsDialogTitle(`Packaging Instructions: ${packagingTitleSuffix}`);
     setPackagingInstructionsDialogText(packagingInstructionsText);
     setPackagingInstructionsDialogOpen(true);
   };

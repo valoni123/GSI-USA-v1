@@ -16,14 +16,16 @@ const PackagingInstructionsDialog = ({
 }: PackagingInstructionsDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-2xl rounded-lg bg-white p-0 overflow-hidden">
-        <DialogHeader className="border-b px-6 py-4">
-          <DialogTitle>{title}</DialogTitle>
+      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-2xl overflow-hidden rounded-lg bg-white p-0">
+        <DialogHeader className="border-b border-violet-200 bg-violet-100 px-6 py-4">
+          <DialogTitle className="text-violet-950">{title}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[70vh] px-6 py-5">
-          <div className="whitespace-pre-wrap text-sm leading-7 text-gray-800">{text}</div>
-        </ScrollArea>
+        <div className="p-5">
+          <ScrollArea className="max-h-[70vh] rounded-lg border border-gray-200 bg-gray-50 px-5 py-4">
+            <div className="whitespace-pre-wrap text-sm leading-7 text-gray-800">{text}</div>
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
