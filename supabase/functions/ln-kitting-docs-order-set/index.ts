@@ -36,6 +36,11 @@ type SalesOrderLineDetails = {
   escalationLevel: string;
 };
 
+type ListComponentDetails = {
+  commentsInstructions: string;
+  drawingOnFile: string;
+};
+
 type GroupedComponent = {
   orderOrigin: string;
   order: string;
@@ -51,6 +56,8 @@ type GroupedComponent = {
   originallyOrderedQuantity: number;
   description: string;
   inventoryUnit: string;
+  commentsInstructions: string;
+  drawingOnFile: string;
 };
 
 type GroupedLine = {
@@ -131,6 +138,10 @@ function componentKey(row: any) {
     toNumber(row?.BOMLine),
     toText(row?.Component),
   ].join("|");
+}
+
+function listComponentLookupKey(lineLookupKey: string, bomLine: number) {
+  return [lineLookupKey, bomLine].join("|");
 }
 
 async function fetchItemDetails(
@@ -244,6 +255,61 @@ async function fetchSalesOrderLineDetails(
     orderLineText: toNullableText(row?.OrderLineText),
     escalationComment: toNullableText(row?.EscalationComment),
     escalationLevel: toText(row?.EscalationLevel),
+  };
+}
+
+async function fetchListComponentDetails(
+  base: string,
+  tenant: string,
+  accessToken: string,
+  company: string,
+  listGroup: string,
+  item: string,
+  sequenceNumber: number,
+): Promise<ListComponentDetails> {
+  const escapedListGroup = listGroup.replace(/'/g, "''");
+  const escapedItem = item.replace(/'/g, "''");
+  const entityPath = `ListComponents(ListGroup='${escapedListGroup}',Item='${escapedItem}',ListType=txgwi.OutboundOrderLines.ListType'Kit',SequenceNumber=${sequenceNumber})`;
+  const url = `${base}/${tenant}/LN/lnapi/odata/txgwi.OutboundOrderLines/${encodeURI(entityPath)}?$select=*`;
+
+  console.info("[ln-kitting-docs-order-set] requesting list component details", {
+    listGroup,
+    item: toText(item) || item,
+    sequenceNumber,
+  });
+
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        "Content-Language": "en-US",
+        "X-Infor-LnCompany": company,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    REQUEST_TIMEOUT_MS,
+  );
+
+  const payload = (await response.json().catch(() => null)) as any;
+  if (!response.ok || !payload) {
+    console.error("[ln-kitting-docs-order-set] list component details upstream error", {
+      status: response.status,
+      listGroup,
+      item: toText(item) || item,
+      sequenceNumber,
+      error: payload?.error?.message || "odata_error",
+    });
+    return {
+      commentsInstructions: "",
+      drawingOnFile: "",
+    };
+  }
+
+  return {
+    commentsInstructions: toText(payload?.CommentsInstructions),
+    drawingOnFile: toText(payload?.DrawingOnFile),
   };
 }
 
@@ -420,6 +486,8 @@ serve(async (req) => {
           originallyOrderedQuantity: toNumber(bom?.OriginallyOrderedQuantity),
           description: "",
           inventoryUnit: "",
+          commentsInstructions: "",
+          drawingOnFile: "",
         });
       }
 
@@ -447,6 +515,34 @@ serve(async (req) => {
       );
       const salesOrderLineDetailsMap = new Map<string, SalesOrderLineDetails>(salesOrderLineDetailsEntries);
 
+      const listComponentDetailsEntries = await Promise.all(
+        Array.from(lineMap.entries()).flatMap(([key, line]) => {
+          const listGroup = salesOrderLineDetailsMap.get(key)?.listGroup || "";
+
+          return Array.from(line.componentMap.values()).map(async (component) => {
+            if (!listGroup || !line.itemRaw) {
+              return [
+                listComponentLookupKey(key, component.bomLine),
+                { commentsInstructions: "", drawingOnFile: "" },
+              ] as const;
+            }
+
+            const details = await fetchListComponentDetails(
+              base,
+              cfg.ti,
+              accessToken,
+              company,
+              listGroup,
+              line.itemRaw,
+              component.bomLine,
+            );
+
+            return [listComponentLookupKey(key, component.bomLine), details] as const;
+          });
+        }),
+      );
+      const listComponentDetailsMap = new Map<string, ListComponentDetails>(listComponentDetailsEntries);
+
       const lines = Array.from(lineMap.values())
         .map(({ componentMap, ...line }) => ({
           ...line,
@@ -462,6 +558,20 @@ serve(async (req) => {
               ...component,
               description: itemDetailsMap.get(component.component)?.description || "",
               inventoryUnit: itemDetailsMap.get(component.component)?.inventoryUnit || "",
+              commentsInstructions:
+                listComponentDetailsMap.get(
+                  listComponentLookupKey(
+                    [line.orderOrigin, line.order, line.line, line.sequence, line.set].join("|"),
+                    component.bomLine,
+                  ),
+                )?.commentsInstructions || "",
+              drawingOnFile:
+                listComponentDetailsMap.get(
+                  listComponentLookupKey(
+                    [line.orderOrigin, line.order, line.line, line.sequence, line.set].join("|"),
+                    component.bomLine,
+                  ),
+                )?.drawingOnFile || "",
             }))
             .sort((a, b) => a.bomLine - b.bomLine),
         }))
@@ -474,6 +584,7 @@ serve(async (req) => {
         rawRows: rows.length,
         lineCount: lines.length,
         itemLookups: itemLookups.size,
+        listComponentLookups: listComponentDetailsEntries.length,
       });
 
       return json({ ok: true, count: lines.length, lines }, 200);

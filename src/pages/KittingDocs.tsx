@@ -43,6 +43,8 @@ type KittingComponent = {
   originallyOrderedQuantity: number;
   description: string;
   inventoryUnit: string;
+  commentsInstructions: string;
+  drawingOnFile: string;
 };
 
 type SalesOrderLineDetails = {
@@ -894,8 +896,8 @@ const KittingDocs = () => {
                                 <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">
                                   {formatQuantityWithUnit(component.quantity, component.inventoryUnit)}
                                 </td>
-                                <td className="px-4 py-3 text-gray-900"></td>
-                                <td className="px-4 py-3 text-gray-900"></td>
+                                <td className="px-4 py-3 text-gray-900">{component.drawingOnFile}</td>
+                                <td className="px-4 py-3 text-gray-900">{component.commentsInstructions}</td>
                                 <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
                                   {isDrawingFilenameLoading(component.componentRaw) ? (
                                     <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
