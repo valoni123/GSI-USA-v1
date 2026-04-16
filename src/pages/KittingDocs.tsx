@@ -719,7 +719,7 @@ const KittingDocs = () => {
       const textStartX = logoPlacement ? logoPlacement.right + 14 : left;
       const titleY = 38;
       const detailsY = 56;
-      const titleParts = ["List Components for Assembly", formatItemNumber(line.item), line.itemDescription]
+      const titleParts = ["List Components for Assembly:", formatItemNumber(line.item), line.itemDescription]
         .filter(Boolean)
         .join("   ");
 
@@ -728,14 +728,14 @@ const KittingDocs = () => {
       pdf.setFontSize(10.5);
       pdf.text(titleParts, textStartX, titleY);
 
-      pdf.text("Inception", textStartX, detailsY);
+      pdf.text("Inception:", textStartX, detailsY);
       pdf.setFont("helvetica", "normal");
-      pdf.text(formatUsDate(line.itemCreationDate), textStartX + 56, detailsY);
+      pdf.text(` ${formatUsDate(line.itemCreationDate)}`, textStartX + 56, detailsY);
 
       pdf.setFont("helvetica", "bold");
-      pdf.text("Last Revision", textStartX + 148, detailsY);
+      pdf.text("Last Revision:", textStartX + 148, detailsY);
       pdf.setFont("helvetica", "normal");
-      pdf.text(formatUsDate(line.itemLastModificationDate), textStartX + 222, detailsY);
+      pdf.text(` ${formatUsDate(line.itemLastModificationDate)}`, textStartX + 222, detailsY);
 
       const dividerY = Math.max(logoPlacement ? logoPlacement.bottom + 14 : 84, 86);
       pdf.setDrawColor(140, 140, 140);
