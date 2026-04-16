@@ -819,8 +819,15 @@ const KittingDocs = () => {
               return (
                 <Card
                   key={lineKey}
-                  className="rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70"
+                  className="relative rounded-xl border-2 border-gray-200 bg-white p-6 shadow-md shadow-gray-300/70"
                 >
+                  {showRushBadge ? (
+                    <div className="pointer-events-none absolute right-6 -top-3 rounded-sm bg-white px-2 py-0.5">
+                      <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-700 whitespace-nowrap">
+                        Rush
+                      </span>
+                    </div>
+                  ) : null}
                   <div className="space-y-5">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-base">
                       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
@@ -886,11 +893,6 @@ const KittingDocs = () => {
                       </div>
 
                       <div className="ml-auto flex shrink-0 items-center gap-2">
-                        {showRushBadge ? (
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-700 whitespace-nowrap">
-                            Rush
-                          </span>
-                        ) : null}
                         {printedItems[line.itemRaw] && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700 whitespace-nowrap">
                             <Check className="h-4 w-4 stroke-[3]" />
