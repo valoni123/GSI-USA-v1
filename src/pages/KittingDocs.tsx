@@ -847,11 +847,6 @@ const KittingDocs = () => {
                             <span className="text-gray-600">{trans.sequenceLabel}:</span>
                             <span className="font-semibold text-gray-900">{line.sequence}</span>
                           </div>
-                          {showRushBadge ? (
-                            <span className="inline-flex w-fit items-center rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
-                              Rush
-                            </span>
-                          ) : null}
                         </div>
 
                         <span className="text-gray-400">|</span>
@@ -891,6 +886,11 @@ const KittingDocs = () => {
                       </div>
 
                       <div className="ml-auto flex shrink-0 items-center gap-2">
+                        {showRushBadge ? (
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-700 whitespace-nowrap">
+                            Rush
+                          </span>
+                        ) : null}
                         {printedItems[line.itemRaw] && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-sm font-semibold text-green-700 whitespace-nowrap">
                             <Check className="h-4 w-4 stroke-[3]" />
