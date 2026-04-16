@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronDown, ChevronUp, FileImage, Loader2, LogOut, Printer, User } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, FileImage, Loader2, LogOut, Printer, ScrollText, User } from "lucide-react";
 import jsPDF from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import BackButton from "@/components/BackButton";
 import ItemDrawingDialog from "@/components/ItemDrawingDialog";
+import PackagingInstructionsDialog from "@/components/PackagingInstructionsDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -161,6 +162,9 @@ const KittingDocs = () => {
   const [drawingUrl, setDrawingUrl] = useState("");
   const [drawingTitle, setDrawingTitle] = useState("");
   const [drawingFilename, setDrawingFilename] = useState("");
+  const [packagingInstructionsDialogOpen, setPackagingInstructionsDialogOpen] = useState(false);
+  const [packagingInstructionsDialogTitle, setPackagingInstructionsDialogTitle] = useState("");
+  const [packagingInstructionsDialogText, setPackagingInstructionsDialogText] = useState("");
   const [drawingLoadingKey, setDrawingLoadingKey] = useState("");
   const [combinedDrawingLoadingKey, setCombinedDrawingLoadingKey] = useState("");
   const [lineDrawingLoadingKey, setLineDrawingLoadingKey] = useState("");
@@ -760,6 +764,20 @@ const KittingDocs = () => {
     }
   };
 
+  const openPackagingInstructionsDialog = (line: KittingLine) => {
+    const packagingInstructionsText = line.salesOrderLineDetails?.packagingInstructionsText?.trim() || "";
+    if (!packagingInstructionsText) return;
+
+    const shipToName = line.salesOrderLineDetails?.shiptoBusinessPartnerName?.trim();
+    setPackagingInstructionsDialogTitle(
+      shipToName
+        ? `Packaging Instructions: ${shipToName}`
+        : `Packaging Instructions: ${line.order}/${line.set}`,
+    );
+    setPackagingInstructionsDialogText(packagingInstructionsText);
+    setPackagingInstructionsDialogOpen(true);
+  };
+
   const markCurrentDrawingAsPrinted = () => {
     if (drawingItemRaws.length === 0) return;
     setPrintedItems((current) => ({
@@ -1034,6 +1052,17 @@ const KittingDocs = () => {
                               <FileImage className="h-5 w-5" />
                             )}
                           </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 shrink-0 rounded-md bg-violet-100 text-violet-700 hover:bg-violet-200 hover:text-violet-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                            onClick={() => openPackagingInstructionsDialog(line)}
+                            aria-label="Packaging Instructions"
+                            disabled={!hasPackagingInstructions}
+                          >
+                            <ScrollText className="h-5 w-5" />
+                          </Button>
                         </div>
                       </div>
 
@@ -1237,6 +1266,13 @@ const KittingDocs = () => {
         openInNewTabLabel={trans.kittingOpenDrawingLabel}
         printLabel={trans.kittingPrintLabel}
         onPrint={markCurrentDrawingAsPrinted}
+      />
+
+      <PackagingInstructionsDialog
+        open={packagingInstructionsDialogOpen}
+        onOpenChange={setPackagingInstructionsDialogOpen}
+        title={packagingInstructionsDialogTitle}
+        text={packagingInstructionsDialogText}
       />
 
       <SignOutConfirm
