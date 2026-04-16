@@ -662,66 +662,193 @@ const KittingDocs = () => {
   };
 
   const buildLineComponentsPdf = (line: KittingLine, logo: ReportLogo | null = reportLogo) => {
-    const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+    const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const left = 12;
-    const right = pageWidth - 24;
-    const logoPlacement = addReportLogo(pdf, left, logo);
-    let y = 42;
+    const left = 42;
+    const right = pageWidth - 42;
+    const tableWidth = right - left;
+    const now = new Date();
+    const reportUser = String(localStorage.getItem("gsi.id") || fullName || "").trim() || "-";
 
-    const addText = (text: string, x: number, nextY = 16) => {
-      pdf.text(text, x, y);
-      y += nextY;
+    const formatHeaderDate = (value: Date) => {
+      const year = String(value.getFullYear()).slice(-2);
+      const month = String(value.getMonth() + 1).padStart(2, "0");
+      const day = String(value.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     };
 
-    const ensureSpace = (needed = 20) => {
-      if (y + needed <= pageHeight - 40) return;
-      pdf.addPage();
-      y = 42;
+    const formatHeaderTime = (value: Date) => {
+      return new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(value);
     };
 
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
-    const titleCenterX = logoPlacement ? (Math.max(logoPlacement.right + 20, left + 180) + right) / 2 : pageWidth / 2;
-    pdf.text(trans.kittingPrintListComponentsLabel, titleCenterX, 36, { align: "center" });
+    const formatUsDate = (value: string) => {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const year = String(date.getFullYear());
+      return `${month}/${day}/${year}`;
+    };
 
-    y = Math.max(logoPlacement ? logoPlacement.bottom + 12 : 58, 58);
+    const formatQuantityDecimal = (value: number) => {
+      const safeValue = Number.isFinite(value) ? value : 0;
+      return safeValue.toFixed(4);
+    };
 
-    pdf.setFontSize(11);
-    pdf.setFont("helvetica", "normal");
-    addText(`${trans.orderLabel}: ${line.order}`, left);
-    addText(`${trans.setLabel}: ${line.set}`, left);
-    addText(`${trans.lineLabel}: ${line.line}    ${trans.sequenceLabel}: ${line.sequence}`, left);
-    addText(`${trans.kittingMainItemLabel}: ${formatItemNumber(line.item)} ${line.itemDescription || ""}`.trim(), left, 22);
+    const columns = [
+      { key: "sequence", label: "Sequence", width: 66 },
+      { key: "component", label: "Sub-Part", width: 132 },
+      { key: "quantity", label: "Quantity", width: 86 },
+      { key: "description", label: "Description", width: 176 },
+      { key: "drawing", label: "Drawing\non File", width: 88 },
+      { key: "comments", label: "Comments/\nInstructions", width: 152 },
+      { key: "filename", label: "Drawing File Name", width: tableWidth - (66 + 132 + 86 + 176 + 88 + 152) },
+    ];
 
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(10);
-    pdf.text(trans.kittingBomLineLabel, left, y);
-    pdf.text(trans.kittingComponentLabel, left + 70, y);
-    pdf.text(trans.quantityLabel, right - 210, y, { align: "right" });
-    pdf.text(trans.kittingDrawingFileNameLabel, right, y, { align: "right" });
-    y += 10;
-    pdf.setLineWidth(0.8);
-    pdf.line(left, y, right, y);
-    y += 16;
+    const drawHeaderStatic = () => {
+      const logoPlacement = addReportLogo(pdf, left, logo);
+      const rightBlockWidth = 118;
+      const rightBlockLeft = right - rightBlockWidth;
+      const textStartX = logoPlacement ? logoPlacement.right + 14 : left;
+      const titleY = 38;
+      const detailsY = 56;
 
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(9);
+      pdf.setTextColor(24, 24, 27);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.text("List Components for Assembly", textStartX, titleY);
+      pdf.text(formatItemNumber(line.item), textStartX + 172, titleY);
+
+      pdf.text("Inception", textStartX, detailsY);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(formatUsDate(line.itemCreationDate), textStartX + 56, detailsY);
+
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Last Revision", textStartX + 138, detailsY);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(formatUsDate(line.itemLastModificationDate), textStartX + 212, detailsY);
+
+      const dividerY = Math.max(logoPlacement ? logoPlacement.bottom + 14 : 84, 86);
+      pdf.setDrawColor(140, 140, 140);
+      pdf.setLineWidth(0.7);
+      pdf.line(left, dividerY, right, dividerY);
+
+      return { dividerY, rightBlockLeft, rightBlockWidth };
+    };
+
+    const drawPageMeta = (pageNumber: number, totalPages: number) => {
+      const rightBlockWidth = 118;
+      const rightBlockLeft = right - rightBlockWidth;
+      const metaTop = 36;
+
+      pdf.setTextColor(24, 24, 27);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text("Page", rightBlockLeft, metaTop);
+      pdf.text(`${pageNumber} of ${totalPages}`, right, metaTop, { align: "right" });
+      pdf.text(formatHeaderDate(now), rightBlockLeft, metaTop + 18);
+      pdf.text(formatHeaderTime(now), rightBlockLeft, metaTop + 36);
+      pdf.text(reportUser, rightBlockLeft, metaTop + 54);
+    };
+
+    const getRowValues = (component: KittingComponent) => ({
+      sequence: String(component.bomLine),
+      component: formatItemNumber(component.component),
+      quantity: formatQuantityDecimal(component.quantity),
+      description: component.description || "",
+      drawing: component.drawingOnFile || "-",
+      comments: component.commentsInstructions || "",
+      filename: getDrawingFilename(component.componentRaw),
+    });
+
+    const measureRowHeight = (component: KittingComponent) => {
+      const values = getRowValues(component);
+      const lineCounts = columns.map((column) => {
+        const content = values[column.key as keyof typeof values];
+        const lines = pdf.splitTextToSize(content || " ", column.width - 8);
+        return Array.isArray(lines) ? Math.max(lines.length, 1) : 1;
+      });
+      return Math.max(38, Math.max(...lineCounts) * 12 + 12);
+    };
+
+    const drawTableHeader = (startY: number) => {
+      const headerHeight = 38;
+      let cursorX = left;
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(24, 24, 27);
+      pdf.setDrawColor(140, 140, 140);
+      pdf.setLineWidth(0.6);
+
+      columns.forEach((column) => {
+        pdf.rect(cursorX, startY, column.width, headerHeight);
+        const headerLines = pdf.splitTextToSize(column.label, column.width - 8);
+        const lines = Array.isArray(headerLines) ? headerLines : [column.label];
+        lines.forEach((lineText: string, index: number) => {
+          pdf.text(lineText, cursorX + 4, startY + 13 + index * 11);
+        });
+        cursorX += column.width;
+      });
+
+      return startY + headerHeight;
+    };
+
+    const drawTableRow = (component: KittingComponent, startY: number) => {
+      const values = getRowValues(component);
+      const rowHeight = measureRowHeight(component);
+      let cursorX = left;
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(24, 24, 27);
+      pdf.setDrawColor(140, 140, 140);
+      pdf.setLineWidth(0.6);
+
+      columns.forEach((column) => {
+        pdf.rect(cursorX, startY, column.width, rowHeight);
+        const content = values[column.key as keyof typeof values] || " ";
+        const lines = pdf.splitTextToSize(content, column.width - 8);
+        const renderedLines = Array.isArray(lines) ? lines : [content];
+        renderedLines.forEach((lineText: string, index: number) => {
+          pdf.text(lineText, cursorX + 4, startY + 14 + index * 11);
+        });
+        cursorX += column.width;
+      });
+
+      return startY + rowHeight;
+    };
+
+    let { dividerY } = drawHeaderStatic();
+    let y = drawTableHeader(dividerY + 36);
 
     line.components.forEach((component) => {
-      ensureSpace(34);
-      pdf.text(String(component.bomLine), left, y);
-      pdf.text(formatItemNumber(component.component), left + 70, y);
-      if (component.description) {
-        pdf.setFontSize(8);
-        pdf.text(component.description, left + 70, y + 11);
-        pdf.setFontSize(9);
+      const rowHeight = measureRowHeight(component);
+      if (y + rowHeight > pageHeight - 74) {
+        pdf.addPage();
+        ({ dividerY } = drawHeaderStatic());
+        y = drawTableHeader(dividerY + 36);
       }
-      pdf.text(formatQuantityWithUnit(component.quantity, component.inventoryUnit), right - 210, y, { align: "right" });
-      pdf.text(getDrawingFilename(component.componentRaw), right, y, { align: "right" });
-      y += 26;
+      y = drawTableRow(component, y);
     });
+
+    const totalPages = pdf.getNumberOfPages();
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+      pdf.setPage(pageNumber);
+      drawPageMeta(pageNumber, totalPages);
+    }
+
+    pdf.setPage(totalPages);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.setTextColor(24, 24, 27);
+    pdf.text(`Total # of Parts    ${line.components.length}`, left, pageHeight - 28);
 
     return new Uint8Array(pdf.output("arraybuffer"));
   };
