@@ -1189,15 +1189,21 @@ const KittingDocs = () => {
         setReportLogo(logo);
       }
 
+      const printedPackagingShipToBps = new Set<string>();
       const prependPdfBytes = lines.flatMap((line) => {
         const generatedReports: Uint8Array[] = [];
 
         const packagingInstructionsText = line.salesOrderLineDetails?.packagingInstructionsText?.trim() || "";
-        if (packagingInstructionsText) {
+        const shipToBusinessPartner = line.salesOrderLineDetails?.shiptoBusinessPartner?.trim() || "__empty_shipto_bp__";
+        if (packagingInstructionsText && !printedPackagingShipToBps.has(shipToBusinessPartner)) {
+          printedPackagingShipToBps.add(shipToBusinessPartner);
           generatedReports.push(buildPackagingInstructionsPdf(line, logo));
         }
 
-        generatedReports.push(buildLineComponentsPdf(line, logo));
+        if (line.components.length > 0) {
+          generatedReports.push(buildLineComponentsPdf(line, logo));
+        }
+
         return generatedReports;
       });
 
