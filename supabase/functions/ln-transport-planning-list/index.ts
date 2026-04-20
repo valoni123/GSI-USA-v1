@@ -58,9 +58,6 @@ serve(async (req) => {
     })();
     const showAll = Boolean(body.showAll);
 
-    if (!vehicleId) {
-      return json({ ok: false, error: "missing_vehicle" }, 200);
-    }
     if (!showAll && !planningGroup) {
       return json({ ok: false, error: "missing_group" }, 200);
     }
@@ -123,10 +120,20 @@ serve(async (req) => {
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
     const escapedVehicle = vehicleId.replace(/'/g, "''");
     const escapedGroup = planningGroup.replace(/'/g, "''");
-    const filter = showAll
-      ? `PlannedVehicle eq '${escapedVehicle}'`
-      : `PlanningGroupTransport eq '${escapedGroup}' and PlannedVehicle eq '${escapedVehicle}'`;
-    const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
+    const filterParts: string[] = [];
+
+    if (!showAll) {
+      filterParts.push(`PlanningGroupTransport eq '${escapedGroup}'`);
+    }
+    if (vehicleId) {
+      filterParts.push(`PlannedVehicle eq '${escapedVehicle}'`);
+    }
+
+    const firstUrl = `${base}${path}?${new URLSearchParams({
+      ...(filterParts.length > 0 ? { "$filter": filterParts.join(" and ") } : {}),
+      "$count": "true",
+      "$select": "*",
+    }).toString()}`;
 
     const headers = {
       accept: "application/json",

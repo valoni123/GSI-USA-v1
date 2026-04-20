@@ -94,8 +94,11 @@ const TransportSelect = () => {
 
   const onConfirm = () => {
     const vid = vehicleId.trim();
-    if (!vid) return;
-    localStorage.setItem("vehicle.id", vid);
+    if (vid) {
+      localStorage.setItem("vehicle.id", vid);
+    } else {
+      localStorage.removeItem("vehicle.id");
+    }
     setSubmitting(true);
 
     if (showAll) {
@@ -301,7 +304,7 @@ const TransportSelect = () => {
             <div className="w-full space-y-2">
               <Button
                 className="w-full h-10 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-                disabled={submitting || !vehicleId.trim() || (!showAll && !group.trim())}
+                disabled={submitting || (!showAll && !group.trim())}
                 onClick={onConfirm}
               >
                 OK
