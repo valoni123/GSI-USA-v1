@@ -896,8 +896,6 @@ const TransportLoad = () => {
     }
     showSuccess(trans.loadedSuccessfully);
 
-<<<<<<< HEAD
-=======
     const patchTid = showLoading(trans.updatingTransportOrder);
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
@@ -925,7 +923,6 @@ const TransportLoad = () => {
       return;
     }
 
->>>>>>> 7b0a5724d7c95e0c4cdfac6732f6f5e1a264bef9
     setHandlingUnit("");
     resetResolvedState();
     setTimeout(() => huRef.current?.focus(), 50);
