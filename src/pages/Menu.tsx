@@ -100,11 +100,6 @@ function Menu() {
               if (app.key === "infoStock") {
                 navigate("/menu/info-stock");
               }
-              if (app.key === "transport") {
-                sessionStorage.setItem("transport.fromMain", "1");
-                sessionStorage.removeItem("transport.selected");
-                navigate("/menu/transport");
-              }
               if (app.key === "transports") {
                 navigate("/menu/transports");
               }

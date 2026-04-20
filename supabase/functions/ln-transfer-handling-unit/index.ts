@@ -110,10 +110,16 @@ serve(async (req) => {
     const accessToken = tokenJson.access_token as string;
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
+<<<<<<< HEAD
     const path = `/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/Transfers`;
     const url = `${base}${path}?$select=*`;
+=======
+    const path = `/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/Transfer`;
+    const url = `${base}${path}?$select=TransferID`;
+>>>>>>> 7b0a5724d7c95e0c4cdfac6732f6f5e1a264bef9
 
     const lnPayload: Record<string, unknown> = {
+
       FromWarehouse: (body.VonLager || "").trim(),
       FromLocation: (body.VonLagerplatz || "").trim(),
       ToWarehouse: (body.InLager || "").trim(),

@@ -12,6 +12,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import BackButton from "@/components/BackButton";
 import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 import { t, type LanguageKey } from "@/lib/i18n";
 import { showSuccess, showError } from "@/utils/toast";
 
@@ -157,7 +158,7 @@ const IncomingInspectionPage: React.FC = () => {
     const inspectionSeq = getSequence(selectedLine);
     const inspectionLine = getInspectionLine(selectedLine) || (singleLineOnly ? 1 : 0);
 
-    const emp = (localStorage.getItem("gsi.employee") || "").toString();
+    const emp = getStoredGsiUsername();
 
     const payload = {
       TransactionID: "",
@@ -239,22 +240,17 @@ const IncomingInspectionPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const company = "1100";
-      const url = "https://lkmdrhprvumenzzykmxu.supabase.co/functions/v1/ln-warehouse-inspections";
-      const params = new URLSearchParams({ q, company });
-      const resp = await fetch(`${url}?${params.toString()}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
+      const { data, error } = await supabase.functions.invoke("ln-warehouse-inspections", {
+        body: { q },
       });
 
-      const data = await resp.json();
-      if (!resp.ok) {
-        showError(data?.error || "Unable to fetch inspections");
+      if (error) {
+        showError("Unable to fetch inspections");
         return;
       }
 
-      const count = data?.["@odata.count"] ?? 0;
-      const value = Array.isArray(data?.value) ? data.value : [];
+      const count = (data as any)?.["@odata.count"] ?? 0;
+      const value = Array.isArray((data as any)?.value) ? (data as any).value : [];
 
       const hasInspectionMatch = value.some((v: any) => typeof v?.Inspection === "string" && v.Inspection === q);
       const hasOrderMatch = value.some((v: any) => typeof v?.Order === "string" && v.Order === q);
@@ -302,9 +298,9 @@ const IncomingInspectionPage: React.FC = () => {
       setLinesLoading(true);
       const insp = (selectedLine?.Inspection || "").toString().trim();
       const seq = Number(
-        selectedLine?.InspectionSequence ??
-        selectedLine?.Sequence ??
-        selectedLine?.OrderSequence ??
+        selectedLine?.InspectionSequence ?? 
+        selectedLine?.Sequence ?? 
+        selectedLine?.OrderSequence ?? 
         0
       );
       if (!insp || !seq) {

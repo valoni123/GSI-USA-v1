@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import { clearStoredGsiPermissions, getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
@@ -57,28 +58,32 @@ const TransportMenu = () => {
 
   const tiles: Tile[] = [
     ...(hasPermission(permissions, "trlo")
-      ? [{
-          key: "load",
-          label: trans.transportLoad,
-          icon: (
-            <div className="relative flex items-center justify-center">
-              <Forklift className="h-10 w-10 text-red-700" />
-              <ArrowBigLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
-            </div>
-          ),
-        }]
+      ? [
+          {
+            key: "load",
+            label: trans.transportLoad,
+            icon: (
+              <div className="relative flex items-center justify-center">
+                <Forklift className="h-10 w-10 text-red-700" />
+                <ArrowBigLeft className="absolute -right-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
+              </div>
+            ),
+          },
+        ]
       : []),
     ...(hasPermission(permissions, "trul")
-      ? [{
-          key: "unload",
-          label: trans.transportUnload,
-          icon: (
-            <div className="relative flex items-center justify-center">
-              <Forklift className="h-10 w-10 text-red-700 transform scale-x-[-1]" />
-              <ArrowBigRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
-            </div>
-          ),
-        }]
+      ? [
+          {
+            key: "unload",
+            label: trans.transportUnload,
+            icon: (
+              <div className="relative flex items-center justify-center">
+                <Forklift className="h-10 w-10 text-red-700 transform scale-x-[-1]" />
+                <ArrowBigRight className="absolute -left-4 top-1/2 -translate-y-1/2 h-7 w-7 text-red-700" />
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
   const [loadedCount, setLoadedCount] = useState<number>(0);
@@ -161,7 +166,7 @@ const TransportMenu = () => {
     }
   };
 
-  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`;
+  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit || it.Item || it.LocationFrom}`;
 
   const onMoveBack = async (it: LoadedListItem) => {
     const key = moveBackKey(it);
@@ -170,11 +175,13 @@ const TransportMenu = () => {
     const requestId = ++moveBackRequestIdRef.current;
     const currentItem = {
       HandlingUnit: (it.HandlingUnit || "").trim(),
+      Item: it.Item || "",
       Warehouse: (it.Warehouse || "").trim(),
       LocationFrom: (it.LocationFrom || "").trim(),
       TransportID: (it.TransportID || "").trim(),
       RunNumber: (it.RunNumber || "").trim(),
       ETag: (it.ETag || "").trim(),
+      OrderedQuantity: it.OrderedQuantity,
     };
 
     setMovingBackMap((m) => ({ ...m, [key]: true }));
@@ -187,25 +194,37 @@ const TransportMenu = () => {
       setMoveBackProcessing(false);
       return;
     }
-    const employeeCode = (
-      (localStorage.getItem("gsi.employee") ||
-        localStorage.getItem("gsi.username") ||
-        localStorage.getItem("gsi.login") ||
-        "") as string
-    ).trim();
+    const employeeCode = getStoredGsiUsername();
+
+    const movePayload: Record<string, unknown> = {
+      fromWarehouse: currentItem.Warehouse,
+      fromLocation: vid,
+      toWarehouse: currentItem.Warehouse,
+      toLocation: currentItem.LocationFrom,
+      employee: employeeCode,
+      language: "en-US",
+    };
+    if (currentItem.HandlingUnit) {
+      movePayload.handlingUnit = currentItem.HandlingUnit;
+    } else {
+      const rawQty = currentItem.OrderedQuantity;
+      const qty =
+        typeof rawQty === "number"
+          ? rawQty
+          : (typeof rawQty === "string" && rawQty.trim() ? Number(rawQty) : NaN);
+      if (!currentItem.Item || Number.isNaN(qty)) {
+        showError("Missing OrderedQuantity for item movement.");
+        setMovingBackMap((m) => ({ ...m, [key]: false }));
+        setMoveBackProcessing(false);
+        return;
+      }
+      movePayload.item = currentItem.Item;
+      movePayload.quantity = qty;
+    }
 
     const tid = showLoading("Please wait…");
-    // Step 1: Move HU back from vehicle location to original Location From
     const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
-      body: {
-        handlingUnit: currentItem.HandlingUnit,
-        fromWarehouse: currentItem.Warehouse,
-        fromLocation: vid,
-        toWarehouse: currentItem.Warehouse,
-        toLocation: currentItem.LocationFrom,
-        employee: employeeCode,
-        language: "en-US",
-      },
+      body: movePayload,
     });
     if (moveBackRequestIdRef.current !== requestId) {
       dismissToast(tid as unknown as string);
@@ -236,6 +255,7 @@ const TransportMenu = () => {
         company: "1100",
       },
     });
+
     dismissToast(tid as unknown as string);
     if (moveBackRequestIdRef.current !== requestId) {
       setMovingBackMap((m) => ({ ...m, [key]: false }));
@@ -418,20 +438,18 @@ const TransportMenu = () => {
                           <div className="break-all">{it.LocationFrom}</div>
                           <div className="break-all">{it.LocationTo}</div>
                           <div className="flex justify-end">
-                            {it.HandlingUnit ? (
-                              <button
-                                type="button"
-                                className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                                onClick={() => {
-                                  setConfirmItem(it);
-                                  setConfirmMoveBackOpen(true);
-                                }}
-                                disabled={moveBackProcessing || Boolean(movingBackMap[`${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`])}
-                                aria-label="Move back"
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </button>
-                            ) : null}
+                            <button
+                              type="button"
+                              className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                              onClick={() => {
+                                setConfirmItem(it);
+                                setConfirmMoveBackOpen(true);
+                              }}
+                              disabled={moveBackProcessing || Boolean(movingBackMap[moveBackKey(it)])}
+                              aria-label="Move back"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
                       </div>

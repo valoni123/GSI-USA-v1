@@ -11,6 +11,7 @@ import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 
 const cleanValue = (value: string) => {
   const trimmed = (value || "").trim();
@@ -18,17 +19,19 @@ const cleanValue = (value: string) => {
 };
 
 type PlanningItem = {
+  PlanningGroupTransport?: string;
   TransportID: string;
-  RunNumber: string;
   TransportType: string;
   Item: string;
   HandlingUnit: string;
   Warehouse: string;
   LocationFrom: string;
   LocationTo: string;
-  Remark: string;
-  ETag: string;
+  Remark?: string;
   OrderedQuantity?: number | string | null;
+  OrderUnit?: string | null;
+  ETag?: string;
+  ODataId?: string;
 };
 
 type LoadedListItem = {
@@ -46,6 +49,8 @@ type LoadedListItem = {
 const TransportsList = () => {
   const navigate = useNavigate();
   const moveBackLocationRef = useRef<HTMLInputElement | null>(null);
+  const loadedListSpinnerTimeoutRef = useRef<number | null>(null);
+  const moveBackSpinnerTimeoutRef = useRef<number | null>(null);
   const lang: LanguageKey = ((localStorage.getItem("app.lang") as LanguageKey) || "en");
   const trans = useMemo(() => t(lang), [lang]);
   const locale = useMemo(() => {
@@ -69,8 +74,11 @@ const TransportsList = () => {
   const [listLoading, setListLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [moveBackProcessing, setMoveBackProcessing] = useState(false);
+  const [planningLoadingMore, setPlanningLoadingMore] = useState(false);
   const [loadedCount, setLoadedCount] = useState<number>(() => Number(localStorage.getItem("transport.count") || "0"));
   const [items, setItems] = useState<PlanningItem[]>([]);
+  const [planningTotalCount, setPlanningTotalCount] = useState(0);
+  const [planningNextPageUrl, setPlanningNextPageUrl] = useState<string | null>(null);
   const [loadedItems, setLoadedItems] = useState<LoadedListItem[]>([]);
   const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
   const [listOpen, setListOpen] = useState(false);
@@ -82,25 +90,66 @@ const TransportsList = () => {
 
   const selectedVehicleId = (localStorage.getItem("transports.vehicle.id") || localStorage.getItem("vehicle.id") || "").trim();
 
-  const loadPlanningItems = async () => {
+  const formatQuantity = (quantity?: number | string | null, unit?: string | null) => {
+    const normalizedUnit = (unit || "").trim();
+
+    if (typeof quantity === "number") {
+      return normalizedUnit ? `${quantity} ${normalizedUnit}` : String(quantity);
+    }
+
+    const normalizedQuantity = (quantity || "").toString().trim();
+    if (!normalizedQuantity) {
+      return normalizedUnit || "-";
+    }
+
+    return normalizedUnit ? `${normalizedQuantity} ${normalizedUnit}` : normalizedQuantity;
+  };
+
+  const loadPlanningItems = async ({ append = false, nextPageUrl = "" }: { append?: boolean; nextPageUrl?: string } = {}) => {
     if (!selectedVehicleId) {
       setItems([]);
+      setPlanningTotalCount(0);
+      setPlanningNextPageUrl(null);
       setError("Missing vehicle");
       return;
     }
 
+    console.log("[TransportsList] loading planning items", {
+      selectedVehicleId,
+      append,
+      nextPageUrl,
+    });
+
     const { data } = await supabase.functions.invoke("ln-transports-list", {
-      body: { vehicleId: selectedVehicleId, language: locale },
+      body: { vehicleId: selectedVehicleId, language: locale, nextPageUrl, company: "1100" },
     });
 
     if (data && data.ok) {
-      setItems(data.items || []);
+      const nextItems = Array.isArray(data.items) ? (data.items as PlanningItem[]) : [];
+      setItems((current) => (append ? [...current, ...nextItems] : nextItems));
+      if (typeof data.count === "number") {
+        setPlanningTotalCount(Number(data.count));
+      } else if (!append) {
+        setPlanningTotalCount(nextItems.length);
+      }
+      setPlanningNextPageUrl(typeof data.nextPageUrl === "string" && data.nextPageUrl.trim() ? data.nextPageUrl : null);
       setError(null);
       return;
     }
 
-    setItems([]);
+    if (!append) {
+      setItems([]);
+      setPlanningTotalCount(0);
+    }
+    setPlanningNextPageUrl(null);
     setError((data && (data.error?.message || data.error)) || "Failed to load");
+  };
+
+  const loadMorePlanningItems = async () => {
+    if (!planningNextPageUrl || planningLoadingMore) return;
+    setPlanningLoadingMore(true);
+    await loadPlanningItems({ append: true, nextPageUrl: planningNextPageUrl });
+    setPlanningLoadingMore(false);
   };
 
   const fetchLoadedCount = async () => {
@@ -169,18 +218,46 @@ const TransportsList = () => {
 
   const loadPageData = async () => {
     setLoading(true);
-    await Promise.all([loadPlanningItems(), fetchLoadedCount()]);
+    await loadPlanningItems();
     setLoading(false);
+    void fetchLoadedCount();
   };
 
   useEffect(() => {
     void loadPageData();
   }, [locale, selectedVehicleId]);
 
+  useEffect(() => {
+    return () => {
+      if (loadedListSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(loadedListSpinnerTimeoutRef.current);
+      }
+      if (moveBackSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(moveBackSpinnerTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const openLoadedList = async () => {
     setListOpen(true);
     setListLoading(true);
+
+    if (loadedListSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(loadedListSpinnerTimeoutRef.current);
+    }
+
+    loadedListSpinnerTimeoutRef.current = window.setTimeout(() => {
+      setListLoading(false);
+      loadedListSpinnerTimeoutRef.current = null;
+    }, 5000);
+
     await fetchLoadedList();
+
+    if (loadedListSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(loadedListSpinnerTimeoutRef.current);
+      loadedListSpinnerTimeoutRef.current = null;
+    }
+
     setListLoading(false);
   };
 
@@ -208,25 +285,41 @@ const TransportsList = () => {
       return;
     }
 
-    await Promise.all([
-      loadPlanningItems(),
-      fetchLoadedCount(),
-      listOpen ? fetchLoadedList() : Promise.resolve(),
-    ]);
-    showSuccess("GET completed");
     setAssigning(false);
+    showSuccess("GET completed");
+
+    void Promise.all([
+      loadPlanningItems(),
+      listOpen ? fetchLoadedList() : Promise.resolve(),
+    ]).finally(() => {
+      void fetchLoadedCount();
+    });
   };
 
-  const onSelectTransport = (item: { TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; Remark: string; ETag: string; OrderedQuantity?: number | string | null }) => {
+  const onSelectTransport = (item: PlanningItem) => {
     if (!canLoadTransport) return;
     const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
     if (!prefillValue) return;
 
+    const transportLineLoadState = {
+      prefillValue,
+      vehicleId: selectedVehicleId,
+      transportId: (item.TransportID || "").trim(),
+      item: (item.Item || "").trim(),
+      handlingUnit: (item.HandlingUnit || "").trim(),
+      locationFrom: (item.LocationFrom || "").trim(),
+      warehouse: (item.Warehouse || "").trim(),
+      orderedQuantity: item.OrderedQuantity ?? null,
+      orderUnit: item.OrderUnit ?? "",
+    };
+
     localStorage.setItem("vehicle.id", selectedVehicleId);
+    sessionStorage.setItem("transport.line.load.prefill", prefillValue);
+    sessionStorage.setItem("transport.line.load.vehicle", selectedVehicleId);
+    sessionStorage.setItem("transport.line.load.state", JSON.stringify(transportLineLoadState));
     sessionStorage.setItem("transport.load.prefill", prefillValue);
     sessionStorage.setItem("transport.load.selected-item", JSON.stringify({
       TransportID: item.TransportID,
-      RunNumber: item.RunNumber,
       Item: item.Item,
       HandlingUnit: item.HandlingUnit,
       Warehouse: item.Warehouse,
@@ -240,7 +333,9 @@ const TransportsList = () => {
     sessionStorage.setItem("transport.selected", "1");
     sessionStorage.removeItem("transport.fromMain");
     setSelecting(true);
-    navigate("/menu/transport/load");
+    navigate("/menu/transports/load", {
+      state: transportLineLoadState,
+    });
   };
 
   const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`;
@@ -261,12 +356,7 @@ const TransportsList = () => {
       OrderedQuantity: it.OrderedQuantity ?? null,
     };
 
-    const employeeCode = (
-      (localStorage.getItem("gsi.employee") ||
-        localStorage.getItem("gsi.username") ||
-        localStorage.getItem("gsi.login") ||
-        "") as string
-    ).trim();
+    const employeeCode = getStoredGsiUsername();
 
     if (!selectedVehicleId) {
       showError("No vehicle selected. Please set a Vehicle ID.");
@@ -285,7 +375,10 @@ const TransportsList = () => {
       fromLocation: selectedVehicleId,
       toWarehouse: currentItem.Warehouse,
       toLocation: targetLocation,
+      transportId: currentItem.TransportID,
+      loginCode: employeeCode,
       employee: employeeCode,
+      movedBack: "Yes",
       language: locale,
     };
 
@@ -308,49 +401,44 @@ const TransportsList = () => {
     setMovingBackMap((m) => ({ ...m, [key]: true }));
     setMoveBackProcessing(true);
 
+    if (moveBackSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(moveBackSpinnerTimeoutRef.current);
+    }
+
+    moveBackSpinnerTimeoutRef.current = window.setTimeout(() => {
+      setMoveBackProcessing(false);
+      moveBackSpinnerTimeoutRef.current = null;
+    }, 10000);
+
     const tid = showLoading(trans.executingMovement);
     const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
       body: movePayload,
     });
+    dismissToast(tid as unknown as string);
 
     if (moveErr || !moveData || !moveData.ok) {
-      dismissToast(tid as unknown as string);
       const err = (moveData && moveData.error) || moveErr;
       const top = err?.message || "Unbekannter Fehler";
       const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
       showError(message);
       setMovingBackMap((m) => ({ ...m, [key]: false }));
+      if (moveBackSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(moveBackSpinnerTimeoutRef.current);
+        moveBackSpinnerTimeoutRef.current = null;
+      }
       setMoveBackProcessing(false);
       return;
     }
 
-    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
-      body: {
-        transportId: currentItem.TransportID,
-        runNumber: currentItem.RunNumber,
-        etag: currentItem.ETag,
-        vehicleId: "",
-        language: locale,
-        company: "1100",
-      },
-    });
-    dismissToast(tid as unknown as string);
-
-    if (patchErr || !patchData || !patchData.ok) {
-      const err = (patchData && patchData.error) || patchErr;
-      const top = err?.message || "Unbekannter Fehler";
-      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
-      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
-      showError(message);
-      setMovingBackMap((m) => ({ ...m, [key]: false }));
-      setMoveBackProcessing(false);
-      return;
-    }
-
-    await Promise.all([loadPlanningItems(), fetchLoadedCount(), fetchLoadedList()]);
+    await Promise.all([loadPlanningItems(), fetchLoadedList()]);
+    void fetchLoadedCount();
     showSuccess("Moved back");
     setMovingBackMap((m) => ({ ...m, [key]: false }));
+    if (moveBackSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(moveBackSpinnerTimeoutRef.current);
+      moveBackSpinnerTimeoutRef.current = null;
+    }
     setMoveBackProcessing(false);
   };
 
@@ -394,6 +482,8 @@ const TransportsList = () => {
     navigate("/");
   };
 
+  const visibleCount = planningTotalCount > 0 ? planningTotalCount : items.length;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {(loading || selecting || listLoading || moveBackProcessing || assigning) && <ScreenSpinner message={trans.pleaseWait} />}
@@ -407,9 +497,8 @@ const TransportsList = () => {
               type="button"
               onClick={() => navigate("/menu/transports")}
               className="rounded-md bg-gray-200 px-4 py-1 font-bold text-lg uppercase text-black hover:opacity-80"
-
             >
-              {trans.appTransports} ({items.length})
+              {trans.appTransports} ({visibleCount})
             </button>
           </div>
 
@@ -447,9 +536,9 @@ const TransportsList = () => {
               void onGetClick();
             }}
             disabled={!selectedVehicleId || assigning || !canLoadTransport}
-           >
-             GET
-           </Button>
+          >
+            GET
+          </Button>
 
           <Button
             type="button"
@@ -500,12 +589,26 @@ const TransportsList = () => {
                     <span className="font-medium text-gray-800">{cleanValue(it.LocationFrom)}</span>
                   </div>
                   <div className="min-w-0 truncate text-sm leading-5 text-gray-700">
-                    <span className="text-gray-500">{trans.toLabel}:</span>{" "}
-                    <span className="font-medium text-gray-800">{cleanValue(it.LocationTo)}</span>
+                    <span className="text-gray-500">{trans.quantityLabel}:</span>{" "}
+                    <span className="font-medium text-gray-800">{formatQuantity(it.OrderedQuantity, it.OrderUnit)}</span>
                   </div>
                 </div>
               </div>
             ))}
+
+            {planningNextPageUrl && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-11"
+                onClick={() => {
+                  void loadMorePlanningItems();
+                }}
+                disabled={planningLoadingMore}
+              >
+                {planningLoadingMore ? trans.loadingList : trans.loadMore}
+              </Button>
+            )}
           </div>
         )}
 
@@ -539,19 +642,17 @@ const TransportsList = () => {
                           <div className="truncate">{it.LocationFrom || "-"}</div>
                           <div className="truncate">{it.LocationTo || "-"}</div>
                           <div className="flex justify-end">
-
                             <button
                               type="button"
                               className={`inline-flex items-center justify-center h-7 w-7 rounded-md border ${canLoadTransport ? "border-red-600 text-red-600 hover:bg-red-50" : "border-gray-300 text-gray-400 cursor-not-allowed"} disabled:opacity-100`}
                               onClick={() => {
                                 openMoveBackDialog(it);
                               }}
-                              disabled={!canLoadTransport || moveBackProcessing || Boolean(movingBackMap[`${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`])}
+                              disabled={!canLoadTransport || moveBackProcessing || Boolean(movingBackMap[key])}
                               aria-label="Move back"
                             >
                               <RotateCcw className="h-4 w-4" />
                             </button>
-
                           </div>
                         </div>
                       </div>

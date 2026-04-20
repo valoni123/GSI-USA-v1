@@ -27,6 +27,7 @@ import InfoStockCorrection from "./pages/InfoStockCorrection";
 import TransportMenu from "./pages/TransportMenu";
 import InfoStockLEInfo from "./pages/InfoStockLEInfo";
 import TransportLoad from "./pages/TransportLoad";
+import TransportLineLoad from "./pages/TransportLineLoad";
 import TransportUnload from "./pages/TransportUnload";
 import TransportSelect from "./pages/TransportSelect";
 import TransportGroup from "./pages/TransportGroup";
@@ -120,6 +121,7 @@ const App = () => (
             </Route>
             <Route element={<PermissionRoute allow={(permissions) => hasPermission(permissions, "trlo")} />}>
               <Route path="/menu/transport/load" element={<TransportLoad />} />
+              <Route path="/menu/transports/load" element={<TransportLineLoad />} />
               <Route path="/transport/select" element={<TransportSelect />} />
               <Route path="/transportgroup/:group" element={<TransportGroup />} />
             </Route>

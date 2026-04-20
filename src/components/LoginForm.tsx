@@ -18,6 +18,7 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
 
   const [username, setUsername] = useState("");
   const [resolvedFullName, setResolvedFullName] = useState<string | null>(null);
+  const [resolvedIsAdmin, setResolvedIsAdmin] = useState(false);
   const [usernameLookup, setUsernameLookup] = useState<"idle" | "loading" | "found" | "notfound">("idle");
   const [password, setPassword] = useState("");
   const [transportScreen, setTransportScreen] = useState(false);
@@ -28,7 +29,7 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    onSubmit({ username, password, transportscreen: transportScreen });
+    onSubmit({ username, password, transportscreen: resolvedIsAdmin && transportScreen });
   };
 
   const usernameLabel = (
@@ -69,12 +70,16 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
                 const v = e.target.value;
                 setUsername(v);
                 if (resolvedFullName) setResolvedFullName(null);
+                if (resolvedIsAdmin) setResolvedIsAdmin(false);
+                if (transportScreen) setTransportScreen(false);
                 if (usernameLookup !== "idle") setUsernameLookup("idle");
               }}
               onBlur={async () => {
                 const raw = username.trim();
                 if (!raw) {
                   setResolvedFullName(null);
+                  setResolvedIsAdmin(false);
+                  setTransportScreen(false);
                   setUsernameLookup("idle");
                   return;
                 }
@@ -85,15 +90,18 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
                   body: { username: requested },
                 });
 
-                // Ignore stale responses
                 if (username.trim() !== requested) return;
 
                 const full = data && data.ok ? data.full_name : null;
                 if (typeof full === "string" && full.trim().length > 0) {
                   setResolvedFullName(full.trim());
+                  setResolvedIsAdmin(data?.admin === true);
+                  if (data?.admin !== true) setTransportScreen(false);
                   setUsernameLookup("found");
                 } else {
                   setResolvedFullName(null);
+                  setResolvedIsAdmin(false);
+                  setTransportScreen(false);
                   setUsernameLookup("notfound");
                   setPassword("");
                 }
@@ -109,16 +117,18 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               onChange={(e) => setPassword(e.target.value)}
             />
 
-            <div className="flex items-center justify-center gap-2 py-2">
-              <Checkbox
-                id="transportScreen"
-                checked={transportScreen}
-                onCheckedChange={(v) => setTransportScreen(!!v)}
-              />
-              <label htmlFor="transportScreen" className="text-sm select-none">
-                {trans.transportScreen}
-              </label>
-            </div>
+            {resolvedIsAdmin && (
+              <div className="flex items-center justify-center gap-2 py-2">
+                <Checkbox
+                  id="transportScreen"
+                  checked={transportScreen}
+                  onCheckedChange={(v) => setTransportScreen(!!v)}
+                />
+                <label htmlFor="transportScreen" className="text-sm select-none">
+                  {trans.transportScreen}
+                </label>
+              </div>
+            )}
 
             <Button
               type="submit"

@@ -60,14 +60,22 @@ const Index = () => {
     const gsiId = data.user?.id as string | undefined;
     const fullName = data.user?.full_name as string | undefined;
     const userUsername = data.user?.username as string | undefined;
-    const loginUsername = userUsername || username;
+    const initialPermissions = normalizeGsiPermissions(data.user);
+    let effectivePermissions = initialPermissions;
+    const loginUsername = (userUsername || "").trim();
+    if (!loginUsername) {
+      showError("Missing GSI username.");
+      return;
+    }
     try {
       if (gsiId) localStorage.setItem("gsi.id", gsiId);
       if (fullName) localStorage.setItem("gsi.full_name", fullName);
-      if (userUsername) localStorage.setItem("gsi.username", userUsername);
+      localStorage.setItem("gsi.username", (userUsername || loginUsername).trim());
       localStorage.setItem("gsi.employee", loginUsername);
       localStorage.setItem("gsi.login", loginUsername);
-      setStoredGsiPermissions(normalizeGsiPermissions(data.user));
+      localStorage.removeItem("vehicle.id");
+      localStorage.removeItem("transports.vehicle.id");
+      setStoredGsiPermissions(initialPermissions);
     } catch {}
 
     const tid = showLoading(trans.retrievingToken);
@@ -97,7 +105,8 @@ const Index = () => {
         username: loginUsername,
       }, 8000);
       if (permissionsResult?.data?.ok) {
-        setStoredGsiPermissions(permissionsResult.data.permissions);
+        effectivePermissions = normalizeGsiPermissions(permissionsResult.data.permissions);
+        setStoredGsiPermissions(effectivePermissions);
       }
     } catch {}
 
@@ -107,13 +116,17 @@ const Index = () => {
           body: { gsi_id: gsiId, username: loginUsername },
         });
         const vehicleId = typeof vehicleData?.vehicleId === "string" ? vehicleData.vehicleId.trim() : "";
-        if (!vehicleData?.ok || !vehicleId) return;
+        if (!vehicleData?.ok || !vehicleId) {
+          localStorage.removeItem("vehicle.id");
+          localStorage.removeItem("transports.vehicle.id");
+          return;
+        }
         localStorage.setItem("vehicle.id", vehicleId);
         localStorage.setItem("transports.vehicle.id", vehicleId);
       } catch {}
     })();
 
-    if (transportscreen) {
+    if (transportscreen && effectivePermissions.admin) {
       navigate("/transport/select");
     } else {
       navigate("/menu");

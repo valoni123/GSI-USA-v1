@@ -16,6 +16,7 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
+import { getStoredGsiUsername } from "@/lib/gsi-user";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ScreenSpinner from "@/components/ScreenSpinner";
 
@@ -33,6 +34,7 @@ type LoadedItem = {
 
 const TransportUnload = () => {
   const navigate = useNavigate();
+  const loadingSpinnerTimeoutRef = useRef<number | null>(null);
 
   const [lang] = useState<LanguageKey>(() => {
     const saved = localStorage.getItem("app.lang") as LanguageKey | null;
@@ -96,6 +98,13 @@ const TransportUnload = () => {
     }
     // Show overlay while loading
     setLoading(true);
+    if (loadingSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(loadingSpinnerTimeoutRef.current);
+    }
+    loadingSpinnerTimeoutRef.current = window.setTimeout(() => {
+      setLoading(false);
+      loadingSpinnerTimeoutRef.current = null;
+    }, 7000);
     const tid = showLoading(trans.loadingEntries);
     const { data } = await supabase.functions.invoke("ln-transport-list", {
       body: { vehicleId, language: locale, company: "1100" },
@@ -120,6 +129,10 @@ const TransportUnload = () => {
       // Clear quantities/units
       setQuantities({});
       setUnits({});
+    }
+    if (loadingSpinnerTimeoutRef.current != null) {
+      window.clearTimeout(loadingSpinnerTimeoutRef.current);
+      loadingSpinnerTimeoutRef.current = null;
     }
     setLoading(false);
   };
@@ -180,6 +193,14 @@ const TransportUnload = () => {
     setLoadedCount(cached);
   }, [locale]);
 
+  useEffect(() => {
+    return () => {
+      if (loadingSpinnerTimeoutRef.current != null) {
+        window.clearTimeout(loadingSpinnerTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // REMOVED: auto-refresh quantities when items change; we now await fetchQuantities inside fetchLoaded
   // useEffect(() => {
   //   fetchQuantities(items);
@@ -194,33 +215,33 @@ const TransportUnload = () => {
   }, [items]);
 
   const getEmployeeCode = () => {
-    return (
-      (localStorage.getItem("gsi.employee") ||
-        localStorage.getItem("gsi.username") ||
-        localStorage.getItem("gsi.login") ||
-        "") as string
-    ).trim();
+    return getStoredGsiUsername();
   };
 
   const unloadSingle = async (it: LoadedItem, attempt = 1, targetLocationOverride?: string): Promise<boolean> => {
     const employeeCode = getEmployeeCode();
     const hu = (it.HandlingUnit || "").trim();
-    const currentVehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+    const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
     const targetLocation = (targetLocationOverride || it.LocationTo || "").trim();
+    if (!targetLocation) {
+      showError("Missing target location.");
+      return false;
+    }
     const payload: Record<string, unknown> = {
       handlingUnit: hu,
       fromWarehouse: (it.Warehouse || "").trim(),
-      fromLocation: hu ? (it.LocationFrom || "").trim() : currentVehicleId,
+      fromLocation: hu ? (it.LocationFrom || "").trim() : vehicleId,
       toWarehouse: (it.Warehouse || "").trim(),
       toLocation: targetLocation,
+      transportId: (it.TransportID || "").trim(),
+      loginCode: employeeCode,
       employee: employeeCode,
+      unloaded: "Yes",
       language: locale,
       company: "1100",
     };
 
-    // For item-only moves, include item and OrderedQuantity
     if (!hu) {
-      // IMPORTANT: Do NOT trim the item; LN expects 9 leading spaces
       const item = (it.Item ?? "");
       const rawQty = (it.OrderedQuantity as unknown) as string | number | undefined;
       const qty =
@@ -231,9 +252,15 @@ const TransportUnload = () => {
         showError("Missing OrderedQuantity for item movement.");
         return false;
       }
+      if (!vehicleId) {
+        showError("No vehicle selected. Please set a Vehicle ID.");
+        return false;
+      }
+      payload.fromLocation = vehicleId;
       payload.item = item;
       payload.quantity = qty;
     }
+
     const tid = showLoading(trans.executingMovement);
     const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
     dismissToast(tid as unknown as string);
@@ -251,36 +278,9 @@ const TransportUnload = () => {
         topLower.includes("tibde0140.05");
 
       if (attempt < MAX_UNLOAD_RETRY && isQtyTimingIssue) {
-        // Removed delay; retry immediately
         return unloadSingle(it, attempt + 1, targetLocationOverride);
       }
 
-      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
-      showError(message);
-      return false;
-    }
-
-    // After successful move, PATCH the TransportOrder: Completed='Yes', clear VehicleID and set LocationDevice to ToLocation
-    const patchTid = showLoading(trans.updatingTransportOrder);
-    const toLoc = targetLocation;
-    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
-      body: {
-        transportId: (it.TransportID || "").trim(),
-        runNumber: (it.RunNumber || "").trim(),
-        etag: (it.ETag || "").trim(),
-        vehicleId: "",
-        locationDevice: toLoc,
-        completed: "Yes",
-        language: locale,
-        company: "1100",
-      },
-    });
-
-    dismissToast(patchTid as unknown as string);
-    if (patchErr || !patchData || !patchData.ok) {
-      const err = (patchData && patchData.error) || patchErr;
-      const top = err?.message || "Unbekannter Fehler";
-      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
       const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
       showError(message);
       return false;
@@ -296,19 +296,14 @@ const TransportUnload = () => {
     for (const it of items) {
       const ok = await unloadSingle(it, 1, targetLocation);
       if (!ok) {
-        break; // Stop on first error
+        break;
       }
       successCount += 1;
-      // Removed pacing delay; proceed immediately to next item
     }
-    if (successCount > 0) {
+    if (successCount === items.length) {
       showSuccess(`${trans.unloadedSuccessfully} (${successCount})`);
-      await fetchLoaded();
-      const nextCount = await fetchCount(); // refresh via REST after UNLOAD
-      if (nextCount === 0) {
-        navigate("/menu/transports/list");
-        return;
-      }
+      navigate("/menu/transports/list");
+      return;
     }
     setProcessing(false);
   };
@@ -343,12 +338,8 @@ const TransportUnload = () => {
       const ok = await unloadSingle(singleItem, 1, scanned);
       if (ok) {
         showSuccess(trans.unloadedSuccessfully);
-        await fetchLoaded();
-        const nextCount = await fetchCount();
-        if (nextCount === 0) {
-          navigate("/menu/transports/list");
-          return;
-        }
+        navigate("/menu/transports/list");
+        return;
       }
       setProcessing(false);
       return;
@@ -383,10 +374,6 @@ const TransportUnload = () => {
               >
                 {trans.transportUnload}
               </button>
-              <span className="bg-red-700 text-white rounded-md h-5 px-2 min-w-[20px] inline-flex items-center justify-center text-xs font-bold">
-
-                {loadedCount}
-              </span>
             </div>
             <div className="mt-2 flex items-center gap-2 text-sm text-gray-200">
               <User className="h-4 w-4" />
