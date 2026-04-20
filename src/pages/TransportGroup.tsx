@@ -320,7 +320,7 @@ const TransportGroup = () => {
                           <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
                           <div className="whitespace-nowrap">{trans.locationToLabel}</div>
                           <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
-                          <div className="whitespace-nowrap">Planned Vehicle</div>
+                          <div className="whitespace-nowrap">{trans.plannedVehicleLabel}</div>
                           <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
                         </div>
                         {rowsAll.length === 0 ? (
@@ -424,7 +424,7 @@ const TransportGroup = () => {
                     <div className="whitespace-nowrap">{trans.locationFromLabel}</div>
                     <div className="whitespace-nowrap">{trans.locationToLabel}</div>
                     <div className="whitespace-nowrap">{trans.loadVehicleId}</div>
-                    <div className="whitespace-nowrap">Planned Vehicle</div>
+                    <div className="whitespace-nowrap">{trans.plannedVehicleLabel}</div>
                     <div className="whitespace-nowrap">{trans.plannedDateLabel}</div>
                   </div>
                   {loading ? (
