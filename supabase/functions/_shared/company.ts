@@ -1,4 +1,4 @@
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.49.1";
 
 export async function getCompanyFromParams(supabase: SupabaseClient): Promise<string> {
   const { data, error } = await supabase
