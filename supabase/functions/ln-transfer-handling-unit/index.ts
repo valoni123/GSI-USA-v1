@@ -110,7 +110,7 @@ serve(async (req) => {
     const accessToken = tokenJson.access_token as string;
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/txgsi.apiTRANSFER/GSITransfers`;
+    const path = `/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/GSITransfers`;
     const url = `${base}${path}?$select=*`;
 
     const lnPayload: Record<string, unknown> = {
