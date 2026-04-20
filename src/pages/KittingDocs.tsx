@@ -1820,19 +1820,19 @@ const KittingDocs = () => {
                                   <tr key={`${component.bomLine}-${component.component}`} className="border-t border-gray-200 align-top">
                                     <td className="px-4 py-3 font-medium text-gray-900">{component.bomLine}</td>
                                     <td className="px-4 py-3 text-gray-900">
-                                      <div className="flex items-start gap-2">
-                                        <div>
+                                      <div className="flex w-full items-center justify-between gap-3">
+                                        <div className="min-w-0">
                                           <div className="font-medium">{formatItemNumber(component.component)}</div>
                                           {component.description && (
                                             <div className="text-xs text-gray-500">{component.description}</div>
                                           )}
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex shrink-0 items-center gap-2">
                                           <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            className="mt-[-2px] h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
+                                            className="h-10 w-10 shrink-0 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400"
                                             onClick={() => void openDrawing(component.componentRaw, component.component)}
                                             aria-label={`${trans.kittingDrawingTitle} ${formatItemNumber(component.component)}`}
                                             disabled={isDrawingButtonDisabled(component.componentRaw)}
