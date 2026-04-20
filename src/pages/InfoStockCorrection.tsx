@@ -6,15 +6,6 @@ import ScreenSpinner from "@/components/ScreenSpinner";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Input } from "@/components/ui/input";
@@ -29,7 +20,6 @@ import SignOutConfirm from "@/components/SignOutConfirm";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { getStoredGsiUsername } from "@/lib/gsi-user";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const InfoStockCorrection = () => {
@@ -71,9 +61,6 @@ const InfoStockCorrection = () => {
   const fromLocRef = useRef<HTMLInputElement | null>(null);
   const quantityRef = useRef<HTMLInputElement | null>(null);
   const submitQuantityRef = useRef<HTMLInputElement | null>(null);
-  const searchingSpinnerTimeoutRef = useRef<number | null>(null);
-  const transferringSpinnerTimeoutRef = useRef<number | null>(null);
-  const pendingReturnTargetRef = useRef<{ path: string; state?: unknown } | null>(null);
 
   // First input + dynamic label/description
   const [query, setQuery] = useState<string>("");
@@ -258,10 +245,10 @@ const InfoStockCorrection = () => {
   };
 
   // Menge/Einheit aus gewählter/eingegebener Location holen (ITEM-Flow)
-  const prefillFromLocation = async (nextLocation?: string, overrideWarehouse?: string, overrideItem?: string) => {
-    if (lastMatchType !== "ITEM" && (!overrideWarehouse || !overrideItem)) return;
-    const itm = (overrideItem ?? item ?? "").trim();
-    const wh = (overrideWarehouse ?? warehouse ?? "").trim();
+  const prefillFromLocation = async (nextLocation?: string) => {
+    if (lastMatchType !== "ITEM") return;
+    const itm = (item || "").trim();
+    const wh = (warehouse || "").trim();
     const loc = (nextLocation ?? location ?? "").trim();
     if (!itm || !wh || !loc) return;
     const { data, error } = await supabase.functions.invoke("ln-stockpoint-inventory", {
@@ -291,7 +278,6 @@ const InfoStockCorrection = () => {
       const nonHu = Math.abs((Number.isFinite(onHand) ? onHand : 0) - (Number.isFinite(huQuantity) ? huQuantity : 0));
       const q = String(nonHu);
 
-      setWarehouse(wh);
       setLocation(loc);
       setLot(lotVal);
       setQuantity(q);
@@ -351,57 +337,6 @@ const InfoStockCorrection = () => {
   // Searching flags (used in canTransfer)
   const [searching, setSearching] = useState<boolean>(false);
   const [transferring, setTransferring] = useState<boolean>(false);
-  const [alternativeDialogOpen, setAlternativeDialogOpen] = useState(false);
-  const [alternativeDialogMessage, setAlternativeDialogMessage] = useState("");
-
-  const startSearching = () => {
-    setSearching(true);
-    if (searchingSpinnerTimeoutRef.current != null) {
-      window.clearTimeout(searchingSpinnerTimeoutRef.current);
-    }
-    searchingSpinnerTimeoutRef.current = window.setTimeout(() => {
-      setSearching(false);
-      searchingSpinnerTimeoutRef.current = null;
-    }, 7000);
-  };
-
-  const stopSearching = () => {
-    if (searchingSpinnerTimeoutRef.current != null) {
-      window.clearTimeout(searchingSpinnerTimeoutRef.current);
-      searchingSpinnerTimeoutRef.current = null;
-    }
-    setSearching(false);
-  };
-
-  const startTransferring = () => {
-    setTransferring(true);
-    if (transferringSpinnerTimeoutRef.current != null) {
-      window.clearTimeout(transferringSpinnerTimeoutRef.current);
-    }
-    transferringSpinnerTimeoutRef.current = window.setTimeout(() => {
-      setTransferring(false);
-      transferringSpinnerTimeoutRef.current = null;
-    }, 10000);
-  };
-
-  const stopTransferring = () => {
-    if (transferringSpinnerTimeoutRef.current != null) {
-      window.clearTimeout(transferringSpinnerTimeoutRef.current);
-      transferringSpinnerTimeoutRef.current = null;
-    }
-    setTransferring(false);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (searchingSpinnerTimeoutRef.current != null) {
-        window.clearTimeout(searchingSpinnerTimeoutRef.current);
-      }
-      if (transferringSpinnerTimeoutRef.current != null) {
-        window.clearTimeout(transferringSpinnerTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Status helpers
   const normalizeStatus = (raw?: string | null): string | null => {
@@ -488,7 +423,7 @@ const InfoStockCorrection = () => {
     if (!input) return;
     if (!overrideQuery && lastSearched === input) return;
 
-    startSearching();
+    setSearching(true);
 
     // Try Handling Unit
     const huRes = await supabase.functions.invoke("ln-handling-unit-info", {
@@ -515,7 +450,7 @@ const InfoStockCorrection = () => {
       setQueryLabel(trans.loadHandlingUnit);
       setLastMatchType("HU");
       await fetchItemDescription(d.item);
-      stopSearching();
+      setSearching(false);
       return;
     }
 
@@ -525,17 +460,13 @@ const InfoStockCorrection = () => {
     });
     if (itemRes.data && itemRes.data.ok) {
       const d = itemRes.data;
-      const initialWarehouse = ((routerLocation.state as any)?.initialWarehouse || "").toString().trim();
-      const initialLocation = ((routerLocation.state as any)?.initialLocation || "").toString().trim();
-      const nextItem = (d.item || input).toString();
-
-      setItem(nextItem);
+      setItem(d.item || input);
       setHandlingUnit("");
       setUnit((d.unit || "").toString());
       setWarehouseEnabled(true);
       setLastSearched(input);
-      setWarehouse(initialWarehouse);
-      setLocation(initialLocation);
+      setWarehouse("");
+      setLocation("");
       setLot("");
       setQuantity("");
       setSubmitQuantity("");
@@ -545,21 +476,13 @@ const InfoStockCorrection = () => {
       setQueryLabel(trans.itemLabel);
       setLastMatchType("ITEM");
       setItemDescription((d.description || "").toString());
-
-      if (initialWarehouse && initialLocation) {
-        await prefillFromLocation(initialLocation, initialWarehouse, nextItem);
-      } else if (initialWarehouse) {
-        setTimeout(() => focusFromLocation(), 50);
-      } else {
-        setTimeout(() => warehouseRef.current?.focus(), 50);
-      }
-
-      stopSearching();
+      setTimeout(() => warehouseRef.current?.focus(), 50);
+      setSearching(false);
       return;
     }
 
     showError(trans.noEntries);
-    stopSearching();
+    setSearching(false);
   };
 
   useEffect(() => {
@@ -695,58 +618,29 @@ const InfoStockCorrection = () => {
     huRef.current?.focus();
   };
 
-  const finishSubmitFlow = (returnTo?: { path?: string; state?: unknown } | null) => {
-    const returnPath = typeof returnTo?.path === "string" ? returnTo.path : "";
-    const returnState = returnTo?.state;
-
-    if (returnPath === "/menu/transport/load") {
-      const typedReturnState = returnState as { prefillHandlingUnit?: string; transportLoadSource?: string } | undefined;
-      const prefillHandlingUnit = (typedReturnState?.prefillHandlingUnit || query || handlingUnit || item || "").trim();
-      if (prefillHandlingUnit) {
-        sessionStorage.setItem("transport.load.prefill", prefillHandlingUnit);
-      }
-
-      if (typedReturnState?.transportLoadSource === "transports-list") {
-        sessionStorage.setItem("transport.load.source", "transports-list");
-      } else {
-        sessionStorage.removeItem("transport.load.source");
-      }
-
-      navigate(returnPath, { state: returnState });
-      return;
-    }
-
-    if (returnPath === "/menu/transports/load") {
-      navigate(returnPath, { state: returnState });
-      return;
-    }
-
-    resetAll();
-  };
-
-  const closeAlternativeDialog = () => {
-    setAlternativeDialogOpen(false);
-    const pendingTarget = pendingReturnTargetRef.current;
-    pendingReturnTargetRef.current = null;
-    setAlternativeDialogMessage("");
-    finishSubmitFlow(pendingTarget);
-  };
-
   const doSubmit = async () => {
     if (!canSubmit) return;
-    startTransferring();
+    setTransferring(true);
 
     try {
       const deviation = Number(submitQuantity);
       const reasonCode = (reason || "").trim();
-      const adjustedQuantity = Number(submitQuantity);
 
-      const loginCode = getStoredGsiUsername();
-      const employee = getStoredGsiUsername();
-      const returnTo = (routerLocation.state as any)?.returnTo as { path?: string; state?: any } | undefined;
-      const returnPath = typeof returnTo?.path === "string" ? returnTo.path : "";
-      const returnState = returnTo?.state as { transportId?: string } | undefined;
-      const extOrderNumber = returnPath === "/menu/transports/load" ? (returnState?.transportId || "").trim() : "";
+      const loginCode =
+        (localStorage.getItem("gsi.login") ||
+          localStorage.getItem("gsi.employee") ||
+          localStorage.getItem("gsi.username") ||
+          "")
+          .toString()
+          .trim();
+
+      const employee =
+        (localStorage.getItem("gsi.employee") ||
+          localStorage.getItem("gsi.login") ||
+          localStorage.getItem("gsi.username") ||
+          "")
+          .toString()
+          .trim();
 
       const tid = showLoading(trans.pleaseWait);
       const { data, error } = await supabase.functions.invoke("ln-inventory-adjustment", {
@@ -764,7 +658,6 @@ const InfoStockCorrection = () => {
           transactionId: "",
           sequenceNumber: 0,
           fromWebservice: "Yes",
-          extOrderNumber,
         },
       });
       dismissToast(tid as unknown as string);
@@ -775,64 +668,15 @@ const InfoStockCorrection = () => {
         const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
         const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
         showError(message);
-        stopTransferring();
+        setTransferring(false);
         return;
       }
 
       showSuccess(trans.correctionSubmit);
-
-      const cameFromTransportLineLoad = returnPath === "/menu/transports/load";
-
-      const shouldAssignAlternative = cameFromTransportLineLoad && adjustedQuantity === 0;
-
-      if (shouldAssignAlternative) {
-        const transportId = (returnState?.transportId || "").trim();
-        if (!transportId) {
-          stopTransferring();
-          showError("Missing TransportID.");
-          return;
-        }
-
-        const alternativeTid = showLoading(trans.pleaseWait);
-        const { data: alternativeData, error: alternativeError } = await supabase.functions.invoke("ln-assign-alternative-to-transport-orders", {
-          body: {
-            transportOrder: transportId,
-            language: locale,
-            company: "1100",
-          },
-        });
-        dismissToast(alternativeTid as unknown as string);
-
-        if (alternativeError || !alternativeData || !alternativeData.ok) {
-          const err = (alternativeData && alternativeData.error) || alternativeError;
-          const top = err?.message || "Alternative assignment failed";
-          const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
-          const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
-          stopTransferring();
-          showError(message);
-          return;
-        }
-
-        const result = alternativeData.value || {};
-        const remark = (result.Remark ?? "").toString().trim();
-        const alternativeLocation = (result.AlternativeLocation ?? "").toString().trim();
-        const unitText = (result.Unit ?? "").toString().trim();
-        const quantityText = result.NewQuantity == null ? "" : String(result.NewQuantity).trim();
-
-        pendingReturnTargetRef.current = returnPath ? { path: returnPath, state: returnTo?.state } : null;
-        setAlternativeDialogMessage(
-          remark || `Alternative found on ${alternativeLocation || "-"} with ${quantityText || "0"}${unitText ? ` ${unitText}` : ""}`,
-        );
-        setAlternativeDialogOpen(true);
-        stopTransferring();
-        return;
-
-      }
-
-      stopTransferring();
-      finishSubmitFlow(returnTo);
+      setTransferring(false);
+      resetAll();
     } catch (e) {
-      stopTransferring();
+      setTransferring(false);
       showError(String(e));
     }
   };
@@ -865,7 +709,60 @@ const InfoStockCorrection = () => {
   };
 
   const handlePrintLabel = () => {
-    return;
+    const hu = (handlingUnit || query || "").trim();
+    if (!hu) return;
+
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    if (!w) return;
+
+    const doc = w.document;
+    doc.open();
+    doc.write(
+      `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>${hu}</title>
+      <style>
+        body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; padding:24px;}
+        .card{border:1px solid #ddd; border-radius:12px; padding:16px; max-width:420px;}
+        h1{font-size:20px; margin:0 0 12px;}
+        .row{display:flex; justify-content:space-between; gap:12px; font-size:14px; margin:6px 0;}
+        .k{color:#555;}
+        .v{font-weight:600; text-align:right; word-break:break-all;}
+      </style>
+      </head><body></body></html>`
+    );
+    doc.close();
+
+    const body = doc.body;
+    const card = doc.createElement("div");
+    card.className = "card";
+
+    const title = doc.createElement("h1");
+    title.textContent = `HU: ${hu}`;
+    card.appendChild(title);
+
+    const addRow = (k: string, v: string) => {
+      const row = doc.createElement("div");
+      row.className = "row";
+      const kEl = doc.createElement("div");
+      kEl.className = "k";
+      kEl.textContent = k;
+      const vEl = doc.createElement("div");
+      vEl.className = "v";
+      vEl.textContent = v;
+      row.appendChild(kEl);
+      row.appendChild(vEl);
+      card.appendChild(row);
+    };
+
+    addRow("Item", (item || "-").toString());
+    addRow("Warehouse", (warehouse || "-").toString());
+    addRow("Location", (location || "-").toString());
+    addRow("Quantity", `${(quantity || "-").toString()} ${(unit || "").toString()}`.trim());
+
+    body.appendChild(card);
+
+    w.focus();
+    w.print();
   };
 
   return (
@@ -1317,23 +1214,6 @@ const InfoStockCorrection = () => {
           </button>
         </div>
       )}
-
-      {/* Sign-out confirmation dialog */}
-      <AlertDialog open={alternativeDialogOpen} onOpenChange={(open) => {
-        if (!open) {
-          closeAlternativeDialog();
-        }
-      }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Alternative Inventory</AlertDialogTitle>
-            <AlertDialogDescription>{alternativeDialogMessage}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={closeAlternativeDialog}>OK</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Sign-out confirmation dialog */}
       <SignOutConfirm

@@ -54,7 +54,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error("[ln-get-token] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+      console.error("[ln-get-token] missing env");
       return json({ ok: false, error: "env_missing" }, 500);
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -73,24 +73,9 @@ serve(async (req) => {
       return json({ ok: false, error: "no_active_config" }, 200);
     }
 
-    const raw = cfg as {
-      ci: string;
-      cs: string;
-      pu: string;
-      ot: string;
-      grant_type: string;
-      saak: string;
-      sask: string;
+    const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
+      ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
     };
-
-    // Users often paste these values with a trailing newline; trim to avoid invalid_grant.
-    const ci = String(raw.ci ?? "").trim();
-    const cs = String(raw.cs ?? "").trim();
-    const pu = String(raw.pu ?? "").trim();
-    const ot = String(raw.ot ?? "").trim();
-    const grant_type = String(raw.grant_type ?? "").trim();
-    const saak = String(raw.saak ?? "").trim();
-    const sask = String(raw.sask ?? "").trim();
 
     if (!ci || !cs || !pu || !ot || !grant_type || !saak || !sask) {
       console.warn("[ln-get-token] config incomplete");
@@ -122,7 +107,7 @@ serve(async (req) => {
       );
     } catch (error) {
       const isTimeout = error instanceof DOMException && error.name === "AbortError";
-      console.error("[ln-get-token] Token request failed", {
+      console.error("[ln-get-token] token request failed", {
         isTimeout,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -146,7 +131,7 @@ serve(async (req) => {
         p_token: tokenText,
       });
       if (setErr) {
-        console.error("[ln-get-token] Failed to store current_ln_token", { error: setErr });
+        console.error("[ln-get-token] failed to store current_ln_token", { error: setErr });
         return json({ ok: true, token: responseBody, stored: false }, 200);
       }
     }
@@ -154,7 +139,7 @@ serve(async (req) => {
     console.info("[ln-get-token] success", { stored: !!gsiId });
     return json({ ok: true, token: responseBody, stored: !!gsiId }, 200);
   } catch (e) {
-    console.error("[ln-get-token] Unhandled error", {
+    console.error("[ln-get-token] unhandled error", {
       error: e instanceof Error ? e.message : String(e),
     });
     return json({ ok: false, error: "unhandled" }, 500);

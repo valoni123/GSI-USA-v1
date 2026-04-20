@@ -1,22 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, User, ArrowRightLeft, Printer, Search, Eraser } from "lucide-react";
+import { LogOut, Search, User, CheckSquare, Square, Eraser, Printer } from "lucide-react";
+import LocationPickerDialog from "@/components/LocationPickerDialog";
+import ScreenSpinner from "@/components/ScreenSpinner";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
-import { Input } from "@/components/ui/input";
-import LocationPickerDialog from "@/components/LocationPickerDialog";
 import SignOutConfirm from "@/components/SignOutConfirm";
-import ScreenSpinner from "@/components/ScreenSpinner";
-import { Dialog, DialogContent, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { clearStoredGsiPermissions, getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
-import { getStoredGsiUsername } from "@/lib/gsi-user";
-
-const MAX_BLOCKING_SPINNER_MS = 10_000;
+import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
 
 const InfoStockTransfer = () => {
   const navigate = useNavigate();
@@ -197,23 +193,6 @@ const InfoStockTransfer = () => {
   const [searching, setSearching] = useState<boolean>(false);
   const [checkingTargetLocation, setCheckingTargetLocation] = useState<boolean>(false);
   const [transferring, setTransferring] = useState<boolean>(false);
-  const [showBlockingSpinner, setShowBlockingSpinner] = useState<boolean>(false);
-
-  const blockingBusy = searching || checkingTargetLocation || transferring;
-
-  useEffect(() => {
-    if (!blockingBusy) {
-      setShowBlockingSpinner(false);
-      return;
-    }
-
-    setShowBlockingSpinner(true);
-    const timeoutId = window.setTimeout(() => {
-      setShowBlockingSpinner(false);
-    }, MAX_BLOCKING_SPINNER_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [blockingBusy]);
 
   const [focusTargetLocTick, setFocusTargetLocTick] = useState(0);
   useEffect(() => {
@@ -622,7 +601,60 @@ const InfoStockTransfer = () => {
   };
 
   const handlePrintLabel = () => {
-    return;
+    const hu = (handlingUnit || query || "").trim();
+    if (!hu) return;
+
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    if (!w) return;
+
+    const doc = w.document;
+    doc.open();
+    doc.write(
+      `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>${hu}</title>
+      <style>
+        body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; padding:24px;}
+        .card{border:1px solid #ddd; border-radius:12px; padding:16px; max-width:420px;}
+        h1{font-size:20px; margin:0 0 12px;}
+        .row{display:flex; justify-content:space-between; gap:12px; font-size:14px; margin:6px 0;}
+        .k{color:#555;}
+        .v{font-weight:600; text-align:right; word-break:break-all;}
+      </style>
+      </head><body></body></html>`
+    );
+    doc.close();
+
+    const body = doc.body;
+    const card = doc.createElement("div");
+    card.className = "card";
+
+    const title = doc.createElement("h1");
+    title.textContent = `HU: ${hu}`;
+    card.appendChild(title);
+
+    const addRow = (k: string, v: string) => {
+      const row = doc.createElement("div");
+      row.className = "row";
+      const kEl = doc.createElement("div");
+      kEl.className = "k";
+      kEl.textContent = k;
+      const vEl = doc.createElement("div");
+      vEl.className = "v";
+      vEl.textContent = v;
+      row.appendChild(kEl);
+      row.appendChild(vEl);
+      card.appendChild(row);
+    };
+
+    addRow("Item", (item || "-").toString());
+    addRow("Warehouse", (warehouse || "-").toString());
+    addRow("Location", (location || "-").toString());
+    addRow("Quantity", `${(quantity || "-").toString()} ${(unit || "").toString()}`.trim());
+
+    body.appendChild(card);
+
+    w.focus();
+    w.print();
   };
 
   const resetAll = () => {
@@ -655,9 +687,14 @@ const InfoStockTransfer = () => {
 
   const doTransfer = async () => {
     if (!canTransfer) return;
-    const employeeCode = getStoredGsiUsername();
+    const employeeCode = (
+      (localStorage.getItem("gsi.employee") ||
+        localStorage.getItem("gsi.username") ||
+        localStorage.getItem("gsi.login") ||
+        "") as string
+    ).trim();
 
-    const loginCode = getStoredGsiUsername();
+    const loginCode = (localStorage.getItem("gsi.login") || employeeCode).trim();
 
     const isHU = lastMatchType === "HU" && (handlingUnit || "").trim().length > 0;
 
@@ -1096,7 +1133,7 @@ const InfoStockTransfer = () => {
             </div>
           )}
 
-          {(showBlockingSpinner && (searching || checkingTargetLocation || transferring)) && <ScreenSpinner message={trans.pleaseWait} />}
+          {(searching || checkingTargetLocation || transferring) && <ScreenSpinner message={trans.pleaseWait} />}
 
           {/* Item warehouse picker dialog */}
           <Dialog open={warehousePickerOpen} onOpenChange={setWarehousePickerOpen}>

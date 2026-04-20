@@ -114,7 +114,6 @@ type TranslationKeys =
   | "loadingDetails"
   | "noEntries"
   | "showAllTransports"
-  | "loadMore"
   | "locationLabel"
   | "searchLabel"
   | "onHandLabel"
@@ -320,7 +319,6 @@ const translations: Translations = {
     loadingDetails: "Loading details…",
     noEntries: "No entries",
     showAllTransports: "SHOW ALL TRANSPORTS",
-    loadMore: "Load more",
     locationLabel: "Location",
     searchLabel: "Search",
     onHandLabel: "On hand",
@@ -521,7 +519,6 @@ const translations: Translations = {
     loadingDetails: "Details werden geladen…",
     noEntries: "Keine Einträge",
     showAllTransports: "ALLE TRANSPORTE ANZEIGEN",
-    loadMore: "Mehr laden",
     locationLabel: "Lagerplatz",
     searchLabel: "Suchen",
     onHandLabel: "Vorhanden",
@@ -722,7 +719,6 @@ const translations: Translations = {
     loadingDetails: "Cargando detalles…",
     noEntries: "Sin registros",
     showAllTransports: "MOSTRAR TODOS LOS TRANSPORTES",
-    loadMore: "Cargar más",
     locationLabel: "Ubicación",
     searchLabel: "Buscar",
     onHandLabel: "Existencia",
@@ -923,7 +919,6 @@ const translations: Translations = {
     loadingDetails: "Carregando detalhes…",
     noEntries: "Sem entradas",
     showAllTransports: "MOSTRAR TODOS OS TRANSPORTES",
-    loadMore: "Carregar mais",
     locationLabel: "Local",
     searchLabel: "Buscar",
     onHandLabel: "Em estoque",

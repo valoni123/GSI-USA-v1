@@ -60,7 +60,7 @@ export async function getIonApiConfig(supabase: SupabaseClient): Promise<IonApiC
     throw new Error("no_active_config");
   }
 
-  const raw = cfg as {
+  const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
     ci: string;
     cs: string;
     pu: string;
@@ -72,22 +72,11 @@ export async function getIonApiConfig(supabase: SupabaseClient): Promise<IonApiC
 
   const { iu, ti } = activeRow as { iu: string; ti: string };
 
-  // Users often paste these values with a trailing newline; trim to avoid invalid_grant.
-  const ci = String(raw.ci ?? "").trim();
-  const cs = String(raw.cs ?? "").trim();
-  const pu = String(raw.pu ?? "").trim();
-  const ot = String(raw.ot ?? "").trim();
-  const grant_type = String(raw.grant_type ?? "").trim();
-  const saak = String(raw.saak ?? "").trim();
-  const sask = String(raw.sask ?? "").trim();
-  const iuTrimmed = String(iu ?? "").trim();
-  const tiTrimmed = String(ti ?? "").trim();
-
-  if (!ci || !cs || !pu || !ot || !grant_type || !saak || !sask || !iuTrimmed || !tiTrimmed) {
+  if (!ci || !cs || !pu || !ot || !grant_type || !saak || !sask || !iu || !ti) {
     throw new Error("config_incomplete");
   }
 
-  cachedConfig = { ci, cs, pu, ot, grant_type, saak, sask, iu: iuTrimmed, ti: tiTrimmed };
+  cachedConfig = { ci, cs, pu, ot, grant_type, saak, sask, iu, ti };
   cachedConfigAt = now;
   return cachedConfig;
 }

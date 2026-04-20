@@ -71,7 +71,6 @@ const TransportsSelect = () => {
   const onConfirm = () => {
     const vid = vehicleId.trim();
     if (!vid) return;
-    console.log("[TransportsSelect] confirming selected vehicle", { vehicleId: vid });
     localStorage.setItem("transports.vehicle.id", vid);
     setSubmitting(true);
     navigate("/menu/transports/list");

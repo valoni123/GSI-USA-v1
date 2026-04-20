@@ -9,8 +9,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const ASSIGNMENT_TIMEOUT_MS = 45_000;
-
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -62,42 +60,25 @@ serve(async (req) => {
     const cfg = await getIonApiConfig(supabase);
     const accessToken = await getIonApiAccessToken(supabase);
     const base = cfg.iu.endsWith("/") ? cfg.iu.slice(0, -1) : cfg.iu;
-    const url = `${base}/${cfg.ti}/LN/lnapi/odata/txgwi.TransportAssignments/AssignTransportOrderToVehilces`;
+    const url = `${base}/${cfg.ti}/LN/lnapi/odata/txgwi.TransportAssignments/AssignTransportOrderToVehilces?$select=*`;
 
     console.info("[ln-assign-transport-orders] start", { plannedVehicle, language, company });
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), ASSIGNMENT_TIMEOUT_MS);
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "Content-Language": language,
+        "X-Infor-LnCompany": company,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ PlannedVehicle: plannedVehicle }),
+    });
 
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        method: "POST",
-        headers: {
-          accept: "application/json",
-          "Content-Language": language,
-          "X-Infor-LnCompany": company,
-          "Content-Type": "application/json",
-          Prefer: "return=minimal",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ PlannedVehicle: plannedVehicle }),
-        signal: controller.signal,
-      });
-    } catch (error) {
-      const isTimeout = error instanceof DOMException && error.name === "AbortError";
-      console.error("[ln-assign-transport-orders] upstream request failed", {
-        plannedVehicle,
-        reason: isTimeout ? "timeout" : error instanceof Error ? error.message : String(error),
-      });
-      return json({ ok: false, error: { message: isTimeout ? "assignment_timeout" : "assignment_failed" } }, 200);
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    const payload = (await response.json().catch(() => null)) as any;
 
-    const payload = response.status === 204 ? null : ((await response.json().catch(() => null)) as any);
-
-    if (!response.ok) {
+    if (!response.ok || !payload) {
       const top = payload?.error?.message || "assignment_failed";
       const details = Array.isArray(payload?.error?.details) ? payload.error.details : [];
       console.error("[ln-assign-transport-orders] upstream error", {
@@ -108,7 +89,7 @@ serve(async (req) => {
       return json({ ok: false, error: { message: top, details } }, 200);
     }
 
-    console.info("[ln-assign-transport-orders] completed", { plannedVehicle, status: response.status });
+    console.info("[ln-assign-transport-orders] completed", { plannedVehicle });
     return json({ ok: true, data: payload }, 200);
   } catch (error) {
     console.error("[ln-assign-transport-orders] unhandled error", {

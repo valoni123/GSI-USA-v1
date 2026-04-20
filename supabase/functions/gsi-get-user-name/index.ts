@@ -26,8 +26,8 @@ serve(async (req) => {
     });
   }
 
-  const loginValue = (payload.username || "").trim();
-  if (!loginValue) {
+  const uname = (payload.username || "").trim();
+  if (!uname) {
     return new Response(JSON.stringify({ ok: false, error: "missing_username" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -44,12 +44,11 @@ serve(async (req) => {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
-  const requested = loginValue.toLowerCase();
-  const fields = "username,full_name,admin";
+  const requested = uname.toLowerCase();
 
   const { data: usernameMatch, error: usernameError } = await supabase
     .from("gsi_users")
-    .select(fields)
+    .select("full_name")
     .ilike("username", requested)
     .limit(1)
     .maybeSingle();
@@ -62,12 +61,7 @@ serve(async (req) => {
   }
 
   if (usernameMatch?.full_name) {
-    return new Response(JSON.stringify({
-      ok: true,
-      full_name: usernameMatch.full_name,
-      username: usernameMatch.username ?? null,
-      admin: usernameMatch.admin === true || String(usernameMatch.admin ?? "").toLowerCase() === "true",
-    }), {
+    return new Response(JSON.stringify({ ok: true, full_name: usernameMatch.full_name }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -75,7 +69,7 @@ serve(async (req) => {
 
   const { data: mailMatch, error: mailError } = await supabase
     .from("gsi_users")
-    .select(fields)
+    .select("full_name")
     .ilike("mail", requested)
     .limit(1)
     .maybeSingle();
@@ -87,12 +81,7 @@ serve(async (req) => {
     });
   }
 
-  return new Response(JSON.stringify({
-    ok: true,
-    full_name: mailMatch?.full_name || null,
-    username: mailMatch?.username || null,
-    admin: mailMatch?.admin === true || String(mailMatch?.admin ?? "").toLowerCase() === "true",
-  }), {
+  return new Response(JSON.stringify({ ok: true, full_name: mailMatch?.full_name || null }), {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });

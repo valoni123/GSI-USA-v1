@@ -146,7 +146,6 @@ serve(async (req) => {
       return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
     }
 
-<<<<<<< HEAD
     const accessToken = tokenJson.access_token;
     const base = activeRow.iu.endsWith("/") ? activeRow.iu.slice(0, -1) : activeRow.iu;
     const path = `/${activeRow.ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
@@ -175,27 +174,6 @@ serve(async (req) => {
     console.info("[ln-transport-planning-list] filter", {
       filter: query.get("$filter") || null,
     });
-=======
-    const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
-    const escapedGroup = planningGroup.replace(/'/g, "''");
-    const escapedVehicle = vehicleId.replace(/'/g, "''");
-    const filterParts: string[] = [];
-    if (!showAll) {
-      filterParts.push(`PlanningGroupTransport eq '${escapedGroup}'`);
-    }
-    if (escapedVehicle) {
-      filterParts.push(`PlannedVehicle eq '${escapedVehicle}'`);
-    }
-    const query = new URLSearchParams({
-      $count: "true",
-      $select: "*",
-    });
-    if (filterParts.length > 0) {
-      query.set("$filter", filterParts.join(" and "));
-    }
-    const firstUrl = `${base}${path}?${query.toString()}`;
->>>>>>> 7b0a5724d7c95e0c4cdfac6732f6f5e1a264bef9
 
     const headers = {
       accept: "application/json",

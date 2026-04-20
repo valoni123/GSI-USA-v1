@@ -22,10 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast";
 import { type LanguageKey, t } from "@/lib/i18n";
 import ScreenSpinner from "@/components/ScreenSpinner";
-import { getStoredGsiUsername } from "@/lib/gsi-user";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
-
-const MAX_BLOCKING_SPINNER_MS = 10_000;
 
 const TransportLoad = () => {
   const navigate = useNavigate();
@@ -75,7 +72,6 @@ const TransportLoad = () => {
   const [huQuantity, setHuQuantity] = useState<string>("");
   const [huUnit, setHuUnit] = useState<string>("");
   const [errorOpen, setErrorOpen] = useState<boolean>(false);
-
   const [huItemLabel, setHuItemLabel] = useState<string>("Handling Unit / Item");
   const [loadedErrorOpen, setLoadedErrorOpen] = useState<boolean>(false);
   const [lastFetchedHu, setLastFetchedHu] = useState<string | null>(null);
@@ -83,13 +79,11 @@ const TransportLoad = () => {
   const [selectOpen, setSelectOpen] = useState<boolean>(false);
   const [selectItems, setSelectItems] = useState<Array<{ TransportID: string; RunNumber: string; Item: string; HandlingUnit: string; Warehouse: string; LocationFrom: string; LocationTo: string; Remark?: string; ETag: string; OrderedQuantity: number | null }>>([]);
   const [locationScan, setLocationScan] = useState<string>("");
-
   const [locationRequired, setLocationRequired] = useState<boolean>(false);
   const [loadedCount, setLoadedCount] = useState<number>(0);
   const [listOpen, setListOpen] = useState<boolean>(false);
   type LoadedListItem = {
     HandlingUnit: string;
-    Item: string;
     LocationFrom: string;
     LocationTo: string;
     Warehouse: string;
@@ -98,7 +92,6 @@ const TransportLoad = () => {
     ETag: string;
     OrderedQuantity?: number | string | null;
   };
-
   type ResolvedLoadData = {
     requestCode: string;
     result: NonNullable<typeof result>;
@@ -119,7 +112,6 @@ const TransportLoad = () => {
     ETag: string;
     OrderedQuantity?: number | null;
   };
-
   const [listItems, setListItems] = useState<LoadedListItem[]>([]);
   const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
   const [moveBackProcessing, setMoveBackProcessing] = useState<boolean>(false);
@@ -357,7 +349,6 @@ const TransportLoad = () => {
       const items = Array.isArray(data.items)
         ? (data.items as any[]).map((v) => ({
             HandlingUnit: String(v?.HandlingUnit ?? ""),
-            Item: String(v?.Item ?? ""),
             LocationFrom: String(v?.LocationFrom ?? ""),
             LocationTo: String(v?.LocationTo ?? ""),
             Warehouse: String(v?.Warehouse ?? ""),
@@ -367,7 +358,6 @@ const TransportLoad = () => {
             OrderedQuantity: v?.OrderedQuantity ?? null,
           })) as LoadedListItem[]
         : [];
-
       setListItems(items);
       const next = Number(data.count ?? items.length ?? 0);
       setLoadedCount(next);
@@ -390,7 +380,7 @@ const TransportLoad = () => {
     } catch {}
   };
 
-  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit || it.Item}`;
+  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`;
 
   const onMoveBack = async (it: LoadedListItem, targetLocationOverride?: string) => {
     const key = moveBackKey(it);
@@ -398,19 +388,21 @@ const TransportLoad = () => {
     const requestId = ++moveBackRequestIdRef.current;
     const currentItem = {
       HandlingUnit: (it.HandlingUnit || "").trim(),
-      Item: it.Item || "",
       Warehouse: (it.Warehouse || "").trim(),
       LocationFrom: (it.LocationFrom || "").trim(),
       TransportID: (it.TransportID || "").trim(),
       RunNumber: (it.RunNumber || "").trim(),
       ETag: (it.ETag || "").trim(),
-      OrderedQuantity: it.OrderedQuantity,
     };
-
     setMovingBackMap((m) => ({ ...m, [key]: true }));
     setMoveBackProcessing(true);
 
-    const employeeCode = getStoredGsiUsername();
+    const employeeCode = (
+      (localStorage.getItem("gsi.employee") ||
+        localStorage.getItem("gsi.username") ||
+        localStorage.getItem("gsi.login") ||
+        "") as string
+    ).trim();
     const vid = (localStorage.getItem("vehicle.id") || "").trim();
     if (!vid) {
       showError("No vehicle selected. Please set a Vehicle ID.");
@@ -425,36 +417,18 @@ const TransportLoad = () => {
       setMoveBackProcessing(false);
       return;
     }
-
-    const movePayload: Record<string, unknown> = {
-      fromWarehouse: currentItem.Warehouse,
-      fromLocation: vid,
-      toWarehouse: currentItem.Warehouse,
-      toLocation: targetLocation,
-      employee: employeeCode,
-      language: locale,
-    };
-    if (currentItem.HandlingUnit) {
-      movePayload.handlingUnit = currentItem.HandlingUnit;
-    } else {
-      const rawQty = currentItem.OrderedQuantity;
-      const qty =
-        typeof rawQty === "number"
-          ? rawQty
-          : (typeof rawQty === "string" && rawQty.trim() ? Number(rawQty) : NaN);
-      if (!currentItem.Item || Number.isNaN(qty)) {
-        showError("Missing OrderedQuantity for item movement.");
-        setMovingBackMap((m) => ({ ...m, [key]: false }));
-        setMoveBackProcessing(false);
-        return;
-      }
-      movePayload.item = currentItem.Item;
-      movePayload.quantity = qty;
-    }
     const tid = showLoading(trans.executingMovement);
 
     const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
-      body: movePayload,
+      body: {
+        handlingUnit: currentItem.HandlingUnit,
+        fromWarehouse: currentItem.Warehouse,
+        fromLocation: vid,
+        toWarehouse: currentItem.Warehouse,
+        toLocation: targetLocation,
+        employee: employeeCode,
+        language: locale,
+      },
     });
     if (moveBackRequestIdRef.current !== requestId) {
       dismissToast(tid as unknown as string);
@@ -484,7 +458,6 @@ const TransportLoad = () => {
         company: "1100",
       },
     });
-
     dismissToast(tid as unknown as string);
     if (moveBackRequestIdRef.current !== requestId) {
       setMovingBackMap((m) => ({ ...m, [key]: false }));
@@ -696,23 +669,6 @@ const TransportLoad = () => {
   const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
   const [confirmAdjustOpen, setConfirmAdjustOpen] = useState<boolean>(false);
-  const [showBlockingSpinner, setShowBlockingSpinner] = useState<boolean>(false);
-
-  const blockingBusy = detailsLoading || listLoading || processing || moveBackProcessing;
-
-  useEffect(() => {
-    if (!blockingBusy) {
-      setShowBlockingSpinner(false);
-      return;
-    }
-
-    setShowBlockingSpinner(true);
-    const timeoutId = window.setTimeout(() => {
-      setShowBlockingSpinner(false);
-    }, MAX_BLOCKING_SPINNER_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [blockingBusy]);
 
   const sourceFlowIsItemOnly = openedFromTransportsList && result !== null && !(result?.HandlingUnit || "").trim();
   const expectedConfirmValue = openedFromTransportsList
@@ -749,10 +705,6 @@ const TransportLoad = () => {
         lockInitialQuery: openedFromTransportsList,
         returnTo: {
           path: "/menu/transport/load",
-          state: {
-            prefillHandlingUnit: queryValue,
-            transportLoadSource: openedFromTransportsList ? "transports-list" : "transport-load",
-          },
         },
       },
     });
@@ -788,7 +740,12 @@ const TransportLoad = () => {
 
     const snapVehicleId = vehicleId.trim();
     const snapLocale = locale;
-    const employeeCode = getStoredGsiUsername();
+    const employeeCode = (
+      (localStorage.getItem("gsi.employee") ||
+        localStorage.getItem("gsi.username") ||
+        localStorage.getItem("gsi.login") ||
+        "") as string
+    ).trim();
 
     // Re-resolve the current scanned code right before loading so a fast previous scan
     // can never leak old result/quantity data into the movement request.
@@ -895,33 +852,6 @@ const TransportLoad = () => {
       return;
     }
     showSuccess(trans.loadedSuccessfully);
-
-    const patchTid = showLoading(trans.updatingTransportOrder);
-    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
-      body: {
-        transportId: (refreshedResult.TransportID || "").trim(),
-        runNumber: (refreshedResult.RunNumber || "").trim(),
-        etag: refreshedEtag,
-        vehicleId: snapVehicleId,
-        language: snapLocale,
-        company: "1100",
-      },
-    });
-
-    dismissToast(patchTid as unknown as string);
-    if (loadRequestIdRef.current !== requestId) {
-      setProcessing(false);
-      return;
-    }
-    if (patchErr || !patchData || !patchData.ok) {
-      const err = (patchData && patchData.error) || patchErr;
-      const top = err?.message || "Unbekannter Fehler";
-      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
-      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
-      showError(message);
-      setProcessing(false);
-      return;
-    }
 
     setHandlingUnit("");
     resetResolvedState();
@@ -1133,9 +1063,7 @@ const TransportLoad = () => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
             onClick={(e) => {
-              if (e.currentTarget.value.length > 0) {
-                e.currentTarget.select();
-              }
+              if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
             readOnly={openedFromTransportsList}
           />
@@ -1219,10 +1147,10 @@ const TransportLoad = () => {
       </div>
 
       {/* Blocking spinner while processing */}
-      {showBlockingSpinner && detailsLoading && <ScreenSpinner message={trans.checkingHandlingUnit} />}
-      {showBlockingSpinner && listLoading && <ScreenSpinner message={trans.loadingList} />}
-      {showBlockingSpinner && processing && <ScreenSpinner message={trans.pleaseWait} />}
-      {showBlockingSpinner && moveBackProcessing && <ScreenSpinner message={trans.pleaseWait} />}
+      {detailsLoading && <ScreenSpinner message={trans.checkingHandlingUnit} />}
+      {listLoading && <ScreenSpinner message={trans.loadingList} />}
+      {processing && <ScreenSpinner message={trans.pleaseWait} />}
+      {moveBackProcessing && <ScreenSpinner message={trans.pleaseWait} />}
 
       {/* Error dialog: HU not found */}
       <AlertDialog open={errorOpen} onOpenChange={setErrorOpen}>
@@ -1423,7 +1351,6 @@ const TransportLoad = () => {
                         ETag: it.ETag,
                         OrderedQuantity: it.OrderedQuantity,
                       };
-
                       setResult(nextResult);
                       setLastFetchedHu(currentInput);
                       setEtag(it.ETag || "");

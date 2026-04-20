@@ -29,14 +29,7 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url)
-
-    // Support both GET (?q=...) and POST ({ q: ... }) so clients can use supabase.functions.invoke.
-    let q = url.searchParams.get('q') || ''
-    if (!q && req.method === "POST") {
-      const body = (await req.json().catch(() => ({}))) as { q?: string }
-      q = (body.q || "").toString()
-    }
-    q = q.trim()
+    const q = url.searchParams.get('q') || ''
 
     if (!q) {
       console.error("[ln-warehouse-inspections] missing q parameter")

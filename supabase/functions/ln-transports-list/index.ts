@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { getCompanyFromParams } from "../_shared/company.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,7 +37,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { vehicleId?: string; language?: string; nextPageUrl?: string; company?: string } = {};
+    let body: { vehicleId?: string; language?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -45,10 +46,7 @@ serve(async (req) => {
 
     const vehicleId = (body.vehicleId || "").trim();
     const language = body.language || "en-US";
-    const nextPageUrl = (body.nextPageUrl || "").trim();
-    const company = (body.company || "1100").trim() || "1100";
-    console.log("[ln-transports-list] request payload", { vehicleId, language, nextPageUrl, company });
-    if (!vehicleId && !nextPageUrl) {
+    if (!vehicleId) {
       return json({ ok: false, error: "missing_vehicle" }, 200);
     }
 
@@ -58,6 +56,8 @@ serve(async (req) => {
       return json({ ok: false, error: "env_missing" }, 200);
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const company = await getCompanyFromParams(supabase);
 
     const { data: cfgData, error: cfgErr } = await supabase.rpc("get_active_ionapi");
     if (cfgErr) return json({ ok: false, error: "config_error" }, 200);
@@ -108,24 +108,10 @@ serve(async (req) => {
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
-<<<<<<< HEAD
     const escapedVehicle = vehicleId.replace(/'/g, "''");
     const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq ''`;
     const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo,Remark";
     const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
-=======
-    const requestUrl = (() => {
-      if (nextPageUrl) {
-        return nextPageUrl;
-      }
-      const escapedVehicle = vehicleId.replace(/'/g, "''");
-      const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq ''`;
-      const selectFields = "TransportID,TransportType,Item,HandlingUnit,Warehouse,LocationFrom,LocationTo,Remark,OrderedQuantity,OrderUnit";
-      return `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
-    })();
-
-    console.log("[ln-transports-list] request url", { requestUrl });
->>>>>>> 7b0a5724d7c95e0c4cdfac6732f6f5e1a264bef9
 
     const headers = {
       accept: "application/json",
@@ -134,23 +120,36 @@ serve(async (req) => {
       Authorization: `Bearer ${accessToken}`,
     } as const;
 
-    const odataRes = await fetch(requestUrl, { method: "GET", headers }).catch(() => null as unknown as Response);
-    if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
-    const odataJson = (await odataRes.json().catch(() => null)) as any;
-    if (!odataRes.ok || !odataJson) {
-      const top = odataJson?.error?.message || "odata_error";
-      const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
-      return json({ ok: false, error: { message: top, details } }, 200);
+    let count = 0;
+    const all: any[] = [];
+    let nextUrl = firstUrl;
+
+    for (let i = 0; i < 50 && nextUrl; i++) {
+      const odataRes = await fetch(nextUrl, { method: "GET", headers }).catch(() => null as unknown as Response);
+      if (!odataRes) return json({ ok: false, error: "odata_network_error" }, 200);
+      const odataJson = (await odataRes.json().catch(() => null)) as any;
+      if (!odataRes.ok || !odataJson) {
+        const top = odataJson?.error?.message || "odata_error";
+        const details = Array.isArray(odataJson?.error?.details) ? odataJson.error.details : [];
+        return json({ ok: false, error: { message: top, details } }, 200);
+      }
+
+      if (i === 0) {
+        count = odataJson["@odata.count"] ?? 0;
+      }
+
+      const pageItems = Array.isArray(odataJson.value) ? odataJson.value : [];
+      all.push(...pageItems);
+
+      const maybeNext = (odataJson["@odata.nextLink"] || odataJson["odata.nextLink"] || "") as string;
+      nextUrl = maybeNext ? toAbsoluteUrl(base, maybeNext) : "";
+
+      if (count && all.length >= count) break;
     }
 
-    const count = typeof odataJson["@odata.count"] === "number" ? odataJson["@odata.count"] : null;
-    const maybeNext = (odataJson["@odata.nextLink"] || odataJson["odata.nextLink"] || "") as string;
-    const resolvedNextPageUrl = maybeNext ? toAbsoluteUrl(base, maybeNext) : null;
-    const pageItems = Array.isArray(odataJson.value) ? odataJson.value : [];
-
-    const items = pageItems.map((v: any) => ({
-      PlanningGroupTransport: v?.PlanningGroupTransport ?? "",
+    const items = all.map((v: any) => ({
       TransportID: v?.TransportID ?? "",
+      RunNumber: "",
       TransportType: v?.TransportType ?? "",
       Item: v?.Item ?? "",
       HandlingUnit: v?.HandlingUnit ?? "",
@@ -158,16 +157,11 @@ serve(async (req) => {
       LocationFrom: v?.LocationFrom ?? "",
       LocationTo: v?.LocationTo ?? "",
       Remark: v?.Remark ?? "",
-<<<<<<< HEAD
-=======
-      OrderedQuantity: v?.OrderedQuantity ?? null,
-      OrderUnit: v?.OrderUnit ?? "",
->>>>>>> 7b0a5724d7c95e0c4cdfac6732f6f5e1a264bef9
       ETag: v?.["@odata.etag"] ?? "",
-      ODataId: v?.["@odata.id"] ?? "",
+      OrderedQuantity: typeof v?.OrderedQuantity === "number" ? v.OrderedQuantity : null,
     }));
 
-    return json({ ok: true, count, items, nextPageUrl: resolvedNextPageUrl }, 200);
+    return json({ ok: true, count, items }, 200);
   } catch {
     return json({ ok: false, error: "unhandled" }, 200);
   }
