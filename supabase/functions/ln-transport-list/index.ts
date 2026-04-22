@@ -92,9 +92,10 @@ serve(async (req) => {
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportOrders/TransportOrders`;
     const filter = `VehicleID eq '${vehicleId.replace(/'/g, "''")}'`;
-    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=TransportID,RunNumber,HandlingUnit,Item,LocationFrom,LocationTo,Warehouse,OrderedQuantity`;
+    const url = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=TransportID,HandlingUnit,Item,LocationFrom,LocationTo,Warehouse,OrderedQuantity`;
 
     const odataRes = await fetch(url, {
+
       method: "GET",
       headers: {
         "accept": "application/json",
