@@ -1,22 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCompanyFromParams } from "../_shared/company.ts";
 import { getIonApiAccessToken, getIonApiConfig } from "../_shared/ionapi.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
+import { createServiceRoleClient, getCorsHeaders, json, requireGsiSession, requirePermissions } from "../_shared/auth.ts";
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
@@ -25,6 +14,17 @@ serve(async (req) => {
   }
 
   try {
+    const supabase = createServiceRoleClient();
+    const auth = await requireGsiSession(req, supabase);
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const permissionResponse = requirePermissions(req, auth.user, ["corr"]);
+    if (permissionResponse) {
+      return permissionResponse;
+    }
+
     const body = (await req.json().catch(() => ({}))) as {
       language?: string;
       company?: string;
@@ -65,25 +65,16 @@ serve(async (req) => {
     const isHuAdjustment = Boolean(handlingUnit);
 
     if (!reason || !loginCode || !employee || !Number.isFinite(deviation)) {
-      return json({ ok: false, error: "invalid_payload" }, 200);
+      return json(req, { ok: false, error: "invalid_payload" }, 200);
     }
 
     if (isHuAdjustment) {
       if (!handlingUnit) {
-        return json({ ok: false, error: "invalid_payload" }, 200);
+        return json(req, { ok: false, error: "invalid_payload" }, 200);
       }
     } else if (!warehouse || !location || !trimmedItem) {
-      return json({ ok: false, error: "invalid_payload" }, 200);
+      return json(req, { ok: false, error: "invalid_payload" }, 200);
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !serviceRoleKey) {
-      console.error("[ln-inventory-adjustment] env missing");
-      return json({ ok: false, error: "env_missing" }, 200);
-    }
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     let company = companyOverride;
     if (!company) {
@@ -91,7 +82,7 @@ serve(async (req) => {
         company = await getCompanyFromParams(supabase);
       } catch (e) {
         console.error("[ln-inventory-adjustment] no_company_config", { error: String(e) });
-        return json({ ok: false, error: "no_company_config" }, 200);
+        return json(req, { ok: false, error: "no_company_config" }, 200);
       }
     }
 
@@ -140,6 +131,7 @@ serve(async (req) => {
       item,
       deviation,
       reason,
+      sessionUser: auth.gsiUserId,
     });
 
     const res = await fetch(url, {
@@ -157,7 +149,7 @@ serve(async (req) => {
       return null as unknown as Response;
     });
 
-    if (!res) return json({ ok: false, error: "odata_network_error" }, 200);
+    if (!res) return json(req, { ok: false, error: "odata_network_error" }, 200);
 
     const data = (await res.json().catch(() => null)) as any;
     if (!res.ok || !data) {
@@ -167,12 +159,12 @@ serve(async (req) => {
       });
       const topMessage = data?.error?.message || "odata_error";
       const details = Array.isArray(data?.error?.details) ? data.error.details : [];
-      return json({ ok: false, error: { message: topMessage, details } }, 200);
+      return json(req, { ok: false, error: { message: topMessage, details } }, 200);
     }
 
-    return json({ ok: true, value: data }, 200);
+    return json(req, { ok: true, value: data }, 200);
   } catch (e) {
     console.error("[ln-inventory-adjustment] unhandled", { error: String(e) });
-    return json({ ok: false, error: { message: "unhandled" } }, 200);
+    return json(req, { ok: false, error: { message: "unhandled" } }, 200);
   }
 });

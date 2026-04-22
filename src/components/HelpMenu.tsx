@@ -12,6 +12,8 @@ import {
 import type { LanguageKey } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { getStoredGsiPermissions } from "@/lib/gsi-permissions";
+import { hasStoredGsiIdentity } from "@/lib/gsi-auth-storage";
+import { hasValidGsiSession } from "@/lib/gsi-session";
 
 type HelpMenuProps = {
   topic: string; // e.g., "login", "transport-load", "transport-unload", "hu-info"
@@ -24,11 +26,7 @@ const HelpMenu: React.FC<HelpMenuProps> = ({ topic, className, colorMode = "dark
   const currentLang = lang || ((localStorage.getItem("app.lang") as LanguageKey) || "en");
   const trans = t(currentLang);
   const permissions = getStoredGsiPermissions();
-  const hasStoredSession = Boolean(
-    (localStorage.getItem("gsi.id") || "").trim() &&
-    (localStorage.getItem("gsi.login") || "").trim() &&
-    (localStorage.getItem("ln.token") || "").trim()
-  );
+  const hasStoredSession = hasStoredGsiIdentity() && hasValidGsiSession();
 
   if (!hasStoredSession || !permissions.admin) {
     return null;

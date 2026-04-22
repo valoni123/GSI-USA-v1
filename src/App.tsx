@@ -8,10 +8,13 @@ import {
   canAccessInfoStockMenu,
   canAccessOutgoingMenu,
   canAccessTransportMenus,
+  clearStoredGsiPermissions,
   getStoredGsiPermissions,
   hasPermission,
   type GsiPermissions,
 } from "@/lib/gsi-permissions";
+import { clearStoredGsiAuth, hasStoredGsiIdentity } from "@/lib/gsi-auth-storage";
+import { hasValidGsiSession } from "@/lib/gsi-session";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Menu from "./pages/Menu";
@@ -37,18 +40,13 @@ import Docs from "./pages/Docs";
 
 const queryClient = new QueryClient();
 
-const hasStoredSession = () => {
-  if (typeof window === "undefined") return false;
-  const gsiId = (localStorage.getItem("gsi.id") || "").trim();
-  const login = (localStorage.getItem("gsi.login") || "").trim();
-  const token = (localStorage.getItem("ln.token") || "").trim();
-  return Boolean(gsiId && login && token);
-};
+const hasStoredSession = () => hasStoredGsiIdentity() && hasValidGsiSession();
 
 const ProtectedRoute = () => {
   const location = useLocation();
 
   if (!hasStoredSession()) {
+    clearStoredGsiAuth();
     return <Navigate to="/" replace state={{ from: location.pathname }} />;
   }
 
@@ -57,9 +55,16 @@ const ProtectedRoute = () => {
 
 const PermissionRoute = ({ allow }: { allow: (permissions: GsiPermissions) => boolean }) => {
   const location = useLocation();
+
+  if (!hasStoredSession()) {
+    clearStoredGsiAuth();
+    return <Navigate to="/" replace state={{ from: location.pathname }} />;
+  }
+
   const permissions = getStoredGsiPermissions();
 
   if (!allow(permissions)) {
+    clearStoredGsiPermissions();
     return <Navigate to="/menu" replace state={{ from: location.pathname }} />;
   }
 

@@ -7,6 +7,8 @@ import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { normalizeGsiPermissions, setStoredGsiPermissions } from "@/lib/gsi-permissions";
+import { clearStoredGsiAuth, hasStoredGsiIdentity, storeGsiIdentity } from "@/lib/gsi-auth-storage";
+import { clearStoredGsiSession, hasValidGsiSession, setStoredGsiSession } from "@/lib/gsi-session";
 
 const Index = () => {
   const [lang, setLang] = useState<LanguageKey>(() => {
@@ -15,13 +17,21 @@ const Index = () => {
   });
 
   const trans = useMemo(() => t(lang), [lang]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.documentElement.lang = lang;
     localStorage.setItem("app.lang", lang);
   }, [lang]);
 
-  const navigate = useNavigate();
+  useEffect(() => {
+    if (hasStoredGsiIdentity() && hasValidGsiSession()) {
+      navigate("/menu", { replace: true });
+      return;
+    }
+
+    clearStoredGsiAuth();
+  }, [navigate]);
 
   const invokeWithTimeout = async <T,>(
     functionName: string,
@@ -41,8 +51,12 @@ const Index = () => {
       showError(trans.emptyFields);
       return;
     }
+
+    clearStoredGsiAuth();
+
     const id = showLoading(trans.signingIn);
     let loginResult: { data: any; error: any };
+
     try {
       loginResult = await invokeWithTimeout<{ data: any; error: any }>("verify-gsi-login", { username, password });
     } catch (error) {
@@ -50,52 +64,59 @@ const Index = () => {
       showError(error instanceof Error && error.message === "timeout" ? "Login verification timed out" : trans.invalidCredentials);
       return;
     }
+
     const { data, error } = loginResult;
     dismissToast(id as unknown as string);
-    if (error || !data || !data.ok) {
+
+    if (error || !data || !data.ok || !data.session?.token || !data.session?.expires_at) {
+      clearStoredGsiAuth();
       showError(trans.invalidCredentials);
       return;
     }
-    showSuccess(trans.signedIn);
+
     const gsiId = data.user?.id as string | undefined;
     const fullName = data.user?.full_name as string | undefined;
     const userUsername = data.user?.username as string | undefined;
-    const loginUsername = userUsername || username;
-    try {
-      if (gsiId) localStorage.setItem("gsi.id", gsiId);
-      if (fullName) localStorage.setItem("gsi.full_name", fullName);
-      if (userUsername) localStorage.setItem("gsi.username", userUsername);
-      localStorage.setItem("gsi.employee", loginUsername);
-      localStorage.setItem("gsi.login", loginUsername);
-      setStoredGsiPermissions(normalizeGsiPermissions(data.user));
-    } catch {}
+    const loginUsername = userUsername || username.trim();
+
+    storeGsiIdentity({
+      gsiId,
+      fullName,
+      username: userUsername,
+      loginUsername,
+    });
+    setStoredGsiSession(String(data.session.token), String(data.session.expires_at));
+    setStoredGsiPermissions(normalizeGsiPermissions(data.user));
+
+    showSuccess(trans.signedIn);
 
     const tid = showLoading(trans.retrievingToken);
     let tokenResult: { data: any; error: any };
     try {
-      tokenResult = await invokeWithTimeout<{ data: any; error: any }>("ln-get-token", { gsi_id: gsiId });
+      tokenResult = await invokeWithTimeout<{ data: any; error: any }>("ln-get-token", {});
     } catch (error) {
       dismissToast(tid as unknown as string);
+      clearStoredGsiAuth();
       showError(error instanceof Error && error.message === "timeout" ? "Token request timed out" : trans.tokenFailed);
       return;
     }
+
     const { data: tokenData, error: tokenErr } = tokenResult;
     dismissToast(tid as unknown as string);
     if (tokenErr || !tokenData || !tokenData.ok) {
+      clearStoredGsiAuth();
       showError(trans.tokenFailed);
       return;
     }
+
     showSuccess(trans.tokenReceived);
+
     try {
-      localStorage.setItem("ln.token", JSON.stringify(tokenData.token));
       localStorage.setItem("transport.count", "0");
     } catch {}
 
     try {
-      const permissionsResult = await invokeWithTimeout<{ data: any; error: any }>("gsi-get-user-permissions", {
-        gsi_id: gsiId,
-        username: loginUsername,
-      }, 8000);
+      const permissionsResult = await invokeWithTimeout<{ data: any; error: any }>("gsi-get-user-permissions", {}, 8000);
       if (permissionsResult?.data?.ok) {
         setStoredGsiPermissions(permissionsResult.data.permissions);
       }
@@ -112,6 +133,13 @@ const Index = () => {
         localStorage.setItem("transports.vehicle.id", vehicleId);
       } catch {}
     })();
+
+    if (!hasStoredGsiIdentity() || !hasValidGsiSession()) {
+      clearStoredGsiSession();
+      clearStoredGsiAuth();
+      showError(trans.invalidCredentials);
+      return;
+    }
 
     if (transportscreen) {
       navigate("/transport/select");

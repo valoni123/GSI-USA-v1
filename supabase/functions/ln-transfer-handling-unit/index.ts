@@ -1,31 +1,32 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
+import { createServiceRoleClient, getCorsHeaders, json, requireGsiSession, requirePermissions } from "../_shared/auth.ts";
 
 function buildTokenUrl(pu: string, ot: string) {
-  const base = pu.endsWith("/") ? pu : pu + "/";
+  const base = pu.endsWith("/") ? pu : `${pu}/`;
   return base + ot.replace(/^\//, "");
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
+  }
+
   try {
-    if (req.method === "OPTIONS") {
-      return new Response(null, { status: 200, headers: corsHeaders });
+    const supabase = createServiceRoleClient();
+    const auth = await requireGsiSession(req, supabase);
+    if (!auth.ok) {
+      return auth.response;
     }
-    if (req.method !== "POST") {
-      return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
+
+    const permissionResponse = requirePermissions(req, auth.user, ["trans", "cntg", "trlo", "trul"]);
+    if (permissionResponse) {
+      return permissionResponse;
     }
 
     let body: {
@@ -47,7 +48,7 @@ serve(async (req) => {
       body = await req.json();
     } catch {
       console.error("[ln-transfer-handling-unit] invalid json body");
-      return json({ ok: false, error: "invalid_json" }, 200);
+      return json(req, { ok: false, error: "invalid_json" }, 200);
     }
 
     const language = body.language || "en-US";
@@ -55,15 +56,8 @@ serve(async (req) => {
       language,
       hasHandlingUnit: Boolean((body.Ladeeinheit || "").toString().trim()),
       hasArtikel: Boolean((body.Artikel || "").toString().trim()),
+      sessionUser: auth.gsiUserId,
     });
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !serviceRoleKey) {
-      console.error("[ln-transfer-handling-unit] missing env");
-      return json({ ok: false, error: "env_missing" }, 200);
-    }
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: compRes, error: compErr } = await supabase
       .from("gsi000_params")
@@ -73,7 +67,7 @@ serve(async (req) => {
       .limit(1);
     if (compErr || !Array.isArray(compRes) || compRes.length === 0) {
       console.error("[ln-transfer-handling-unit] missing company config", { compErr });
-      return json({ ok: false, error: "no_company_config" }, 200);
+      return json(req, { ok: false, error: "no_company_config" }, 200);
     }
     const company = (compRes[0]?.txgsi000_compnr || "").toString().trim();
 
@@ -81,7 +75,7 @@ serve(async (req) => {
     const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
     if (!cfg) {
       console.error("[ln-transfer-handling-unit] no active ionapi config");
-      return json({ ok: false, error: "no_active_config" }, 200);
+      return json(req, { ok: false, error: "no_active_config" }, 200);
     }
 
     const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
@@ -97,7 +91,7 @@ serve(async (req) => {
       .maybeSingle();
     if (!activeRow) {
       console.error("[ln-transfer-handling-unit] no active ionapi row");
-      return json({ ok: false, error: "no_active_config_row" }, 200);
+      return json(req, { ok: false, error: "no_active_config_row" }, 200);
     }
     const iu: string = activeRow.iu;
     const ti: string = activeRow.ti;
@@ -118,12 +112,12 @@ serve(async (req) => {
     }).catch(() => null as unknown as Response);
     if (!tokenRes) {
       console.error("[ln-transfer-handling-unit] token network error");
-      return json({ ok: false, error: "token_network_error" }, 200);
+      return json(req, { ok: false, error: "token_network_error" }, 200);
     }
     const tokenJson = (await tokenRes.json().catch(() => null)) as any;
     if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
       console.error("[ln-transfer-handling-unit] token error", { status: tokenRes.status, tokenJson });
-      return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
+      return json(req, { ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
     }
     const accessToken = tokenJson.access_token as string;
 
@@ -166,23 +160,23 @@ serve(async (req) => {
 
     if (!lnRes) {
       console.error("[ln-transfer-handling-unit] ln network error");
-      return json({ ok: false, error: "ln_network_error" }, 200);
+      return json(req, { ok: false, error: "ln_network_error" }, 200);
     }
     const lnJson = (await lnRes.json().catch(() => null)) as any;
     if (!lnRes.ok || !lnJson) {
       const top = lnJson?.error?.message || "ln_error";
       const details = Array.isArray(lnJson?.error?.details) ? lnJson.error.details : [];
       console.error("[ln-transfer-handling-unit] ln error", { status: lnRes.status, top, details, lnJson });
-      return json({ ok: false, error: { message: top, details } }, 200);
+      return json(req, { ok: false, error: { message: top, details } }, 200);
     }
 
     const transferId = typeof lnJson?.TransferID === "string" ? lnJson.TransferID : null;
     console.info("[ln-transfer-handling-unit] success", { transferId });
-    return json({ ok: true, transferId, raw: lnJson }, 200);
+    return json(req, { ok: true, transferId, raw: lnJson }, 200);
   } catch (error) {
     console.error("[ln-transfer-handling-unit] unhandled", {
       error: error instanceof Error ? error.message : String(error),
     });
-    return json({ ok: false, error: { message: "unhandled" } }, 200);
+    return json(req, { ok: false, error: { message: "unhandled" } }, 200);
   }
 });

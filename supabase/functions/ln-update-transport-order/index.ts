@@ -1,32 +1,32 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCompanyFromParams } from "../_shared/company.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
+import { createServiceRoleClient, getCorsHeaders, json, requireGsiSession, requirePermissions } from "../_shared/auth.ts";
 
 function buildTokenUrl(pu: string, ot: string) {
-  const base = pu.endsWith("/") ? pu : pu + "/";
+  const base = pu.endsWith("/") ? pu : `${pu}/`;
   return base + ot.replace(/^\//, "");
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   try {
     if (req.method === "OPTIONS") {
       return new Response(null, { status: 200, headers: corsHeaders });
     }
     if (req.method !== "POST") {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
+    }
+
+    const supabase = createServiceRoleClient();
+    const auth = await requireGsiSession(req, supabase);
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const permissionResponse = requirePermissions(req, auth.user, ["trans", "trlo", "trul", "load"]);
+    if (permissionResponse) {
+      return permissionResponse;
     }
 
     let body: {
@@ -41,7 +41,7 @@ serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      return json({ ok: false, error: "invalid_json" }, 200);
+      return json(req, { ok: false, error: "invalid_json" }, 200);
     }
 
     const transportId = (body.transportId || "").trim();
@@ -53,26 +53,19 @@ serve(async (req) => {
     const language = body.language || "de-DE";
 
     if (!transportId || !etag) {
-      return json({ ok: false, error: { message: "missing_fields" } }, 200);
+      return json(req, { ok: false, error: { message: "missing_fields" } }, 200);
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !serviceRoleKey) {
-      console.error("[ln-update-transport-order] env missing");
-      return json({ ok: false, error: { message: "env_missing" } }, 200);
-    }
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
     const company = await getCompanyFromParams(supabase);
 
     const { data: cfgData, error: cfgErr } = await supabase.rpc("get_active_ionapi");
     if (cfgErr) {
       console.error("[ln-update-transport-order] get_active_ionapi error", cfgErr);
-      return json({ ok: false, error: { message: "config_error" } }, 200);
+      return json(req, { ok: false, error: { message: "config_error" } }, 200);
     }
     const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
     if (!cfg) {
-      return json({ ok: false, error: { message: "no_active_config" } }, 200);
+      return json(req, { ok: false, error: { message: "no_active_config" } }, 200);
     }
     const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
       ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
@@ -87,13 +80,13 @@ serve(async (req) => {
       .maybeSingle();
     if (activeErr || !activeRow) {
       console.error("[ln-update-transport-order] active row error", activeErr);
-      return json({ ok: false, error: { message: "config_lookup_error" } }, 200);
+      return json(req, { ok: false, error: { message: "config_lookup_error" } }, 200);
     }
     const iu: string = activeRow.iu;
     const ti: string = activeRow.ti;
 
     if (!ci || !cs || !pu || !ot || !iu || !ti || !saak || !sask || !grantType) {
-      return json({ ok: false, error: { message: "config_incomplete" } }, 200);
+      return json(req, { ok: false, error: { message: "config_incomplete" } }, 200);
     }
 
     const basic = btoa(`${ci}:${cs}`);
@@ -105,7 +98,7 @@ serve(async (req) => {
     const tokenRes = await fetch(buildTokenUrl(pu, ot), {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${basic}`,
+        Authorization: `Basic ${basic}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: tokenParams.toString(),
@@ -113,10 +106,10 @@ serve(async (req) => {
       console.error("[ln-update-transport-order] token network", e);
       return null as unknown as Response;
     });
-    if (!tokenRes) return json({ ok: false, error: { message: "token_network_error" } }, 200);
+    if (!tokenRes) return json(req, { ok: false, error: { message: "token_network_error" } }, 200);
     const tokenJson = await tokenRes.json().catch(() => null) as any;
     if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
-      return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
+      return json(req, { ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
     }
     const accessToken = tokenJson.access_token as string;
 
@@ -131,26 +124,26 @@ serve(async (req) => {
 
     const patchBody: Record<string, unknown> = {};
     if (completed.toLowerCase() === "yes") {
-      patchBody["Completed"] = "Yes";
+      patchBody.Completed = "Yes";
     }
     if (vehicleId !== undefined) {
-      patchBody["VehicleID"] = vehicleId;
+      patchBody.VehicleID = vehicleId;
     }
     if (locationDevice !== undefined) {
-      patchBody["LocationDevice"] = locationDevice;
+      patchBody.LocationDevice = locationDevice;
     } else if (vehicleId !== undefined) {
-      patchBody["LocationDevice"] = vehicleId;
+      patchBody.LocationDevice = vehicleId;
     }
 
     const patchRes = await fetch(url, {
       method: "PATCH",
       headers: {
-        "accept": "application/json",
+        accept: "application/json",
         "If-Match": etag,
         "Content-Language": language,
         "X-Infor-LnCompany": company,
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify(patchBody),
     }).catch((e) => {
@@ -158,7 +151,7 @@ serve(async (req) => {
       return null as unknown as Response;
     });
 
-    if (!patchRes) return json({ ok: false, error: { message: "patch_network_error" } }, 200);
+    if (!patchRes) return json(req, { ok: false, error: { message: "patch_network_error" } }, 200);
     const resJson = await patchRes.json().catch(() => null) as any;
 
     if (!patchRes.ok) {
@@ -170,12 +163,12 @@ serve(async (req) => {
             ? resJson
             : "Unbekannter Fehler";
       const details = Array.isArray(errObj?.details) ? errObj.details : [];
-      return json({ ok: false, error: { message: topMessage, details } }, 200);
+      return json(req, { ok: false, error: { message: topMessage, details } }, 200);
     }
 
-    return json({ ok: true, data: resJson }, 200);
+    return json(req, { ok: true, data: resJson }, 200);
   } catch (e) {
     console.error("[ln-update-transport-order] unhandled", e);
-    return json({ ok: false, error: { message: "unhandled" } }, 200);
+    return json(req, { ok: false, error: { message: "unhandled" } }, 200);
   }
 });
