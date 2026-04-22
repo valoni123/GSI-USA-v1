@@ -80,6 +80,7 @@ const IncomingGoodsReceipt = () => {
   const [lotTracking, setLotTracking] = useState<boolean>(false);
   const [lastCheckedOrder, setLastCheckedOrder] = useState<string | null>(null);
   const [confirmOnly, setConfirmOnly] = useState<boolean>(false);
+  const [lnCompany, setLnCompany] = useState<string>("");
   const [receivedLinesCount, setReceivedLinesCount] = useState<number>(0);
   const [receivedLines, setReceivedLines] = useState<any[]>([]);
   const [receivedLinesOpen, setReceivedLinesOpen] = useState<boolean>(false);
@@ -173,12 +174,14 @@ const IncomingGoodsReceipt = () => {
 
     const readParams = async () => {
       const { data, error } = await supabase.functions.invoke("gsi-get-params", {
-        body: { company: "4000" },
+        body: {},
       });
       if (!active) return;
       if (error || !data || !data.ok) return;
       const aure = Boolean(data.params?.aure);
+      const compnr = typeof data.params?.compnr === "string" ? data.params.compnr.trim() : "";
       setConfirmOnly(aure);
+      setLnCompany(compnr);
     };
 
     readParams();
@@ -207,7 +210,7 @@ const IncomingGoodsReceipt = () => {
         orderNumber: ord,
         origin: originSelected,
         language: locale,
-        company: "4000",
+        company: lnCompany || undefined,
       },
     });
     setIsSubmitting(false);
@@ -259,7 +262,7 @@ const IncomingGoodsReceipt = () => {
         lot: (opts.lot || lot || "").trim(),
         businessPartnerLot: (opts.businessPartnerLot || bpLot || "").trim(),
         language: locale,
-        company: "4000",
+        company: lnCompany || undefined,
       },
       headers: {
         Authorization: getGsiSessionAuthorizationHeader(),
@@ -324,7 +327,7 @@ const IncomingGoodsReceipt = () => {
           lot: (lotCode || lot || "").trim(),
           businessPartnerLot: (bpLotCode || bpLot || "").trim(),
           language: locale,
-          company: "4000",
+          company: lnCompany || undefined,
         },
         headers: {
           Authorization: getGsiSessionAuthorizationHeader(),
@@ -390,7 +393,7 @@ const IncomingGoodsReceipt = () => {
         line: lineTrim ? Number(lineTrim) : undefined,
         orderOrigin: originForFilter,
         language: locale,
-        company: "4000",
+        company: lnCompany || undefined,
       },
     });
     // Keep spinner visible while we hydrate additional data below; dismiss on each return path.
@@ -639,7 +642,7 @@ const IncomingGoodsReceipt = () => {
         origin,
         buyFromBusinessPartner: (bp || "").trim() || undefined,
         language: locale,
-        company: "4000",
+        company: lnCompany || undefined,
       },
     });
     if (error || !data || !data.ok) {
@@ -662,7 +665,7 @@ const IncomingGoodsReceipt = () => {
       return false;
     }
     const { data } = await supabase.functions.invoke("ln-item-lot-tracking", {
-      body: { item: itm, language: locale, company: "4000" },
+      body: { item: itm, language: locale, company: lnCompany || undefined },
     });
     if (data && data.ok) {
       setLotTracking(Boolean(data.lotTracking));
@@ -692,7 +695,7 @@ const IncomingGoodsReceipt = () => {
         buyFromBusinessPartner: isPurchase ? bp : undefined,
         lot: lotValue,
         language: locale,
-        company: "4000",
+        company: lnCompany || undefined,
       },
     });
 
@@ -735,7 +738,7 @@ const IncomingGoodsReceipt = () => {
         Confirm: "No",
         FromWebservice: "Yes",
         language: locale,
-        company: "4000",
+        company: lnCompany || undefined,
       },
       headers: {
         Authorization: getGsiSessionAuthorizationHeader(),
@@ -785,7 +788,7 @@ const IncomingGoodsReceipt = () => {
         receiptNumber: receiptNumber || "",
         receiptLine: receiptLine || 0,
         language: locale,
-        company: "4000",
+        company: lnCompany || undefined,
       },
       headers: {
         Authorization: getGsiSessionAuthorizationHeader(),
@@ -872,7 +875,7 @@ const IncomingGoodsReceipt = () => {
         Confirm: "No",
         FromWebservice: "Yes",
         language: locale,
-        company: "4000",
+        company: lnCompany || undefined,
       },
       headers: {
         Authorization: getGsiSessionAuthorizationHeader(),
