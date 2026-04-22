@@ -196,6 +196,9 @@ const TransportsList = () => {
         language: locale,
         company: "1100",
       },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
     });
     dismissToast(tid as unknown as string);
 
