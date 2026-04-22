@@ -21,6 +21,7 @@ import { type LanguageKey, t } from "@/lib/i18n";
 import { showError, showLoading, dismissToast, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
+import { getGsiSessionAuthorizationHeader } from "@/lib/gsi-session";
 
 const InfoStockCorrection = () => {
   const navigate = useNavigate();
@@ -658,6 +659,9 @@ const InfoStockCorrection = () => {
           transactionId: "",
           sequenceNumber: 0,
           fromWebservice: "Yes",
+        },
+        headers: {
+          Authorization: getGsiSessionAuthorizationHeader(),
         },
       });
       dismissToast(tid as unknown as string);
