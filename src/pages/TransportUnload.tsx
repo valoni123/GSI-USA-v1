@@ -280,9 +280,12 @@ const TransportUnload = () => {
         language: locale,
         company: "1100",
       },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
     });
-
     dismissToast(patchTid as unknown as string);
+
     if (patchErr || !patchData || !patchData.ok) {
       const err = (patchData && patchData.error) || patchErr;
       const top = err?.message || "Unbekannter Fehler";

@@ -338,8 +338,11 @@ const TransportsList = () => {
         runNumber: currentItem.RunNumber,
         etag: currentItem.ETag,
         vehicleId: "",
-        language: locale,
+        language: "en-US",
         company: "1100",
+      },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
       },
     });
     dismissToast(tid as unknown as string);

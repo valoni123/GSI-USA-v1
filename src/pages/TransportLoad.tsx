@@ -452,17 +452,25 @@ const TransportLoad = () => {
       return;
     }
 
+    const patchTid = showLoading(trans.updatingTransportOrder);
+    const toLoc = targetLocation;
     const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
       body: {
-        transportId: currentItem.TransportID,
-        runNumber: currentItem.RunNumber,
-        etag: currentItem.ETag,
+        transportId: (it.TransportID || "").trim(),
+        runNumber: (it.RunNumber || "").trim(),
+        etag: (it.ETag || "").trim(),
         vehicleId: "",
+        locationDevice: toLoc,
+        completed: "Yes",
         language: locale,
         company: "1100",
       },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
     });
-    dismissToast(tid as unknown as string);
+
+    dismissToast(patchTid as unknown as string);
     if (moveBackRequestIdRef.current !== requestId) {
       setMovingBackMap((m) => ({ ...m, [key]: false }));
       setMoveBackProcessing(false);

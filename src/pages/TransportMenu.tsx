@@ -239,6 +239,10 @@ const TransportMenu = () => {
         language: "en-US",
         company: "1100",
       },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
+
     });
     dismissToast(tid as unknown as string);
     if (moveBackRequestIdRef.current !== requestId) {
