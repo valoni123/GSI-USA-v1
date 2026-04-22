@@ -14,6 +14,7 @@ import ReasonPickerDialog from "@/components/ReasonPickerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { t, type LanguageKey } from "@/lib/i18n";
 import { showSuccess, showError } from "@/utils/toast";
+import { getGsiSessionAuthorizationHeader } from "@/lib/gsi-session";
 
 const IncomingInspectionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -181,6 +182,9 @@ const IncomingInspectionPage: React.FC = () => {
 
     const { data, error } = await supabase.functions.invoke("ln-submit-inspection", {
       body: { language: "en-US", company: "1100", payload },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
     });
     setIsSubmitting(false);
 
@@ -302,9 +306,9 @@ const IncomingInspectionPage: React.FC = () => {
       setLinesLoading(true);
       const insp = (selectedLine?.Inspection || "").toString().trim();
       const seq = Number(
-        selectedLine?.InspectionSequence ??
-        selectedLine?.Sequence ??
-        selectedLine?.OrderSequence ??
+        selectedLine?.InspectionSequence ?? 
+        selectedLine?.Sequence ?? 
+        selectedLine?.OrderSequence ?? 
         0
       );
       if (!insp || !seq) {
