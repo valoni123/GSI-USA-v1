@@ -18,6 +18,7 @@ import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast
 import { type LanguageKey, t } from "@/lib/i18n";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ScreenSpinner from "@/components/ScreenSpinner";
+import { getGsiSessionAuthorizationHeader } from "@/lib/gsi-session";
 
 type LoadedItem = {
   TransportID?: string;
@@ -235,7 +236,12 @@ const TransportUnload = () => {
       payload.quantity = qty;
     }
     const tid = showLoading(trans.executingMovement);
-    const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
+    const { data, error } = await supabase.functions.invoke("ln-move-to-location", {
+      body: payload,
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
+    });
     dismissToast(tid as unknown as string);
 
     if (error || !data || !data.ok) {

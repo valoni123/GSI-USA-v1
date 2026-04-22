@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import { clearStoredGsiPermissions, getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
+import { getGsiSessionAuthorizationHeader } from "@/lib/gsi-session";
 
 type Tile = { key: string; label: string; icon: React.ReactNode };
 
@@ -205,6 +206,9 @@ const TransportMenu = () => {
         toLocation: currentItem.LocationFrom,
         employee: employeeCode,
         language: "en-US",
+      },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
       },
     });
     if (moveBackRequestIdRef.current !== requestId) {

@@ -11,6 +11,7 @@ import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
+import { getGsiSessionAuthorizationHeader } from "@/lib/gsi-session";
 
 const cleanValue = (value: string) => {
   const trimmed = (value || "").trim();
@@ -279,7 +280,7 @@ const TransportsList = () => {
       return;
     }
 
-    const movePayload: Record<string, unknown> = {
+    const payload: Record<string, unknown> = {
       handlingUnit: currentItem.HandlingUnit,
       fromWarehouse: currentItem.Warehouse,
       fromLocation: selectedVehicleId,
@@ -301,8 +302,8 @@ const TransportsList = () => {
         return;
       }
 
-      movePayload.item = currentItem.Item;
-      movePayload.quantity = qty;
+      payload.item = currentItem.Item;
+      payload.quantity = qty;
     }
 
     setMovingBackMap((m) => ({ ...m, [key]: true }));
@@ -310,7 +311,10 @@ const TransportsList = () => {
 
     const tid = showLoading(trans.executingMovement);
     const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
-      body: movePayload,
+      body: payload,
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
     });
 
     if (moveErr || !moveData || !moveData.ok) {

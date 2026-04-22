@@ -23,6 +23,7 @@ import { dismissToast, showLoading, showSuccess, showError } from "@/utils/toast
 import { type LanguageKey, t } from "@/lib/i18n";
 import ScreenSpinner from "@/components/ScreenSpinner";
 import { getStoredGsiPermissions, hasPermission } from "@/lib/gsi-permissions";
+import { getGsiSessionAuthorizationHeader } from "@/lib/gsi-session";
 
 const TransportLoad = () => {
   const navigate = useNavigate();
@@ -425,9 +426,12 @@ const TransportLoad = () => {
         fromWarehouse: currentItem.Warehouse,
         fromLocation: vid,
         toWarehouse: currentItem.Warehouse,
-        toLocation: targetLocation,
+        toLocation: currentItem.LocationFrom,
         employee: employeeCode,
         language: locale,
+      },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
       },
     });
     if (moveBackRequestIdRef.current !== requestId) {
@@ -836,7 +840,12 @@ const TransportLoad = () => {
       }
     }
     const tid = showLoading(trans.executingMovement);
-    const { data, error } = await supabase.functions.invoke("ln-move-to-location", { body: payload });
+    const { data, error } = await supabase.functions.invoke("ln-move-to-location", {
+      body: payload,
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
+    });
     dismissToast(tid as unknown as string);
     if (loadRequestIdRef.current !== requestId) {
       setProcessing(false);
@@ -1063,7 +1072,9 @@ const TransportLoad = () => {
               if (e.currentTarget.value.length > 0) e.currentTarget.select();
             }}
             onClick={(e) => {
-              if (e.currentTarget.value.length > 0) e.currentTarget.select();
+              if (e.currentTarget.value.length > 0) {
+                e.currentTarget.select();
+              }
             }}
             readOnly={openedFromTransportsList}
           />
