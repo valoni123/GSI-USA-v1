@@ -13,6 +13,7 @@ import { showSuccess, showLoading, dismissToast, showError } from "@/utils/toast
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import ScreenSpinner from "@/components/ScreenSpinner";
+import { getGsiSessionAuthorizationHeader } from "@/lib/gsi-session";
 
 const IncomingGoodsReceipt = () => {
   const navigate = useNavigate();
@@ -260,6 +261,9 @@ const IncomingGoodsReceipt = () => {
         language: locale,
         company: "4000",
       },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
     });
     dismissToast(tid as unknown as string);
     setIsSubmitting(false);
@@ -321,6 +325,9 @@ const IncomingGoodsReceipt = () => {
           businessPartnerLot: (bpLotCode || bpLot || "").trim(),
           language: locale,
           company: "4000",
+        },
+        headers: {
+          Authorization: getGsiSessionAuthorizationHeader(),
         },
       });
 
@@ -730,6 +737,9 @@ const IncomingGoodsReceipt = () => {
         language: locale,
         company: "4000",
       },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
     });
 
     if (recvError || !recvData || !recvData.ok) {
@@ -776,6 +786,9 @@ const IncomingGoodsReceipt = () => {
         receiptLine: receiptLine || 0,
         language: locale,
         company: "4000",
+      },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
       },
     });
 
@@ -860,6 +873,9 @@ const IncomingGoodsReceipt = () => {
         FromWebservice: "Yes",
         language: locale,
         company: "4000",
+      },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
       },
     });
 
