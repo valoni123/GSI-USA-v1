@@ -46,14 +46,21 @@ serve(async (req) => {
     try {
       body = await req.json();
     } catch {
+      console.error("[ln-transfer-handling-unit] invalid json body");
       return json({ ok: false, error: "invalid_json" }, 200);
     }
 
     const language = body.language || "en-US";
+    console.info("[ln-transfer-handling-unit] request received", {
+      language,
+      hasHandlingUnit: Boolean((body.Ladeeinheit || "").toString().trim()),
+      hasArtikel: Boolean((body.Artikel || "").toString().trim()),
+    });
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
+      console.error("[ln-transfer-handling-unit] missing env");
       return json({ ok: false, error: "env_missing" }, 200);
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -65,13 +72,17 @@ serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(1);
     if (compErr || !Array.isArray(compRes) || compRes.length === 0) {
+      console.error("[ln-transfer-handling-unit] missing company config", { compErr });
       return json({ ok: false, error: "no_company_config" }, 200);
     }
     const company = (compRes[0]?.txgsi000_compnr || "").toString().trim();
 
     const { data: cfgData } = await supabase.rpc("get_active_ionapi");
     const cfg = Array.isArray(cfgData) ? cfgData[0] : cfgData;
-    if (!cfg) return json({ ok: false, error: "no_active_config" }, 200);
+    if (!cfg) {
+      console.error("[ln-transfer-handling-unit] no active ionapi config");
+      return json({ ok: false, error: "no_active_config" }, 200);
+    }
 
     const { ci, cs, pu, ot, grant_type, saak, sask } = cfg as {
       ci: string; cs: string; pu: string; ot: string; grant_type: string; saak: string; sask: string;
@@ -84,7 +95,10 @@ serve(async (req) => {
       .eq("active", true)
       .limit(1)
       .maybeSingle();
-    if (!activeRow) return json({ ok: false, error: "no_active_config_row" }, 200);
+    if (!activeRow) {
+      console.error("[ln-transfer-handling-unit] no active ionapi row");
+      return json({ ok: false, error: "no_active_config_row" }, 200);
+    }
     const iu: string = activeRow.iu;
     const ti: string = activeRow.ti;
 
@@ -102,9 +116,13 @@ serve(async (req) => {
       },
       body: tokenParams.toString(),
     }).catch(() => null as unknown as Response);
-    if (!tokenRes) return json({ ok: false, error: "token_network_error" }, 200);
+    if (!tokenRes) {
+      console.error("[ln-transfer-handling-unit] token network error");
+      return json({ ok: false, error: "token_network_error" }, 200);
+    }
     const tokenJson = (await tokenRes.json().catch(() => null)) as any;
     if (!tokenRes.ok || !tokenJson || typeof tokenJson.access_token !== "string") {
+      console.error("[ln-transfer-handling-unit] token error", { status: tokenRes.status, tokenJson });
       return json({ ok: false, error: { message: tokenJson?.error_description || "token_error" } }, 200);
     }
     const accessToken = tokenJson.access_token as string;
@@ -112,6 +130,7 @@ serve(async (req) => {
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/Transfers`;
     const url = `${base}${path}?$select=*`;
+    console.info("[ln-transfer-handling-unit] posting to ln", { url, path, company, language });
 
     const lnPayload: Record<string, unknown> = {
       FromWarehouse: (body.VonLager || "").trim(),
@@ -145,17 +164,25 @@ serve(async (req) => {
       body: JSON.stringify(lnPayload),
     }).catch(() => null as unknown as Response);
 
-    if (!lnRes) return json({ ok: false, error: "ln_network_error" }, 200);
+    if (!lnRes) {
+      console.error("[ln-transfer-handling-unit] ln network error");
+      return json({ ok: false, error: "ln_network_error" }, 200);
+    }
     const lnJson = (await lnRes.json().catch(() => null)) as any;
     if (!lnRes.ok || !lnJson) {
       const top = lnJson?.error?.message || "ln_error";
       const details = Array.isArray(lnJson?.error?.details) ? lnJson.error.details : [];
+      console.error("[ln-transfer-handling-unit] ln error", { status: lnRes.status, top, details, lnJson });
       return json({ ok: false, error: { message: top, details } }, 200);
     }
 
     const transferId = typeof lnJson?.TransferID === "string" ? lnJson.TransferID : null;
+    console.info("[ln-transfer-handling-unit] success", { transferId });
     return json({ ok: true, transferId, raw: lnJson }, 200);
-  } catch {
+  } catch (error) {
+    console.error("[ln-transfer-handling-unit] unhandled", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return json({ ok: false, error: { message: "unhandled" } }, 200);
   }
 });
