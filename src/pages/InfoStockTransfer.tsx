@@ -701,9 +701,8 @@ const InfoStockTransfer = () => {
     setTransferring(true);
     const tid = showLoading(trans.pleaseWait);
 
-    // LN expects these (German) field names for txgsi.apiTRANSFER/Transfers
+    // LN expects these (German) field names for txgsi.apiTRANSFER/GSITransfers
     const payload: Record<string, unknown> = {
-
       TransferID: "",
       VonLager: (warehouse || "").trim(),
       VonLagerplatz: (location || "").trim(),
