@@ -10,11 +10,10 @@ const originalInvoke = supabaseClient.functions.invoke.bind(supabaseClient.funct
 
 supabaseClient.functions.invoke = ((functionName, options) => {
   const authHeader = getGsiSessionAuthorizationHeader();
-  const mergedHeaders = new Headers(options?.headers || undefined);
-
-  if (authHeader && !mergedHeaders.has('Authorization')) {
-    mergedHeaders.set('Authorization', authHeader);
-  }
+  const mergedHeaders = {
+    ...((options?.headers as Record<string, string> | undefined) || {}),
+    ...(authHeader ? { Authorization: authHeader } : {}),
+  };
 
   return originalInvoke(functionName, {
     ...options,
