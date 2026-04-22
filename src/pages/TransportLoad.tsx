@@ -828,8 +828,9 @@ const TransportLoad = () => {
       toLocation: snapVehicleId,
       employee: employeeCode,
       language: snapLocale,
-      scan1: (refreshedResult.TransportID || "").trim(),
+      transportId: (refreshedResult.TransportID || "").trim(),
     };
+
     if (refreshedMatchType === "HU") {
       payload.handlingUnit = (refreshedResult.HandlingUnit || "").trim();
     } else {

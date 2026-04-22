@@ -39,6 +39,7 @@ serve(async (req) => {
       toLocation?: string;
       employee?: string;
       language?: string;
+      transportId?: string;
       scan1?: string;
     } = {};
     try {
@@ -60,7 +61,7 @@ serve(async (req) => {
     const toLocation = (body.toLocation || "").trim();
     const employee = (body.employee || "").trim();
     const language = body.language || "de-DE";
-    const scan1 = (body.scan1 || "").trim();
+    const transportId = ((body.transportId || body.scan1 || "") as string).trim();
 
     const hasCommon =
       Boolean(fromWarehouse) &&
@@ -147,8 +148,10 @@ serve(async (req) => {
       Employee: employee,
       FromWebserver: "Yes",
       Automatisch: "No",
-      Scan1: scan1,
     };
+    if (transportId) {
+      movementBody.TransportID = transportId;
+    }
     if (handlingUnit) {
       movementBody.HandlingUnit = handlingUnit;
     } else if (itemTrim) {
