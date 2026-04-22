@@ -37,9 +37,10 @@ const Index = () => {
     functionName: string,
     body: Record<string, unknown>,
     timeoutMs = 15000,
+    headers?: Record<string, string>,
   ): Promise<T> => {
     return await Promise.race([
-      supabase.functions.invoke(functionName, { body }) as Promise<T>,
+      supabase.functions.invoke(functionName, { body, headers }) as Promise<T>,
       new Promise<never>((_, reject) => {
         window.setTimeout(() => reject(new Error("timeout")), timeoutMs);
       }),
@@ -78,6 +79,8 @@ const Index = () => {
     const fullName = data.user?.full_name as string | undefined;
     const userUsername = data.user?.username as string | undefined;
     const loginUsername = userUsername || username.trim();
+    const sessionToken = String(data.session.token);
+    const sessionHeaders = { Authorization: `Bearer ${sessionToken}` };
 
     storeGsiIdentity({
       gsiId,
@@ -85,7 +88,7 @@ const Index = () => {
       username: userUsername,
       loginUsername,
     });
-    setStoredGsiSession(String(data.session.token), String(data.session.expires_at));
+    setStoredGsiSession(sessionToken, String(data.session.expires_at));
     setStoredGsiPermissions(normalizeGsiPermissions(data.user));
 
     showSuccess(trans.signedIn);
@@ -93,7 +96,7 @@ const Index = () => {
     const tid = showLoading(trans.retrievingToken);
     let tokenResult: { data: any; error: any };
     try {
-      tokenResult = await invokeWithTimeout<{ data: any; error: any }>("ln-get-token", {});
+      tokenResult = await invokeWithTimeout<{ data: any; error: any }>("ln-get-token", {}, 15000, sessionHeaders);
     } catch (error) {
       dismissToast(tid as unknown as string);
       clearStoredGsiAuth();
@@ -116,7 +119,7 @@ const Index = () => {
     } catch {}
 
     try {
-      const permissionsResult = await invokeWithTimeout<{ data: any; error: any }>("gsi-get-user-permissions", {}, 8000);
+      const permissionsResult = await invokeWithTimeout<{ data: any; error: any }>("gsi-get-user-permissions", {}, 8000, sessionHeaders);
       if (permissionsResult?.data?.ok) {
         setStoredGsiPermissions(permissionsResult.data.permissions);
       }
@@ -126,6 +129,7 @@ const Index = () => {
       try {
         const { data: vehicleData } = await supabase.functions.invoke("gsi-get-vehicle-id", {
           body: { gsi_id: gsiId, username: loginUsername },
+          headers: sessionHeaders,
         });
         const vehicleId = typeof vehicleData?.vehicleId === "string" ? vehicleData.vehicleId.trim() : "";
         if (!vehicleData?.ok || !vehicleId) return;
