@@ -269,35 +269,6 @@ const TransportUnload = () => {
       return false;
     }
 
-    // After successful move, PATCH the TransportOrder: Completed='Yes', clear VehicleID and set LocationDevice to ToLocation
-    const patchTid = showLoading(trans.updatingTransportOrder);
-    const toLoc = targetLocation;
-    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
-      body: {
-        transportId: (it.TransportID || "").trim(),
-        runNumber: (it.RunNumber || "").trim(),
-        etag: (it.ETag || "").trim(),
-        vehicleId: "",
-        locationDevice: toLoc,
-        completed: "Yes",
-        language: locale,
-        company: "1100",
-      },
-      headers: {
-        Authorization: getGsiSessionAuthorizationHeader(),
-      },
-    });
-    dismissToast(patchTid as unknown as string);
-
-    if (patchErr || !patchData || !patchData.ok) {
-      const err = (patchData && patchData.error) || patchErr;
-      const top = err?.message || "Unbekannter Fehler";
-      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
-      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
-      showError(message);
-      return false;
-    }
-
     return true;
   };
 
