@@ -112,7 +112,7 @@ serve(async (req) => {
     const escapedVehicle = vehicleId.replace(/'/g, "''");
     const escapedTransportType = transportType.replace(/'/g, "''");
     const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq '' and TransportType eq txgwi.TransportPlanning.TransportType'${escapedTransportType}'`;
-    const selectFields = "TransportID,RunNumber,TransportType,Item,HandlingUnit,Warehouse,LocationFrom,LocationTo,Remark,OrderedQuantity";
+    const selectFields = "TransportID,TransportType,Item,HandlingUnit,Warehouse,LocationFrom,LocationTo,Remark,OrderedQuantity";
 
     const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
 
