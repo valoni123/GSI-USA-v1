@@ -219,7 +219,13 @@ serve(async (req) => {
 
     const transferId = readTransferId(moveJson);
     if (!transferId) {
-      return json(req, { ok: true, data: moveJson }, 200);
+      return json(req, {
+        ok: false,
+        error: {
+          message: "Transfer not processed.",
+          details: [],
+        },
+      }, 200);
     }
 
     let afterCommitRes: Response;
