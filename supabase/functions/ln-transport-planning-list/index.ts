@@ -58,11 +58,8 @@ serve(async (req) => {
     })();
     const showAll = Boolean(body.showAll);
 
-    if (!vehicleId) {
-      return json({ ok: false, error: "missing_vehicle" }, 200);
-    }
-    if (!showAll && !planningGroup) {
-      return json({ ok: false, error: "missing_group" }, 200);
+    if (!showAll && !planningGroup && !vehicleId) {
+      return json({ ok: false, error: "missing_filter" }, 200);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -123,9 +120,15 @@ serve(async (req) => {
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
     const escapedVehicle = vehicleId.replace(/'/g, "''");
     const escapedGroup = planningGroup.replace(/'/g, "''");
-    const filter = showAll
-      ? `PlannedVehicle eq '${escapedVehicle}'`
-      : `PlanningGroupTransport eq '${escapedGroup}' and PlannedVehicle eq '${escapedVehicle}'`;
+
+    const filterParts = ["TransportType eq txgwi.TransportPlanning.TransportType'AisleOut'"];
+    if (!showAll && planningGroup) {
+      filterParts.push(`PlanningGroupTransport eq '${escapedGroup}'`);
+    }
+    if (!showAll && vehicleId) {
+      filterParts.push(`PlannedVehicle eq '${escapedVehicle}'`);
+    }
+    const filter = filterParts.join(" and ");
     const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;
 
     const headers = {

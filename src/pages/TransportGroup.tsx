@@ -56,15 +56,6 @@ const TransportGroup = () => {
     const pg = (group || "").toString();
     const showAll = pg.toUpperCase() === "ALL";
     const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
-    if (!vehicleId) {
-      if (!silent) setError("Missing vehicle");
-      setItems([]);
-      if (!silent) {
-        setLoading(false);
-        setSwitching(false);
-      }
-      return;
-    }
     const { data } = await supabase.functions.invoke("ln-transport-planning-list", {
       body: { planningGroup: showAll ? "" : pg, vehicleId, showAll, language: locale },
     });
@@ -160,11 +151,14 @@ const TransportGroup = () => {
   };
   const onConfirmSwitch = async () => {
     const selectedVehicle = vehicleInput.trim();
-    if (!selectedVehicle) return;
-    localStorage.setItem("vehicle.id", selectedVehicle);
+    if (selectedVehicle) {
+      localStorage.setItem("vehicle.id", selectedVehicle);
+    } else {
+      localStorage.removeItem("vehicle.id");
+    }
 
     const targetGroup = showAllSwitch ? "ALL" : groupInput.trim();
-    if (!targetGroup) return;
+    if (!showAllSwitch && !targetGroup && !selectedVehicle) return;
 
     setSwitchOpen(false);
     setError(null);
@@ -179,6 +173,11 @@ const TransportGroup = () => {
 
     if (currentGroup === nextGroup) {
       await loadPlannings(false);
+      return;
+    }
+
+    if (!targetGroup) {
+      navigate("/transportgroup");
       return;
     }
 
@@ -247,8 +246,8 @@ const TransportGroup = () => {
 
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between">
           <div className="font-bold text-lg">
-            {trans.planningGroupTransport}{group?.toUpperCase() === "ALL" ? "" : `: ${group}`}
-            {group?.toUpperCase() !== "ALL" && (
+            {trans.planningGroupTransport}{group?.toUpperCase() === "ALL" ? "" : group ? `: ${group}` : ""}
+            {group?.toUpperCase() !== "ALL" && group && (
               <span className="ml-3 inline-block text-xs text-gray-200 bg-white/10 border border-white/20 rounded-md px-2 py-1">
                 {groupDescriptions[(group || "").toString()] || ""}
               </span>
@@ -735,7 +734,7 @@ const TransportGroup = () => {
           <DialogFooter>
             <Button
               className="w-full bg-red-600 hover:bg-red-700 text-white"
-              disabled={!vehicleInput.trim() || (!showAllSwitch && !groupInput.trim())}
+              disabled={!showAllSwitch && !vehicleInput.trim() && !groupInput.trim()}
               onClick={onConfirmSwitch}
             >
               OK

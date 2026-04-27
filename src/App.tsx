@@ -126,7 +126,9 @@ const App = () => (
             <Route element={<PermissionRoute allow={(permissions) => hasPermission(permissions, "trlo")} />}>
               <Route path="/menu/transport/load" element={<TransportLoad />} />
               <Route path="/transport/select" element={<TransportSelect />} />
+              <Route path="/transportgroup" element={<TransportGroup />} />
               <Route path="/transportgroup/:group" element={<TransportGroup />} />
+
             </Route>
             <Route element={<PermissionRoute allow={(permissions) => hasPermission(permissions, "trul")} />}>
               <Route path="/menu/transport/unload" element={<TransportUnload />} />
