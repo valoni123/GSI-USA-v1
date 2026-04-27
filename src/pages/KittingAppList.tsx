@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, LogOut } from "lucide-react";
+import { ChevronRight, LogOut, RotateCcw } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import SignOutConfirm from "@/components/SignOutConfirm";
 import ScreenSpinner from "@/components/ScreenSpinner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { type LanguageKey, t } from "@/lib/i18n";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,8 +32,21 @@ type PlanningItem = {
   OrderedQuantity?: number | string | null;
 };
 
+type LoadedListItem = {
+  HandlingUnit: string;
+  Item: string;
+  LocationFrom: string;
+  LocationTo: string;
+  Warehouse: string;
+  TransportID: string;
+  RunNumber: string;
+  ETag: string;
+  OrderedQuantity?: number | string | null;
+};
+
 const KittingAppList = () => {
   const navigate = useNavigate();
+  const moveBackLocationRef = useRef<HTMLInputElement | null>(null);
   const lang: LanguageKey = ((localStorage.getItem("app.lang") as LanguageKey) || "en");
   const trans = useMemo(() => t(lang), [lang]);
   const locale = useMemo(() => {
@@ -52,9 +67,17 @@ const KittingAppList = () => {
 
   const [loading, setLoading] = useState(true);
   const [selecting, setSelecting] = useState(false);
+  const [listLoading, setListLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
-  const [loadedCount, setLoadedCount] = useState<number>(0);
+  const [moveBackProcessing, setMoveBackProcessing] = useState(false);
+  const [loadedCount, setLoadedCount] = useState<number>(() => Number(localStorage.getItem("transport.count") || "0"));
   const [items, setItems] = useState<PlanningItem[]>([]);
+  const [loadedItems, setLoadedItems] = useState<LoadedListItem[]>([]);
+  const [movingBackMap, setMovingBackMap] = useState<Record<string, boolean>>({});
+  const [listOpen, setListOpen] = useState(false);
+  const [moveBackDialogOpen, setMoveBackDialogOpen] = useState(false);
+  const [moveBackItem, setMoveBackItem] = useState<LoadedListItem | null>(null);
+  const [moveBackLocation, setMoveBackLocation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [signOutOpen, setSignOutOpen] = useState(false);
 
@@ -101,6 +124,50 @@ const KittingAppList = () => {
     } catch {}
   };
 
+  const fetchLoadedList = async () => {
+    if (!selectedVehicleId) {
+      setLoadedItems([]);
+      setLoadedCount(0);
+      try {
+        localStorage.setItem("transport.count", "0");
+      } catch {}
+      return;
+    }
+
+    const { data } = await supabase.functions.invoke("ln-transport-list", {
+      body: { vehicleId: selectedVehicleId, language: locale, company: "1100" },
+    });
+
+    if (data && data.ok) {
+      const nextItems = Array.isArray(data.items)
+        ? (data.items as any[]).map((v) => ({
+            HandlingUnit: String(v?.HandlingUnit ?? ""),
+            Item: String(v?.Item ?? ""),
+            LocationFrom: String(v?.LocationFrom ?? ""),
+            LocationTo: String(v?.LocationTo ?? ""),
+            Warehouse: String(v?.Warehouse ?? ""),
+            TransportID: String(v?.TransportID ?? ""),
+            RunNumber: String(v?.RunNumber ?? ""),
+            ETag: String(v?.ETag ?? ""),
+            OrderedQuantity: v?.OrderedQuantity ?? null,
+          })) as LoadedListItem[]
+        : [];
+      const nextCount = Number(data.count ?? nextItems.length ?? 0);
+      setLoadedItems(nextItems);
+      setLoadedCount(nextCount);
+      try {
+        localStorage.setItem("transport.count", String(nextCount));
+      } catch {}
+      return;
+    }
+
+    setLoadedItems([]);
+    setLoadedCount(0);
+    try {
+      localStorage.setItem("transport.count", "0");
+    } catch {}
+  };
+
   const loadPageData = async () => {
     setLoading(true);
     await Promise.all([loadPlanningItems(), fetchLoadedCount()]);
@@ -110,6 +177,13 @@ const KittingAppList = () => {
   useEffect(() => {
     void loadPageData();
   }, [locale, selectedVehicleId]);
+
+  const openLoadedList = async () => {
+    setListOpen(true);
+    setListLoading(true);
+    await fetchLoadedList();
+    setListLoading(false);
+  };
 
   const setReturnRoute = () => {
     sessionStorage.setItem("transport.session.returnRoute", "/menu/kitting/list");
@@ -143,7 +217,11 @@ const KittingAppList = () => {
       return;
     }
 
-    await Promise.all([loadPlanningItems(), fetchLoadedCount()]);
+    await Promise.all([
+      loadPlanningItems(),
+      fetchLoadedCount(),
+      listOpen ? fetchLoadedList() : Promise.resolve(),
+    ]);
     showSuccess("GET completed");
     setAssigning(false);
   };
@@ -178,6 +256,147 @@ const KittingAppList = () => {
     navigate("/menu/transport/load");
   };
 
+  const moveBackKey = (it: LoadedListItem) => `${it.TransportID}::${it.RunNumber}::${it.HandlingUnit}`;
+
+  const onMoveBack = async (it: LoadedListItem, targetLocationOverride?: string) => {
+    if (!canLoadTransport) return;
+    const key = moveBackKey(it);
+    if (movingBackMap[key] || moveBackProcessing) return;
+
+    const currentItem = {
+      HandlingUnit: (it.HandlingUnit || "").trim(),
+      Item: (it.Item ?? "").toString(),
+      Warehouse: (it.Warehouse || "").trim(),
+      LocationFrom: (it.LocationFrom || "").trim(),
+      TransportID: (it.TransportID || "").trim(),
+      RunNumber: (it.RunNumber || "").trim(),
+      ETag: (it.ETag || "").trim(),
+      OrderedQuantity: it.OrderedQuantity ?? null,
+    };
+
+    const employeeCode = (
+      (localStorage.getItem("gsi.employee") ||
+        localStorage.getItem("gsi.username") ||
+        localStorage.getItem("gsi.login") ||
+        "") as string
+    ).trim();
+
+    if (!selectedVehicleId) {
+      showError("No vehicle selected. Please set a Vehicle ID.");
+      return;
+    }
+
+    const targetLocation = (targetLocationOverride || currentItem.LocationFrom).trim();
+    if (!targetLocation) {
+      showError("Missing target location.");
+      return;
+    }
+
+    const payload: Record<string, unknown> = {
+      handlingUnit: currentItem.HandlingUnit,
+      fromWarehouse: currentItem.Warehouse,
+      fromLocation: selectedVehicleId,
+      toWarehouse: currentItem.Warehouse,
+      toLocation: targetLocation,
+      employee: employeeCode,
+      language: locale,
+      movedBack: "Yes",
+    };
+
+    if (!currentItem.HandlingUnit) {
+      const rawQty = currentItem.OrderedQuantity as string | number | null;
+      const qty =
+        typeof rawQty === "number"
+          ? rawQty
+          : (typeof rawQty === "string" && rawQty.trim() ? Number(rawQty) : NaN);
+
+      if (!currentItem.Item || Number.isNaN(qty)) {
+        showError("Missing OrderedQuantity for item movement.");
+        return;
+      }
+
+      payload.item = currentItem.Item;
+      payload.quantity = qty;
+    }
+
+    setMovingBackMap((m) => ({ ...m, [key]: true }));
+    setMoveBackProcessing(true);
+
+    const tid = showLoading(trans.executingMovement);
+    const { data: moveData, error: moveErr } = await supabase.functions.invoke("ln-move-to-location", {
+      body: payload,
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
+    });
+
+    if (moveErr || !moveData || !moveData.ok) {
+      dismissToast(tid as unknown as string);
+      const err = (moveData && moveData.error) || moveErr;
+      const top = err?.message || "Unbekannter Fehler";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      setMovingBackMap((m) => ({ ...m, [key]: false }));
+      setMoveBackProcessing(false);
+      return;
+    }
+
+    const { data: patchData, error: patchErr } = await supabase.functions.invoke("ln-update-transport-order", {
+      body: {
+        transportId: currentItem.TransportID,
+        runNumber: currentItem.RunNumber,
+        etag: currentItem.ETag,
+        vehicleId: "",
+        language: "en-US",
+        company: "1100",
+      },
+      headers: {
+        Authorization: getGsiSessionAuthorizationHeader(),
+      },
+    });
+    dismissToast(tid as unknown as string);
+
+    if (patchErr || !patchData || !patchData.ok) {
+      const err = (patchData && patchData.error) || patchErr;
+      const top = err?.message || "Unbekannter Fehler";
+      const details = Array.isArray(err?.details) ? err.details.map((d: any) => d?.message).filter(Boolean) : [];
+      const message = details.length > 0 ? `${top}\nDETAILS:\n${details.join("\n")}` : top;
+      showError(message);
+      setMovingBackMap((m) => ({ ...m, [key]: false }));
+      setMoveBackProcessing(false);
+      return;
+    }
+
+    await Promise.all([loadPlanningItems(), fetchLoadedCount(), fetchLoadedList()]);
+    showSuccess("Moved back");
+    setMovingBackMap((m) => ({ ...m, [key]: false }));
+    setMoveBackProcessing(false);
+  };
+
+  const openMoveBackDialog = (it: LoadedListItem) => {
+    if (!canLoadTransport) return;
+    if (moveBackProcessing || Boolean(movingBackMap[moveBackKey(it)])) return;
+    setMoveBackItem(it);
+    setMoveBackLocation((it.LocationFrom || "").trim());
+    setMoveBackDialogOpen(true);
+    window.setTimeout(() => moveBackLocationRef.current?.focus(), 50);
+  };
+
+  const closeMoveBackDialog = () => {
+    setMoveBackDialogOpen(false);
+    setMoveBackItem(null);
+    setMoveBackLocation("");
+  };
+
+  const confirmMoveBack = async () => {
+    const it = moveBackItem;
+    const targetLocation = moveBackLocation.trim();
+    if (!it || !targetLocation) return;
+    closeMoveBackDialog();
+    await onMoveBack(it, targetLocation);
+  };
+
   const onConfirmSignOut = () => {
     try {
       localStorage.removeItem("ln.token");
@@ -198,7 +417,7 @@ const KittingAppList = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {(loading || selecting || assigning) && <ScreenSpinner message={trans.pleaseWait} />}
+      {(loading || selecting || listLoading || moveBackProcessing || assigning) && <ScreenSpinner message={trans.pleaseWait} />}
 
       <div className="sticky top-0 z-10 bg-black text-white">
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between gap-3">
@@ -233,21 +452,16 @@ const KittingAppList = () => {
 
       <div className="mx-auto max-w-screen-2xl px-4 py-6">
         <div className="mb-4 grid grid-cols-3 gap-3 rounded-lg border bg-white px-3 py-2 shadow-sm">
-          <Button
+          <button
             type="button"
-            className={canLoadTransport
-              ? "h-8 bg-green-500 px-4 text-sm font-bold uppercase text-black hover:bg-green-600 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-green-500"
-              : "h-8 bg-gray-300 px-4 text-sm font-bold uppercase text-gray-500 hover:bg-gray-300"}
+            className="inline-flex h-8 items-center justify-center rounded-md bg-green-500 px-4 text-sm font-bold uppercase text-black shadow hover:bg-green-600 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-green-500"
             onClick={() => {
-              if (!selectedVehicleId) return;
-              localStorage.setItem("vehicle.id", selectedVehicleId);
-              setReturnRoute();
-              navigate("/menu/transport/load");
+              void openLoadedList();
             }}
-            disabled={!selectedVehicleId || !canLoadTransport}
+            disabled={loadedCount === 0}
           >
-            {trans.loadAction}
-          </Button>
+            {loadedCount} {trans.loadedUpperLabel}
+          </button>
 
           <Button
             type="button"
@@ -327,6 +541,106 @@ const KittingAppList = () => {
 
         {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
       </div>
+
+      <Dialog open={listOpen} onOpenChange={setListOpen}>
+        <DialogContent className="max-w-md rounded-lg border bg-white/95 p-0 shadow-lg [&>button]:hidden">
+          <div className="text-sm">
+            <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)_40px] gap-2 px-3 py-2 border-b rounded-t-lg bg-black text-white">
+              <div className="font-semibold">{trans.huOrItemLabel}</div>
+              <div className="font-semibold">{trans.fromLabel}</div>
+              <div className="font-semibold">{trans.toLabel}</div>
+              <div className="font-semibold text-right"> </div>
+            </div>
+            <div className="max-h-64 overflow-auto mt-0 space-y-2 px-2 py-2">
+              {loadedItems.length === 0 ? (
+                <div className="text-xs text-muted-foreground px-1">{trans.noEntries}</div>
+              ) : (
+                loadedItems.map((it, idx) => {
+                  const key = moveBackKey(it);
+                  return (
+                    <div key={`${it.TransportID}-${it.RunNumber}-${idx}`}>
+                      <div className="rounded-md bg-gray-100/80 px-3 py-2 shadow-sm">
+                        <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)_40px] gap-2 items-center text-xs">
+                          <div className="truncate">
+                            <span className="inline-block max-w-full truncate rounded-md bg-gray-300 px-2 py-1">
+                              {it.HandlingUnit || it.Item || "-"}
+                            </span>
+                          </div>
+                          <div className="truncate">{it.LocationFrom || "-"}</div>
+                          <div className="truncate">{it.LocationTo || "-"}</div>
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              className={`inline-flex items-center justify-center h-7 w-7 rounded-md border ${canLoadTransport ? "border-red-600 text-red-600 hover:bg-red-50" : "border-gray-300 text-gray-400 cursor-not-allowed"} disabled:opacity-100`}
+                              onClick={() => {
+                                openMoveBackDialog(it);
+                              }}
+                              disabled={!canLoadTransport || moveBackProcessing || Boolean(movingBackMap[key])}
+                              aria-label="Move back"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      {idx < loadedItems.length - 1 && <div className="h-px bg-gray-200/60 mx-1 my-2" />}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={moveBackDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeMoveBackDialog();
+          }
+        }}
+      >
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md overflow-hidden rounded-lg bg-white p-0">
+          <div className="border-b bg-black px-4 py-3 text-left text-sm font-semibold text-white">Move back</div>
+          <div className="space-y-4 p-4">
+            <FloatingLabelInput
+              id="moveBackLocation"
+              ref={moveBackLocationRef}
+              autoFocus
+              label={`${trans.targetLocationLabel} *`}
+              value={moveBackLocation}
+              disabled={moveBackProcessing}
+              onChange={(e) => setMoveBackLocation(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  void confirmMoveBack();
+                }
+              }}
+            />
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 flex-1"
+                onClick={closeMoveBackDialog}
+              >
+                {trans.cancel}
+              </Button>
+              <Button
+                type="button"
+                className="h-11 flex-1 bg-red-600 text-white hover:bg-red-700"
+                disabled={!moveBackLocation.trim() || moveBackProcessing}
+                onClick={() => {
+                  void confirmMoveBack();
+                }}
+              >
+                Move back
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <SignOutConfirm
         open={signOutOpen}
