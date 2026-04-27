@@ -7,6 +7,31 @@ function buildTokenUrl(pu: string, ot: string) {
   return base + ot.replace(/^\//, "");
 }
 
+function readTransferId(payload: any): string {
+  const pick = (value: any) => {
+    if (!value || typeof value !== "object") return "";
+
+    const direct = value.TransferID ?? value.TransferId ?? value.trid;
+    if (direct === null || direct === undefined) return "";
+    return String(direct).trim();
+  };
+
+  const direct = pick(payload);
+  if (direct) return direct;
+
+  if (Array.isArray(payload?.value) && payload.value.length > 0) {
+    const nested = pick(payload.value[0]);
+    if (nested) return nested;
+  }
+
+  if (payload?.d) {
+    const nested = pick(payload.d);
+    if (nested) return nested;
+  }
+
+  return "";
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -136,8 +161,8 @@ serve(async (req) => {
     const accessToken = tokenJson.access_token as string;
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
-    const path = `/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/Transfers`;
-    const url = `${base}${path}?$select=*`;
+    const transferUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/Transfers?$select=*`;
+    const afterCommitUrl = `${base}/${ti}/LN/lnapi/odata/txgsi.WarehouseMovement/AfterCommit`;
 
     const movementBody: Record<string, unknown> = {
       FromWarehouse: fromWarehouse,
@@ -163,7 +188,7 @@ serve(async (req) => {
 
     let moveRes: Response;
     try {
-      moveRes = await fetch(url, {
+      moveRes = await fetch(transferUrl, {
         method: "POST",
         headers: {
           accept: "application/json",
@@ -179,20 +204,73 @@ serve(async (req) => {
       return json(req, { ok: false, error: "move_network_error" }, 502);
     }
 
-    const resJson = await moveRes.json().catch(() => null) as any;
+    const moveJson = await moveRes.json().catch(() => null) as any;
     if (!moveRes.ok) {
-      const errObj = resJson?.error || resJson || {};
+      const errObj = moveJson?.error || moveJson || {};
       const topMessage =
         typeof errObj?.message === "string"
           ? errObj.message
-          : typeof resJson === "string"
-            ? resJson
+          : typeof moveJson === "string"
+            ? moveJson
             : "Unbekannter Fehler";
       const details = Array.isArray(errObj?.details) ? errObj.details : [];
       return json(req, { ok: false, error: { message: topMessage, details } }, 200);
     }
 
-    return json(req, { ok: true, data: resJson }, 200);
+    const transferId = readTransferId(moveJson);
+    if (!transferId) {
+      return json(req, { ok: true, data: moveJson }, 200);
+    }
+
+    let afterCommitRes: Response;
+    try {
+      afterCommitRes = await fetch(afterCommitUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "Content-Language": language,
+          "X-Infor-LnCompany": company,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ trid: transferId }),
+      });
+    } catch (e) {
+      console.error("[ln-move-to-location] after commit network error", e);
+      return json(req, { ok: false, error: { message: "AfterCommit network error", details: [] } }, 200);
+    }
+
+    const afterCommitJson = await afterCommitRes.json().catch(() => null) as any;
+    if (!afterCommitRes.ok || !afterCommitJson) {
+      const errObj = afterCommitJson?.error || afterCommitJson || {};
+      const topMessage =
+        typeof errObj?.message === "string"
+          ? errObj.message
+          : typeof afterCommitJson === "string"
+            ? afterCommitJson
+            : "AfterCommit failed";
+      const details = Array.isArray(errObj?.details) ? errObj.details : [];
+      return json(req, { ok: false, error: { message: topMessage, details } }, 200);
+    }
+
+    if (afterCommitJson.errorMessage !== null) {
+      return json(req, {
+        ok: false,
+        error: {
+          message: typeof afterCommitJson.errorMessage === "string" && afterCommitJson.errorMessage.trim()
+            ? afterCommitJson.errorMessage
+            : "AfterCommit failed",
+          details: [],
+        },
+      }, 200);
+    }
+
+    return json(req, {
+      ok: true,
+      data: moveJson,
+      transferId,
+      afterCommit: afterCommitJson,
+    }, 200);
   } catch (e) {
     console.error("[ln-move-to-location] unhandled", e);
     return json(req, { ok: false, error: "unhandled" }, 500);
