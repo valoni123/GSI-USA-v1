@@ -66,6 +66,7 @@ serve(async (req) => {
       language?: string;
       transportId?: string;
       scan1?: string;
+      loaded?: string;
     } = {};
     try {
       body = await req.json();
@@ -87,6 +88,7 @@ serve(async (req) => {
     const employee = (body.employee || "").trim();
     const language = body.language || "de-DE";
     const transportId = ((body.transportId || body.scan1 || "") as string).trim();
+    const loaded = (body.loaded || "").trim();
 
     const hasCommon =
       Boolean(fromWarehouse) &&
@@ -174,6 +176,9 @@ serve(async (req) => {
       FromWebserver: "Yes",
       Automatisch: "No",
     };
+    if (loaded === "Yes") {
+      movementBody.Loaded = "Yes";
+    }
     if (transportId) {
       movementBody.TransportID = transportId;
     }

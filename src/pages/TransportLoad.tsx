@@ -837,6 +837,7 @@ const TransportLoad = () => {
       employee: employeeCode,
       language: snapLocale,
       transportId: (refreshedResult.TransportID || "").trim(),
+      loaded: "Yes",
     };
 
     if (refreshedMatchType === "HU") {
