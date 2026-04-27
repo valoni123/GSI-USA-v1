@@ -193,6 +193,7 @@ const TransportsList = () => {
     const { data, error } = await supabase.functions.invoke("ln-assign-transport-orders", {
       body: {
         plannedVehicle: selectedVehicleId,
+        planningType: "AisleOut",
         language: locale,
         company: "1100",
       },
@@ -200,6 +201,7 @@ const TransportsList = () => {
         Authorization: getGsiSessionAuthorizationHeader(),
       },
     });
+
     dismissToast(tid as unknown as string);
 
     if (error || !data || !data.ok) {

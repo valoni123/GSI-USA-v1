@@ -5,6 +5,7 @@ import { createServiceRoleClient, getCorsHeaders, json, requireGsiSession, requi
 
 type RequestBody = {
   plannedVehicle?: string;
+  planningType?: string;
   language?: string;
   company?: string;
 };
@@ -41,6 +42,7 @@ serve(async (req) => {
     }
 
     const plannedVehicle = (body.plannedVehicle || "").trim();
+    const planningType = (body.planningType || "AisleOut").trim() || "AisleOut";
     const language = (body.language || "en-US").trim() || "en-US";
 
     if (!plannedVehicle) {
@@ -54,7 +56,7 @@ serve(async (req) => {
     const base = cfg.iu.endsWith("/") ? cfg.iu.slice(0, -1) : cfg.iu;
     const url = `${base}/${cfg.ti}/LN/lnapi/odata/txgwi.TransportAssignments/AssignTransportOrderToVehilces?$select=*`;
 
-    console.info("[ln-assign-transport-orders] start", { plannedVehicle, language, company, sessionUser: auth.gsiUserId });
+    console.info("[ln-assign-transport-orders] start", { plannedVehicle, planningType, language, company, sessionUser: auth.gsiUserId });
 
     const response = await fetch(url, {
       method: "POST",
@@ -65,7 +67,10 @@ serve(async (req) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ PlannedVehicle: plannedVehicle }),
+      body: JSON.stringify({
+        PlannedVehicle: plannedVehicle,
+        PlanningType: planningType,
+      }),
     });
 
     const payload = (await response.json().catch(() => null)) as any;
@@ -81,7 +86,7 @@ serve(async (req) => {
       return json(req, { ok: false, error: { message: top, details } }, 200);
     }
 
-    console.info("[ln-assign-transport-orders] completed", { plannedVehicle });
+    console.info("[ln-assign-transport-orders] completed", { plannedVehicle, planningType });
     return json(req, { ok: true, data: payload }, 200);
   } catch (error) {
     console.error("[ln-assign-transport-orders] unhandled error", {
