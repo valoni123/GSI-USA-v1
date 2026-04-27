@@ -78,6 +78,7 @@ const TransportUnload = () => {
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [units, setUnits] = useState<Record<string, string>>({});
   const sessionReturnRoute = sessionStorage.getItem("transport.session.returnRoute") || "/menu/transports/list";
+  const getActiveVehicleId = () => (sessionStorage.getItem("transport.session.vehicleId") || localStorage.getItem("vehicle.id") || "").trim();
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -91,9 +92,9 @@ const TransportUnload = () => {
   const MAX_UNLOAD_RETRY = 3;
 
   const fetchLoaded = async () => {
-    const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+    const vehicleId = getActiveVehicleId();
     if (!vehicleId) {
-      navigate("/menu/transport");
+      navigate(sessionReturnRoute);
       return;
     }
     // Show overlay while loading
@@ -127,7 +128,7 @@ const TransportUnload = () => {
   };
 
   const fetchCount = async () => {
-    const vid = (localStorage.getItem("vehicle.id") || "").trim();
+    const vid = getActiveVehicleId();
     if (!vid) {
       setLoadedCount(0);
       try { localStorage.setItem("transport.count", "0"); } catch {}
@@ -207,7 +208,7 @@ const TransportUnload = () => {
   const unloadSingle = async (it: LoadedItem, attempt = 1, targetLocationOverride?: string): Promise<boolean> => {
     const employeeCode = getEmployeeCode();
     const hu = (it.HandlingUnit || "").trim();
-    const currentVehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+    const currentVehicleId = getActiveVehicleId();
     const targetLocation = (targetLocationOverride || it.LocationTo || "").trim();
     const payload: Record<string, unknown> = {
       handlingUnit: hu,

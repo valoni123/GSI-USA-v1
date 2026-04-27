@@ -185,8 +185,13 @@ const KittingAppList = () => {
     setListLoading(false);
   };
 
+  const setSessionVehicleId = () => {
+    sessionStorage.setItem("transport.session.vehicleId", selectedVehicleId);
+  };
+
   const setReturnRoute = () => {
     sessionStorage.setItem("transport.session.returnRoute", "/menu/kitting/list");
+    setSessionVehicleId();
   };
 
   const onGetClick = async () => {
@@ -231,7 +236,7 @@ const KittingAppList = () => {
     const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
     if (!prefillValue) return;
 
-    localStorage.setItem("vehicle.id", selectedVehicleId);
+    setSessionVehicleId();
     setReturnRoute();
     sessionStorage.setItem("transport.load.prefill", prefillValue);
     sessionStorage.setItem(
@@ -409,6 +414,7 @@ const KittingAppList = () => {
       localStorage.removeItem("kittings.vehicle.id");
       localStorage.removeItem("transport.count");
       sessionStorage.removeItem("transport.session.returnRoute");
+      sessionStorage.removeItem("transport.session.vehicleId");
     } catch {}
     showSuccess(trans.signedOut);
     setSignOutOpen(false);
@@ -483,10 +489,10 @@ const KittingAppList = () => {
               : "h-8 bg-gray-300 px-4 text-sm font-bold uppercase text-gray-500 hover:bg-gray-300"}
             onClick={() => {
               if (!selectedVehicleId) return;
-              localStorage.setItem("vehicle.id", selectedVehicleId);
               setReturnRoute();
               navigate("/menu/transport/unload");
             }}
+
             disabled={loadedCount === 0 || !canUnloadTransport}
           >
             {trans.unloadAction}

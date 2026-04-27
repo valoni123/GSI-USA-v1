@@ -131,6 +131,7 @@ const TransportLoad = () => {
   const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
   const openedFromTransportsList = sessionStorage.getItem("transport.load.source") === "transports-list";
   const sessionReturnRoute = sessionStorage.getItem("transport.session.returnRoute") || "/menu/transports/list";
+  const getActiveVehicleId = () => (sessionStorage.getItem("transport.session.vehicleId") || localStorage.getItem("vehicle.id") || "").trim();
   const isKittingLoad = sessionReturnRoute === "/menu/kitting/list";
   const transportRemark = (result?.Remark || "").trim();
 
@@ -215,7 +216,7 @@ const TransportLoad = () => {
 
   useEffect(() => {
     if (!openedFromTransportsList) return;
-    const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+    const storedVehicle = getActiveVehicleId();
     if (!storedVehicle) return;
     setVehicleId(storedVehicle);
     setVehicleEnabled(true);
@@ -265,7 +266,7 @@ const TransportLoad = () => {
             setHuQuantity(qty);
             setHuUnit(unit);
             setVehicleEnabled(true);
-            const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+            const storedVehicle = getActiveVehicleId();
             if (storedVehicle) setVehicleId(storedVehicle);
             resolvedLoadRef.current = {
               requestCode,
@@ -332,7 +333,7 @@ const TransportLoad = () => {
   useEffect(() => {
     let active = true;
     (async () => {
-      const vehicleId = (localStorage.getItem("vehicle.id") || "").trim();
+      const vehicleId = getActiveVehicleId();
       if (!vehicleId) {
         setLoadedCount(0);
         return;
@@ -410,7 +411,7 @@ const TransportLoad = () => {
         localStorage.getItem("gsi.login") ||
         "") as string
     ).trim();
-    const vid = (localStorage.getItem("vehicle.id") || "").trim();
+    const vid = getActiveVehicleId();
     if (!vid) {
       showError("No vehicle selected. Please set a Vehicle ID.");
       setMovingBackMap((m) => ({ ...m, [key]: false }));
@@ -497,7 +498,7 @@ const TransportLoad = () => {
 
     showSuccess("Moved back");
 
-    const currentVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+    const currentVehicle = getActiveVehicleId();
     if (currentVehicle) {
       setListLoading(true);
       await fetchList(currentVehicle);
@@ -608,7 +609,7 @@ const TransportLoad = () => {
     const chosenHU = (nextResult?.HandlingUnit || "").trim();
     if (chosenHU) {
       setHuItemLabel("Handling Unit");
-      const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+      const selectedVehicle = getActiveVehicleId();
       if (selectedVehicle) {
         const preTid = showLoading(trans.checkingHandlingUnit);
         const { data: loadedData } = await supabase.functions.invoke("ln-transport-loaded-check", {
@@ -641,7 +642,7 @@ const TransportLoad = () => {
       setHuQuantity(qty);
       setHuUnit(unit);
       setVehicleEnabled(true);
-      const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+      const storedVehicle = getActiveVehicleId();
       if (storedVehicle) setVehicleId(storedVehicle);
       if (nextResult) {
         resolvedLoadRef.current = {
@@ -894,7 +895,7 @@ const TransportLoad = () => {
     resetResolvedState();
     setTimeout(() => huRef.current?.focus(), 50);
 
-    const selectedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+    const selectedVehicle = getActiveVehicleId();
     if (selectedVehicle) {
       await fetchCount(selectedVehicle);
     }
@@ -944,7 +945,7 @@ const TransportLoad = () => {
                 className="bg-red-700 text-white rounded-md h-5 px-2 min-w-[20px] inline-flex items-center justify-center text-xs font-bold focus:outline-none"
 
                 onClick={async () => {
-                  const vid = (localStorage.getItem("vehicle.id") || "").trim();
+                  const vid = getActiveVehicleId();
                   if (!vid) return;
                   const willOpen = !listOpen;
                   setListOpen(willOpen);
@@ -1046,7 +1047,7 @@ const TransportLoad = () => {
                   setTimeout(() => locationRef.current?.focus(), 50);
                 } else {
                   setVehicleEnabled(true);
-                  const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+                  const storedVehicle = getActiveVehicleId();
                   if (storedVehicle) setVehicleId(storedVehicle);
                   setTimeout(() => vehicleRef.current?.focus(), 50);
                 }
@@ -1062,7 +1063,7 @@ const TransportLoad = () => {
                     setTimeout(() => locationRef.current?.focus(), 50);
                   } else {
                     setVehicleEnabled(true);
-                    const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+                    const storedVehicle = getActiveVehicleId();
                     if (storedVehicle) setVehicleId(storedVehicle);
                     setTimeout(() => vehicleRef.current?.focus(), 50);
                   }
@@ -1408,7 +1409,7 @@ const TransportLoad = () => {
                         setHuQuantity(qty);
                         setHuUnit(unit);
                         setVehicleEnabled(true);
-                        const storedVehicle = (localStorage.getItem("vehicle.id") || "").trim();
+                        const storedVehicle = getActiveVehicleId();
                         if (storedVehicle) setVehicleId(storedVehicle);
                         resolvedLoadRef.current = {
                           requestCode: currentInput,

@@ -185,8 +185,13 @@ const TransportsList = () => {
     setListLoading(false);
   };
 
+  const setSessionVehicleId = () => {
+    sessionStorage.setItem("transport.session.vehicleId", selectedVehicleId);
+  };
+
   const setReturnRoute = () => {
     sessionStorage.setItem("transport.session.returnRoute", "/menu/transports/list");
+    setSessionVehicleId();
   };
 
   const onGetClick = async () => {
@@ -231,7 +236,7 @@ const TransportsList = () => {
     const prefillValue = (item.HandlingUnit || "").trim() || (item.Item || "").trim();
     if (!prefillValue) return;
 
-    localStorage.setItem("vehicle.id", selectedVehicleId);
+    setSessionVehicleId();
     setReturnRoute();
     sessionStorage.setItem("transport.load.prefill", prefillValue);
     sessionStorage.setItem("transport.load.selected-item", JSON.stringify({
@@ -405,6 +410,7 @@ const TransportsList = () => {
       localStorage.removeItem("vehicle.id");
       localStorage.removeItem("transports.vehicle.id");
       localStorage.removeItem("transport.count");
+      sessionStorage.removeItem("transport.session.vehicleId");
     } catch {}
     showSuccess(trans.signedOut);
     setSignOutOpen(false);
