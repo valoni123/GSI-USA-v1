@@ -82,7 +82,7 @@ const TransportSelect = () => {
 
   const fetchVehicles = async () => {
     const { data } = await supabase.functions.invoke("ln-vehicles-list", {
-      body: { language: "en-US", company: "1100" },
+      body: { language: "en-US", company: "1100", vehicleType: "FORKLIFT" },
     });
     if (data && data.ok) {
       setVehicleItems((data.items || []) as VehicleItem[]);

@@ -141,7 +141,9 @@ const TransportGroup = () => {
     }
   };
   const fetchVehicles = async () => {
-    const { data } = await supabase.functions.invoke("ln-vehicles-list", { body: { language: locale } });
+    const { data } = await supabase.functions.invoke("ln-vehicles-list", {
+      body: { language: locale, vehicleType: "FORKLIFT" },
+    });
     if (data && data.ok) {
       setVehiclesList((data.items || []) as Array<{ VehicleID: string; Description: string }>);
       setVehiclesQuery("");
@@ -149,6 +151,7 @@ const TransportGroup = () => {
       setVehiclesList([]);
     }
   };
+
   const onConfirmSwitch = async () => {
     const selectedVehicle = vehicleInput.trim();
     if (selectedVehicle) {
