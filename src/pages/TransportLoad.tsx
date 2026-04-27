@@ -131,6 +131,7 @@ const TransportLoad = () => {
   const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
   const openedFromTransportsList = sessionStorage.getItem("transport.load.source") === "transports-list";
   const sessionReturnRoute = sessionStorage.getItem("transport.session.returnRoute") || "/menu/transports/list";
+  const isKittingLoad = sessionReturnRoute === "/menu/kitting/list";
   const transportRemark = (result?.Remark || "").trim();
 
   const matchesTransportLine = (
@@ -766,59 +767,69 @@ const TransportLoad = () => {
         "") as string
     ).trim();
 
-    // Re-resolve the current scanned code right before loading so a fast previous scan
-    // can never leak old result/quantity data into the movement request.
-    const verifyTid = showLoading(trans.checkingHandlingUnit);
-    const { data: ordData, error: ordErr } = await supabase.functions.invoke("ln-transport-orders", {
-      body: { handlingUnit: currentInput, language: snapLocale },
-    });
-    if (loadRequestIdRef.current !== requestId || handlingUnit.trim() !== currentInput) {
-      dismissToast(verifyTid as unknown as string);
-      setProcessing(false);
-      return;
-    }
-    if (ordErr || !ordData || !ordData.ok || (ordData.count ?? 0) === 0) {
-      dismissToast(verifyTid as unknown as string);
-      showError(trans.huNotFound);
-      setProcessing(false);
-      return;
-    }
+    let refreshedResult = currentResolved.result;
+    let refreshedMatchType: "HU" | "ITEM" = currentResolved.matchType;
+    let refreshedEtag = currentResolved.etag;
+    let refreshedQuantity = currentResolved.quantity;
+    let refreshedUnit = currentResolved.unit;
 
-    const orderItems = Array.isArray(ordData.items) ? ordData.items : [];
-    const resolvedItem = orderItems.find((row: any) => matchesTransportLine(row, currentResolved.result));
-    const refreshedResult = (resolvedItem || ordData.first || null) as NonNullable<typeof result> | null;
-    if (!refreshedResult) {
-      dismissToast(verifyTid as unknown as string);
-      showError(trans.huNotFound);
-      setProcessing(false);
-      return;
-    }
-
-    const refreshedMatchType: "HU" | "ITEM" = (refreshedResult.HandlingUnit || "").trim() ? "HU" : "ITEM";
-    const refreshedEtag = typeof refreshedResult.ETag === "string" ? refreshedResult.ETag : "";
-    let refreshedQuantity = "";
-    let refreshedUnit = "";
-
-    if (refreshedMatchType === "HU") {
-      const resolvedHu = (refreshedResult.HandlingUnit || "").trim();
-      const { data: huData, error: huErr } = await supabase.functions.invoke("ln-handling-unit-info", {
-        body: { handlingUnit: resolvedHu, language: snapLocale },
+    if (!isKittingLoad) {
+      // Re-resolve the current scanned code right before loading so a fast previous scan
+      // can never leak old result/quantity data into the movement request.
+      const verifyTid = showLoading(trans.checkingHandlingUnit);
+      const { data: ordData, error: ordErr } = await supabase.functions.invoke("ln-transport-orders", {
+        body: { handlingUnit: currentInput, language: snapLocale },
       });
       if (loadRequestIdRef.current !== requestId || handlingUnit.trim() !== currentInput) {
         dismissToast(verifyTid as unknown as string);
         setProcessing(false);
         return;
       }
-      if (huErr || !huData || !huData.ok) {
+      if (ordErr || !ordData || !ordData.ok || (ordData.count ?? 0) === 0) {
         dismissToast(verifyTid as unknown as string);
         showError(trans.huNotFound);
         setProcessing(false);
         return;
       }
-      refreshedQuantity = String(huData.quantity ?? "");
-      refreshedUnit = String(huData.unit ?? "");
-    } else {
-      refreshedQuantity = typeof refreshedResult.OrderedQuantity === "number" ? String(refreshedResult.OrderedQuantity) : "";
+
+      const orderItems = Array.isArray(ordData.items) ? ordData.items : [];
+      const resolvedItem = orderItems.find((row: any) => matchesTransportLine(row, currentResolved.result));
+      refreshedResult = (resolvedItem || ordData.first || null) as NonNullable<typeof result> | null;
+      if (!refreshedResult) {
+        dismissToast(verifyTid as unknown as string);
+        showError(trans.huNotFound);
+        setProcessing(false);
+        return;
+      }
+
+      refreshedMatchType = (refreshedResult.HandlingUnit || "").trim() ? "HU" : "ITEM";
+      refreshedEtag = typeof refreshedResult.ETag === "string" ? refreshedResult.ETag : "";
+      refreshedQuantity = "";
+      refreshedUnit = "";
+
+      if (refreshedMatchType === "HU") {
+        const resolvedHu = (refreshedResult.HandlingUnit || "").trim();
+        const { data: huData, error: huErr } = await supabase.functions.invoke("ln-handling-unit-info", {
+          body: { handlingUnit: resolvedHu, language: snapLocale },
+        });
+        if (loadRequestIdRef.current !== requestId || handlingUnit.trim() !== currentInput) {
+          dismissToast(verifyTid as unknown as string);
+          setProcessing(false);
+          return;
+        }
+        if (huErr || !huData || !huData.ok) {
+          dismissToast(verifyTid as unknown as string);
+          showError(trans.huNotFound);
+          setProcessing(false);
+          return;
+        }
+        refreshedQuantity = String(huData.quantity ?? "");
+        refreshedUnit = String(huData.unit ?? "");
+      } else {
+        refreshedQuantity = typeof refreshedResult.OrderedQuantity === "number" ? String(refreshedResult.OrderedQuantity) : "";
+      }
+
+      dismissToast(verifyTid as unknown as string);
     }
 
     resolvedLoadRef.current = {
@@ -834,9 +845,9 @@ const TransportLoad = () => {
     setEtag(refreshedEtag);
     setHuQuantity(refreshedQuantity);
     setHuUnit(refreshedUnit);
-    dismissToast(verifyTid as unknown as string);
 
     const payload: Record<string, unknown> = {
+
       fromWarehouse: (refreshedResult.Warehouse || "").trim(),
       fromLocation: (refreshedResult.LocationFrom || "").trim(),
       toWarehouse: (refreshedResult.Warehouse || "").trim(),
