@@ -113,14 +113,14 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               onChange={(e) => setPassword(e.target.value)}
             />
 
-            <div className="flex flex-col items-center gap-2 py-2">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 py-2">
               <div className="flex items-center justify-center gap-2">
                 <Checkbox
                   id="transportScreen"
                   checked={selectedScreen === "transport"}
                   onCheckedChange={(v) => setSelectedScreen(v ? "transport" : null)}
                 />
-                <label htmlFor="transportScreen" className="text-sm select-none">
+                <label htmlFor="transportScreen" className="text-sm select-none whitespace-nowrap">
                   {trans.transportScreen}
                 </label>
               </div>
@@ -130,7 +130,7 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
                   checked={selectedScreen === "kitting"}
                   onCheckedChange={(v) => setSelectedScreen(v ? "kitting" : null)}
                 />
-                <label htmlFor="kittingScreen" className="text-sm select-none">
+                <label htmlFor="kittingScreen" className="text-sm select-none whitespace-nowrap">
                   Kittingscreen
                 </label>
               </div>
