@@ -47,7 +47,8 @@ const Index = () => {
     ]);
   };
 
-  const handleLogin = async ({ username, password, transportscreen }: { username: string; password: string; transportscreen?: boolean }) => {
+  const handleLogin = async ({ username, password, transportscreen, kittingscreen }: { username: string; password: string; transportscreen?: boolean; kittingscreen?: boolean }) => {
+
     if (!username || !password) {
       showError(trans.emptyFields);
       return;
@@ -145,11 +146,14 @@ const Index = () => {
       return;
     }
 
-    if (transportscreen) {
+    if (kittingscreen) {
+      navigate("/kitting/select");
+    } else if (transportscreen) {
       navigate("/transport/select");
     } else {
       navigate("/menu");
     }
+
   };
 
   return (

@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 type Props = {
   lang: LanguageKey;
-  onSubmit: (payload: { username: string; password: string; transportscreen?: boolean }) => void;
+  onSubmit: (payload: { username: string; password: string; transportscreen?: boolean; kittingscreen?: boolean }) => void;
   logoSrc?: string;
 };
 
@@ -20,7 +20,7 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
   const [resolvedFullName, setResolvedFullName] = useState<string | null>(null);
   const [usernameLookup, setUsernameLookup] = useState<"idle" | "loading" | "found" | "notfound">("idle");
   const [password, setPassword] = useState("");
-  const [transportScreen, setTransportScreen] = useState(false);
+  const [selectedScreen, setSelectedScreen] = useState<"transport" | "kitting" | null>(null);
 
   const canSubmit = Boolean(resolvedFullName && password.trim().length > 0);
   const passwordDisabled = usernameLookup === "notfound";
@@ -28,7 +28,12 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    onSubmit({ username, password, transportscreen: transportScreen });
+    onSubmit({
+      username,
+      password,
+      transportscreen: selectedScreen === "transport",
+      kittingscreen: selectedScreen === "kitting",
+    });
   };
 
   const usernameLabel = (
@@ -85,7 +90,6 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
                   body: { username: requested },
                 });
 
-                // Ignore stale responses
                 if (username.trim() !== requested) return;
 
                 const full = data && data.ok ? data.full_name : null;
@@ -109,15 +113,27 @@ const LoginForm = ({ lang, onSubmit, logoSrc = "/logo.png" }: Props) => {
               onChange={(e) => setPassword(e.target.value)}
             />
 
-            <div className="flex items-center justify-center gap-2 py-2">
-              <Checkbox
-                id="transportScreen"
-                checked={transportScreen}
-                onCheckedChange={(v) => setTransportScreen(!!v)}
-              />
-              <label htmlFor="transportScreen" className="text-sm select-none">
-                {trans.transportScreen}
-              </label>
+            <div className="flex flex-col items-center gap-2 py-2">
+              <div className="flex items-center justify-center gap-2">
+                <Checkbox
+                  id="transportScreen"
+                  checked={selectedScreen === "transport"}
+                  onCheckedChange={(v) => setSelectedScreen(v ? "transport" : null)}
+                />
+                <label htmlFor="transportScreen" className="text-sm select-none">
+                  {trans.transportScreen}
+                </label>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Checkbox
+                  id="kittingScreen"
+                  checked={selectedScreen === "kitting"}
+                  onCheckedChange={(v) => setSelectedScreen(v ? "kitting" : null)}
+                />
+                <label htmlFor="kittingScreen" className="text-sm select-none">
+                  Kittingscreen
+                </label>
+              </div>
             </div>
 
             <Button
