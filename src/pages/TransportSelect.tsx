@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { type LanguageKey, t } from "@/lib/i18n";
+import { clearStoredGsiAuth } from "@/lib/gsi-auth-storage";
 import { Checkbox } from "@/components/ui/checkbox";
 import ScreenSpinner from "@/components/ScreenSpinner";
 
@@ -116,6 +117,12 @@ const TransportSelect = () => {
       return;
     }
     navigate(`/transportgroup/${encodeURIComponent(val)}`);
+  };
+
+  const onCancel = () => {
+    clearStoredGsiAuth();
+    setOpen(false);
+    navigate("/");
   };
 
   return (
@@ -325,13 +332,11 @@ const TransportSelect = () => {
                 variant="outline"
                 className="w-full h-10"
                 disabled={submitting}
-                onClick={() => {
-                  setOpen(false);
-                  navigate("/");
-                }}
+                onClick={onCancel}
               >
                 Cancel
               </Button>
+
             </div>
           </DialogFooter>
         </DialogContent>

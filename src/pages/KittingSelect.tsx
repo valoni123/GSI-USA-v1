@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { clearStoredGsiAuth } from "@/lib/gsi-auth-storage";
 import { type LanguageKey } from "@/lib/i18n";
 
 type VehicleItem = {
@@ -51,6 +52,12 @@ const KittingSelect = () => {
     } else {
       setKittingItems([]);
     }
+  };
+
+  const onCancel = () => {
+    clearStoredGsiAuth();
+    setOpen(false);
+    navigate("/");
   };
 
   return (
@@ -175,10 +182,11 @@ const KittingSelect = () => {
                 type="button"
                 variant="outline"
                 className="w-full h-10"
-                onClick={() => navigate("/menu")}
+                onClick={onCancel}
               >
                 Cancel
               </Button>
+
             </div>
           </DialogFooter>
         </DialogContent>
