@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeftRight, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -41,6 +41,7 @@ const PAGE_SIZE = 20;
 
 const KittingOverview = () => {
   const { kittingId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const lang: LanguageKey = ((localStorage.getItem("app.lang") as LanguageKey) || "en");
   const trans = useMemo(() => t(lang), [lang]);
@@ -55,12 +56,17 @@ const KittingOverview = () => {
 
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
+  const [groupInput, setGroupInput] = useState("");
+  const [groupItems, setGroupItems] = useState<GroupItem[]>([]);
+  const [groupQuery, setGroupQuery] = useState("");
+  const [groupDropdownOpen, setGroupDropdownOpen] = useState(false);
+  const [groupDropdownLoading, setGroupDropdownLoading] = useState(false);
   const [kittingInput, setKittingInput] = useState("");
   const [showAllSwitch, setShowAllSwitch] = useState(false);
   const [kittingItems, setKittingItems] = useState<VehicleItem[]>([]);
   const [kittingQuery, setKittingQuery] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [dropdownLoading, setDropdownLoading] = useState(false);
+  const [kittingDropdownOpen, setKittingDropdownOpen] = useState(false);
+  const [kittingDropdownLoading, setKittingDropdownLoading] = useState(false);
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -69,8 +75,18 @@ const KittingOverview = () => {
     return "en-US";
   }, [lang]);
 
-  const selectedKittingId = decodeURIComponent((kittingId || "").toString());
-  const showAll = selectedKittingId.toUpperCase() === "ALL";
+  const selectedKittingId = decodeURIComponent((kittingId || "").toString()).trim();
+  const selectedGroup = (searchParams.get("group") || "").trim();
+  const showAll = searchParams.get("showAll") === "true";
+
+  const filteredGroups = groupItems.filter((item) => {
+    const query = groupQuery.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      item.PlanningGroupTransport.toLowerCase().includes(query) ||
+      (item.Description || "").toLowerCase().includes(query)
+    );
+  });
 
   const filteredKittings = kittingItems.filter((item) => {
     const query = kittingQuery.trim().toLowerCase();
@@ -111,6 +127,18 @@ const KittingOverview = () => {
     setGroupPages(nextPages);
   }, [showAll, grouped]);
 
+  const fetchGroups = async () => {
+    const { data } = await supabase.functions.invoke("ln-transport-groups-list", {
+      body: { language: locale },
+    });
+    if (data && data.ok) {
+      setGroupItems((data.items || []) as GroupItem[]);
+      setGroupQuery("");
+    } else {
+      setGroupItems([]);
+    }
+  };
+
   const fetchKittingVehicles = async () => {
     const { data } = await supabase.functions.invoke("ln-vehicles-list", {
       body: { language: locale, vehicleType: "KITTING" },
@@ -148,6 +176,7 @@ const KittingOverview = () => {
 
     const { data } = await supabase.functions.invoke("ln-transport-planning-list", {
       body: {
+        planningGroup: showAll ? "" : selectedGroup,
         plannedVehicle: showAll ? "" : selectedKittingId,
         showAll,
         language: locale,
@@ -176,7 +205,7 @@ const KittingOverview = () => {
       loadPlannings(true);
     }, 15000);
     return () => clearInterval(intervalId);
-  }, [selectedKittingId, showAll, locale]);
+  }, [selectedKittingId, selectedGroup, showAll, locale]);
 
   const onConfirmSignOut = () => {
     clearStoredGsiAuth();
@@ -185,9 +214,26 @@ const KittingOverview = () => {
     navigate("/");
   };
 
+  const buildOverviewUrl = (group: string, kittingId: string, showAll: boolean) => {
+    if (showAll) return "/kitting/overview?showAll=true";
+
+    const nextGroup = group.trim();
+    const nextKittingId = kittingId.trim();
+    const params = new URLSearchParams();
+    if (nextGroup) params.set("group", nextGroup);
+    const search = params.toString();
+
+    if (nextKittingId) {
+      return `/kitting/overview/${encodeURIComponent(nextKittingId)}${search ? `?${search}` : ""}`;
+    }
+
+    return `/kitting/overview${search ? `?${search}` : ""}`;
+  };
+
   const onConfirmSwitch = async () => {
-    const targetKittingId = kittingInput.trim();
-    if (!showAllSwitch && !targetKittingId) return;
+    const nextGroup = groupInput.trim();
+    const nextKittingId = kittingInput.trim();
+    if (!showAllSwitch && !nextGroup && !nextKittingId) return;
 
     setSwitchOpen(false);
     setError(null);
@@ -197,18 +243,15 @@ const KittingOverview = () => {
     setLoading(true);
     setSwitching(true);
 
-    const nextPath = showAllSwitch
-      ? "/kitting/overview/ALL"
-      : `/kitting/overview/${encodeURIComponent(targetKittingId)}`;
+    const nextUrl = buildOverviewUrl(nextGroup, nextKittingId, showAllSwitch);
+    const currentUrl = buildOverviewUrl(selectedGroup, selectedKittingId, showAll);
 
-    const currentPath = showAll ? "/kitting/overview/ALL" : `/kitting/overview/${encodeURIComponent(selectedKittingId)}`;
-
-    if (nextPath === currentPath) {
+    if (nextUrl === currentUrl) {
       await loadPlannings(false);
       return;
     }
 
-    navigate(nextPath);
+    navigate(nextUrl);
   };
 
   const getTransportTypeClasses = (transportType: string) => {
@@ -233,9 +276,24 @@ const KittingOverview = () => {
         <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center justify-between">
           <div className="font-bold text-lg flex flex-wrap items-center gap-3">
             <span>Kittingscreen Overview</span>
-            <span className="inline-block text-xs text-gray-200 bg-white/10 border border-white/20 rounded-md px-2 py-1">
-              {showAll ? "All Kittings" : `Kitting ID: ${selectedKittingId}`}
-            </span>
+            {showAll ? (
+              <span className="inline-block text-xs text-gray-200 bg-white/10 border border-white/20 rounded-md px-2 py-1">
+                All Kittings
+              </span>
+            ) : (
+              <>
+                {selectedGroup && (
+                  <span className="inline-block text-xs text-gray-200 bg-white/10 border border-white/20 rounded-md px-2 py-1">
+                    {trans.planningGroupTransport}: {selectedGroup}
+                  </span>
+                )}
+                {selectedKittingId && (
+                  <span className="inline-block text-xs text-gray-200 bg-white/10 border border-white/20 rounded-md px-2 py-1">
+                    Kitting ID: {selectedKittingId}
+                  </span>
+                )}
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -244,9 +302,12 @@ const KittingOverview = () => {
               className="bg-red-600 hover:bg-red-700 text-white h-8 px-3"
               onClick={() => {
                 setSwitchOpen(true);
-                setDropdownOpen(false);
-                setKittingInput(showAll ? "" : selectedKittingId);
-                setKittingQuery(showAll ? "" : selectedKittingId);
+                setGroupDropdownOpen(false);
+                setKittingDropdownOpen(false);
+                setGroupInput(selectedGroup);
+                setGroupQuery(selectedGroup);
+                setKittingInput(selectedKittingId);
+                setKittingQuery(selectedKittingId);
                 setShowAllSwitch(showAll);
               }}
             >
@@ -501,48 +562,29 @@ const KittingOverview = () => {
           <div className="space-y-4 relative">
             <div className="relative">
               <FloatingLabelInput
-                id="kittingOverviewId"
-                label="Kitting ID"
-                value={kittingInput}
+                id="kittingPlanningGroup"
+                label={trans.planningGroupTransport}
+                value={groupInput}
                 onChange={(e) => {
-                  setKittingInput(e.target.value);
-                  setKittingQuery(e.target.value);
-                  if (!dropdownOpen) setDropdownOpen(true);
+                  setGroupInput(e.target.value);
+                  setGroupQuery(e.target.value);
+                  if (!groupDropdownOpen) setGroupDropdownOpen(true);
                 }}
                 onFocus={async () => {
                   if (showAllSwitch) return;
-                  setDropdownOpen(true);
-                  if (kittingItems.length === 0 && !dropdownLoading) {
-                    setDropdownLoading(true);
+                  setGroupDropdownOpen(true);
+                  setKittingDropdownOpen(false);
+                  if (groupItems.length === 0 && !groupDropdownLoading) {
+                    setGroupDropdownLoading(true);
                     try {
-                      await fetchKittingVehicles();
+                      await fetchGroups();
                     } finally {
-                      setDropdownLoading(false);
+                      setGroupDropdownLoading(false);
                     }
                   }
                 }}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter") return;
-                  e.preventDefault();
-                  if (showAllSwitch) {
-                    onConfirmSwitch();
-                    return;
-                  }
-                  const query = kittingInput.trim().toLowerCase();
-                  const first = filteredKittings.find((item) =>
-                    item.VehicleID.toLowerCase().includes(query) ||
-                    (item.Description || "").toLowerCase().includes(query)
-                  );
-                  if (first) {
-                    setKittingInput(first.VehicleID);
-                    setKittingQuery(first.VehicleID);
-                    setDropdownOpen(false);
-                    return;
-                  }
-                  onConfirmSwitch();
-                }}
                 onClick={() => {
-                  if (!showAllSwitch) setDropdownOpen((prev) => !prev);
+                  if (!showAllSwitch) setGroupDropdownOpen((prev) => !prev);
                 }}
                 className="pr-10"
                 disabled={showAllSwitch}
@@ -552,13 +594,90 @@ const KittingOverview = () => {
                 className={`absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700 ${showAllSwitch ? "pointer-events-none opacity-40" : ""}`}
                 onClick={async () => {
                   if (showAllSwitch) return;
-                  setDropdownOpen((prev) => !prev);
-                  if (kittingItems.length === 0 && !dropdownLoading) {
-                    setDropdownLoading(true);
+                  setGroupDropdownOpen((prev) => !prev);
+                  setKittingDropdownOpen(false);
+                  if (groupItems.length === 0 && !groupDropdownLoading) {
+                    setGroupDropdownLoading(true);
+                    try {
+                      await fetchGroups();
+                    } finally {
+                      setGroupDropdownLoading(false);
+                    }
+                  }
+                }}
+                aria-label="Toggle planning group list"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+              {groupDropdownOpen && !showAllSwitch && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow max-h-64 overflow-auto">
+                  {groupDropdownLoading ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">Loading…</div>
+                  ) : filteredGroups.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">No entries</div>
+                  ) : (
+                    filteredGroups.map((item, idx) => (
+                      <button
+                        key={`${item.PlanningGroupTransport}-${idx}`}
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0"
+                        onClick={() => {
+                          setGroupInput(item.PlanningGroupTransport);
+                          setGroupQuery(item.PlanningGroupTransport);
+                          setGroupDropdownOpen(false);
+                        }}
+                      >
+                        <div className="text-sm font-medium">{item.PlanningGroupTransport}</div>
+                        <div className="text-xs text-gray-500">{item.Description}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <FloatingLabelInput
+                id="kittingOverviewId"
+                label="Kitting ID"
+                value={kittingInput}
+                onChange={(e) => {
+                  setKittingInput(e.target.value);
+                  setKittingQuery(e.target.value);
+                  if (!kittingDropdownOpen) setKittingDropdownOpen(true);
+                }}
+                onFocus={async () => {
+                  if (showAllSwitch) return;
+                  setKittingDropdownOpen(true);
+                  setGroupDropdownOpen(false);
+                  if (kittingItems.length === 0 && !kittingDropdownLoading) {
+                    setKittingDropdownLoading(true);
                     try {
                       await fetchKittingVehicles();
                     } finally {
-                      setDropdownLoading(false);
+                      setKittingDropdownLoading(false);
+                    }
+                  }
+                }}
+                onClick={() => {
+                  if (!showAllSwitch) setKittingDropdownOpen((prev) => !prev);
+                }}
+                className="pr-10"
+                disabled={showAllSwitch}
+              />
+              <button
+                type="button"
+                className={`absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700 ${showAllSwitch ? "pointer-events-none opacity-40" : ""}`}
+                onClick={async () => {
+                  if (showAllSwitch) return;
+                  setKittingDropdownOpen((prev) => !prev);
+                  setGroupDropdownOpen(false);
+                  if (kittingItems.length === 0 && !kittingDropdownLoading) {
+                    setKittingDropdownLoading(true);
+                    try {
+                      await fetchKittingVehicles();
+                    } finally {
+                      setKittingDropdownLoading(false);
                     }
                   }
                 }}
@@ -566,9 +685,9 @@ const KittingOverview = () => {
               >
                 <Search className="h-5 w-5" />
               </button>
-              {dropdownOpen && !showAllSwitch && (
+              {kittingDropdownOpen && !showAllSwitch && (
                 <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow max-h-64 overflow-auto">
-                  {dropdownLoading ? (
+                  {kittingDropdownLoading ? (
                     <div className="px-3 py-2 text-sm text-gray-500">Loading…</div>
                   ) : filteredKittings.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-gray-500">{trans.noEntries}</div>
@@ -581,7 +700,7 @@ const KittingOverview = () => {
                         onClick={() => {
                           setKittingInput(item.VehicleID);
                           setKittingQuery(item.VehicleID);
-                          setDropdownOpen(false);
+                          setKittingDropdownOpen(false);
                         }}
                       >
                         <div className="text-sm font-medium">{item.VehicleID}</div>
@@ -601,9 +720,12 @@ const KittingOverview = () => {
                   const next = checked === true;
                   setShowAllSwitch(next);
                   if (next) {
+                    setGroupInput("");
+                    setGroupQuery("");
                     setKittingInput("");
                     setKittingQuery("");
-                    setDropdownOpen(false);
+                    setGroupDropdownOpen(false);
+                    setKittingDropdownOpen(false);
                   }
                 }}
               />
@@ -615,7 +737,7 @@ const KittingOverview = () => {
           <DialogFooter>
             <Button
               className="w-full bg-red-600 hover:bg-red-700 text-white"
-              disabled={!showAllSwitch && !kittingInput.trim()}
+              disabled={!showAllSwitch && !groupInput.trim() && !kittingInput.trim()}
               onClick={onConfirmSwitch}
             >
               OK
