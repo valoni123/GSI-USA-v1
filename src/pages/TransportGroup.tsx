@@ -639,6 +639,7 @@ const TransportGroup = () => {
                   if (!vehiclesDropdownOpen) setVehiclesDropdownOpen(true);
                 }}
                 onFocus={async () => {
+                  if (showAllSwitch) return;
                   setVehiclesDropdownOpen(true);
                   setGroupsDropdownOpen(false);
                   if (vehiclesList.length === 0 && !vehiclesDropdownLoading) {
@@ -653,6 +654,10 @@ const TransportGroup = () => {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
+                    if (showAllSwitch) {
+                      onConfirmSwitch();
+                      return;
+                    }
                     const q = vehicleInput.trim().toLowerCase();
                     const first = filteredVehicles.find((v) =>
                       v.VehicleID.toLowerCase().includes(q) ||
@@ -667,13 +672,17 @@ const TransportGroup = () => {
                     onConfirmSwitch();
                   }
                 }}
-                onClick={() => setVehiclesDropdownOpen((o) => !o)}
+                onClick={() => {
+                  if (!showAllSwitch) setVehiclesDropdownOpen((o) => !o);
+                }}
                 className="pr-10"
+                disabled={showAllSwitch}
               />
               <button
                 type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700"
+                className={`absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700 ${showAllSwitch ? "pointer-events-none opacity-40" : ""}`}
                 onClick={async () => {
+                  if (showAllSwitch) return;
                   setVehiclesDropdownOpen((o) => !o);
                   setGroupsDropdownOpen(false);
                   if (vehiclesList.length === 0 && !vehiclesDropdownLoading) {
@@ -689,7 +698,7 @@ const TransportGroup = () => {
               >
                 <Search className="h-5 w-5" />
               </button>
-              {vehiclesDropdownOpen && (
+              {vehiclesDropdownOpen && !showAllSwitch && (
                 <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow max-h-64 overflow-auto">
                   {vehiclesDropdownLoading ? (
                     <div className="px-3 py-2 text-sm text-gray-500">Loading…</div>
@@ -723,7 +732,14 @@ const TransportGroup = () => {
                 onCheckedChange={(checked) => {
                   const next = checked === true;
                   setShowAllSwitch(next);
-                  if (next) setGroupsDropdownOpen(false);
+                  if (next) {
+                    setGroupInput("");
+                    setGroupsQuery("");
+                    setVehicleInput("");
+                    setVehiclesQuery("");
+                    setGroupsDropdownOpen(false);
+                    setVehiclesDropdownOpen(false);
+                  }
                 }}
               />
               <label htmlFor="showAllTransportGroups" className="text-sm select-none cursor-pointer">

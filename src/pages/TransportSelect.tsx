@@ -227,16 +227,16 @@ const TransportSelect = () => {
                   setVehicleQuery(e.target.value);
                 }}
                 className="pr-12"
-                disabled={submitting}
+                disabled={showAll || submitting}
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className={`absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 text-gray-700 hover:text-gray-900 ${submitting ? "pointer-events-none opacity-40" : ""}`}
+                className={`absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 text-gray-700 hover:text-gray-900 ${showAll || submitting ? "pointer-events-none opacity-40" : ""}`}
                 aria-label="Search vehicles"
                 onClick={async () => {
-                  if (submitting) return;
+                  if (showAll || submitting) return;
                   if (!vehicleDropdownOpen) {
                     setVehicleDropdownOpen(true);
                     setGroupDropdownOpen(false);
@@ -251,7 +251,7 @@ const TransportSelect = () => {
                 <Search className="h-5 w-5" />
               </Button>
 
-              {vehicleDropdownOpen && !submitting && (
+              {vehicleDropdownOpen && !showAll && !submitting && (
                 <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-2 z-50">
                   <div className="space-y-2">
                     <Input
@@ -294,7 +294,14 @@ const TransportSelect = () => {
                 onCheckedChange={(val) => {
                   const next = Boolean(val);
                   setShowAll(next);
-                  if (next) setGroupDropdownOpen(false);
+                  if (next) {
+                    setGroup("");
+                    setGroupQuery("");
+                    setVehicleId("");
+                    setVehicleQuery("");
+                    setGroupDropdownOpen(false);
+                    setVehicleDropdownOpen(false);
+                  }
                 }}
                 disabled={submitting}
               />
