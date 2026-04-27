@@ -185,6 +185,10 @@ const TransportsList = () => {
     setListLoading(false);
   };
 
+  const setReturnRoute = () => {
+    sessionStorage.setItem("transport.session.returnRoute", "/menu/transports/list");
+  };
+
   const onGetClick = async () => {
     if (!selectedVehicleId || assigning || !canLoadTransport) return;
 
@@ -228,6 +232,7 @@ const TransportsList = () => {
     if (!prefillValue) return;
 
     localStorage.setItem("vehicle.id", selectedVehicleId);
+    setReturnRoute();
     sessionStorage.setItem("transport.load.prefill", prefillValue);
     sessionStorage.setItem("transport.load.selected-item", JSON.stringify({
       TransportID: item.TransportID,
@@ -468,11 +473,15 @@ const TransportsList = () => {
             className={canUnloadTransport
               ? "h-8 bg-black px-4 text-sm font-bold uppercase text-white hover:bg-gray-800 disabled:cursor-default disabled:opacity-50 disabled:hover:bg-black"
               : "h-8 bg-gray-300 px-4 text-sm font-bold uppercase text-gray-500 hover:bg-gray-300"}
-            onClick={() => navigate("/menu/transport/unload")}
+            onClick={() => {
+              setReturnRoute();
+              navigate("/menu/transport/unload");
+            }}
             disabled={loadedCount === 0 || !canUnloadTransport}
           >
             {trans.unloadAction}
           </Button>
+
         </div>
 
         {items.length === 0 ? (

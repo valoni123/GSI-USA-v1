@@ -130,6 +130,7 @@ const TransportLoad = () => {
   }, [lang]);
   const [pendingPrefill, setPendingPrefill] = useState<string | null>(null);
   const openedFromTransportsList = sessionStorage.getItem("transport.load.source") === "transports-list";
+  const sessionReturnRoute = sessionStorage.getItem("transport.session.returnRoute") || "/menu/transports/list";
   const transportRemark = (result?.Remark || "").trim();
 
   const matchesTransportLine = (
@@ -172,7 +173,11 @@ const TransportLoad = () => {
   const goBackFromLoad = () => {
     if (openedFromTransportsList) {
       sessionStorage.removeItem("transport.load.source");
-      navigate("/menu/transports/list");
+      navigate(sessionReturnRoute);
+      return;
+    }
+    if (sessionStorage.getItem("transport.session.returnRoute")) {
+      navigate(sessionReturnRoute);
       return;
     }
     navigate("/menu/transport");
@@ -886,7 +891,7 @@ const TransportLoad = () => {
 
     if (openedFromTransportsList) {
       sessionStorage.removeItem("transport.load.source");
-      navigate("/menu/transports/list");
+      navigate(sessionReturnRoute);
       return;
     }
   };

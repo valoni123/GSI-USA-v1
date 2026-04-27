@@ -77,6 +77,7 @@ const TransportUnload = () => {
   // NEW: map HU → Quantity and Unit
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [units, setUnits] = useState<Record<string, string>>({});
+  const sessionReturnRoute = sessionStorage.getItem("transport.session.returnRoute") || "/menu/transports/list";
 
   const locale = useMemo(() => {
     if (lang === "de") return "de-DE";
@@ -316,7 +317,7 @@ const TransportUnload = () => {
       await fetchLoaded();
       const nextCount = await fetchCount(); // refresh via REST after UNLOAD
       if (nextCount === 0) {
-        navigate("/menu/transports/list");
+        navigate(sessionReturnRoute);
         return;
       }
     }
@@ -356,7 +357,7 @@ const TransportUnload = () => {
         await fetchLoaded();
         const nextCount = await fetchCount();
         if (nextCount === 0) {
-          navigate("/menu/transports/list");
+          navigate(sessionReturnRoute);
           return;
         }
       }

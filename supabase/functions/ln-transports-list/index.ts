@@ -37,7 +37,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { vehicleId?: string; language?: string } = {};
+    let body: { vehicleId?: string; language?: string; transportType?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -46,6 +46,7 @@ serve(async (req) => {
 
     const vehicleId = (body.vehicleId || "").trim();
     const language = body.language || "en-US";
+    const transportType = (body.transportType || "AisleOut").trim() || "AisleOut";
     if (!vehicleId) {
       return json({ ok: false, error: "missing_vehicle" }, 200);
     }
@@ -109,8 +110,10 @@ serve(async (req) => {
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
     const escapedVehicle = vehicleId.replace(/'/g, "''");
-    const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq '' and TransportType eq txgwi.TransportPlanning.TransportType'AisleOut'`;
-    const selectFields = "TransportID,TransportType,Item,HandlingUnit,LocationFrom,LocationTo,Remark";
+    const escapedTransportType = transportType.replace(/'/g, "''");
+    const filter = `PlannedVehicle eq '${escapedVehicle}' and VehicleID eq '' and TransportType eq txgwi.TransportPlanning.TransportType'${escapedTransportType}'`;
+    const selectFields = "TransportID,RunNumber,TransportType,Item,HandlingUnit,Warehouse,LocationFrom,LocationTo,Remark,OrderedQuantity";
+
     const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=${encodeURIComponent(selectFields)}`;
 
     const headers = {
@@ -149,8 +152,9 @@ serve(async (req) => {
 
     const items = all.map((v: any) => ({
       TransportID: v?.TransportID ?? "",
-      RunNumber: "",
+      RunNumber: v?.RunNumber ?? "",
       TransportType: v?.TransportType ?? "",
+
       Item: v?.Item ?? "",
       HandlingUnit: v?.HandlingUnit ?? "",
       Warehouse: v?.Warehouse ?? "",

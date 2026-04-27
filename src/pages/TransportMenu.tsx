@@ -371,11 +371,14 @@ const TransportMenu = () => {
 
             onClick={() => {
               if (tile.key === "load") {
+                sessionStorage.removeItem("transport.session.returnRoute");
                 navigate("/menu/transport/load");
               }
               if (tile.key === "unload") {
+                sessionStorage.removeItem("transport.session.returnRoute");
                 navigate("/menu/transport/unload");
               }
+
             }}
           >
             <div className="h-14 w-14 rounded-md border-2 border-red-700 flex items-center justify-center overflow-hidden">
