@@ -37,7 +37,15 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { planningGroup?: string; vehicleId?: string; language?: string; company?: string; showAll?: boolean } = {};
+    let body: {
+      planningGroup?: string;
+      vehicleId?: string;
+      plannedVehicle?: string;
+      transportType?: string;
+      language?: string;
+      company?: string;
+      showAll?: boolean;
+    } = {};
     try {
       body = await req.json();
     } catch {
@@ -45,7 +53,8 @@ serve(async (req) => {
     }
 
     const planningGroup = (body.planningGroup || "").trim();
-    const vehicleId = (body.vehicleId || "").trim();
+    const plannedVehicle = (body.plannedVehicle || body.vehicleId || "").trim();
+    const transportType = (body.transportType || "AisleOut").trim();
     const language = body.language || "en-US";
     const company = await (async () => {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -58,7 +67,7 @@ serve(async (req) => {
     })();
     const showAll = Boolean(body.showAll);
 
-    if (!showAll && !planningGroup && !vehicleId) {
+    if (!showAll && !planningGroup && !plannedVehicle) {
       return json({ ok: false, error: "missing_filter" }, 200);
     }
 
@@ -118,15 +127,16 @@ serve(async (req) => {
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.TransportPlanning/GWITransportPlannings`;
-    const escapedVehicle = vehicleId.replace(/'/g, "''");
+    const escapedTransportType = transportType.replace(/'/g, "''");
+    const escapedPlannedVehicle = plannedVehicle.replace(/'/g, "''");
     const escapedGroup = planningGroup.replace(/'/g, "''");
 
-    const filterParts = ["TransportType eq txgwi.TransportPlanning.TransportType'AisleOut'"];
+    const filterParts = [`TransportType eq txgwi.TransportPlanning.TransportType'${escapedTransportType}'`];
     if (!showAll && planningGroup) {
       filterParts.push(`PlanningGroupTransport eq '${escapedGroup}'`);
     }
-    if (!showAll && vehicleId) {
-      filterParts.push(`PlannedVehicle eq '${escapedVehicle}'`);
+    if (!showAll && plannedVehicle) {
+      filterParts.push(`PlannedVehicle eq '${escapedPlannedVehicle}'`);
     }
     const filter = filterParts.join(" and ");
     const firstUrl = `${base}${path}?$filter=${encodeURIComponent(filter)}&$count=true&$select=*`;

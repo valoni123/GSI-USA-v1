@@ -60,6 +60,16 @@ const KittingSelect = () => {
     navigate("/");
   };
 
+  const onConfirm = () => {
+    const selectedKittingId = kittingId.trim();
+    if (showAllKittings) {
+      navigate("/kitting/overview/ALL");
+      return;
+    }
+    if (!selectedKittingId) return;
+    navigate(`/kitting/overview/${encodeURIComponent(selectedKittingId)}`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Dialog
@@ -174,7 +184,8 @@ const KittingSelect = () => {
             <div className="w-full space-y-2">
               <Button
                 className="w-full h-10 bg-red-600 hover:bg-red-700 text-white"
-                onClick={() => navigate("/menu")}
+                onClick={onConfirm}
+                disabled={!showAllKittings && !kittingId.trim()}
               >
                 OK
               </Button>

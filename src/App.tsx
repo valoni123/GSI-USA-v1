@@ -34,6 +34,7 @@ import TransportUnload from "./pages/TransportUnload";
 import TransportSelect from "./pages/TransportSelect";
 import TransportGroup from "./pages/TransportGroup";
 import KittingSelect from "./pages/KittingSelect";
+import KittingOverview from "./pages/KittingOverview";
 import TransportsSelect from "./pages/TransportsSelect";
 
 import TransportsList from "./pages/TransportsList";
@@ -126,6 +127,7 @@ const App = () => (
               <Route path="/menu/transports/list" element={<TransportsList />} />
             </Route>
             <Route path="/kitting/select" element={<KittingSelect />} />
+            <Route path="/kitting/overview/:kittingId" element={<KittingOverview />} />
             <Route element={<PermissionRoute allow={(permissions) => hasPermission(permissions, "trlo")} />}>
               <Route path="/menu/transport/load" element={<TransportLoad />} />
               <Route path="/transport/select" element={<TransportSelect />} />
