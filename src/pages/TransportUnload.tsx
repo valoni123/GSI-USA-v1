@@ -359,14 +359,10 @@ const TransportUnload = () => {
 
           <div className="flex flex-col items-center flex-1">
             <div className="text-center flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => navigate("/menu/transport")}
-                className="rounded-md bg-gray-200 px-4 py-1 font-bold text-lg tracking-wide text-black hover:opacity-80"
-
-              >
+              <div className="rounded-md bg-gray-200 px-4 py-1 font-bold text-lg tracking-wide text-black">
                 {trans.transportUnload}
-              </button>
+              </div>
+
               <span className="bg-red-700 text-white rounded-md h-5 px-2 min-w-[20px] inline-flex items-center justify-center text-xs font-bold">
 
                 {loadedCount}
