@@ -195,7 +195,6 @@ const TransportsList = () => {
         plannedVehicle: selectedVehicleId,
         planningType: "AisleOut",
         language: locale,
-        company: "1100",
       },
       headers: {
         Authorization: getGsiSessionAuthorizationHeader(),
