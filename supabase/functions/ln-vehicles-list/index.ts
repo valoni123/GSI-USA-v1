@@ -29,7 +29,7 @@ serve(async (req) => {
       return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
     }
 
-    let body: { language?: string } = {};
+    let body: { language?: string; vehicleType?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -37,6 +37,7 @@ serve(async (req) => {
     }
 
     const language = body.language || "en-US";
+    const vehicleType = (body.vehicleType || "").trim();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -89,7 +90,12 @@ serve(async (req) => {
 
     const base = iu.endsWith("/") ? iu.slice(0, -1) : iu;
     const path = `/${ti}/LN/lnapi/odata/txgwi.Vehicles/Vehicles`;
-    const url = `${base}${path}?$select=VehicleID,Description`;
+    const params = new URLSearchParams();
+    params.set("$select", "VehicleID,Description");
+    if (vehicleType) {
+      params.set("$filter", `VehicleType eq '${vehicleType.replace(/'/g, "''")}'`);
+    }
+    const url = `${base}${path}?${params.toString()}`;
 
     const odataRes = await fetch(url, {
       method: "GET",
