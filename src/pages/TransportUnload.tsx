@@ -217,6 +217,7 @@ const TransportUnload = () => {
       employee: employeeCode,
       language: locale,
       company: "1100",
+      unloaded: "Yes",
     };
 
     // For item-only moves, include item and OrderedQuantity
