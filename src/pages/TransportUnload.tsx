@@ -219,6 +219,7 @@ const TransportUnload = () => {
       employee: employeeCode,
       language: locale,
       company: "1100",
+      transportId: (it.TransportID || "").trim(),
       unloaded: "Yes",
     };
 
