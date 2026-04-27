@@ -292,6 +292,7 @@ const TransportsList = () => {
       toLocation: targetLocation,
       employee: employeeCode,
       language: locale,
+      movedBack: "Yes",
     };
 
     if (!currentItem.HandlingUnit) {

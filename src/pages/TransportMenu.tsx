@@ -206,11 +206,13 @@ const TransportMenu = () => {
         toLocation: currentItem.LocationFrom,
         employee: employeeCode,
         language: "en-US",
+        movedBack: "Yes",
       },
       headers: {
         Authorization: getGsiSessionAuthorizationHeader(),
       },
     });
+
     if (moveBackRequestIdRef.current !== requestId) {
       dismissToast(tid as unknown as string);
       setMovingBackMap((m) => ({ ...m, [key]: false }));
